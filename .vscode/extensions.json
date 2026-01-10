@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    "meraymond.idris-vscode",
+    "ziglang.vscode-zig",
+    "denoland.vscode-deno",
+    "rust-lang.rust-analyzer",
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "golang.go",
+    "asciidoctor.asciidoctor-vscode",
+    "editorconfig.editorconfig",
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml",
+    "streetsidesoftware.code-spell-checker",
+    "github.vscode-github-actions",
+    "ms-vscode-remote.remote-containers"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.vscode-typescript-next"
+  ]
+}

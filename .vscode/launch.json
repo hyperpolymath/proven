@@ -1,0 +1,49 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Test Bindings",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["bindings/python/tests/", "-v"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/bindings/python"
+      }
+    },
+    {
+      "name": "Python: Run Example",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/examples/python/example.py",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/bindings/python",
+        "LD_LIBRARY_PATH": "${workspaceFolder}/zig/zig-out/lib"
+      }
+    },
+    {
+      "name": "Zig: Debug Tests",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/zig/zig-out/bin/test",
+      "cwd": "${workspaceFolder}/zig",
+      "preLaunchTask": "Test Zig"
+    },
+    {
+      "name": "Deno: Run Example",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "deno",
+      "runtimeArgs": [
+        "run",
+        "--allow-ffi",
+        "--allow-read",
+        "--unstable-ffi"
+      ],
+      "program": "${workspaceFolder}/examples/deno/example.ts",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

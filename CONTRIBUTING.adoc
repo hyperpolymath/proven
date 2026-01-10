@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+= Contributing to bulletproof-core
+
+Thank you for your interest in contributing!
+
+== Code of Conduct
+
+This project follows the https://www.contributor-covenant.org/version/2/1/code_of_conduct/[Contributor Covenant v2.1].
+
+== How to Contribute
+
+=== Reporting Bugs
+
+1. Check existing issues first
+2. Use the bug report template
+3. Include reproduction steps
+4. Specify your environment (OS, language versions)
+
+=== Suggesting Features
+
+1. Open a discussion first
+2. Explain the use case
+3. Consider backward compatibility
+
+=== Pull Requests
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`zig build test`)
+5. Commit with conventional commits (`feat:`, `fix:`, `docs:`, etc.)
+6. Push and open a PR
+
+== Development Setup
+
+[source,bash]
+----
+# Clone
+git clone https://github.com/hyperpolymath/bulletproof-core
+cd bulletproof-core
+
+# Install Idris 2 (via pack)
+pack install-deps
+
+# Install Zig
+# See: https://ziglang.org/download/
+
+# Build
+zig build
+
+# Test
+zig build test
+----
+
+== Code Style
+
+=== Idris 2
+
+- 2-space indentation
+- Explicit type signatures for all exports
+- Document with `|||` doc comments
+- Prove properties where practical
+
+=== Zig
+
+- 4-space indentation
+- Use `zig fmt`
+- Prefer `comptime` verification
+- Document public APIs
+
+=== Python Bindings
+
+- Use Black formatter
+- Type hints required
+- Docstrings for all public functions
+
+== Commit Messages
+
+Follow https://www.conventionalcommits.org/[Conventional Commits]:
+
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation only
+- `style:` Formatting, no code change
+- `refactor:` Code restructuring
+- `test:` Adding tests
+- `chore:` Maintenance
+
+== License
+
+By contributing, you agree that your contributions will be licensed under AGPL-3.0-or-later.

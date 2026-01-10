@@ -1,0 +1,91 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Idris 2 → C",
+      "type": "shell",
+      "command": "idris2",
+      "args": ["--codegen", "c", "idris/Main.idr", "-o", "build/"],
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Build Zig Library",
+      "type": "shell",
+      "command": "zig",
+      "args": ["build", "-Doptimize=ReleaseSafe"],
+      "group": "build",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/zig"
+      }
+    },
+    {
+      "label": "Build All",
+      "dependsOn": ["Build Idris 2 → C", "Build Zig Library"],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test Idris 2",
+      "type": "shell",
+      "command": "pack",
+      "args": ["test"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test Zig",
+      "type": "shell",
+      "command": "zig",
+      "args": ["build", "test"],
+      "group": "test",
+      "options": {
+        "cwd": "${workspaceFolder}/zig"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test Python Bindings",
+      "type": "shell",
+      "command": "python",
+      "args": ["-m", "pytest", "bindings/python/tests/"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test All",
+      "dependsOn": ["Test Idris 2", "Test Zig", "Test Python Bindings"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "rm",
+      "args": ["-rf", "build/", "zig/zig-out/", "zig/zig-cache/"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Typecheck Idris 2",
+      "type": "shell",
+      "command": "idris2",
+      "args": ["--typecheck", "${file}"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    }
+  ]
+}

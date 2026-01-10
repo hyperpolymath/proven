@@ -1,0 +1,63 @@
+{
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+  "editor.tabSize": 2,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+
+  "files.associations": {
+    "*.idr": "idris2",
+    "*.ipkg": "idris2",
+    "*.scm": "scheme"
+  },
+
+  "idris2-lsp.path": "idris2-lsp",
+
+  "zig.path": "zig",
+  "zig.zls.path": "zls",
+  "zig.formattingProvider": "zls",
+
+  "[idris2]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+
+  "[zig]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true
+  },
+
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+
+  "[rust]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  },
+
+  "[javascript][typescript]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+
+  "deno.enable": true,
+  "deno.lint": true,
+  "deno.unstable": true,
+
+  "search.exclude": {
+    "**/build": true,
+    "**/zig-out": true,
+    "**/zig-cache": true,
+    "**/.zig-cache": true,
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/target": true
+  }
+}

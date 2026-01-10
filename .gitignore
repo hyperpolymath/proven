@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Idris 2
+build/
+*.ibc
+*.ttc
+*.ttm
+.idris2/
+
+# Zig
+zig-out/
+zig-cache/
+.zig-cache/
+
+# C
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+dist/
+.eggs/
+*.egg
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+
+# Rust
+target/
+Cargo.lock
+
+# JavaScript/Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.deno/
+
+# Go
+*.exe
+*.exe~
+*.test
+*.out
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+
+# Documentation
+docs/_build/
+
+# Temporary
+*.tmp
+*.temp
+*.log
