@@ -44,9 +44,35 @@ hashed = SafePassword.hash(pwd)  # Argon2id, timing-safe, correct parameters
 
 == What "Mathematically Proven" Means
 
-This isn't marketing fluff.
+This isn't marketing fluff. Here's what makes bulletproof-core different from regular libraries.
 
 Every function in `bulletproof-core` is written in https://idris-lang.org/[Idris 2], a language with *dependent types*. The compiler literally proves your code is correct before it runs.
+
+=== Understanding Dependent Types (In 2 Minutes)
+
+In most languages, types are separate from values:
+
+[source,python]
+----
+def get_first(items: list) -> int:
+    return items[0]  # Crashes if empty!
+----
+
+The type system has no idea if the list is empty. It just trusts you.
+
+In Idris 2, types can depend on values:
+
+[source,idris]
+----
+-- This type signature REQUIRES a non-empty list
+getFirst : (items : List Int) -> {auto prf : NonEmpty items} -> Int
+----
+
+The `{auto prf : NonEmpty items}` part means: "The caller must provide proof that `items` is non-empty." If you try to call this with an empty list, **the code won't compile**.
+
+This is the core insight: instead of runtime crashes, we get compile-time errors.
+
+=== How This Translates to Your Code
 
 |===
 | Regular Code | Bulletproof Code
@@ -61,7 +87,15 @@ Every function in `bulletproof-core` is written in https://idris-lang.org/[Idris
 | "A theorem prover verified it"
 |===
 
-**You don't need to understand this.** Just use the library. We did the math.
+=== Want to Learn More?
+
+The proofs are available in `src/Bulletproof/` and we encourage you to explore them! Understanding dependent types is a valuable skill. Here are some resources:
+
+- https://idris2.readthedocs.io/en/latest/tutorial/index.html[Idris 2 Tutorial] — Official introduction to dependent types
+- https://www.youtube.com/watch?v=mOtKD7ml0NU[Type-Driven Development with Idris] — Edwin Brady's talk
+- link:docs/PROOFS.md[Our proof documentation] — Explains each proof in this library
+
+That said, you can absolutely use the library without understanding the proofs—the whole point of formal verification is that the compiler has already checked correctness for you.
 
 == Modules
 
@@ -188,7 +222,7 @@ SafeJson.parse("not json")  # Error object with details, not exception
 | Open redirect attacks
 
 | `normalize(url)`
-| URL normalization
+| URL normalisation
 | URL bypass attacks
 
 | `get_path_safe(url)`
@@ -228,7 +262,7 @@ SafeUrl.is_safe_redirect(
 | Injection via email fields
 
 | `normalize(s)`
-| Lowercase, trim, normalize
+| Lowercase, trim, normalise
 | Case sensitivity bugs
 |===
 
@@ -242,7 +276,7 @@ SafeEmail.is_valid("user@localhost")    # True (valid per RFC)
 
 email = SafeEmail.parse("User@Example.COM")
 email.local   # "User"
-email.domain  # "example.com" (normalized)
+email.domain  # "example.com" (normalised)
 ----
 
 === SafePath — Filesystem Access That Can't Escape
@@ -352,13 +386,6 @@ SafePassword.is_strong("c0rr3ct-h0rs3-b4tt3ry-st4pl3")  # True
 
 == Installation
 
-=== Python
-
-[source,bash]
-----
-pip install bulletproof-core
-----
-
 === Rust
 
 [source,bash]
@@ -366,19 +393,35 @@ pip install bulletproof-core
 cargo add bulletproof-core
 ----
 
-=== JavaScript / Node.js
+=== Deno / JavaScript
 
-[source,bash]
-----
-npm install bulletproof-core
-----
-
-=== Deno
-
+**Deno (recommended):**
 [source,typescript]
 ----
 import { SafeMath, SafeJson } from "jsr:@bulletproof/core";
 ----
+
+**Node.js:**
+[source,bash]
+----
+npx jsr add @bulletproof/core
+----
+
+=== Python
+
+**Using pipx (recommended for isolated environments):**
+[source,bash]
+----
+pipx install bulletproof-core
+----
+
+**Using pip:**
+[source,bash]
+----
+pip install bulletproof-core
+----
+
+TIP: `pipx` installs packages in isolated virtual environments, preventing dependency conflicts and improving security. Install it with `pip install pipx` if you don't have it.
 
 === Go
 
@@ -425,11 +468,11 @@ go get github.com/hyperpolymath/bulletproof-core
 
 **Q: Is this slow?**
 
-No. Idris 2 compiles to C, then Zig optimizes it. Benchmarks show performance within 5-15% of hand-written C for most operations. Crypto functions are often faster because they use constant-time implementations that avoid branch misprediction.
+No. Idris 2 compiles to C, then Zig optimises it. Benchmarks show performance within 5-15% of hand-written C for most operations. Crypto functions are often faster because they use constant-time implementations that avoid branch misprediction.
 
 **Q: Do I need to learn Idris 2?**
 
-No. Just use the Python/Rust/JS bindings like any other library.
+Not required, but encouraged! The library bindings work like any standard library in your language. However, if you're interested in formal verification, understanding the Idris 2 source code will help you appreciate why the guarantees are so strong. See the "Want to Learn More?" section above for resources.
 
 **Q: What if I find a bug?**
 
