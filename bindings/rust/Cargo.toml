@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+[package]
+name = "proven"
+version = "0.1.0"
+edition = "2021"
+authors = ["Hyperpolymath <hyperpolymath@proton.me>"]
+description = "Safe, formally verified library for math, crypto, parsing, and validation - Rust bindings"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/hyperpolymath/proven"
+documentation = "https://docs.rs/proven"
+readme = "README.md"
+keywords = ["safety", "verification", "crypto", "parsing", "ffi"]
+categories = ["development-tools", "api-bindings", "cryptography"]
+
+[lib]
+name = "proven"
+crate-type = ["lib"]
+
+[dependencies]
+thiserror = "2"
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+
+# No build dependencies needed - pure Rust implementation
+
+[dev-dependencies]
+proptest = "1"
+criterion = "0.5"
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json"]
+
+[[bench]]
+name = "safe_math"
+harness = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

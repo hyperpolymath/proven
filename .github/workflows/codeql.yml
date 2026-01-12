@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: CodeQL
+
+permissions: read-all
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '30 5 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Idris 2 not supported by CodeQL
+        # Zig not supported by CodeQL
+        # Python bindings are thin wrappers, scan actions for workflow security
+        language: ['actions']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@a4784f2dad6682d68cce8299ef20b1ca931bbdfb # v4
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@a4784f2dad6682d68cce8299ef20b1ca931bbdfb # v4
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@a4784f2dad6682d68cce8299ef20b1ca931bbdfb # v4
+        with:
+          category: "/language:${{ matrix.language }}"

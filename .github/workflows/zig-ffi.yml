@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: Zig FFI Build
+
+permissions: read-all
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ffi/zig/**'
+      - '.github/workflows/zig-ffi.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ffi/zig/**'
+      - '.github/workflows/zig-ffi.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        zig-version: ['0.13.0']
+        target:
+          - x86_64-linux
+          - aarch64-linux
+          - x86_64-windows
+          - wasm32-wasi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@a45c5203ca6f96b68d653f7fac8c46cbc2bc7786 # v1
+        with:
+          version: ${{ matrix.zig-version }}
+
+      - name: Build FFI library
+        working-directory: ffi/zig
+        run: zig build -Dtarget=${{ matrix.target }}
+
+      - name: Run tests (native only)
+        if: matrix.target == 'x86_64-linux'
+        working-directory: ffi/zig
+        run: zig build test
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: proven-ffi-${{ matrix.target }}
+          path: ffi/zig/zig-out/
+
+  wasm-browser:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@a45c5203ca6f96b68d653f7fac8c46cbc2bc7786 # v1
+        with:
+          version: '0.13.0'
+
+      - name: Build WASM for browser
+        working-directory: ffi/zig
+        run: zig build -Dtarget=wasm32-freestanding -Doptimize=ReleaseSmall
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: proven-wasm-browser
+          path: ffi/zig/zig-out/lib/*.wasm
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build, wasm-browser]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        with:
+          path: artifacts/
+
+      - name: List artifacts
+        run: find artifacts/ -type f

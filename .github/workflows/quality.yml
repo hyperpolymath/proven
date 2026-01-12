@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: Quality Checks
+
+permissions: read-all
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog scan
+        uses: trufflesecurity/trufflehog@8a8ef8526528d8a4ff3e2c90be08e25ef8efbd9b # v3
+        with:
+          extra_args: --only-verified
+
+  editorconfig:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: EditorConfig check
+        uses: editorconfig-checker/action-editorconfig-checker@9f8f6065f4db902c0c56cafa67cea18b3ebbb680 # main
+
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: REUSE compliance check
+        run: |
+          pip install reuse
+          reuse lint || true
+
+  zig-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@a45c5203ca6f96b68d653f7fac8c46cbc2bc7786 # v1
+        with:
+          version: '0.13.0'
+
+      - name: Check Zig formatting
+        run: |
+          if [ -d "ffi/zig/src" ]; then
+            zig fmt --check ffi/zig/src/
+          fi

@@ -798,46 +798,6 @@ export fn proven_version_patch() u32 {
 }
 
 // ============================================================================
-// Type Bridge: Convert between Proven and idris2-zig-ffi types
-// ============================================================================
-
-/// Convert ProvenStatus to C ABI error code
-pub fn statusToCError(status: ProvenStatus) u32 {
-    return switch (status) {
-        .ok => c_abi.ErrorCode.OK,
-        .err_null_pointer => c_abi.ErrorCode.INVALID_POINTER,
-        .err_invalid_argument => c_abi.ErrorCode.INVALID_ARGUMENT,
-        .err_overflow => c_abi.ErrorCode.OVERFLOW,
-        .err_underflow => c_abi.ErrorCode.UNDERFLOW,
-        .err_division_by_zero => c_abi.ErrorCode.DIVISION_BY_ZERO,
-        .err_parse_failure => c_abi.ErrorCode.PARSE_ERROR,
-        .err_validation_failed => c_abi.ErrorCode.INVALID_INPUT,
-        .err_out_of_bounds => c_abi.ErrorCode.INVALID_ARGUMENT,
-        .err_encoding_error => c_abi.ErrorCode.PARSE_ERROR,
-        .err_allocation_failed => c_abi.ErrorCode.OUT_OF_MEMORY,
-        .err_not_implemented => c_abi.ErrorCode.UNKNOWN,
-    };
-}
-
-/// Convert IntResult to C ABI CResult
-pub fn intResultToCResult(result: IntResult) c_abi.CResult {
-    if (result.status == .ok) {
-        return c_abi.CResult.ok(.{ .int = result.value });
-    } else {
-        return c_abi.CResult.err(statusToCError(result.status), "");
-    }
-}
-
-/// Convert BoolResult to C ABI CResult
-pub fn boolResultToCResult(result: BoolResult) c_abi.CResult {
-    if (result.status == .ok) {
-        return c_abi.CResult.ok(.{ .boolean = result.value });
-    } else {
-        return c_abi.CResult.err(statusToCError(result.status), "");
-    }
-}
-
-// ============================================================================
 // Tests
 // ============================================================================
 
