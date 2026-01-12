@@ -1,0 +1,47 @@
+{
+  "name": "proven",
+  "version": "0.3.0",
+  "description": "Code that cannot crash - verified safety functions from Idris 2",
+  "type": "module",
+  "main": "./dist/proven.js",
+  "module": "./dist/proven.js",
+  "types": "./dist/proven.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/proven.js",
+      "types": "./dist/proven.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:wasm": "cd ../../ffi/zig && zig build wasm",
+    "test": "node --test dist/*.test.js"
+  },
+  "keywords": [
+    "safety",
+    "verified",
+    "idris",
+    "wasm",
+    "crash-free",
+    "math",
+    "crypto",
+    "validation"
+  ],
+  "author": "Hyperpolymath <hyperpolymath@proton.me>",
+  "license": "PMPL-1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperpolymath/proven.git"
+  },
+  "homepage": "https://github.com/hyperpolymath/proven#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
