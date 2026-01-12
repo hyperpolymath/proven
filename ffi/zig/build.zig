@@ -112,8 +112,11 @@ pub fn build(b: *std.Build) void {
     all_wasm_step.dependOn(wasm_browser_step);
     all_wasm_step.dependOn(wasm_wasi_step);
 
-    // Header file installation
-    b.installFile("include/proven.h", "include/proven.h");
+    // Header file installation (optional - for C/C++ consumers only)
+    // The Zig library exposes a C ABI, but consumers using Zig, Rust (via zig-cc),
+    // or other modern FFI mechanisms don't need a header file.
+    // Uncomment if you need C header for legacy interop:
+    // b.installFile("include/proven.h", "include/proven.h");
 
     // Tests
     const main_tests = b.addTest(.{

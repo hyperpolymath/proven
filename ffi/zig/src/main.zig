@@ -922,7 +922,8 @@ export fn proven_header_render(
 }
 
 /// Build Content-Security-Policy header value from directives
-export fn proven_header_build_csp(directives_json: ?[*]const u8, json_len: usize) StringResult {
+export fn proven_header_build_csp(directives_json: ?[*]const u8, _json_len: usize) StringResult {
+    _ = _json_len; // Will be used when JSON parsing is implemented
     if (directives_json == null) {
         return .{ .status = .err_null_pointer, .value = null, .length = 0 };
     }
