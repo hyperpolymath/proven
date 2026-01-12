@@ -60,6 +60,17 @@ modules = Proven
         , Proven.SafeNetwork.CIDR
         , Proven.SafeNetwork.Port
         , Proven.SafeNetwork.Proofs
+        , Proven.SafeHtml
+        , Proven.SafeHtml.Escape
+        , Proven.SafeHtml.Builder
+        , Proven.SafeHtml.Sanitize
+        , Proven.SafeHtml.Proofs
+        , Proven.SafeRegex
+        , Proven.SafeRegex.Types
+        , Proven.SafeRegex.Safety
+        , Proven.SafeRegex.Parser
+        , Proven.SafeRegex.Matcher
+        , Proven.SafeRegex.Proofs
         , Proven.FFI
         , Proven.FFI.Types
         , Proven.FFI.Export
