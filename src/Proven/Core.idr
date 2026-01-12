@@ -5,8 +5,10 @@
 ||| the library, including error handling and result types.
 module Proven.Core
 
-import Data.List
-import Data.String
+import public Data.List
+import public Data.Nat
+import public Data.So
+import public Data.String
 
 %default total
 
@@ -147,34 +149,34 @@ mkBounded lo hi value with (choose (lo <= value), choose (value <= hi))
 
 ||| A non-empty list - guaranteed to have at least one element
 public export
-data NonEmpty : Type -> Type where
-  MkNonEmpty : (head : a) -> (tail : List a) -> NonEmpty a
+data NonEmptyList : Type -> Type where
+  MkNonEmptyList : (head : a) -> (tail : List a) -> NonEmptyList a
 
 ||| Get the head of a non-empty list (always succeeds)
 public export
-neHead : NonEmpty a -> a
-neHead (MkNonEmpty h _) = h
+neHead : NonEmptyList a -> a
+neHead (MkNonEmptyList h _) = h
 
 ||| Get the tail of a non-empty list
 public export
-neTail : NonEmpty a -> List a
-neTail (MkNonEmpty _ t) = t
+neTail : NonEmptyList a -> List a
+neTail (MkNonEmptyList _ t) = t
 
 ||| Convert to a regular list
 public export
-neToList : NonEmpty a -> List a
-neToList (MkNonEmpty h t) = h :: t
+neToList : NonEmptyList a -> List a
+neToList (MkNonEmptyList h t) = h :: t
 
 ||| Attempt to create a NonEmpty from a list
 public export
-fromList : List a -> Maybe (NonEmpty a)
+fromList : List a -> Maybe (NonEmptyList a)
 fromList [] = Nothing
-fromList (x :: xs) = Just (MkNonEmpty x xs)
+fromList (x :: xs) = Just (MkNonEmptyList x xs)
 
 ||| Length of a non-empty list (always >= 1)
 public export
-neLength : NonEmpty a -> Nat
-neLength (MkNonEmpty _ t) = S (length t)
+neLength : NonEmptyList a -> Nat
+neLength (MkNonEmptyList _ t) = S (length t)
 
 --------------------------------------------------------------------------------
 -- Positive Natural Numbers

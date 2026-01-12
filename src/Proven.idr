@@ -29,6 +29,10 @@
 ||| @ SafeHeader   HTTP header handling with injection prevention
 ||| @ SafeCookie   HTTP cookie handling with security enforcement
 ||| @ SafeContentType Content-Type parsing with MIME sniffing prevention
+||| @ SafeUUID     RFC 4122 UUID generation and validation
+||| @ SafeCurrency ISO 4217 currency codes and safe money arithmetic
+||| @ SafePhone    E.164 phone number parsing and validation
+||| @ SafeHex      Hexadecimal encoding/decoding with bounds checking
 module Proven
 
 import public Proven.Core
@@ -57,3 +61,7 @@ import public Proven.SafeFile
 import public Proven.SafeHeader
 import public Proven.SafeCookie
 import public Proven.SafeContentType
+import public Proven.SafeUUID
+import public Proven.SafeCurrency
+import public Proven.SafePhone
+import public Proven.SafeHex

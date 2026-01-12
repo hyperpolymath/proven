@@ -2,7 +2,7 @@
     "name": "hyperpolymath/proven",
     "description": "Code that cannot crash - safe arithmetic, string escaping, path validation, and more",
     "type": "library",
-    "license": "PMPL-1.0",
+    "license": "AGPL-3.0-or-later",
     "keywords": [
         "safety",
         "security",

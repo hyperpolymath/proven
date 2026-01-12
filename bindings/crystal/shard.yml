@@ -1,14 +1,14 @@
-# SPDX-License-Identifier: PMPL-1.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 name: proven
-version: 0.1.0
+version: 0.8.0
 description: Safe, validated operations library for Crystal applications
 
 authors:
   - Hyperpolymath
 
-license: PMPL-1.0
+license: AGPL-3.0-or-later
 
 crystal: ">= 1.0.0"
 

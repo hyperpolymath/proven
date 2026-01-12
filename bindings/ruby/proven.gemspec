@@ -4,7 +4,7 @@
 
 Gem::Specification.new do |spec|
   spec.name = "proven"
-  spec.version = "0.3.0"
+  spec.version = "0.8.0"
   spec.authors = ["Hyperpolymath"]
   spec.email = ["info@hyperpolymath.com"]
 

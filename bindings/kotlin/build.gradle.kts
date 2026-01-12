@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 plugins {
@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.hyperpolymath"
-version = "0.3.0"
+version = "0.8.0"
 
 repositories {
     mavenCentral()
@@ -31,7 +31,7 @@ publishing {
         create<MavenPublication>("maven") {
             groupId = "com.hyperpolymath"
             artifactId = "proven"
-            version = "0.3.0"
+            version = "0.8.0"
             from(components["java"])
         }
     }

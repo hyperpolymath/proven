@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: 2025 Hyperpolymath
 package proven
 
-version = 0.8.0
+version = 0.9.0
 authors = "Hyperpolymath"
 license = "PMPL-1.0"
 brief = "Verified safe operations - code that cannot crash"
@@ -17,119 +17,153 @@ outputdir = "build/exec"
 
 modules = Proven
         , Proven.Core
+        -- SafeMath
         , Proven.SafeMath
         , Proven.SafeMath.Nat
         , Proven.SafeMath.Int
         , Proven.SafeMath.Bounded
         , Proven.SafeMath.Proofs
+        -- SafeString
         , Proven.SafeString
         , Proven.SafeString.UTF8
         , Proven.SafeString.Escape
         , Proven.SafeString.Proofs
+        -- SafeJson
         , Proven.SafeJson
         , Proven.SafeJson.Parser
         , Proven.SafeJson.Access
         , Proven.SafeJson.Proofs
+        -- SafeUrl
         , Proven.SafeUrl
         , Proven.SafeUrl.Parser
-        , Proven.SafeUrl.Security
+        , Proven.SafeUrl.Query
         , Proven.SafeUrl.Proofs
+        -- SafeEmail
         , Proven.SafeEmail
         , Proven.SafeEmail.Parser
+        , Proven.SafeEmail.Validation
         , Proven.SafeEmail.Proofs
+        -- SafePath
         , Proven.SafePath
-        , Proven.SafePath.Traversal
+        , Proven.SafePath.Types
+        , Proven.SafePath.Operations
         , Proven.SafePath.Proofs
+        -- SafeCrypto
         , Proven.SafeCrypto
         , Proven.SafeCrypto.Hash
         , Proven.SafeCrypto.Random
         , Proven.SafeCrypto.Proofs
+        -- SafePassword
         , Proven.SafePassword
         , Proven.SafePassword.Policy
         , Proven.SafePassword.Hash
         , Proven.SafePassword.Strength
         , Proven.SafePassword.Proofs
+        -- SafeDateTime
         , Proven.SafeDateTime
         , Proven.SafeDateTime.Types
         , Proven.SafeDateTime.Parse
         , Proven.SafeDateTime.Zones
         , Proven.SafeDateTime.Proofs
+        -- SafeNetwork
         , Proven.SafeNetwork
         , Proven.SafeNetwork.IPv4
         , Proven.SafeNetwork.IPv6
         , Proven.SafeNetwork.CIDR
         , Proven.SafeNetwork.Port
         , Proven.SafeNetwork.Proofs
+        -- SafeHtml
         , Proven.SafeHtml
         , Proven.SafeHtml.Escape
         , Proven.SafeHtml.Builder
         , Proven.SafeHtml.Sanitize
         , Proven.SafeHtml.Proofs
+        -- SafeRegex
         , Proven.SafeRegex
         , Proven.SafeRegex.Types
         , Proven.SafeRegex.Safety
         , Proven.SafeRegex.Parser
         , Proven.SafeRegex.Matcher
         , Proven.SafeRegex.Proofs
+        -- SafeCommand
         , Proven.SafeCommand
         , Proven.SafeCommand.Escape
         , Proven.SafeCommand.Builder
         , Proven.SafeCommand.Proofs
+        -- SafeSQL (v0.5.0)
         , Proven.SafeSQL
         , Proven.SafeSQL.Types
         , Proven.SafeSQL.Params
         , Proven.SafeSQL.Builder
         , Proven.SafeSQL.Proofs
+        -- SafeJWT (v0.5.0)
         , Proven.SafeJWT
         , Proven.SafeJWT.Types
         , Proven.SafeJWT.Decode
         , Proven.SafeJWT.Validate
         , Proven.SafeJWT.Proofs
+        -- SafeBase64 (v0.5.0)
         , Proven.SafeBase64
         , Proven.SafeBase64.Types
         , Proven.SafeBase64.Encode
         , Proven.SafeBase64.Decode
         , Proven.SafeBase64.Proofs
+        -- SafeXML (v0.5.0)
         , Proven.SafeXML
         , Proven.SafeXML.Types
         , Proven.SafeXML.Parser
         , Proven.SafeXML.Builder
         , Proven.SafeXML.Proofs
+        -- SafeYAML (v0.5.0)
         , Proven.SafeYAML
         , Proven.SafeYAML.Types
         , Proven.SafeYAML.Parser
         , Proven.SafeYAML.Proofs
+        -- SafeTOML (v0.5.0)
         , Proven.SafeTOML
         , Proven.SafeTOML.Types
         , Proven.SafeTOML.Parser
         , Proven.SafeTOML.Proofs
+        -- SafeEnv (v0.7.0)
         , Proven.SafeEnv
         , Proven.SafeEnv.Types
         , Proven.SafeEnv.Access
         , Proven.SafeEnv.Proofs
+        -- SafeArgs (v0.7.0)
         , Proven.SafeArgs
         , Proven.SafeArgs.Types
         , Proven.SafeArgs.Parser
         , Proven.SafeArgs.Proofs
+        -- SafeFile (v0.7.0)
         , Proven.SafeFile
         , Proven.SafeFile.Types
         , Proven.SafeFile.Operations
         , Proven.SafeFile.Proofs
+        -- SafeHeader (v0.8.0)
         , Proven.SafeHeader
         , Proven.SafeHeader.Types
         , Proven.SafeHeader.Parser
         , Proven.SafeHeader.Proofs
+        -- SafeCookie (v0.8.0)
         , Proven.SafeCookie
         , Proven.SafeCookie.Types
         , Proven.SafeCookie.Parser
         , Proven.SafeCookie.Proofs
+        -- SafeContentType (v0.8.0)
         , Proven.SafeContentType
         , Proven.SafeContentType.Types
         , Proven.SafeContentType.Parser
         , Proven.SafeContentType.Proofs
-        , Proven.FFI
-        , Proven.FFI.Types
-        , Proven.FFI.Export
+        -- SafeUUID (v0.6.0 - no subdir)
+        , Proven.SafeUUID
+        -- SafeCurrency (v0.6.0 - no subdir)
+        , Proven.SafeCurrency
+        -- SafePhone (v0.6.0 - no subdir)
+        , Proven.SafePhone
+        -- SafeHex (v0.6.0 - no subdir)
+        , Proven.SafeHex
+        -- FFI (ECHIDNA integration) - temporarily excluded due to syntax issues
+        -- , Proven.FFI.Echidna
 
 depends = base >= 0.6.0
         , contrib
