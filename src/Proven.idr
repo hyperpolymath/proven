@@ -17,6 +17,9 @@
 ||| @ SafeHtml     HTML construction and XSS prevention
 ||| @ SafeRegex    Safe regular expression matching
 ||| @ SafeCommand  Injection-safe shell command construction
+||| @ SafeSQL      SQL operations that prevent injection attacks
+||| @ SafeJWT      JWT token validation without exceptions
+||| @ SafeBase64   Base64 encoding/decoding with correctness proofs
 module Proven
 
 import public Proven.Core
@@ -33,3 +36,6 @@ import public Proven.SafeNetwork
 import public Proven.SafeHtml
 import public Proven.SafeRegex
 import public Proven.SafeCommand
+import public Proven.SafeSQL
+import public Proven.SafeJWT
+import public Proven.SafeBase64

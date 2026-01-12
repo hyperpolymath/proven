@@ -1,0 +1,30 @@
+<!-- SPDX-License-Identifier: PMPL-1.0 -->
+<!-- SPDX-FileCopyrightText: 2025 Hyperpolymath -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>Proven</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Hyperpolymath</Authors>
+    <Description>A safety library for F# providing overflow-checked arithmetic, XSS prevention, path traversal protection, email validation, IP classification, and cryptographic operations.</Description>
+    <PackageProjectUrl>https://github.com/hyperpolymath/proven</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hyperpolymath/proven</RepositoryUrl>
+    <PackageLicenseExpression>PMPL-1.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="src/Proven/SafeMath.fs" />
+    <Compile Include="src/Proven/SafeString.fs" />
+    <Compile Include="src/Proven/SafePath.fs" />
+    <Compile Include="src/Proven/SafeEmail.fs" />
+    <Compile Include="src/Proven/SafeNetwork.fs" />
+    <Compile Include="src/Proven/SafeCrypto.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Web.HttpUtility" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

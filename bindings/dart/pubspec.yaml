@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+name: proven
+description: >-
+  A safety library for Dart providing overflow-checked arithmetic, XSS prevention,
+  path traversal protection, email validation, IP classification, and cryptographic
+  operations.
+version: 0.1.0
+repository: https://github.com/hyperpolymath/proven
+homepage: https://github.com/hyperpolymath/proven/tree/main/bindings/dart
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  crypto: ^3.0.0
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0

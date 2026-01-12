@@ -75,6 +75,21 @@ modules = Proven
         , Proven.SafeCommand.Escape
         , Proven.SafeCommand.Builder
         , Proven.SafeCommand.Proofs
+        , Proven.SafeSQL
+        , Proven.SafeSQL.Types
+        , Proven.SafeSQL.Params
+        , Proven.SafeSQL.Builder
+        , Proven.SafeSQL.Proofs
+        , Proven.SafeJWT
+        , Proven.SafeJWT.Types
+        , Proven.SafeJWT.Decode
+        , Proven.SafeJWT.Validate
+        , Proven.SafeJWT.Proofs
+        , Proven.SafeBase64
+        , Proven.SafeBase64.Types
+        , Proven.SafeBase64.Encode
+        , Proven.SafeBase64.Decode
+        , Proven.SafeBase64.Proofs
         , Proven.FFI
         , Proven.FFI.Types
         , Proven.FFI.Export

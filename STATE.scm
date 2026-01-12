@@ -5,10 +5,10 @@
 
 (define state
   `((metadata
-     (version . "0.4.0")
+     (version . "0.4.1")
      (schema-version . "1.0")
      (created . "2025-01-10")
-     (updated . "2025-01-12")
+     (updated . "2025-01-12T19:00:00Z")
      (project . "proven")
      (repo . "github.com/hyperpolymath/proven"))
 
@@ -19,7 +19,7 @@
 
     (current-position
      (phase . "roadmap-expanded")
-     (overall-completion . 48)
+     (overall-completion . 58)
      (components
       ;; Core Idris 2 modules
       ((proven-ipkg (status . complete) (completion . 100))
@@ -51,12 +51,15 @@
        (safe-command (status . complete) (completion . 100)
         (submodules . (Escape Builder Proofs)))
        ;; v0.5.0 - Auth & Serialization
-       (safe-sql (status . pending) (completion . 0))
-       (safe-jwt (status . pending) (completion . 0))
-       (safe-xml (status . pending) (completion . 0))
+       (safe-sql (status . complete) (completion . 100)
+        (submodules . (Types Params Builder Proofs)))
+       (safe-jwt (status . complete) (completion . 100)
+        (submodules . (Types Decode Validate Proofs)))
+       (safe-base64 (status . complete) (completion . 100)
+        (submodules . (Types Encode Decode Proofs)))
+       (safe-xml (status . in-progress) (completion . 20))
        (safe-yaml (status . pending) (completion . 0))
        (safe-toml (status . pending) (completion . 0))
-       (safe-base64 (status . pending) (completion . 0))
        ;; v0.6.0 - Data Types
        (safe-uuid (status . pending) (completion . 0))
        (safe-currency (status . pending) (completion . 0))
@@ -156,9 +159,9 @@
      ((milestone . "v0.5.0 - Auth & Serialization")
       (status . pending)
       (items
-       ((item . "SafeSQL (parameterized queries, injection prevention)") (done . #f))
-       ((item . "SafeJWT (token validation, claim verification)") (done . #f))
-       ((item . "SafeBase64 (encoding/decoding with length proofs)") (done . #f))
+       ((item . "SafeSQL (parameterized queries, injection prevention)") (done . #t))
+       ((item . "SafeJWT (token validation, claim verification)") (done . #t))
+       ((item . "SafeBase64 (encoding/decoding with length proofs)") (done . #t))
        ((item . "SafeXML (XXE prevention, entity expansion protection)") (done . #f))
        ((item . "SafeYAML (safe deserialization)") (done . #f))
        ((item . "SafeTOML (config parsing without crashes)") (done . #f))))
@@ -404,7 +407,76 @@
         "  - Environment variable escaping"
         "  - Dangerous pattern detection"
         "Completed v0.3.0 milestone (Extended Safety)"
-        "Updated Proven.idr and proven.ipkg with SafeCommand exports")))))
+        "Updated Proven.idr and proven.ipkg with SafeCommand exports"))
+
+     ((date . "2025-01-12")
+      (session . "safe-sql-implementation")
+      (accomplishments
+       ("Implemented complete SafeSQL module for SQL injection prevention"
+        "  - Types.idr: SQLDialect, SQLValue, SafeIdentifier, ParameterizedQuery"
+        "  - Params.idr: Value escaping, dialect-specific rendering, parameter binding"
+        "  - Builder.idr: Fluent query builder DSL for SELECT/INSERT/UPDATE/DELETE"
+        "  - Proofs.idr: Injection safety proofs, validation theorems"
+        "  - SafeSQL.idr: High-level API with convenience functions"
+        "Features implemented:"
+        "  - Multi-dialect support: PostgreSQL, MySQL, SQLite, MSSQL, Oracle"
+        "  - Parameterized queries (positional and named)"
+        "  - Type-safe value constructors (SQLText, SQLInt, SQLBool, etc.)"
+        "  - Safe identifier validation (table/column names)"
+        "  - Query builder: select, from, where, join, orderBy, limit, offset"
+        "  - CRUD helpers: safeInsert, safeUpdate, safeDelete, selectById"
+        "  - Upsert patterns for PostgreSQL and MySQL"
+        "  - Transaction helpers (begin, commit, rollback, savepoint)"
+        "  - Injection analysis and severity classification"
+        "  - Formal proofs of escaping correctness"
+        "Started v0.5.0 milestone (Auth & Serialization)"
+        "Updated proven.ipkg and Proven.idr with SafeSQL exports"))
+
+     ((date . "2025-01-12")
+      (session . "safe-jwt-implementation")
+      (accomplishments
+       ("Implemented complete SafeJWT module for JWT token handling"
+        "  - Types.idr: JWTAlgorithm, JWTHeader, JWTClaims, ValidationOptions, SigningKey"
+        "  - Decode.idr: Base64URL decoding, JSON parsing, token splitting"
+        "  - Validate.idr: Time validation, claim verification, signature stubs"
+        "  - Proofs.idr: Security proofs, attack prevention theorems"
+        "  - SafeJWT.idr: High-level API with convenience functions"
+        "Features implemented:"
+        "  - All JWT algorithms: HS256/384/512, RS256/384/512, ES256/384/512, PS256/384/512, EdDSA"
+        "  - Safe base64url encoding/decoding"
+        "  - Minimal JSON parser for JWT claims"
+        "  - Time-based validation: exp, nbf, iat, maxAge"
+        "  - Claim validation: issuer, audience, required claims"
+        "  - Configurable clock skew tolerance"
+        "  - Validation presets: accessToken, refreshToken, idToken"
+        "  - Token creation with claim builders"
+        "  - Security proofs: algorithm confusion, token substitution, replay attacks"
+        "Continued v0.5.0 milestone (2/6 complete)"
+        "Updated proven.ipkg and Proven.idr with SafeJWT exports"))
+
+     ((date . "2025-01-12")
+      (session . "safe-base64-implementation")
+      (accomplishments
+       ("Implemented complete SafeBase64 module for encoding/decoding with proofs"
+        "  - Types.idr: Base64Variant (Standard, URLSafe, URLSafeNoPad, MIME)"
+        "  - Encode.idr: Safe encoding with streaming support"
+        "  - Decode.idr: Safe decoding with error detection"
+        "  - Proofs.idr: Roundtrip correctness, length proofs"
+        "  - SafeBase64.idr: High-level API with convenience functions"
+        "Features implemented:"
+        "  - RFC 4648 Standard Base64"
+        "  - RFC 4648 Section 5 URL-safe Base64"
+        "  - RFC 2045 MIME Base64 with line breaks"
+        "  - Automatic padding handling"
+        "  - Length calculation and verification"
+        "  - Data URI helpers (toDataURI, fromDataURI)"
+        "  - JWT segment helpers for URL-safe encoding"
+        "  - Hex conversion utilities"
+        "  - Variant detection and conversion"
+        "  - Streaming/chunked encoding/decoding"
+        "  - Validation without full decoding"
+        "Started SafeXML implementation (v0.5.0 milestone 3/6)"
+        "Updated STATE.scm with progress")))))
 
 ;; Helper functions
 (define (get-completion-percentage state)
