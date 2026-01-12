@@ -1,0 +1,17 @@
+-- SPDX-License-Identifier: PMPL-1.0
+-- SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+with "../proven.gpr";
+
+project Tests is
+
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Main use ("test_proven.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnatwa", "-gnata");
+   end Compiler;
+
+end Tests;

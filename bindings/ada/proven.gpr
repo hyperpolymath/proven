@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0
+-- SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+project Proven is
+
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Library_Name use "proven";
+   for Library_Dir use "lib";
+   for Library_Kind use "static";
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnatwa",    -- Enable all warnings
+         "-gnatyg",    -- GNAT style checks
+         "-gnata",     -- Enable assertions
+         "-gnatVa",    -- Enable all validity checks
+         "-gnatwe");   -- Treat warnings as errors
+   end Compiler;
+
+end Proven;

@@ -16,6 +16,7 @@
 ||| @ SafeNetwork  IP addresses and network operations
 ||| @ SafeHtml     HTML construction and XSS prevention
 ||| @ SafeRegex    Safe regular expression matching
+||| @ SafeCommand  Injection-safe shell command construction
 module Proven
 
 import public Proven.Core
@@ -31,3 +32,4 @@ import public Proven.SafeDateTime
 import public Proven.SafeNetwork
 import public Proven.SafeHtml
 import public Proven.SafeRegex
+import public Proven.SafeCommand

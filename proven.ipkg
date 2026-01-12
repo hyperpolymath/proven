@@ -71,6 +71,10 @@ modules = Proven
         , Proven.SafeRegex.Parser
         , Proven.SafeRegex.Matcher
         , Proven.SafeRegex.Proofs
+        , Proven.SafeCommand
+        , Proven.SafeCommand.Escape
+        , Proven.SafeCommand.Builder
+        , Proven.SafeCommand.Proofs
         , Proven.FFI
         , Proven.FFI.Types
         , Proven.FFI.Export

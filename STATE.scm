@@ -48,7 +48,8 @@
         (submodules . (Types Safety Parser Matcher Proofs)))
        (safe-html (status . complete) (completion . 100)
         (submodules . (Escape Builder Sanitize Proofs)))
-       (safe-command (status . pending) (completion . 0))
+       (safe-command (status . complete) (completion . 100)
+        (submodules . (Escape Builder Proofs)))
        ;; v0.5.0 - Auth & Serialization
        (safe-sql (status . pending) (completion . 0))
        (safe-jwt (status . pending) (completion . 0))
@@ -100,6 +101,7 @@
       (network-safety . "IPv4/IPv6 parsing, CIDR notation, port validation")
       (regex-safety . "ReDoS detection, complexity analysis, step-limited matching")
       (html-safety . "Type-safe HTML construction, XSS prevention, content sanitization")
+      (command-safety . "Shell injection prevention, cross-platform escaping, safe command builder")
       (zig-ffi . "Complete Zig FFI bridge with cross-platform builds")
       (multi-language . "Bindings for 12 languages: Rust, Python, JS, Deno, ReScript, Gleam, Julia, Swift, Kotlin, Go, Elixir, Zig")
       (ci-cd . "GitHub Actions for testing, fuzzing, security scanning")
@@ -126,12 +128,12 @@
        ((item . "SafeDateTime module") (done . #t))))
 
      ((milestone . "v0.3.0 - Extended Safety")
-      (status . in-progress)
+      (status . complete)
       (items
        ((item . "SafeNetwork (IP/CIDR/ports)") (done . #t))
        ((item . "SafeRegex (ReDoS protection)") (done . #t))
        ((item . "SafeHTML (XSS prevention)") (done . #t))
-       ((item . "SafeCommand (injection-safe)") (done . #f))))
+       ((item . "SafeCommand (injection-safe)") (done . #t))))
 
      ((milestone . "v0.4.0 - FFI Bridge")
       (status . complete)
@@ -204,7 +206,7 @@
      (critical . ())
      (high
       ((issue . "Extended safety modules partially complete")
-       (impact . "SafeCommand still pending for v0.3.0")
+       (impact . "v0.3.0 complete, v0.5.0 Auth modules next")
        (resolution . "Implement remaining v0.3.0 modules")))
      (medium
       ((issue . "Auth/serialization modules pending")
@@ -226,9 +228,9 @@
 
     (critical-next-actions
      (immediate
-      ((action . "Implement SafeCommand module")
+      ((action . "Implement SafeSQL module")
        (priority . 1))
-      ((action . "Implement SafeCommand module")
+      ((action . "Implement SafeSQL module")
        (priority . 2)))
      (this-week
       ((action . "Complete v0.3.0 milestone")
@@ -382,7 +384,27 @@
         "  - Blacklisted tag detection (script, style, iframe, etc.)"
         "  - Event handler attribute blocking"
         "  - CSP-safe content generation proofs"
-        "Updated Proven.idr and proven.ipkg with SafeHtml exports")))))
+        "Updated Proven.idr and proven.ipkg with SafeHtml exports"))
+
+     ((date . "2025-01-12")
+      (session . "safe-command-implementation")
+      (accomplishments
+       ("Implemented complete SafeCommand module for injection-safe shell commands"
+        "  - SafeCommand.idr: Core types (SafeArg, SafeCommand, Pipeline, Redirect)"
+        "  - Escape.idr: Shell escaping for POSIX, Windows cmd, PowerShell"
+        "  - Builder.idr: Fluent DSL for command construction"
+        "  - Proofs.idr: Injection safety proofs"
+        "Features implemented:"
+        "  - Command name validation (no metacharacters, no path traversal)"
+        "  - Argument escaping with single-quote protection"
+        "  - Cross-platform support (POSIX sh, bash, cmd.exe, PowerShell)"
+        "  - Type-safe flag and option builders"
+        "  - Pipeline and redirect representations"
+        "  - Common command helpers (ls, cp, mv, rm, git, curl, etc.)"
+        "  - Environment variable escaping"
+        "  - Dangerous pattern detection"
+        "Completed v0.3.0 milestone (Extended Safety)"
+        "Updated Proven.idr and proven.ipkg with SafeCommand exports")))))
 
 ;; Helper functions
 (define (get-completion-percentage state)
