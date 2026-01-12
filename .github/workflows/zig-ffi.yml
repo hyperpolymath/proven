@@ -37,8 +37,16 @@ jobs:
           - wasm32-wasi
 
     steps:
-      - name: Checkout
+      - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          path: proven
+
+      - name: Checkout idris2-zig-ffi dependency
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          repository: hyperpolymath/idris2-zig-ffi
+          path: idris2-zig-ffi
 
       - name: Setup Zig
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
@@ -46,19 +54,19 @@ jobs:
           version: ${{ matrix.zig-version }}
 
       - name: Build FFI library
-        working-directory: ffi/zig
+        working-directory: proven/ffi/zig
         run: zig build -Dtarget=${{ matrix.target }}
 
       - name: Run tests (native x86_64-linux only)
         if: matrix.target == 'x86_64-linux-gnu'
-        working-directory: ffi/zig
+        working-directory: proven/ffi/zig
         run: zig build test
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
           name: proven-ffi-${{ matrix.target }}
-          path: ffi/zig/zig-out/
+          path: proven/ffi/zig/zig-out/
 
   # macOS builds (native runners for code signing compatibility)
   build-macos:
@@ -74,8 +82,16 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout
+      - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          path: proven
+
+      - name: Checkout idris2-zig-ffi dependency
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          repository: hyperpolymath/idris2-zig-ffi
+          path: idris2-zig-ffi
 
       - name: Setup Zig
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
@@ -83,25 +99,33 @@ jobs:
           version: '0.13.0'
 
       - name: Build FFI library
-        working-directory: ffi/zig
+        working-directory: proven/ffi/zig
         run: zig build -Dtarget=${{ matrix.target }}
 
       - name: Run tests
-        working-directory: ffi/zig
+        working-directory: proven/ffi/zig
         run: zig build test
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
           name: proven-ffi-${{ matrix.target }}
-          path: ffi/zig/zig-out/
+          path: proven/ffi/zig/zig-out/
 
   wasm-browser:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          path: proven
+
+      - name: Checkout idris2-zig-ffi dependency
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          repository: hyperpolymath/idris2-zig-ffi
+          path: idris2-zig-ffi
 
       - name: Setup Zig
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
@@ -109,14 +133,14 @@ jobs:
           version: '0.13.0'
 
       - name: Build WASM for browser
-        working-directory: ffi/zig
+        working-directory: proven/ffi/zig
         run: zig build -Dtarget=wasm32-freestanding -Doptimize=ReleaseSmall
 
       - name: Upload WASM artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
           name: proven-wasm-browser
-          path: ffi/zig/zig-out/lib/*.wasm
+          path: proven/ffi/zig/zig-out/lib/*.wasm
 
   release:
     runs-on: ubuntu-latest
