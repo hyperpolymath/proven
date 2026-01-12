@@ -79,9 +79,54 @@ Application (any lang)
 | **Erlang/OTP** | Fault tolerance | SafeActor |
 | **Z3/SMT** | Constraint solving | SafeConstraint |
 
+## Protocol-Squisher: Semantic Preservation Across FFI
+
+**Problem**: Language-specific safety properties don't survive FFI:
+- Rust ownership/borrowing → lost at C ABI
+- Linear Haskell's linearity → lost at FFI boundary
+- Haskell laziness → forced evaluation at FFI
+
+**Solution**: Encode semantic properties in protocol-squisher transport classes:
+
+| Property | Protocol Encoding |
+|----------|-------------------|
+| Ownership | Capability tokens (use-once, invalidates sender) |
+| Borrowing | Lease tokens (time-bounded, auto-return) |
+| Linearity | One-shot tickets (consumed on use) |
+| Laziness | Thunk references (compute-on-demand RPC) |
+| Affine | At-most-once tokens (may drop, can't dup) |
+
+**Extended Transport Classes**:
+```
+SemanticTransport = DataTransport + {
+  ownership_model : (owned | borrowed | shared | affine | linear),
+  evaluation      : (strict | lazy | memoized),
+  lifetime        : (static | scoped Token | dynamic),
+  capability      : CapabilityToken
+}
+```
+
+**How it works**:
+1. Caller encodes semantic intent in protocol message
+2. Transport layer validates semantic rules (can't dup linear value)
+3. Receiver reconstructs equivalent semantics in its language
+4. Protocol enforces what languages can't across FFI
+
+**Example - Linear value across FFI**:
+```
+send(value, { linear: true, ticket: "abc123" })
+# Protocol rejects: send(value, { linear: true, ticket: "abc123" })  -- already used!
+```
+
+This means SafeForth (or any safe library) can preserve:
+- Memory region ownership (not just bounds)
+- Handle linearity (file handles used exactly once)
+- Lazy disk reads (only fetch sectors when accessed)
+
 ## Next Steps
 
 1. Pick Forth base (gforth or minimal custom)
 2. Define stack effect DSL
 3. Build Zig FFI (reuse proven's pattern)
 4. Create bindings for key languages
+5. Integrate protocol-squisher for semantic preservation
