@@ -1,0 +1,15 @@
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+-- SPDX-FileCopyrightText: 2025 Hyperpolymath
+package benchmarks
+version = 0.9.0
+
+authors = "Hyperpolymath"
+license = "AGPL-3.0-or-later"
+
+depends = proven
+
+sourcedir = "."
+main = Main
+executable = "benchmarks"
+
+opts = "-O2"
