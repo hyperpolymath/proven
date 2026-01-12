@@ -1,7 +1,7 @@
 {
-  "name": "@proven/javascript",
-  "version": "0.8.0",
-  "description": "Proven - Safe, formally verified library for JavaScript",
+  "name": "@hyperpolymath/proven",
+  "version": "1.0.0",
+  "description": "Proven - Formally verified safety library for JavaScript",
   "type": "module",
   "main": "./src/index.js",
   "exports": {
@@ -18,20 +18,26 @@
   "keywords": [
     "proven",
     "safe",
+    "verified",
     "uuid",
     "currency",
     "money",
     "phone",
     "hex",
     "validation",
-    "parsing"
+    "parsing",
+    "idris",
+    "formal-verification"
   ],
   "author": "Hyperpolymath",
-  "license": "AGPL-3.0-or-later",
+  "license": "PMPL-1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/hyperpolymath/proven.git",
     "directory": "bindings/javascript"
+  },
+  "publishConfig": {
+    "@hyperpolymath:registry": "https://npm.pkg.github.com"
   },
   "engines": {
     "node": ">=18.0.0"
