@@ -103,6 +103,18 @@ modules = Proven
         , Proven.SafeTOML.Types
         , Proven.SafeTOML.Parser
         , Proven.SafeTOML.Proofs
+        , Proven.SafeEnv
+        , Proven.SafeEnv.Types
+        , Proven.SafeEnv.Access
+        , Proven.SafeEnv.Proofs
+        , Proven.SafeArgs
+        , Proven.SafeArgs.Types
+        , Proven.SafeArgs.Parser
+        , Proven.SafeArgs.Proofs
+        , Proven.SafeFile
+        , Proven.SafeFile.Types
+        , Proven.SafeFile.Operations
+        , Proven.SafeFile.Proofs
         , Proven.FFI
         , Proven.FFI.Types
         , Proven.FFI.Export
