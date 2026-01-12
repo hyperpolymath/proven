@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+#
+# echidnabot configuration for proven
+# Proof-aware CI bot integration for theorem prover repositories
+
+[project]
+name = "proven"
+description = "Formally verified safety library"
+
+# Provers enabled for this repository
+[provers]
+# Primary prover for proven is Idris 2
+idris2 = { enabled = true, priority = "high" }
+
+# Optional: Also verify with SMT solvers for additional assurance
+z3 = { enabled = false }
+cvc5 = { enabled = false }
+
+[provers.idris2]
+# Idris 2 specific configuration
+package_file = "proven.ipkg"
+source_dirs = ["src"]
+totality_required = true
+coverage_required = true
+
+# Modules with safety proofs that MUST pass
+critical_modules = [
+    "Proven.SafeMath",
+    "Proven.SafeString",
+    "Proven.SafeJson",
+    "Proven.SafeUrl",
+    "Proven.SafeEmail",
+    "Proven.SafeUuid",
+    "Proven.SafeCurrency",
+    "Proven.SafePhone",
+    "Proven.SafeHex",
+    "Proven.SafeHeader",
+    "Proven.SafeCookie",
+    "Proven.SafeContentType",
+]
+
+[verification]
+# Verification settings
+timeout_secs = 300
+max_retries = 2
+fail_fast = false
+
+# Aspect tags to verify (from ECHIDNA's aspect system)
+required_aspects = [
+    "Safety.TotalFunction",
+    "Safety.NoOverflow",
+    "Safety.NoUnderflow",
+    "Verified.TypeSafe",
+]
+
+# Optional aspects that provide additional assurance
+optional_aspects = [
+    "Performance.ConstantTime",
+    "Memory.NoAllocation",
+]
+
+[notifications]
+# Notification settings
+on_success = "silent"       # silent | comment | status
+on_failure = "comment"      # Create PR comment on failure
+on_timeout = "comment"
+
+[check_run]
+# GitHub Check Run configuration
+name = "ECHIDNA Proof Verification"
+summary_template = """
+## Proof Verification Results
+
+**Prover**: {{prover}}
+**Status**: {{status}}
+**Duration**: {{duration_ms}}ms
+
+### Verified Modules
+{{#each verified_files}}
+- ✓ {{this}}
+{{/each}}
+
+{{#if failed_files}}
+### Failed Modules
+{{#each failed_files}}
+- ✗ {{this}}
+{{/each}}
+{{/if}}
+
+---
+Verified by [ECHIDNA](https://github.com/hyperpolymath/echidna) via [echidnabot](https://github.com/hyperpolymath/echidnabot)
+"""
