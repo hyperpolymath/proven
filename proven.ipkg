@@ -1,9 +1,10 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: PMPL-1.0
+-- SPDX-FileCopyrightText: 2025 Hyperpolymath
 package proven
 
 version = 0.3.0
 authors = "Hyperpolymath"
-license = "Palimpsest-MPL-1.0"
+license = "PMPL-1.0"
 brief = "Verified safe operations - code that cannot crash"
 readme = "README.adoc"
 homepage = "https://github.com/hyperpolymath/proven"
