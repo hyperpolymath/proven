@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+name "proven"
+description "Safe, validated operations library for D applications"
+authors "Hyperpolymath"
+license "PMPL-1.0"
+version "0.1.0"
+
+targetType "library"
+sourcePaths "source"

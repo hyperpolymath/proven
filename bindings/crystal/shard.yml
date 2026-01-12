@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+name: proven
+version: 0.1.0
+description: Safe, validated operations library for Crystal applications
+
+authors:
+  - Hyperpolymath
+
+license: PMPL-1.0
+
+crystal: ">= 1.0.0"
+
+repository: https://github.com/hyperpolymath/proven
