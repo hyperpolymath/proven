@@ -70,7 +70,33 @@
         ("Clear separation of concerns"
          "Proofs isolated from implementation"
          "Easy to add new safety domains"
-         "Consistent navigation across modules")))))
+         "Consistent navigation across modules")))
+
+      (adr-006
+       (title . "Serve as reference implementation for aggregate-library")
+       (status . accepted)
+       (date . "2025-01-12")
+       (context . "aggregate-library (aLib) specifies universal operations across 7 diverse languages")
+       (decision . "proven implements aLib core operations with formal verification proofs")
+       (consequences
+        ("SafeMath implements aLib arithmetic: add, subtract, multiply, divide, modulo"
+         "SafeString implements aLib string: concat, length, substring"
+         "All implementations have termination proofs (totality)"
+         "proven serves as gold standard for aLib correctness"
+         "12-language FFI enables aLib compliance testing across platforms")))
+
+      (adr-007
+       (title . "ReDoS protection in SafeRegex")
+       (status . accepted)
+       (date . "2025-01-12")
+       (context . "Regular expressions can cause denial-of-service via catastrophic backtracking")
+       (decision . "Implement complexity analysis and step-limited matching")
+       (consequences
+        ("Detects nested quantifiers ((a+)+), overlapping alts ((a|ab)+), quantified empty ((a?)*)"
+         "Complexity levels: Linear, Quadratic, Exponential, Unbounded"
+         "Safety levels: Strict (linear only), Normal (up to quadratic), Relaxed (all)"
+         "Step limits prevent runaway matching"
+         "Pre-built safe patterns for common use cases")))))
 
     (development-practices
      (code-style
@@ -133,4 +159,20 @@
        major platforms including WASM, 4) Safety features that complement our
        verified code, 5) Bidirectional callback system for cross-language calls.
        The Zig layer translates between Idris's representations and target
-       language conventions, supporting 12 target languages."))))
+       language conventions, supporting 12 target languages.")
+
+     (why-alib-reference-implementation
+      "proven serves as the reference implementation for aggregate-library (aLib)
+       because: 1) Dependent types provide machine-checked correctness proofs,
+       2) Totality guarantees all operations terminate, 3) The 12-language FFI
+       bindings allow aLib compliance testing in any target language, 4) Formal
+       verification eliminates ambiguity in aLib specifications. When in doubt
+       about aLib semantics, proven's behavior is authoritative.")
+
+     (why-redos-protection
+      "SafeRegex implements ReDoS protection because regex denial-of-service is
+       a common vulnerability. The approach: 1) Static complexity analysis before
+       matching, 2) Detection of dangerous patterns (nested quantifiers, overlapping
+       alternatives), 3) Step limits based on complexity level, 4) Safety levels
+       allow risk/functionality tradeoffs. This enables safe regex use even with
+       untrusted patterns."))))

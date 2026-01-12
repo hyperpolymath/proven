@@ -85,6 +85,21 @@
    (integration-type . "web")
    (description . "DOM bindings - SafeHTML integrates with this for web safety"))
 
+  ;; Specification projects (proven as reference implementation)
+  ((name . "aggregate-library")
+   (relationship . "specification-implementor")
+   (repo . "github.com/hyperpolymath/aggregate-library")
+   (integration-type . "reference-implementation")
+   (description
+    "aggregate-library (aLib) defines universal operations across 7 languages.
+     proven provides formally verified Idris 2 implementations of aLib operations.")
+   (integration-points
+    ("SafeMath implements aLib arithmetic: add, subtract, multiply, divide, modulo"
+     "SafeString implements aLib string: concat, length, substring"
+     "All implementations have termination proofs (totality)"
+     "proven serves as gold standard for aLib correctness verification"
+     "12-language FFI bindings allow aLib compliance testing in any language")))
+
   ;; Potential consumers
   ((name . "ubicity")
    (relationship . "potential-consumer")
