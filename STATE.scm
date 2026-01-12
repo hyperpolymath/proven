@@ -19,7 +19,7 @@
 
     (current-position
      (phase . "roadmap-expanded")
-     (overall-completion . 45)
+     (overall-completion . 48)
      (components
       ;; Core Idris 2 modules
       ((proven-ipkg (status . complete) (completion . 100))
@@ -44,8 +44,10 @@
         (submodules . (Types Parse Zones Proofs)))
        (safe-network (status . complete) (completion . 100)
         (submodules . (IPv4 IPv6 CIDR Port Proofs)))
-       (safe-regex (status . pending) (completion . 0))
-       (safe-html (status . pending) (completion . 0))
+       (safe-regex (status . complete) (completion . 100)
+        (submodules . (Types Safety Parser Matcher Proofs)))
+       (safe-html (status . complete) (completion . 100)
+        (submodules . (Escape Builder Sanitize Proofs)))
        (safe-command (status . pending) (completion . 0))
        ;; v0.5.0 - Auth & Serialization
        (safe-sql (status . pending) (completion . 0))
@@ -96,6 +98,8 @@
       (password-safety . "Policy validation, strength analysis, hash algorithms")
       (datetime-safety . "ISO 8601 parsing, timezone handling, duration arithmetic")
       (network-safety . "IPv4/IPv6 parsing, CIDR notation, port validation")
+      (regex-safety . "ReDoS detection, complexity analysis, step-limited matching")
+      (html-safety . "Type-safe HTML construction, XSS prevention, content sanitization")
       (zig-ffi . "Complete Zig FFI bridge with cross-platform builds")
       (multi-language . "Bindings for 12 languages: Rust, Python, JS, Deno, ReScript, Gleam, Julia, Swift, Kotlin, Go, Elixir, Zig")
       (ci-cd . "GitHub Actions for testing, fuzzing, security scanning")
@@ -125,8 +129,8 @@
       (status . in-progress)
       (items
        ((item . "SafeNetwork (IP/CIDR/ports)") (done . #t))
-       ((item . "SafeRegex (ReDoS protection)") (done . #f))
-       ((item . "SafeHTML (XSS prevention)") (done . #f))
+       ((item . "SafeRegex (ReDoS protection)") (done . #t))
+       ((item . "SafeHTML (XSS prevention)") (done . #t))
        ((item . "SafeCommand (injection-safe)") (done . #f))))
 
      ((milestone . "v0.4.0 - FFI Bridge")
@@ -199,9 +203,9 @@
     (blockers-and-issues
      (critical . ())
      (high
-      ((issue . "Extended safety modules not implemented")
-       (impact . "SafeRegex, SafeHTML, SafeCommand still pending for v0.3.0")
-       (resolution . "Implement v0.3.0 extended safety modules")))
+      ((issue . "Extended safety modules partially complete")
+       (impact . "SafeCommand still pending for v0.3.0")
+       (resolution . "Implement remaining v0.3.0 modules")))
      (medium
       ((issue . "Auth/serialization modules pending")
        (impact . "SafeSQL, SafeJWT, SafeXML needed for real-world security")
@@ -222,14 +226,14 @@
 
     (critical-next-actions
      (immediate
-      ((action . "Implement SafeRegex module")
+      ((action . "Implement SafeCommand module")
        (priority . 1))
-      ((action . "Implement SafeHTML module")
+      ((action . "Implement SafeCommand module")
        (priority . 2)))
      (this-week
-      ((action . "Implement SafeCommand module")
+      ((action . "Complete v0.3.0 milestone")
        (priority . 3))
-      ((action . "Start Zig FFI bridge")
+      ((action . "Start v0.5.0 Auth & Serialization")
        (priority . 4)))
      (this-month
       ((action . "Complete ECHIDNA integration")
@@ -338,7 +342,47 @@
         "    - SafeCookie: cookie parsing/building"
         "    - SafeContentType: MIME validation"
         "  v0.9.0 ECHIDNA Integration (moved from v0.5.0)"
-        "  v1.0.0 Production Release with security audit")))))
+        "  v1.0.0 Production Release with security audit"))
+
+     ((date . "2025-01-12")
+      (session . "safe-regex-implementation")
+      (accomplishments
+       ("Implemented complete SafeRegex module with ReDoS protection"
+        "  - Types.idr: CharClass, Quantifier, Regex AST, ComplexityLevel, SafeRegex"
+        "  - Safety.idr: ReDoS detection (nested quantifiers, overlapping alts)"
+        "  - Parser.idr: Full regex parser with escape sequences, character classes"
+        "  - Matcher.idr: Step-limited matching engine with backtracking"
+        "  - Proofs.idr: Termination, complexity, and safety proofs"
+        "Features implemented:"
+        "  - Nested quantifier detection ((a+)+ pattern)"
+        "  - Overlapping alternative detection ((a|ab)+ pattern)"
+        "  - Quantified empty pattern detection ((a?)*)"
+        "  - Complexity analysis (Linear, Quadratic, Exponential, Unbounded)"
+        "  - Safety levels (Strict, Normal, Relaxed)"
+        "  - Step limits based on complexity analysis"
+        "  - Pre-built safe patterns (email, URL, IPv4, UUID, etc.)"
+        "  - High-level API: regex(), test(), match(), replaceAll(), split()"
+        "Updated proven.ipkg with 6 new SafeRegex modules"))
+
+     ((date . "2025-01-12")
+      (session . "safe-html-implementation")
+      (accomplishments
+       ("Implemented complete SafeHtml module for XSS prevention"
+        "  - SafeHtml.idr: Core types (TrustedHtml, UntrustedContent, HtmlElement)"
+        "  - Escape.idr: HTML content/attribute escaping, URL sanitization"
+        "  - Builder.idr: Fluent HTML builder DSL with type-safe construction"
+        "  - Sanitize.idr: Whitelist-based sanitization with policy configs"
+        "  - Proofs.idr: Safety proofs (NoScriptTags, NoEventHandlers, CspSafe)"
+        "Features implemented:"
+        "  - Type-safe HTML element construction"
+        "  - Automatic content escaping for XSS prevention"
+        "  - URL scheme validation (blocks javascript:, data:, etc.)"
+        "  - Context-aware escaping (content, attributes, CSS, script)"
+        "  - Sanitization configs (Strict, Standard, Permissive)"
+        "  - Blacklisted tag detection (script, style, iframe, etc.)"
+        "  - Event handler attribute blocking"
+        "  - CSP-safe content generation proofs"
+        "Updated Proven.idr and proven.ipkg with SafeHtml exports")))))
 
 ;; Helper functions
 (define (get-completion-percentage state)
