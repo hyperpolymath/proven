@@ -675,6 +675,7 @@ Q: Is this production ready?::
 Yes, as of v1.0.0. All core modules and bindings are complete. Security audit passed, comprehensive test suite, and ECHIDNA integration for proof verification.
 
 Q: I'm using Rust... isn't my code invincible anyway?
+
 Rust’s borrow checker and memory safety guarantees are exceptional, but they don’t cover all crash vectors:
 
 * Logic errors (e.g., integer overflow, incorrect business logic) still slip through.
@@ -692,6 +693,7 @@ proven complements Rust by:
 Think of it as a seatbelt for your invincible sports car.
 
 Q: I'm using Python... I thought code meant to crash?
+
 Python’s dynamism is powerful, but crashes aren’t inevitable! proven’s Python bindings let you:
 
 Replace try/except spaghetti with compile-time guarantees (via Idris 2 proofs).
