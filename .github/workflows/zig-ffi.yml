@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@a45c5203ca6f96b68d653f7fac8c46cbc2bc7786 # v1
+        uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ matrix.zig-version }}
 
@@ -78,7 +78,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@a45c5203ca6f96b68d653f7fac8c46cbc2bc7786 # v1
+        uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: '0.13.0'
 
@@ -104,7 +104,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@a45c5203ca6f96b68d653f7fac8c46cbc2bc7786 # v1
+        uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: '0.13.0'
 

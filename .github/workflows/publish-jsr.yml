@@ -5,6 +5,7 @@ name: Publish to JSR
 on:
   release:
     types: [published]
+  workflow_call:  # Allow calling from release.yml
   workflow_dispatch:
     inputs:
       dry_run:
@@ -48,10 +49,9 @@ jobs:
         run: deno fmt --check
 
       - name: Publish to JSR
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        if: github.event_name == 'release' || github.event_name == 'workflow_call' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         run: deno publish
-        env:
-          DENO_DEPLOY_TOKEN: ${{ secrets.JSR_TOKEN }}
+        # Uses OIDC authentication - no token needed
 
       - name: Summary
         run: |

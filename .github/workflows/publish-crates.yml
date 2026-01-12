@@ -5,6 +5,7 @@ name: Publish to crates.io
 on:
   release:
     types: [published]
+  workflow_call:  # Allow calling from release.yml
   workflow_dispatch:
     inputs:
       dry_run:
@@ -51,7 +52,7 @@ jobs:
         run: cargo publish --dry-run
 
       - name: Publish to crates.io
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        if: github.event_name == 'release' || github.event_name == 'workflow_call' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}

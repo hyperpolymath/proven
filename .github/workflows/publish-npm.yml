@@ -5,6 +5,7 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_call:  # Allow calling from release.yml
   workflow_dispatch:
     inputs:
       dry_run:
@@ -50,7 +51,7 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish to npm
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        if: github.event_name == 'release' || github.event_name == 'workflow_call' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -86,7 +87,7 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish to npm
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        if: github.event_name == 'release' || github.event_name == 'workflow_call' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
