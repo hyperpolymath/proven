@@ -1,6 +1,7 @@
 = proven
 
-Code that cannot crash, for... :: Rust :: JavaScript :: Go :: Deno :: Zig :: Haskell :: OCaml :: Elixir :: Gleam :: Swift :: Kotlin :: C :: C++ :: Ruby :: PHP :: Perl :: Lua :: Julia :: R :: Tcl :: Bash :: Common Lisp :: Erlang :: Prolog :: COBOL :: Forth :: Fortran :: Odin :: V :: Racket :: ReScript :: Dart :: Scala :: F# :: Crystal :: Nim :: Ada :: Python 
+Code that provably cannot crash, for... Ada :: Bash :: C :: C++ :: COBOL :: Common Lisp :: Crystal :: Dart :: Deno :: Elixir :: Erlang :: Forth :: Fortran :: F# :: Gleam :: Go :: Haskell :: JavaScript :: Julia :: Kotlin :: Lua :: Nim :: OCaml :: Odin :: Perl :: PHP :: Prolog :: Python :: R :: Racket :: ReScript :: Ruby :: Rust :: Scala :: Swift :: Tcl :: V :: Zig
+
 
 40+ languages 
 :: Verified 
