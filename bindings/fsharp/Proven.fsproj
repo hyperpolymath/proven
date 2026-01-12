@@ -21,6 +21,10 @@
     <Compile Include="src/Proven/SafeEmail.fs" />
     <Compile Include="src/Proven/SafeNetwork.fs" />
     <Compile Include="src/Proven/SafeCrypto.fs" />
+    <Compile Include="src/Proven/SafeUuid.fs" />
+    <Compile Include="src/Proven/SafeCurrency.fs" />
+    <Compile Include="src/Proven/SafePhone.fs" />
+    <Compile Include="src/Proven/SafeHex.fs" />
   </ItemGroup>
 
   <ItemGroup>

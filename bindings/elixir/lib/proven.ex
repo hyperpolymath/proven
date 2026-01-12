@@ -13,5 +13,9 @@ defmodule Proven do
   - URLs: Parsing with full component extraction
   - Network: IPv4 parsing, private/loopback/public classification
   - Crypto: Constant-time comparison, secure zeroing
+  - UUID: Parsing, validation, formatting, constant-time comparison
+  - Currency: Money arithmetic with overflow protection, formatting
+  - Phone: E.164 parsing, national/international formatting
+  - Hex: Encoding, decoding, constant-time comparison
   """
 end

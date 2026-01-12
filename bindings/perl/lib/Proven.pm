@@ -20,6 +20,10 @@ Proven - Code that cannot crash
     use Proven::SafeEmail qw(is_valid normalize);
     use Proven::SafeNetwork qw(is_private is_loopback);
     use Proven::SafeCrypto qw(constant_time_compare random_bytes);
+    use Proven::SafeUUID qw(parse format new_uuid);
+    use Proven::SafeCurrency qw(money format_amount);
+    use Proven::SafePhone qw(parse format normalize);
+    use Proven::SafeHex qw(encode decode constant_time_equal);
 
 =head1 DESCRIPTION
 
@@ -38,6 +42,14 @@ Proven is a verified safety library providing:
 =item * B<SafeNetwork> - IP parsing and classification
 
 =item * B<SafeCrypto> - Cryptographic primitives done right
+
+=item * B<SafeUUID> - UUID parsing, validation, and generation
+
+=item * B<SafeCurrency> - Currency codes and monetary arithmetic without float errors
+
+=item * B<SafePhone> - Phone number parsing and formatting
+
+=item * B<SafeHex> - Hexadecimal encoding with constant-time comparison
 
 =back
 
@@ -100,6 +112,51 @@ Cryptographic operations with timing attack prevention.
 
     if (constant_time_compare($token, $expected)) {
         # Valid
+    }
+
+=head2 Proven::SafeUUID
+
+UUID parsing, validation, and generation.
+
+    use Proven::SafeUUID qw(parse format new_uuid is_valid);
+
+    my $uuid = new_uuid();                    # Random v4 UUID
+    my $parsed = parse('550e8400-e29b-41d4-a716-446655440000');
+    print format($parsed);                    # Lowercase hyphenated
+
+=head2 Proven::SafeCurrency
+
+Currency handling without floating-point errors.
+All amounts stored as integers in minor units (cents).
+
+    use Proven::SafeCurrency qw(money format_amount add);
+
+    my $price = money(1999, 'USD');           # $19.99
+    my $total = add($price, $tax);
+    print format_amount($total);              # "21.99"
+
+=head2 Proven::SafePhone
+
+Phone number parsing with international support.
+
+    use Proven::SafePhone qw(parse format normalize);
+
+    my $phone = parse('+1 (555) 123-4567', 'US');
+    print format($phone, 'e164');             # +15551234567
+    print format($phone, 'national');         # (555) 123-4567
+
+=head2 Proven::SafeHex
+
+Hexadecimal encoding with security features.
+
+    use Proven::SafeHex qw(encode decode constant_time_equal);
+
+    my $hex = encode($bytes);                 # To hex string
+    my $data = decode($hex);                  # From hex string
+
+    # Constant-time comparison prevents timing attacks
+    if (constant_time_equal($token_hex, $expected_hex)) {
+        # Valid token
     }
 
 =head1 PHILOSOPHY

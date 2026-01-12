@@ -1,0 +1,264 @@
+V "GNAT Lib v15"
+A -gnatA
+A -gnatwa
+A -gnatyg
+A -gnata
+A -gnatVa
+A -gnatwe
+A -mtune=generic
+A -march=x86-64
+P SS ZX
+
+RN
+RV NO_ENUMERATION_MAPS
+RV NO_EXCEPTIONS
+RV NO_IMPLICIT_CONDITIONALS
+RV NO_LONG_LONG_INTEGERS
+RV NO_SECONDARY_STACK
+RV NO_STANDARD_STORAGE_POOLS
+RV NO_DYNAMIC_SIZED_OBJECTS
+RV NO_IMPLEMENTATION_PRAGMAS
+RV NO_IMPLICIT_LOOPS
+RV NO_ELABORATION_CODE
+
+U proven.safe_currency%b  proven-safe_currency.adb  2a07b9e6 NE OO PK
+W ada%s			ada.ads			ada.ali
+W ada.characters%s	a-charac.ads		a-charac.ali
+W ada.characters.handling%s  a-chahan.adb	a-chahan.ali
+Z ada.exceptions%s	a-except.adb		a-except.ali
+W ada.strings%s		a-string.ads		a-string.ali
+W ada.strings.fixed%s	a-strfix.adb		a-strfix.ali
+W proven%s		proven.ads		proven.ali
+Z system.concat_2%s	s-conca2.adb		s-conca2.ali
+Z system.concat_3%s	s-conca3.adb		s-conca3.ali
+Z system.concat_5%s	s-conca5.adb		s-conca5.ali
+Z system.img_lli%s	s-imglli.ads		s-imglli.ali
+Z system.secondary_stack%s  s-secsta.adb	s-secsta.ali
+
+U proven.safe_currency%s  proven-safe_currency.ads  dfd0dee1 EE OO PK
+W proven%s		proven.ads		proven.ali
+Z system%s		system.ads		system.ali
+Z system.exception_table%s  s-exctab.adb	s-exctab.ali
+Z system.standard_library%s  s-stalib.adb	s-stalib.ali
+
+D ada.ads		19700101000000 76789da1 ada%s
+D a-charac.ads		19700101000000 2d3ec45b ada.characters%s
+D a-chahan.ads		19700101000000 bf752ff6 ada.characters.handling%s
+D a-chlat1.ads		19700101000000 e0d72e76 ada.characters.latin_1%s
+D a-except.ads		19700101000000 e7970cd9 ada.exceptions%s
+D a-string.ads		19700101000000 90ac6797 ada.strings%s
+D a-strfix.ads		19700101000000 8648dedb ada.strings.fixed%s
+D a-strmap.ads		19700101000000 1f91ebb6 ada.strings.maps%s
+D a-strsea.ads		19700101000000 18c3c634 ada.strings.search%s
+D a-unccon.ads		19700101000000 0e9b276f ada.unchecked_conversion%s
+D proven.ads		20260112040916 c78133bd proven%s
+D proven-safe_currency.ads  20260112074324 1851ed5c proven.safe_currency%s
+D proven-safe_currency.adb  20260112074344 0b6ba597 proven.safe_currency%b
+D system.ads		19700101000000 14286b0f system%s
+D s-conca2.ads		19700101000000 b5fb73f7 system.concat_2%s
+D s-conca3.ads		19700101000000 8a7a19a2 system.concat_3%s
+D s-conca5.ads		19700101000000 4099d1db system.concat_5%s
+D s-exctab.ads		19700101000000 91bef6ef system.exception_table%s
+D s-imagei.ads		19700101000000 5e131ce0 system.image_i%s
+D s-imglli.ads		19700101000000 d88f4f3b system.img_lli%s
+D s-parame.ads		19700101000000 3597fc11 system.parameters%s
+D s-secsta.ads		19700101000000 578279f5 system.secondary_stack%s
+D s-stalib.ads		19700101000000 1c9580f6 system.standard_library%s
+D s-stoele.ads		19700101000000 ccded4e8 system.storage_elements%s
+D s-traent.ads		19700101000000 c81cbf8c system.traceback_entries%s
+D s-unstyp.ads		19700101000000 fa2a7f59 system.unsigned_types%s
+D s-valspe.ads		19700101000000 f810d31c system.val_spec%s
+D s-vaispe.ads		19700101000000 8280550e system.value_i_spec%s
+D s-vauspe.ads		19700101000000 89269ba5 system.value_u_spec%s
+D s-vs_lli.ads		19700101000000 b945cf7d system.vs_lli%s
+D s-vs_llu.ads		19700101000000 8f3536c5 system.vs_llu%s
+G a e
+G c Z s b [decimals proven__safe_currency 26 13 none]
+G c Z s b [symbol proven__safe_currency 29 13 none]
+G c Z s b [currency_name proven__safe_currency 32 13 none]
+G c Z s b [parse_code proven__safe_currency 35 13 none]
+G c Z s b [parse_code_or_raise proven__safe_currency 38 13 none]
+G c Z s b [is_valid_code proven__safe_currency 41 13 none]
+G c Z s b [from_major proven__safe_currency 59 13 none]
+G c Z s b [from_minor proven__safe_currency 63 13 none]
+G c Z s b [zero proven__safe_currency 67 13 none]
+G c Z s b [get_currency proven__safe_currency 70 13 none]
+G c Z s b [major proven__safe_currency 73 13 none]
+G c Z s b [minor proven__safe_currency 76 13 none]
+G c Z s b [add proven__safe_currency 79 13 none]
+G c Z s b [subtract proven__safe_currency 82 13 none]
+G c Z s b [multiply proven__safe_currency 85 13 none]
+G c Z s b [divide proven__safe_currency 88 13 none]
+G c Z s b [is_zero proven__safe_currency 92 13 none]
+G c Z s b [is_positive proven__safe_currency 95 13 none]
+G c Z s b [is_negative proven__safe_currency 98 13 none]
+G c Z s b [abs_value proven__safe_currency 101 13 none]
+G c Z s b [format proven__safe_currency 104 13 none]
+G c Z s s [currency_code_resultIP proven__safe_currency 18 9 none]
+G c Z s s [moneyIP proven__safe_currency 45 9 none]
+G c Z s s [money_resultIP proven__safe_currency 51 9 none]
+G c Z b b [power_of_10 proven__safe_currency 10 13 none]
+X 1 ada.ads
+18K9*Ada 22e8 13|4r6 4r35 5r6 5r35 370r54 372r54 383r48
+X 2 a-charac.ads
+16K13*Characters 18e19 13|4r10 4r39
+X 3 a-chahan.ads
+43K24*Handling 454e28 13|4w21 4r50
+282V13*To_Upper{string} 13|63s36
+X 6 a-string.ads
+16K13*Strings 35e16 13|5r10 5r39 370r58 372r58 383r52
+33n24*Left{33E9} 13|370r66 372r66
+33n37*Both{33E9} 13|383r60
+X 7 a-strfix.ads
+49K21*Fixed 1390e22 13|5w18 5r47
+1133V13*Trim{string} 13|370s10 372s10 383s39
+X 11 proven.ads
+9K9*Proven 11e11 12|6r9 109r5 13|7r14 401r5
+X 12 proven-safe_currency.ads
+6K16*Safe_Currency 11|9k9 12|109l12 109e25 13|7b21 401l12 401t25
+9E9*Currency_Code 15e5 20r31 26r30 29r28 32r35 38r53 47r21 60r42 64r42 67r26
+. 70r45 13|12r30 21r28 34r35 38r35 243r53 268r42 276r42 282r26 287r45
+10n7*USD{9E9} 13|24r15 41r15 72r41
+10n12*EUR{9E9} 13|25r15 42r15 76r41
+10n17*GBP{9E9} 13|26r15 43r15 80r41
+10n22*JPY{9E9} 13|15r15 27r15 44r15 84r41
+10n27*CHF{9E9} 13|28r15 45r15 88r41
+10n32*CAD{9E9} 13|46r15 92r41
+10n37*AUD{9E9} 13|47r15 96r41
+10n42*NZD{9E9} 13|48r15 100r41
+10n47*CNY{9E9} 13|27r21 49r15 104r41
+10n52*INR{9E9} 13|29r15 50r15 108r41
+11n7*BRL{9E9} 13|51r15 112r41
+11n12*MXN{9E9} 13|52r15 116r41
+11n17*KRW{9E9} 13|15r21 30r15 53r15 120r41
+11n22*SGD{9E9} 13|54r15 124r41
+11n27*HKD{9E9} 13|55r15 128r41
+11n32*SEK{9E9} 13|132r41
+11n37*NOK{9E9} 13|136r41
+11n42*DKK{9E9} 13|140r41
+11n47*PLN{9E9} 13|144r41
+11n52*RUB{9E9} 13|31r15 148r41
+12n7*ZAR{9E9} 13|152r41
+12n12*TRY{9E9} 13|156r41
+12n17*THB{9E9} 13|160r41
+12n22*MYR{9E9} 13|164r41
+12n27*IDR{9E9} 13|168r41
+12n32*PHP{9E9} 13|172r41
+12n37*VND{9E9} 13|15r27 176r41
+12n42*AED{9E9} 13|180r41
+12n47*SAR{9E9} 13|184r41
+12n52*ILS{9E9} 13|188r41
+13n7*CZK{9E9} 13|192r41
+13n12*HUF{9E9} 13|196r41
+13n17*RON{9E9} 13|200r41
+13n22*BGN{9E9} 13|204r41
+13n27*HRK{9E9} 13|208r41
+13n32*ISK{9E9} 13|212r41
+13n37*CLP{9E9} 13|216r41
+13n42*COP{9E9} 13|220r41
+13n47*PEN{9E9} 13|224r41
+13n52*ARS{9E9} 13|228r41
+14n7*BTC{9E9} 13|16r15 32r15 56r15 232r41
+14n12*ETH{9E9} 13|16r21 33r15 57r15 236r41
+18R9*Currency_Code_Result 18d31 23e14 35r44 13|62r44 244r25 253r25
+18b31*Valid{boolean} 19r12 13|67m18 72m18 76m18 80m18 84m18 88m18 92m18 96m18
+. 100m18 104m18 108m18 112m18 116m18 120m18 124m18 128m18 132m18 136m18 140m18
+. 144m18 148m18 152m18 156m18 160m18 164m18 168m18 172m18 176m18 180m18 184m18
+. 188m18 192m18 196m18 200m18 204m18 208m18 212m18 216m18 220m18 224m18 228m18
+. 232m18 236m18 240m15 246r21 255r21
+20e24*Code{9E9} 13|72m33 76m33 80m33 84m33 88m33 92m33 96m33 100m33 104m33
+. 108m33 112m33 116m33 120m33 124m33 128m33 132m33 136m33 140m33 144m33 148m33
+. 152m33 156m33 160m33 164m33 168m33 172m33 176m33 180m33 184m33 188m33 192m33
+. 196m33 200m33 204m33 208m33 212m33 216m33 220m33 224m33 228m33 232m33 236m33
+. 249r21
+26V13*Decimals{natural} 26>23 13|12b13 19l8 19t16 270s63 294s23 362s40
+26e23 Code{9E9} 13|12b23 14r12
+29V13*Symbol{string} 29>21 13|21b13 36l8 36t14 394s28 396s28
+29e21 Code{9E9} 13|21b21 23r12 34r56
+32V13*Currency_Name{string} 32>28 13|38b13 60l8 60t21
+32e28 Code{9E9} 13|38b28 40r12
+35V13*Parse_Code{18R9} 35>25 13|62b13 241l8 241t18 244s49 253s49
+35a25 S{string} 13|62b25 63r46
+38V13*Parse_Code_Or_Raise{9E9} 38>34 13|243b13 250l8 250t27
+38a34 S{string} 13|243b34 244r61 247r64
+41V13*Is_Valid_Code{boolean} 41>28 13|252b13 256l8 256t21
+41a28 S{string} 13|252b28 253r61
+45R9*Money 48e14 53r32 60r64 64r64 67r48 70r31 73r24 76r24 79r25 82r30 85r27
+. 85r69 89r11 92r26 95r30 98r30 101r28 101r42 104r25 13|268r64 276r64 282r48
+. 287r31 292r24 299r24 304r25 314r30 324r27 324r69 330r11 341r26 346r30 351r30
+. 356r28 356r42 361r25
+46i7*Minor_Units{long_long_integer} 13|272m15 279m15 284m15 296r16 301r16
+. 310m25 310r42 310r58 320m25 320r42 320r58 326m15 326r32 337m25 337r42 343r16
+. 348r16 353r16 358m15 358r36 364r56 368r16
+47e7*Currency{9E9} 13|272m51 279m38 284m33 289r16 294r35 306r12 306r26 311m25
+. 311r42 316r12 316r26 321m25 321r42 326m54 326r68 338m25 338r42 358m49 358r63
+. 362r52 394r38 396r38
+51R9*Money_Result 51d23 56e14 79r39 82r44 89r53 13|304r39 314r44 330r53
+51b23*Valid{boolean} 52r12 13|307m18 309m15 317m18 319m15 334m18 336m15
+53r24*Value{45R9} 13|310m15 320m15 337m15
+59V13*From_Major{45R9} 60>7 60>35 13|267b13 273l8 273t18
+60i7 Amount{long_long_integer} 13|268b7 272r30
+60e35 Code{9E9} 13|268b35 270r73 272r63
+63V13*From_Minor{45R9} 64>7 64>35 13|275b13 280l8 280t18
+64i7 Amount{long_long_integer} 13|276b7 279r30
+64e35 Code{9E9} 13|276b35 279r50
+67V13*Zero{45R9} 67>19 13|282b13 285l8 285t12
+67e19 Code{9E9} 13|282b19 284r45
+70V13*Get_Currency{9E9} 70>27 13|287b13 290l8 290t20
+70r27 M{45R9} 13|287b27 289r14
+73V13*Major{long_long_integer} 73>20 13|292b13 297l8 297t13
+73r20 M{45R9} 13|292b20 294r33 296r14
+76V13*Minor{long_long_integer} 76>20 13|299b13 302l8 302t13
+76r20 M{45R9} 13|299b20 301r14
+79V13*Add{51R9} 79>18 79>21 13|304b13 312l8 312t11
+79r18 A{45R9} 13|304b18 306r10 310r40 311r40
+79r21 B{45R9} 13|304b21 306r24 310r56
+82V13*Subtract{51R9} 82>23 82>26 13|314b13 322l8 322t16
+82r23 A{45R9} 13|314b23 316r10 320r40 321r40
+82r26 B{45R9} 13|314b26 316r24 320r56
+85V13*Multiply{45R9} 85>23 85>34 13|324b13 327l8 327t16
+85r23 M{45R9} 13|324b23 326r30 326r66
+85i34 Scalar{long_long_integer} 13|324b34 326r46
+88V13*Divide{51R9} 89>7 89>18 13|329b13 339l8 339t14
+89r7 M{45R9} 13|330b7 337r40 338r40
+89i18 Scalar{long_long_integer} 13|330b18 333r10 337r56
+92V13*Is_Zero{boolean} 92>22 13|341b13 344l8 344t15
+92r22 M{45R9} 13|341b22 343r14
+95V13*Is_Positive{boolean} 95>26 13|346b13 349l8 349t19
+95r26 M{45R9} 13|346b26 348r14
+98V13*Is_Negative{boolean} 98>26 13|351b13 354l8 354t19
+98r26 M{45R9} 13|351b26 353r14
+101V13*Abs_Value{45R9} 101>24 13|356b13 359l8 359t17
+101r24 M{45R9} 13|356b24 358r34 358r61
+104V13*Format{string} 104>21 13|361b13 399l8 399t14
+104r21 M{45R9} 13|361b21 362r50 364r54 368r14 394r36 396r36
+107X4*Currency_Error 13|247r16
+X 13 proven-safe_currency.adb
+10V13 Power_Of_10{long_long_integer} 10>26 258b13 265l8 265t19 270s50 294s10
+. 363s50
+10i26 N{natural} 258b26 261r21
+63a7 Upper_S{string} 66r10 71r10 75r10 79r10 83r10 87r10 91r10 95r10 99r10
+. 103r10 107r10 111r10 115r10 119r10 123r10 127r10 131r10 135r10 139r10 143r10
+. 147r10 151r10 155r10 159r10 163r10 167r10 171r10 175r10 179r10 183r10 187r10
+. 191r10 195r10 199r10 203r10 207r10 211r10 215r10 219r10 223r10 227r10 231r10
+. 235r10
+244r7 Result{12|18R9} 246r14 249r14
+253r7 Result{12|18R9} 255r14
+259i7 Result{long_long_integer} 262m10 262r20 264r14
+261i11 I{integer}
+270i7 Multiplier{long_long_integer} 272r39
+293i7 Divisor{long_long_integer} 296r30
+362i7 Dec{natural} 363r63 393r10 397r44
+363i7 Divisor{long_long_integer} 365r62 366r64
+364i7 Abs_Units{long_long_integer} 365r50 366r50
+365i7 Major_Part{long_long_integer} 370r41
+366i7 Minor_Part{long_long_integer} 372r41
+367a7 Sign_Str{string} 394r17 396r17
+369a7 Major_Str{string} 394r50 396r50
+371a7 Minor_Str{string} 397r33
+375V16 Pad_Left{string} 376>10 376>22 376>39 379b16 390l11 390t19 397s23
+376a10 S{string} 380b10 383r45
+376i22 Width{natural} 380b22 385r31 388r26
+376e39 Pad_Char{character} 380b39 388r52
+383a10 Trimmed{string} 385r13 386r20 388r34 388r64
+

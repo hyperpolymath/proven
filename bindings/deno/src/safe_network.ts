@@ -84,13 +84,11 @@ export class SafeNetwork {
 
     if (!ipResult.ok || !cidrAddrResult.ok) return false;
 
-    const ipNum =
-      (ipResult.value[0] << 24) |
+    const ipNum = (ipResult.value[0] << 24) |
       (ipResult.value[1] << 16) |
       (ipResult.value[2] << 8) |
       ipResult.value[3];
-    const cidrNum =
-      (cidrAddrResult.value[0] << 24) |
+    const cidrNum = (cidrAddrResult.value[0] << 24) |
       (cidrAddrResult.value[1] << 16) |
       (cidrAddrResult.value[2] << 8) |
       cidrAddrResult.value[3];

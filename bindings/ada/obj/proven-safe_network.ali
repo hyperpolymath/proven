@@ -1,0 +1,117 @@
+V "GNAT Lib v15"
+A -gnatA
+A -gnatwa
+A -gnatyg
+A -gnata
+A -gnatVa
+A -gnatwe
+A -gnatyN
+A -mtune=generic
+A -march=x86-64
+P SS ZX
+
+RN
+RV NO_EXCEPTION_HANDLERS
+RV NO_EXCEPTIONS
+RV NO_IMPLICIT_CONDITIONALS
+RV NO_SECONDARY_STACK
+RV NO_STANDARD_STORAGE_POOLS
+RV NO_DYNAMIC_SIZED_OBJECTS
+RV NO_IMPLEMENTATION_PRAGMAS
+
+U proven.safe_network%b	proven-safe_network.adb	cd4f6869 NE OO PK
+W ada%s			ada.ads			ada.ali
+W ada.strings%s		a-string.ads		a-string.ali
+W ada.strings.fixed%s	a-strfix.adb		a-strfix.ali
+W proven%s		proven.ads		proven.ali
+Z system.concat_7%s	s-conca7.adb		s-conca7.ali
+Z system.img_int%s	s-imgint.ads		s-imgint.ali
+Z system.secondary_stack%s  s-secsta.adb	s-secsta.ali
+Z system.val_int%s	s-valint.ads		s-valint.ali
+
+U proven.safe_network%s	proven-safe_network.ads	558ffa70 EE NE OO PK
+W proven%s		proven.ads		proven.ali
+
+D ada.ads		19700101000000 76789da1 ada%s
+D a-charac.ads		19700101000000 2d3ec45b ada.characters%s
+D a-chlat1.ads		19700101000000 e0d72e76 ada.characters.latin_1%s
+D a-string.ads		19700101000000 90ac6797 ada.strings%s
+D a-strfix.ads		19700101000000 8648dedb ada.strings.fixed%s
+D a-strmap.ads		19700101000000 1f91ebb6 ada.strings.maps%s
+D a-strsea.ads		19700101000000 18c3c634 ada.strings.search%s
+D a-unccon.ads		19700101000000 0e9b276f ada.unchecked_conversion%s
+D proven.ads		20260112040916 c78133bd proven%s
+D proven-safe_network.ads  20260112041021 920ec9cd proven.safe_network%s
+D proven-safe_network.adb  20260112041023 d9097f7f proven.safe_network%b
+D system.ads		19700101000000 14286b0f system%s
+D s-conca7.ads		19700101000000 09fd419f system.concat_7%s
+D s-exctab.ads		19700101000000 91bef6ef system.exception_table%s
+D s-imagei.ads		19700101000000 5e131ce0 system.image_i%s
+D s-imgint.ads		19700101000000 67e4edfb system.img_int%s
+D s-parame.ads		19700101000000 3597fc11 system.parameters%s
+D s-secsta.ads		19700101000000 578279f5 system.secondary_stack%s
+D s-stalib.ads		19700101000000 1c9580f6 system.standard_library%s
+D s-stoele.ads		19700101000000 ccded4e8 system.storage_elements%s
+D s-unstyp.ads		19700101000000 fa2a7f59 system.unsigned_types%s
+D s-valint.ads		19700101000000 8bab724f system.val_int%s
+D s-valspe.ads		19700101000000 f810d31c system.val_spec%s
+D s-valuns.ads		19700101000000 f7ddb71d system.val_uns%s
+D s-valuei.ads		19700101000000 d9377ca5 system.value_i%s
+D s-vaispe.ads		19700101000000 8280550e system.value_i_spec%s
+D s-valueu.ads		19700101000000 a38d32a6 system.value_u%s
+D s-vauspe.ads		19700101000000 89269ba5 system.value_u_spec%s
+D s-vs_int.ads		19700101000000 06b6b724 system.vs_int%s
+D s-vs_uns.ads		19700101000000 e7f47a27 system.vs_uns%s
+G a e
+G c Z s b [parse_ipv4 proven__safe_network 20 13 none]
+G c Z s b [is_valid_ipv4 proven__safe_network 23 13 none]
+G c Z s b [is_private proven__safe_network 26 13 none]
+G c Z s b [is_loopback proven__safe_network 29 13 none]
+G c Z s b [is_public proven__safe_network 32 13 none]
+G c Z s b [format_ipv4 proven__safe_network 35 13 none]
+G c Z s s [ipv4IP proven__safe_network 8 9 none]
+G c Z s s [optional_ipv4IP proven__safe_network 12 9 none]
+X 1 ada.ads
+18K9*Ada 22e8 11|4r6 4r29 102r42 103r42 104r42 105r42
+X 4 a-string.ads
+16K13*Strings 35e16 11|4r10 4r33 102r46 103r46 104r46 105r46
+33n24*Left{33E9} 11|102r54 103r54 104r54 105r54
+X 5 a-strfix.ads
+49K21*Fixed 1390e22 11|4w18 4r41
+252V13*Index{natural} 11|15s21
+1133V13*Trim{string} 11|102s14 103s14 104s14 105s14
+X 9 proven.ads
+9K9*Proven 11e11 10|6r9 37r5 11|6r14 108r5
+X 10 proven-safe_network.ads
+6K16*Safe_Network 9|9k9 10|37l12 37e24 11|6b21 108l12 108t24
+8R9*IPv4 10e14 14r32 35r31 11|63r24 100r31
+9i7*A{integer} 11|45m25 66r16 71r16 76r16 90r27 102r38
+9i10*B{integer} 11|45m42 71r36 71r56 76r36 103r38
+9i13*C{integer} 11|46m25 104r38
+9i16*D{integer} 11|46m42 105r38
+12R9*Optional_IPv4 12d24 17e14 20r50 11|8r50 50r25 56r25 85r25
+12b24*Valid{boolean} 13r12 11|17m21 23m24 27m24 37m21 41m21 44m15 52r21 58r21
+. 87r21
+14r24*Value{8R9} 11|45m15 63r39 90r21
+20V13*Parse_IPv4{12R9} 20>25 11|8b13 47l8 47t18 50s42 56s42 85s42
+20a25 Address{string} 11|8b25 10r30 15r28 15r50 21r42 35r39 35r61
+23V13*Is_Valid_IPv4{boolean} 23>28 11|49b13 53l8 53t21 95s14
+23a28 Address{string} 11|49b28 50r54
+26V13*Is_Private{boolean} 26>25 11|55b13 82l8 82t18 96s27
+26a25 Address{string} 11|55b25 56r54
+29V13*Is_Loopback{boolean} 29>26 11|84b13 91l8 91t19 97s27
+29a26 Address{string} 11|84b26 85r54
+32V13*Is_Public{boolean} 32>24 11|93b13 98l8 98t17
+32a24 Address{string} 11|93b24 95r29 96r39 97r40
+35V13*Format_IPv4{string} 35>26 11|100b13 106l8 106t19
+35r26 IP{8R9} 11|100b26 102r35 103r35 104r35 105r35
+X 11 proven-safe_network.adb
+9a7 Octets(natural) 21m13 22r16 35m10 36r13 45r30 45r47 46r30 46r47
+10i7 Start_Pos{natural} 15r37 21r51 30m10 35r48
+11i7 Dot_Pos{natural} 15m10 16r13 21r64 30r23
+14i11 I{integer} 21r21 22r24
+50r7 Result{10|12R9} 52r14
+56r7 Result{10|12R9} 58r14 63r32
+63r10 IP{10|8R9} 66r13 71r13 71r33 71r53 76r13 76r33
+85r7 Result{10|12R9} 87r14 90r14
+

@@ -1,0 +1,162 @@
+V "GNAT Lib v15"
+A -gnatA
+A -gnatwa
+A -gnatyg
+A -gnata
+A -gnatVa
+A -gnatwe
+A -mtune=generic
+A -march=x86-64
+P SS ZX
+
+RN
+RV NO_DIRECT_BOOLEAN_OPERATORS
+RV NO_EXCEPTIONS
+RV NO_IMPLICIT_CONDITIONALS
+RV NO_SECONDARY_STACK
+RV NO_STANDARD_STORAGE_POOLS
+RV NO_DYNAMIC_SIZED_OBJECTS
+RV NO_IMPLEMENTATION_PRAGMAS
+RV NO_IMPLICIT_LOOPS
+RV NO_ELABORATION_CODE
+
+U proven.safe_uuid%b	proven-safe_uuid.adb	e5584c78 NE OO PK
+Z ada.exceptions%s	a-except.adb		a-except.ali
+W proven%s		proven.ads		proven.ali
+Z system.concat_2%s	s-conca2.adb		s-conca2.ali
+Z system.secondary_stack%s  s-secsta.adb	s-secsta.ali
+
+U proven.safe_uuid%s	proven-safe_uuid.ads	574369e4 EE OO PK
+W interfaces%s		interfac.ads		interfac.ali
+W proven%s		proven.ads		proven.ali
+Z system%s		system.ads		system.ali
+Z system.exception_table%s  s-exctab.adb	s-exctab.ali
+Z system.standard_library%s  s-stalib.adb	s-stalib.ali
+
+D ada.ads		19700101000000 76789da1 ada%s
+D a-except.ads		19700101000000 e7970cd9 ada.exceptions%s
+D a-unccon.ads		19700101000000 0e9b276f ada.unchecked_conversion%s
+D interfac.ads		19700101000000 9111f9c1 interfaces%s
+D proven.ads		20260112040916 c78133bd proven%s
+D proven-safe_uuid.ads	20260112074102 01d3a398 proven.safe_uuid%s
+D proven-safe_uuid.adb	20260112074422 e48befe0 proven.safe_uuid%b
+D system.ads		19700101000000 14286b0f system%s
+D s-conca2.ads		19700101000000 b5fb73f7 system.concat_2%s
+D s-exctab.ads		19700101000000 91bef6ef system.exception_table%s
+D s-parame.ads		19700101000000 3597fc11 system.parameters%s
+D s-secsta.ads		19700101000000 578279f5 system.secondary_stack%s
+D s-stalib.ads		19700101000000 1c9580f6 system.standard_library%s
+D s-stoele.ads		19700101000000 ccded4e8 system.storage_elements%s
+D s-traent.ads		19700101000000 c81cbf8c system.traceback_entries%s
+G a e
+G c Z s b [from_bytes proven__safe_uuid 49 13 none]
+G c Z s b [as_bytes proven__safe_uuid 52 13 none]
+G c Z s b [version proven__safe_uuid 55 13 none]
+G c Z s b [variant proven__safe_uuid 58 13 none]
+G c Z s b [is_nil proven__safe_uuid 61 13 none]
+G c Z s b [format proven__safe_uuid 64 13 none]
+G c Z s b [to_urn proven__safe_uuid 67 13 none]
+G c Z s b [parse proven__safe_uuid 70 13 none]
+G c Z s b [parse_or_raise proven__safe_uuid 73 13 none]
+G c Z s b [v4_from_bytes proven__safe_uuid 76 13 none]
+G c Z s b [is_valid proven__safe_uuid 79 13 none]
+G c Z s b [equal proven__safe_uuid 82 13 none]
+G c Z s s [Tuuid_bytesBIP proven__safe_uuid 11 4 none]
+G c Z s s [uuidIP proven__safe_uuid 27 9 none]
+G c Z s s [parse_resultIP proven__safe_uuid 32 9 none]
+G c Z b b [hex_char_to_nibble proven__safe_uuid 9 13 none]
+G c Z b b [nibble_to_hex_char proven__safe_uuid 10 13 none]
+X 4 interfac.ads
+47K9*Interfaces 247e15 6|6w6 6r22
+81M9*Unsigned_8 6|11r42 7|10r37 26r37 42r33 64r31 92r34 95r34 194r23
+109V13*Shift_Right{81M9} 7|43s10 66s10 68s13 70s13 97s46
+X 5 proven.ads
+9K9*Proven 11e11 6|8r9 101r5 7|4r14 230r5
+X 6 proven-safe_uuid.ads
+8K16*Safe_UUID 5|9k9 6|89E4 101l12 101e21 7|4b21 230l12 230t21
+11A9*UUID_Bytes(4|81M9)<integer> 28r15 49r33 52r40 76r43 7|31r33 36r40 148r33
+. 209r43 210r15
+14E9*UUID_Version 14e75 55r39 7|41r39
+14n26*V1{14E9} 7|46r27
+14n30*V2{14E9} 7|47r27
+14n34*V3{14E9} 7|48r27
+14n38*V4{14E9} 7|49r27
+14n42*V5{14E9} 7|50r27
+14n46*Nil_Version{14E9} 7|58r20
+14n59*Unknown_Version{14E9} 7|55r26 59r32
+24E9*UUID_Variant 24e59 58r39 7|63r39
+24n26*NCS{24E9} 7|67r17
+24n31*RFC_4122{24E9} 7|69r17
+24n41*Microsoft{24E9} 7|71r17
+24n52*Future{24E9} 7|73r17
+27R9*UUID 29e14 34r32 40r24 43r29 46r29 49r52 52r27 55r26 58r26 61r25 64r25
+. 67r25 73r48 76r62 82r27 89r24 91r29 96r29 7|31r52 36r27 41r26 63r26 77r25
+. 87r25 140r25 200r48 209r62 225r27
+28a7*Bytes{11A9} 89m33 91m38 96m38 7|33m15 38r16 43r25 53r24 54r21 64r47
+. 79r18 80r15 114r25 119r25 124r25 129r25 134r25 197m40 216m15 227r16 227r26
+32R9*Parse_Result 32d23 37e14 70r39 7|145r39 201r25 220r25
+32b23*Valid{boolean} 33r12 7|153m18 165m21 173m24 182m18 191m21 197m15 203r21
+. 222r21
+34r24*Value{27R9} 7|197m30 206r21
+40r4*Nil_UUID{27R9} 89c4
+43r4*Namespace_DNS{27R9} 91c4
+46r4*Namespace_URL{27R9} 96c4
+49V13*From_Bytes{27R9} 49>25 7|31b13 34l8 34t18
+49a25 Bytes{11A9} 7|31b25 33r24
+52V13*As_Bytes{11A9} 52>23 7|36b13 39l8 39t16
+52r23 U{27R9} 7|36b23 38r14
+55V13*Version{14E9} 55>22 7|41b13 61l8 61t15
+55r22 U{27R9} 7|41b22 43r23 53r22 54r19
+58V13*Variant{24E9} 58>22 7|63b13 75l8 75t15
+58r22 U{27R9} 7|63b22 64r45
+61V13*Is_Nil{boolean} 61>21 7|77b13 85l8 85t14
+61r21 U{27R9} 7|77b21 79r16 80r13
+64V13*Format{string} 64>21 7|87b13 138l8 138t14 142s28
+64r21 U{27R9} 7|87b21 114r23 119r23 124r23 129r23 134r23
+67V13*To_URN{string} 67>21 7|140b13 143l8 143t14
+67r21 U{27R9} 7|140b21 142r36
+70V13*Parse{32R9} 70>20 7|145b13 198l8 198t13 201s41 220s41
+70a20 S{string} 7|145b20 152r10 158r39 160r13 161r20 162r20 163r20 170r16
+. 171r13 175r34
+73V13*Parse_Or_Raise{27R9} 73>29 7|200b13 207l8 207t22
+73a29 S{string} 7|200b29 201r48 204r64
+76V13*V4_From_Bytes{27R9} 76>28 7|209b13 217l8 217t21
+76a28 Random_Bytes{11A9} 7|209b28 210r29
+79V13*Is_Valid{boolean} 79>23 7|219b13 223l8 223t16
+79a23 S{string} 7|219b23 220r48
+82V13*Equal{boolean} 82>20 82>23 7|225b13 228l8 228t13
+82r20 A{27R9} 7|225b20 227r14
+82r23 B{27R9} 7|225b23 227r24
+85X4*UUID_Parse_Error 7|204r16
+X 7 proven-safe_uuid.adb
+6a4 Hex_Chars{string} 28r14
+9V13 Hex_Char_To_Nibble{integer} 9>33 12b13 24l8 24t26 187s25 188s24
+9e33 C{character} 12b33 14r12 16r35 18r35 20r35
+10V13 Nibble_To_Hex_Char{character} 10>33 26b13 29l8 29t26 97s26 99s26
+10m33 N{4|81M9} 26b33 28r34
+42m7 Version_Nibble{4|81M9} 45r12
+53i17 I{integer} 54r28
+64m7 Variant_Byte{4|81M9} 66r23 68r26 70r26
+79i11 I{integer} 80r22
+88a7 Result{string} 97m10 99m10 105m10 137r14
+89i7 Pos{positive} 97r18 98m10 98r17 99r18 100m10 100r17 105r18 106m10 106r17
+92U17 Append_Byte 92>30 95b17 101l11 101t22 114s10 119s10 124s10 129s10 134s10
+92m30 B{4|81M9} 95b30 97r59 99r46
+93U17 Append_Dash 103b17 107l11 107t22 116s7 121s7 126s7 131s7
+113i11 I{integer} 114r32
+118i11 I{integer} 119r32
+123i11 I{integer} 124r32
+128i11 I{integer} 129r32
+133i11 I{integer} 134r32
+146a7 Hex_Str{string} 175m13 187r45 188r44
+147i7 Hex_Pos{positive} 172r16 175r22 176m13 176r24 181r10
+148a7 Bytes{6|11A9} 194m10 197r49
+149i7 High_Nibble{integer} 187m10 190r13 194r35
+149i20 Low_Nibble{integer} 188m10 190r32 194r54
+158i10 Offset{integer} 160r16 161r23 162r23 163r23
+170i11 I{integer} 171r16 175r37
+186i11 I{integer} 187r54 188r53 194r17
+201r7 Result{6|32R9} 203r14 206r14
+210a7 Bytes{6|11A9} 213m7 213r21 215m7 215r21 216r24
+220r7 Result{6|32R9} 222r14
+

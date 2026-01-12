@@ -7,8 +7,10 @@
  * Proven - Code that cannot crash
  *
  * ReScript bindings for verified safety functions.
+ * Calls Idris 2 verified code via Zig ABI (WASM/WASI).
  */
 
+// Core modules
 module SafeMath = Proven_SafeMath
 module SafeString = Proven_SafeString
 module SafeUrl = Proven_SafeUrl
@@ -17,12 +19,29 @@ module SafePath = Proven_SafePath
 module SafeCrypto = Proven_SafeCrypto
 module SafeNetwork = Proven_SafeNetwork
 
-let version = "0.3.0"
+// v0.8.0 Network Extended modules
+module SafeHeader = Proven_SafeHeader
+module SafeCookie = Proven_SafeCookie
+module SafeContentType = Proven_SafeContentType
 
-/** Initialize the WASM module */
-@module("../../../javascript/src/wasm.js")
-external init: unit => promise<unit> = "init"
+// v0.9.0 Type-safe domain modules
+module SafeUuid = Proven_SafeUuid
+module SafeCurrency = Proven_SafeCurrency
+module SafePhone = Proven_SafePhone
+module SafeHex = Proven_SafeHex
+
+// FFI layer
+module FFI = Proven_FFI
+
+let version = "0.8.0"
+
+/** Initialize the WASM module
+ * @param wasmPath Path to the proven.wasm file
+ */
+let init = Proven_FFI.init
 
 /** Check if initialized */
-@module("../../../javascript/src/wasm.js")
-external isInitialized: unit => bool = "isInitialized"
+let isInitialized = Proven_FFI.isInitialized
+
+/** Cleanup */
+let deinit = Proven_FFI.deinit

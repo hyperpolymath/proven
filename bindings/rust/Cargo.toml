@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 [package]
 name = "proven"
-version = "0.1.0"
+version = "0.8.0"
 edition = "2021"
 authors = ["Hyperpolymath <hyperpolymath@proton.me>"]
 description = "Safe, formally verified library for math, crypto, parsing, and validation - Rust bindings"

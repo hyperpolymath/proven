@@ -16,5 +16,9 @@ proven.safe_path = require("proven.safe_path")
 proven.safe_email = require("proven.safe_email")
 proven.safe_network = require("proven.safe_network")
 proven.safe_crypto = require("proven.safe_crypto")
+proven.safe_uuid = require("proven.safe_uuid")
+proven.safe_currency = require("proven.safe_currency")
+proven.safe_phone = require("proven.safe_phone")
+proven.safe_hex = require("proven.safe_hex")
 
 return proven

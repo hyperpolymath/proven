@@ -11,5 +11,9 @@
 //// - SafePath: Filesystem ops without traversal attacks
 //// - SafeCrypto: Cryptographic primitives done right
 //// - SafeNetwork: Network operations that cannot fail unsafely
+//// - SafeUuid: UUID parsing and validation following RFC 4122
+//// - SafeCurrency: Type-safe monetary values following ISO 4217
+//// - SafePhone: Phone number validation following E.164
+//// - SafeHex: Hexadecimal encoding with constant-time comparison
 
 pub const version = "0.3.0"

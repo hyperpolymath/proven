@@ -13,5 +13,9 @@ module proven
     use safe_email
     use safe_network
     use safe_crypto
+    use safe_uuid
+    use safe_currency
+    use safe_phone
+    use safe_hex
     implicit none
 end module proven

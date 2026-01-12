@@ -23,6 +23,10 @@ library
     Proven.SafeEmail
     Proven.SafeNetwork
     Proven.SafeCrypto
+    Proven.SafeUUID
+    Proven.SafeCurrency
+    Proven.SafePhone
+    Proven.SafeHex
   hs-source-dirs:   src
   build-depends:
     base >= 4.14 && < 5,

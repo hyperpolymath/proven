@@ -5,7 +5,8 @@
     Proven
 
 Safety-first utility functions with formal verification guarantees.
-Provides safe operations for math, strings, paths, emails, URLs, and networking.
+Provides safe operations for math, strings, paths, emails, URLs, networking,
+UUIDs, currencies, phone numbers, and hex encoding.
 """
 module Proven
 
@@ -16,7 +17,12 @@ include("SafeEmail.jl")
 include("SafeUrl.jl")
 include("SafeNetwork.jl")
 include("SafeCrypto.jl")
+include("SafeUUID.jl")
+include("SafeCurrency.jl")
+include("SafePhone.jl")
+include("SafeHex.jl")
 
 export SafeMath, SafeString, SafePath, SafeEmail, SafeUrl, SafeNetwork, SafeCrypto
+export SafeUUID, SafeCurrency, SafePhone, SafeHex
 
 end # module

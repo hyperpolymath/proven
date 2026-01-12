@@ -14,6 +14,10 @@ cobc -c SAFE-PATH.cob
 cobc -c SAFE-EMAIL.cob
 cobc -c SAFE-NETWORK.cob
 cobc -c SAFE-CRYPTO.cob
+cobc -c SAFE-UUID.cob
+cobc -c SAFE-CURRENCY.cob
+cobc -c SAFE-PHONE.cob
+cobc -c SAFE-HEX.cob
 ```
 
 ## Usage
@@ -226,6 +230,168 @@ Basic cryptographic operations:
 ```
 
 **Note:** The crypto operations use basic algorithms for demonstration. For production applications, integrate with platform-specific cryptographic APIs (IBM ICSF, OpenSSL via C interop, etc.).
+
+### SAFE-UUID
+
+UUID parsing and validation:
+
+```cobol
+      * Parse and validate UUID string (36-char canonical format)
+       CALL "PARSE-UUID" USING UUID-STRING RESULT ERROR-MSG.
+
+      * Format UUID bytes to canonical string
+       CALL "FORMAT-UUID" USING UUID-BYTES USE-UPPERCASE
+                                UUID-STRING RESULT.
+
+      * Get UUID version (1-7)
+       CALL "GET-UUID-VERSION" USING UUID-STRING VERSION RESULT.
+
+      * Get UUID variant (0=NCS, 1=RFC4122, 2=Microsoft, 3=Future)
+       CALL "GET-UUID-VARIANT" USING UUID-STRING VARIANT RESULT.
+
+      * Check if UUID is nil (all zeros)
+       CALL "IS-NIL-UUID" USING UUID-STRING RESULT.
+
+      * Normalize UUID to lowercase canonical form
+       CALL "NORMALIZE-UUID" USING UUID-STRING RESULT.
+```
+
+**Copybook:** Include `SAFEUUID.cpy` for UUID data structures:
+
+```cobol
+       COPY SAFEUUID.
+      * Provides: UUID-RECORD, UUID-BYTES, UUID-VERSION-INFO, etc.
+```
+
+### SAFE-CURRENCY
+
+Currency arithmetic with overflow protection:
+
+```cobol
+      * Add two money amounts (minor units)
+       CALL "MONEY-ADD" USING CURRENCY-A MINOR-A
+                              CURRENCY-B MINOR-B
+                              RESULT-MINOR STATUS ERROR-MSG.
+
+      * Subtract money amounts
+       CALL "MONEY-SUBTRACT" USING CURRENCY-A MINOR-A
+                                   CURRENCY-B MINOR-B
+                                   RESULT-MINOR STATUS ERROR-MSG.
+
+      * Multiply money by integer
+       CALL "MONEY-MULTIPLY" USING MINOR-A MULTIPLIER
+                                   RESULT-MINOR STATUS ERROR-MSG.
+
+      * Divide money by integer
+       CALL "MONEY-DIVIDE" USING MINOR-A DIVISOR
+                                 RESULT-MINOR STATUS ERROR-MSG.
+
+      * Get decimal places for currency (USD=2, JPY=0, BTC=8)
+       CALL "GET-DECIMAL-PLACES" USING CURRENCY-CODE
+                                       DECIMAL-PLACES STATUS.
+
+      * Convert minor units to major (cents to dollars)
+       CALL "MINOR-TO-MAJOR" USING MINOR-UNITS DECIMAL-PLACES
+                                   MAJOR-AMOUNT.
+
+      * Convert major to minor (dollars to cents)
+       CALL "MAJOR-TO-MINOR" USING MAJOR-AMOUNT DECIMAL-PLACES
+                                   MINOR-UNITS STATUS.
+
+      * Validate currency code
+       CALL "IS-VALID-CURRENCY" USING CURRENCY-CODE STATUS.
+
+      * Format money for display
+       CALL "FORMAT-MONEY" USING MINOR-AMOUNT CURRENCY-CODE
+                                 USE-THOUSANDS-SEP
+                                 FORMATTED-OUTPUT OUTPUT-LEN.
+```
+
+**Copybook:** Include `SAFECURR.cpy` for currency data structures:
+
+```cobol
+       COPY SAFECURR.
+      * Provides: CURRENCY-CODE (with 88 levels for USD, EUR, etc.),
+      *           MONEY-RECORD, MONEY-RESULT, EXCHANGE-RATE-RECORD
+```
+
+### SAFE-PHONE
+
+Phone number parsing and formatting (E.164):
+
+```cobol
+      * Parse phone number string
+       CALL "PARSE-PHONE" USING PHONE-INPUT INPUT-LENGTH
+                                DEFAULT-COUNTRY
+                                COUNTRY-CODE NATIONAL-NUMBER EXTENSION
+                                RESULT ERROR-MSG.
+
+      * Format phone number for display
+      * FORMAT-TYPE: 0=E164, 1=International, 2=National, 3=RFC3966
+       CALL "FORMAT-PHONE" USING COUNTRY-CODE NATIONAL-NUMBER
+                                 FORMAT-TYPE
+                                 FORMATTED-OUTPUT OUTPUT-LENGTH.
+
+      * Convert to E.164 format (+1XXXXXXXXXX)
+       CALL "TO-E164" USING COUNTRY-CODE NATIONAL-NUMBER
+                            E164-OUTPUT OUTPUT-LENGTH RESULT.
+
+      * Basic phone validation (7-15 digits)
+       CALL "IS-VALID-PHONE" USING PHONE-INPUT INPUT-LENGTH RESULT.
+```
+
+**Copybook:** Include `SAFEPHONE.cpy` for phone data structures:
+
+```cobol
+       COPY SAFEPHONE.
+      * Provides: COUNTRY-CODE (with 88 levels for US, UK, etc.),
+      *           PHONE-NUMBER-RECORD, PHONE-NUMBER-TYPE,
+      *           PHONE-PARSE-RESULT, PHONE-FORMAT-OPTIONS
+```
+
+### SAFE-HEX
+
+Hexadecimal encoding and decoding:
+
+```cobol
+      * Encode bytes to hex string
+       CALL "HEX-ENCODE" USING INPUT-BYTES INPUT-LENGTH
+                               USE-UPPERCASE ADD-PREFIX
+                               OUTPUT-STRING OUTPUT-LENGTH RESULT.
+
+      * Encode with byte separator (for MAC addresses, etc.)
+       CALL "HEX-ENCODE-SEP" USING INPUT-BYTES INPUT-LENGTH
+                                   USE-UPPERCASE SEPARATOR
+                                   OUTPUT-STRING OUTPUT-LENGTH RESULT.
+
+      * Decode hex string to bytes
+       CALL "HEX-DECODE" USING HEX-STRING HEX-LENGTH
+                               OUTPUT-BYTES OUTPUT-LENGTH
+                               RESULT ERROR-MSG.
+
+      * Validate hex string
+       CALL "IS-VALID-HEX-STRING" USING HEX-STRING HEX-LENGTH RESULT.
+
+      * Convert single byte to hex
+       CALL "BYTE-TO-HEX" USING INPUT-BYTE USE-UPPERCASE
+                                OUTPUT-HEX.
+
+      * Convert hex pair to single byte
+       CALL "HEX-TO-BYTE" USING HEX-PAIR OUTPUT-BYTE RESULT.
+
+      * Normalize hex (lowercase, strip prefix)
+       CALL "NORMALIZE-HEX" USING HEX-STRING HEX-LENGTH
+                                  OUTPUT-STRING OUTPUT-LENGTH.
+```
+
+**Copybook:** Include `SAFEHEX.cpy` for hex data structures:
+
+```cobol
+       COPY SAFEHEX.
+      * Provides: HEX-ENCODE-OPTIONS, HEX-ENCODE-RESULT,
+      *           HEX-DECODE-RESULT, HEX-RGB-COLOR, HEX-MAC-ADDRESS,
+      *           pre-sized fields for MD5, SHA1, SHA256, SHA512
+```
 
 ## Data Types
 

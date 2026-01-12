@@ -13,6 +13,10 @@ A verified safety library providing:
 - SafePath: Filesystem ops without traversal attacks
 - SafeCrypto: Cryptographic primitives done right
 - SafePassword: Authentication without security holes
+- SafeUUID: UUID generation and parsing without exceptions
+- SafeCurrency: Money arithmetic without floating-point errors
+- SafePhone: Phone number parsing and E.164 formatting
+- SafeHex: Hex encoding/decoding without exceptions
 """
 
 from .safe_math import SafeMath
@@ -22,6 +26,10 @@ from .safe_crypto import SafeCrypto
 from .safe_url import SafeUrl
 from .safe_email import SafeEmail
 from .safe_network import SafeNetwork
+from .safe_uuid import SafeUUID, UUIDVersion, UUIDVariant
+from .safe_currency import CurrencyCode, Money
+from .safe_phone import CountryCode, PhoneNumber, SafePhone
+from .safe_hex import SafeHex, HexCase, HexFormat
 from .core import ProvenError, ProvenStatus
 
 __version__ = "0.3.0"
@@ -33,6 +41,17 @@ __all__ = [
     "SafeUrl",
     "SafeEmail",
     "SafeNetwork",
+    "SafeUUID",
+    "UUIDVersion",
+    "UUIDVariant",
+    "CurrencyCode",
+    "Money",
+    "CountryCode",
+    "PhoneNumber",
+    "SafePhone",
+    "SafeHex",
+    "HexCase",
+    "HexFormat",
     "ProvenError",
     "ProvenStatus",
 ]

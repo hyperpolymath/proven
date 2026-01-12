@@ -107,3 +107,139 @@ suite "SafeCrypto":
     let zeroed = secureZero(4)
     check zeroed.len == 4
     check zeroed == "\x00\x00\x00\x00"
+
+suite "SafeUuid":
+  test "parseUuid parses valid UUID":
+    let uuid = parseUuid("550e8400-e29b-41d4-a716-446655440000")
+    check uuid.isSome
+    check uuid.get.version == uvV4
+    check not uuid.get.isNil
+
+  test "parseUuid returns none for invalid UUID":
+    check parseUuid("not-a-uuid").isNone
+    check parseUuid("").isNone
+    check parseUuid("550e8400-e29b-41d4-a716").isNone
+
+  test "nil UUID is detected":
+    let uuid = parseUuid("00000000-0000-0000-0000-000000000000")
+    check uuid.isSome
+    check uuid.get.isNil
+
+  test "UUID formats correctly":
+    let uuid = parseUuid("550e8400-e29b-41d4-a716-446655440000")
+    check $uuid.get == "550e8400-e29b-41d4-a716-446655440000"
+
+  test "UUID URN format":
+    let uuid = parseUuid("550e8400-e29b-41d4-a716-446655440000")
+    check uuid.get.toUrn == "urn:uuid:550e8400-e29b-41d4-a716-446655440000"
+
+  test "isValidUuid validates format":
+    check isValidUuid("550e8400-e29b-41d4-a716-446655440000") == true
+    check isValidUuid("invalid") == false
+
+suite "SafeCurrency":
+  test "fromMajor creates correct minor units":
+    let money = fromMajor(100, ccUsd)
+    check money.minorUnits == 10000  # 100 dollars = 10000 cents
+
+  test "fromMinor preserves units":
+    let money = fromMinor(12345, ccUsd)
+    check money.minorUnits == 12345
+
+  test "Money formats correctly":
+    let money = fromMinor(12345, ccUsd)
+    check $money == "$123.45"
+
+  test "Money addition works":
+    let a = fromMajor(100, ccUsd)
+    let b = fromMajor(50, ccUsd)
+    let sum = a + b
+    check sum.minorUnits == 15000
+
+  test "Currency mismatch detected":
+    let usd = fromMajor(100, ccUsd)
+    let eur = fromMajor(100, ccEur)
+    check add(usd, eur).isNone
+
+  test "Zero-decimal currencies handled":
+    let yen = fromMajor(1000, ccJpy)
+    check yen.minorUnits == 1000
+    check $yen == "¥1000"
+
+  test "Currency code parsing":
+    check parseCurrencyCode("USD") == some(ccUsd)
+    check parseCurrencyCode("eur") == some(ccEur)
+    check parseCurrencyCode("XXX").isNone
+
+suite "SafePhone":
+  test "parsePhone parses valid phone numbers":
+    let phone = parsePhone("+1 555 123 4567")
+    check phone.isSome
+    check phone.get.countryCode == ccUs
+    check phone.get.nationalNumber == "5551234567"
+
+  test "parsePhone returns none for invalid numbers":
+    check parsePhone("123").isNone
+    check parsePhone("").isNone
+
+  test "E.164 formatting":
+    let phone = parsePhone("+1 555 123 4567")
+    check phone.get.toE164 == "+15551234567"
+
+  test "International formatting":
+    let phone = parsePhone("+1 555 123 4567")
+    check phone.get.toInternational == "+1 555 123 4567"
+
+  test "National formatting":
+    let phone = parsePhone("+1 555 123 4567")
+    check phone.get.toNational == "(555) 123-4567"
+
+  test "isValidPhone validates numbers":
+    check isValidPhone("+1 555 123 4567") == true
+    check isValidPhone("abc") == false
+
+suite "SafeHex":
+  test "encode produces lowercase hex":
+    check encode([0xFF'u8, 0x00, 0xAB]) == "ff00ab"
+
+  test "encodeUpper produces uppercase hex":
+    check encodeUpper([0xFF'u8, 0x00, 0xAB]) == "FF00AB"
+
+  test "decode parses hex strings":
+    let decoded = decode("ff00ab")
+    check decoded.isSome
+    check decoded.get == @[0xFF'u8, 0x00, 0xAB]
+
+  test "decode returns none for invalid hex":
+    check decode("xyz").isNone
+    check decode("abc").isNone  # Odd length
+
+  test "isValidHex validates hex strings":
+    check isValidHex("abcdef0123456789") == true
+    check isValidHex("xyz") == false
+
+  test "isValidHexBytes checks even length":
+    check isValidHexBytes("aabb") == true
+    check isValidHexBytes("aab") == false
+
+  test "constantTimeEqual compares case-insensitively":
+    check constantTimeEqual("aabb", "AABB") == true
+    check constantTimeEqual("aabb", "aab0") == false
+
+  test "formatSpaced adds spaces":
+    let formatted = formatSpaced("aabbcc")
+    check formatted.isSome
+    check formatted.get == "aa bb cc"
+
+  test "formatColons adds colons":
+    let formatted = formatColons("aabbcc")
+    check formatted.isSome
+    check formatted.get == "aa:bb:cc"
+
+  test "intToHex converts integers":
+    check intToHex(255, 2) == "ff"
+    check intToHex(255, 4) == "00ff"
+
+  test "hexToInt parses hex integers":
+    check hexToInt("ff") == some(255'u64)
+    check hexToInt("invalid").isNone

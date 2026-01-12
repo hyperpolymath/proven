@@ -18,7 +18,11 @@
     proven_path,
     proven_email,
     proven_network,
-    proven_crypto
+    proven_crypto,
+    proven_uuid,
+    proven_currency,
+    proven_phone,
+    proven_hex
   ]},
   {licenses, ["PMPL-1.0"]},
   {links, [{"GitHub", "https://github.com/hyperpolymath/proven"}]}

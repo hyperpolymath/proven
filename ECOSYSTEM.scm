@@ -152,9 +152,13 @@
                                 │
                                 ▼
   ┌─────────────────────────────────────────────────────────────────┐
-  │                   Language Bindings (12 languages)              │
-  │  Rust │ Python │ JS │ Deno │ ReScript │ Gleam │ Julia │        │
-  │  Swift │ Kotlin │ Go │ Elixir │ Zig                             │
+  │                   Language Bindings (40 languages)              │
+  │  High-level: Rust, Python, Go, JavaScript, TypeScript, Deno    │
+  │  System: C, C++, Zig, Nim, D, Crystal, Fortran, COBOL, Ada     │
+  │  JVM/CLR: Kotlin, Scala, F#, Clojure                           │
+  │  Functional: Haskell, OCaml, Elixir, Gleam, Erlang, Prolog     │
+  │  Dynamic: Ruby, PHP, Perl, Lua, Julia, R, Tcl, Bash            │
+  │  Other: Swift, Dart, ReScript, Racket, Common Lisp, V, Odin    │
   └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -165,9 +169,10 @@
                                 │
                                 ▼
   ┌─────────────────────────────────────────────────────────────────┐
-  │                   proven                              │
+  │                       proven (Idris 2)                          │
   │  SafeMath │ SafeString │ SafeJson │ SafeUrl │ SafeEmail │ ...  │
-  │            Idris 2 with Dependent Types                        │
+  │  SafeUUID │ SafeCurrency │ SafePhone │ SafeHex │ SafeHeader    │
+  │  SafeCookie │ SafeContentType │ 25+ verified modules           │
   └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼

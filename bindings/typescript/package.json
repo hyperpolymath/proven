@@ -1,0 +1,47 @@
+{
+  "name": "@proven/typescript",
+  "version": "0.8.0",
+  "description": "TypeScript type definitions adapter for Proven - use @proven/rescript for primary JS ecosystem support",
+  "type": "module",
+  "main": "./dist/proven.js",
+  "module": "./dist/proven.js",
+  "types": "./dist/proven.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/proven.js",
+      "types": "./dist/proven.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:wasm": "cd ../../ffi/zig && zig build wasm",
+    "test": "node --test dist/*.test.js"
+  },
+  "keywords": [
+    "typescript",
+    "types",
+    "adapter",
+    "safety",
+    "verified",
+    "idris",
+    "wasm",
+    "crash-free"
+  ],
+  "author": "Hyperpolymath <hyperpolymath@proton.me>",
+  "license": "PMPL-1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperpolymath/proven.git"
+  },
+  "homepage": "https://github.com/hyperpolymath/proven#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

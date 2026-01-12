@@ -12,6 +12,10 @@ module Proven
   , module Proven.SafeEmail
   , module Proven.SafeNetwork
   , module Proven.SafeCrypto
+  , module Proven.SafeUUID
+  , module Proven.SafeCurrency
+  , module Proven.SafePhone
+  , module Proven.SafeHex
   ) where
 
 import Proven.SafeMath
@@ -20,3 +24,7 @@ import Proven.SafePath
 import Proven.SafeEmail
 import Proven.SafeNetwork
 import Proven.SafeCrypto
+import Proven.SafeUUID
+import Proven.SafeCurrency
+import Proven.SafePhone
+import Proven.SafeHex

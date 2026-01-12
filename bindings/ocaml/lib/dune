@@ -4,4 +4,4 @@
 (library
  (name proven)
  (public_name proven)
- (modules proven safe_math safe_string safe_path safe_email safe_network safe_crypto))
+ (modules proven safe_math safe_string safe_path safe_email safe_network safe_crypto safe_uuid safe_currency safe_phone safe_hex))

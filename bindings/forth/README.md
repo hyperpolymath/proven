@@ -176,6 +176,108 @@ This library uses standard ANS Forth words and should work with:
 - VFX Forth
 - Other ANS-compliant implementations
 
+## Additional Modules
+
+### SafeUUID
+
+UUID parsing, formatting, and validation (RFC 4122):
+
+```forth
+include safe-uuid.fs
+
+\ Parse UUID
+s" 550e8400-e29b-41d4-a716-446655440000" uuid-buffer uuid-parse if
+    uuid-buffer uuid-format type cr   \ Canonical format
+    uuid-buffer uuid-format-urn type cr  \ urn:uuid:...
+then
+
+\ Quick validation
+s" 550e8400-e29b-41d4-a716-446655440000" uuid? if
+    ." Looks like a UUID" cr
+then
+
+\ Properties
+uuid-buffer uuid-version .    \ 4 for v4 UUID
+uuid-buffer uuid-nil? .       \ Check if nil UUID
+```
+
+### SafeCurrency
+
+ISO 4217 currency codes and monetary arithmetic:
+
+```forth
+include safe-currency.fs
+
+\ Create money (100 dollars = 10000 cents)
+100 CUR-USD money-from-major  ( -- 10000 CUR-USD )
+
+\ Arithmetic with currency safety
+100 CUR-USD money-from-major
+50 CUR-USD money-from-major money+ if
+    money-format type cr    \ 150.00 USD
+then
+
+\ Formatting
+5099 CUR-USD money-format-symbol type cr  \ $50.99
+
+\ Currency properties
+CUR-JPY currency-decimals .  \ 0 (yen has no decimals)
+CUR-BTC currency-decimals .  \ 8 (satoshis)
+```
+
+### SafePhone
+
+Phone number validation and E.164 formatting:
+
+```forth
+include safe-phone.fs
+
+\ Parse phone number
+s" +1 555 123 4567" phone-parse if
+    phone-format-e164 type cr     \ +15551234567
+    phone-format-intl type cr     \ +1 555 123 4567
+    phone-get-cc .                \ 1
+then
+
+\ Validation
+s" +44 20 7946 0958" phone-valid? if
+    ." Valid UK number" cr
+then
+
+\ Country codes
+CC-44 country-code>name type cr   \ United Kingdom
+```
+
+### SafeHex
+
+Hexadecimal encoding/decoding with constant-time comparison:
+
+```forth
+include safe-hex.fs
+
+\ Encode bytes to hex
+s" ABC" hex-encode type cr        \ 414243
+
+\ Decode hex to bytes
+s" 48454c4c4f" hex-decode if
+    type cr                       \ HELLO
+then
+
+\ Constant-time comparison (for crypto)
+s" abc123" s" ABC123" hex-constant-time-equal .  \ Compare safely
+
+\ Formatting
+s" AABBCC" hex-decode if
+    hex-format-spaced type cr     \ aa bb cc
+    hex-format-colons type cr     \ aa:bb:cc
+    hex-format-0x type cr         \ 0xaabbcc
+then
+
+\ Integer conversion
+255 int>hex type cr               \ ff
+s" ff" hex>int if . then cr       \ 255
+```
+
 ## License
 
-PMPL-1.0
+AGPL-3.0-or-later

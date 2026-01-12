@@ -12,3 +12,7 @@ module Safe_path = Safe_path
 module Safe_email = Safe_email
 module Safe_network = Safe_network
 module Safe_crypto = Safe_crypto
+module Safe_uuid = Safe_uuid
+module Safe_currency = Safe_currency
+module Safe_phone = Safe_phone
+module Safe_hex = Safe_hex

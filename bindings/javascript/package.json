@@ -1,47 +1,40 @@
 {
-  "name": "proven",
+  "name": "@proven/javascript",
   "version": "0.3.0",
-  "description": "Code that cannot crash - verified safety functions from Idris 2",
+  "description": "Proven - Safe, formally verified library for JavaScript",
   "type": "module",
-  "main": "./dist/proven.js",
-  "module": "./dist/proven.js",
-  "types": "./dist/proven.d.ts",
+  "main": "./src/index.js",
   "exports": {
-    ".": {
-      "import": "./dist/proven.js",
-      "types": "./dist/proven.d.ts"
-    }
+    ".": "./src/index.js",
+    "./uuid": "./src/safe_uuid.js",
+    "./currency": "./src/safe_currency.js",
+    "./phone": "./src/safe_phone.js",
+    "./hex": "./src/safe_hex.js",
+    "./result": "./src/result.js"
   },
   "files": [
-    "dist",
-    "wasm"
+    "src/**/*.js"
   ],
-  "scripts": {
-    "build": "tsc",
-    "build:wasm": "cd ../../ffi/zig && zig build wasm",
-    "test": "node --test dist/*.test.js"
-  },
   "keywords": [
-    "safety",
-    "verified",
-    "idris",
-    "wasm",
-    "crash-free",
-    "math",
-    "crypto",
-    "validation"
+    "proven",
+    "safe",
+    "uuid",
+    "currency",
+    "money",
+    "phone",
+    "hex",
+    "validation",
+    "parsing"
   ],
-  "author": "Hyperpolymath <hyperpolymath@proton.me>",
-  "license": "PMPL-1.0",
+  "author": "Hyperpolymath",
+  "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hyperpolymath/proven.git"
+    "url": "https://github.com/hyperpolymath/proven.git",
+    "directory": "bindings/javascript"
   },
-  "homepage": "https://github.com/hyperpolymath/proven#readme",
   "engines": {
-    "node": ">=18"
+    "node": ">=18.0.0"
   },
-  "devDependencies": {
-    "typescript": "^5.3.0"
-  }
+  "sideEffects": false
 }

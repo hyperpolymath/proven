@@ -1,7 +1,7 @@
 {
   "name": "@hyperpolymath/proven-rescript",
-  "version": "0.3.0",
-  "description": "ReScript bindings for Proven - code that cannot crash",
+  "version": "0.8.0",
+  "description": "ReScript bindings for Proven - code that cannot crash. Calls Idris 2 verified code via Zig WASM ABI.",
   "type": "module",
   "main": "./src/Proven.res.js",
   "scripts": {
