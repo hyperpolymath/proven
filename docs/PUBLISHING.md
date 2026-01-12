@@ -30,7 +30,13 @@ Configure these secrets in your repository settings (Settings → Secrets → Ac
 |--------|----------|---------------|
 | `CRATES_IO_TOKEN` | crates.io | [crates.io/settings/tokens](https://crates.io/settings/tokens) |
 | `NPM_TOKEN` | npm | [npmjs.com/settings/tokens](https://www.npmjs.com/settings/~/tokens) - create Automation token |
-| `JSR_TOKEN` | JSR | [jsr.io/account/tokens](https://jsr.io/account/tokens) |
+
+### OIDC Authentication (No Tokens Required)
+
+**PyPI** and **JSR** use OIDC trusted publishing - no tokens needed:
+
+- **PyPI**: Configure trusted publishing in your PyPI project settings
+- **JSR**: Automatically authenticates via GitHub Actions OIDC
 
 ### PyPI Trusted Publishing
 
@@ -43,6 +49,10 @@ PyPI uses OIDC trusted publishing - no token needed. Configure it:
    - **Repository**: proven
    - **Workflow**: publish-pypi.yml
    - **Environment**: pypi (optional)
+
+### JSR OIDC Authentication
+
+JSR also uses OIDC - no token needed. The workflow has `id-token: write` permission which allows JSR to authenticate automatically via GitHub Actions.
 
 ## Package Configuration
 
