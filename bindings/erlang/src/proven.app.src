@@ -1,0 +1,25 @@
+%% SPDX-License-Identifier: PMPL-1.0
+%% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%%
+%% Proven - OTP Application Resource File
+
+{application, proven,
+ [{description, "Safe, validated operations library for Erlang"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib,
+    crypto]},
+  {env, []},
+  {modules, [
+    proven_math,
+    proven_string,
+    proven_path,
+    proven_email,
+    proven_network,
+    proven_crypto
+  ]},
+  {licenses, ["PMPL-1.0"]},
+  {links, [{"GitHub", "https://github.com/hyperpolymath/proven"}]}
+ ]}.
