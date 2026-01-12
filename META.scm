@@ -38,12 +38,14 @@
        (title . "Zig as FFI bridge layer")
        (status . accepted)
        (date . "2025-01-10")
-       (context . "Need to expose Idris 2 code to Python, Rust, JS, Go")
-       (decision . "Use Zig for FFI bridge - compiles to C ABI, no runtime")
+       (context . "Need to expose Idris 2 code to Python, Rust, JS, Go, and more")
+       (decision . "Use Zig for FFI bridge - pure Zig ABI, no runtime, no C required")
        (consequences
-        ("Single FFI layer serves all target languages"
+        ("Single FFI layer serves all 12 target languages"
          "Zig's safety features complement Idris proofs"
          "Fast compilation, small binaries"
+         "Cross-platform builds including WASM"
+         "Bidirectional callbacks for Zig ↔ Idris calls"
          "Requires Zig toolchain for builds")))
 
       (adr-004
@@ -126,8 +128,9 @@
        with the assumption being trusted.")
 
      (why-zig-ffi
-      "Zig provides: 1) C ABI compatibility without C's safety issues, 2) No
-       runtime or GC to conflict with target languages, 3) Cross-compilation
-       support for all major platforms, 4) Safety features that complement our
-       verified code. The Zig layer translates between Idris's representations
-       and target language conventions."))))
+      "Zig provides: 1) Pure Zig ABI without C dependency, 2) No runtime or GC
+       to conflict with target languages, 3) Cross-compilation support for all
+       major platforms including WASM, 4) Safety features that complement our
+       verified code, 5) Bidirectional callback system for cross-language calls.
+       The Zig layer translates between Idris's representations and target
+       language conventions, supporting 12 target languages."))))

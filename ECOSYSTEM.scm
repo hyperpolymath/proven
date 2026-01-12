@@ -126,7 +126,6 @@
   ("Not a general-purpose standard library"
    "Not a replacement for Idris prelude"
    "Not a web framework or application"
-   "Not production-ready yet (FFI bridge incomplete)"
    "Not a theorem prover itself (uses ECHIDNA for that)"))
 
  (integration-architecture
@@ -138,14 +137,15 @@
                                 │
                                 ▼
   ┌─────────────────────────────────────────────────────────────────┐
-  │                   Language Bindings                             │
-  │  Python │ Rust │ JavaScript │ Go │ ...                         │
+  │                   Language Bindings (12 languages)              │
+  │  Rust │ Python │ JS │ Deno │ ReScript │ Gleam │ Julia │        │
+  │  Swift │ Kotlin │ Go │ Elixir │ Zig                             │
   └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
   ┌─────────────────────────────────────────────────────────────────┐
   │                     Zig FFI Bridge                              │
-  │  C ABI translation, memory management, type conversion         │
+  │  Pure Zig ABI, memory management, type conversion              │
   └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
