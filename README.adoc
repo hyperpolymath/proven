@@ -2,7 +2,7 @@
 
 Code that cannot crash, for...
 
-:: Python \:: Rust \:: JavaScript \:: Go \:: Deno \:: Zig \:: Haskell \:: OCaml \:: Elixir \:: Gleam \:: Swift \:: Kotlin \:: C \:: C++ \:: Ruby \:: PHP \:: Perl \:: Lua \:: Julia \:: R \:: Tcl \:: Bash \:: Common Lisp \:: Erlang \:: Prolog \:: COBOL \:: Forth \:: Fortran \:: Odin \:: V \:: Racket \:: ReScript \:: Dart \:: Scala \:: F# \:: Crystal \:: Nim \:: Ada \:: 
+Python \:: Rust \:: JavaScript \:: Go \:: Deno \:: Zig \:: Haskell \:: OCaml \:: Elixir \:: Gleam \:: Swift \:: Kotlin \:: C \:: C++ \:: Ruby \:: PHP \:: Perl \:: Lua \:: Julia \:: R \:: Tcl \:: Bash \:: Common Lisp \:: Erlang \:: Prolog \:: COBOL \:: Forth \:: Fortran \:: Odin \:: V \:: Racket \:: ReScript \:: Dart \:: Scala \:: F# \:: Crystal \:: Nim \:: Ada \:: 
 
 40+ languages \:: Verified \:: License
 
