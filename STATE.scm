@@ -1,4 +1,5 @@
-; SPDX-License-Identifier: Palimpsest-MPL-1.0
+; SPDX-License-Identifier: PMPL-1.0
+; SPDX-FileCopyrightText: 2025 Hyperpolymath
 ;; STATE.scm - proven project state
 ;; Machine-readable project status for AI assistants and tooling
 

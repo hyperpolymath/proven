@@ -1,4 +1,5 @@
-; SPDX-License-Identifier: Palimpsest-MPL-1.0
+; SPDX-License-Identifier: PMPL-1.0
+; SPDX-FileCopyrightText: 2025 Hyperpolymath
 ;; META.scm - proven meta-level information
 ;; Architecture decisions, design rationale, development practices
 

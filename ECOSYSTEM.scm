@@ -1,4 +1,5 @@
-; SPDX-License-Identifier: Palimpsest-MPL-1.0
+; SPDX-License-Identifier: PMPL-1.0
+; SPDX-FileCopyrightText: 2025 Hyperpolymath
 ;; ECOSYSTEM.scm - proven ecosystem relationships
 ;; How this project relates to and integrates with other projects
 
