@@ -234,7 +234,7 @@ Formal verification is only valuable if verified code can be used. \proven{} pri
 
 \proven{} consists of three layers (Figure \ref{fig:architecture}):
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \begin{tikzpicture}[
     box/.style={draw, minimum width=8cm, minimum height=1cm, align=center},
@@ -257,7 +257,7 @@ Formal verification is only valuable if verified code can be used. \proven{} pri
 
 The core library contains 25+ modules, each providing verified implementations of common operations:
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \begin{tabular}{lll}
 \toprule
@@ -440,7 +440,7 @@ compile pattern safety =
 
 We analyzed \proven{} against the OWASP Top 10 (2024):
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \begin{tabular}{lcc}
 \toprule
@@ -466,7 +466,7 @@ A10: SSRF & SafeUrl & URL validation proofs \\
 
 We measured \proven{} performance against hand-optimized implementations across three workloads:
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \begin{tabular}{lccc}
 \toprule
