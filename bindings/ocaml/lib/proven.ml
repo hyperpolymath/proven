@@ -1,0 +1,14 @@
+(* SPDX-License-Identifier: PMPL-1.0 *)
+(* SPDX-FileCopyrightText: 2025 Hyperpolymath *)
+
+(** Proven: Formally verified safety primitives for OCaml.
+
+    This library provides safe operations with bounds checking,
+    overflow detection, and security-focused string handling. *)
+
+module Safe_math = Safe_math
+module Safe_string = Safe_string
+module Safe_path = Safe_path
+module Safe_email = Safe_email
+module Safe_network = Safe_network
+module Safe_crypto = Safe_crypto

@@ -1,0 +1,7 @@
+; SPDX-License-Identifier: PMPL-1.0
+; SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+(library
+ (name proven)
+ (public_name proven)
+ (modules proven safe_math safe_string safe_path safe_email safe_network safe_crypto))

@@ -1,0 +1,22 @@
+; SPDX-License-Identifier: PMPL-1.0
+; SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+(lang dune 3.0)
+(name proven)
+(version 0.3.0)
+
+(generate_opam_files true)
+
+(source (github hyperpolymath/proven))
+(license PMPL-1.0)
+(authors "Hyperpolymath")
+(maintainers "hyperpolymath")
+
+(package
+ (name proven)
+ (synopsis "Formally verified safety primitives for OCaml")
+ (description "Safe operations with bounds checking, overflow detection, and security-focused string handling.")
+ (depends
+  (ocaml (>= 4.14.0))
+  (dune (>= 3.0))
+  (alcotest :with-test)))
