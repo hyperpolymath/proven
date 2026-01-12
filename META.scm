@@ -1,5 +1,5 @@
-; SPDX-License-Identifier: Palimpsest-MPL
-;; META.scm - bulletproof-core meta-level information
+; SPDX-License-Identifier: Palimpsest-MPL-1.0
+;; META.scm - proven meta-level information
 ;; Architecture decisions, design rationale, development practices
 
 (define meta

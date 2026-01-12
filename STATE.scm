@@ -1,5 +1,5 @@
-; SPDX-License-Identifier: Palimpsest-MPL
-;; STATE.scm - bulletproof-core project state
+; SPDX-License-Identifier: Palimpsest-MPL-1.0
+;; STATE.scm - proven project state
 ;; Machine-readable project status for AI assistants and tooling
 
 (define state
@@ -8,11 +8,11 @@
      (schema-version . "1.0")
      (created . "2025-01-10")
      (updated . "2025-01-10")
-     (project . "bulletproof-core")
-     (repo . "github.com/hyperpolymath/bulletproof-core"))
+     (project . "proven")
+     (repo . "github.com/hyperpolymath/proven"))
 
     (project-context
-     (name . "bulletproof-core")
+     (name . "proven")
      (tagline . "Verified safety library - code that cannot crash")
      (tech-stack . (idris2 zig-ffi dependent-types theorem-proving)))
 
@@ -20,7 +20,7 @@
      (phase . "implementation")
      (overall-completion . 65)
      (components
-      ((bulletproof-ipkg (status . complete) (completion . 100))
+      ((proven-ipkg (status . complete) (completion . 100))
        (core-types (status . complete) (completion . 100))
        (safe-math (status . complete) (completion . 100)
         (submodules . (Nat Int Bounded Proofs)))
@@ -146,7 +146,7 @@
      ((date . "2025-01-10")
       (session . "initial-implementation")
       (accomplishments
-       ("Created bulletproof.ipkg package structure"
+       ("Created proven.ipkg package structure"
         "Implemented Core.idr with Result, NonEmpty, Bounded types"
         "Implemented SafeMath with overflow detection, safe division"
         "Implemented SafeString with UTF-8 and escaping"

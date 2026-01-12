@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-= bulletproof-core
+// SPDX-License-Identifier: Palimpsest-MPL-1.0
+= proven
 :toc: macro
 :toclevels: 3
 :icons: font
@@ -12,7 +12,7 @@ image:https://img.shields.io/badge/Rust-Works-orange?logo=rust[Rust]
 image:https://img.shields.io/badge/JavaScript-Works-yellow?logo=javascript[JavaScript]
 image:https://img.shields.io/badge/Go-Works-00ADD8?logo=go[Go]
 image:https://img.shields.io/badge/Verified-Mathematically_Proven-blueviolet[Verified]
-image:https://img.shields.io/badge/License-AGPL--3.0--or--later-blue[License]
+image:https://img.shields.io/badge/License-Palimpsest-MPL-1.0-blue[License]
 
 toc::[]
 
@@ -33,7 +33,7 @@ password = hashlib.md5(pwd).hexdigest()  # You just got hacked
 
 [source,python]
 ----
-from bulletproof import SafeMath, SafeJson, SafeUrl, SafePassword
+from proven import SafeMath, SafeJson, SafeUrl, SafePassword
 
 # Cannot crash. Ever. Mathematically proven.
 result = SafeMath.div(10, user_input)  # Returns None if zero, not an exception
@@ -44,9 +44,9 @@ hashed = SafePassword.hash(pwd)  # Argon2id, timing-safe, correct parameters
 
 == What "Mathematically Proven" Means
 
-This isn't marketing fluff. Here's what makes bulletproof-core different from regular libraries.
+This isn't marketing fluff. Here's what makes proven different from regular libraries.
 
-Every function in `bulletproof-core` is written in https://idris-lang.org/[Idris 2], a language with *dependent types*. The compiler literally proves your code is correct before it runs.
+Every function in `proven` is written in https://idris-lang.org/[Idris 2], a language with *dependent types*. The compiler literally proves your code is correct before it runs.
 
 === Understanding Dependent Types (In 2 Minutes)
 
@@ -75,7 +75,7 @@ This is the core insight: instead of runtime crashes, we get compile-time errors
 === How This Translates to Your Code
 
 |===
-| Regular Code | Bulletproof Code
+| Regular Code | Proven Code
 
 | "I think this won't crash"
 | "The compiler proved this cannot crash"
@@ -89,7 +89,7 @@ This is the core insight: instead of runtime crashes, we get compile-time errors
 
 === Want to Learn More?
 
-The proofs are available in `src/Bulletproof/` and we encourage you to explore them! Understanding dependent types is a valuable skill. Here are some resources:
+The proofs are available in `src/Proven/` and we encourage you to explore them! Understanding dependent types is a valuable skill. Here are some resources:
 
 - https://idris2.readthedocs.io/en/latest/tutorial/index.html[Idris 2 Tutorial] — Official introduction to dependent types
 - https://www.youtube.com/watch?v=mOtKD7ml0NU[Type-Driven Development with Idris] — Edwin Brady's talk
@@ -128,7 +128,7 @@ That said, you can absolutely use the library without understanding the proofs�
 
 [source,python]
 ----
-from bulletproof import SafeMath
+from proven import SafeMath
 
 SafeMath.div(10, 2)   # 5
 SafeMath.div(10, 0)   # None (not an exception!)
@@ -162,7 +162,7 @@ SafeMath.add_checked(5, 3)          # 8
 
 [source,python]
 ----
-from bulletproof import SafeString
+from proven import SafeString
 
 SafeString.decode_utf8(b"\xff\xfe")  # None (invalid UTF-8)
 SafeString.decode_utf8(b"hello")     # "hello"
@@ -196,7 +196,7 @@ SafeString.escape_sql("'; DROP TABLE users;--")
 
 [source,python]
 ----
-from bulletproof import SafeJson
+from proven import SafeJson
 
 data = SafeJson.parse('{"name": "Alice", "age": 30}')
 SafeJson.get(data, "name")      # "Alice"
@@ -232,7 +232,7 @@ SafeJson.parse("not json")  # Error object with details, not exception
 
 [source,python]
 ----
-from bulletproof import SafeUrl
+from proven import SafeUrl
 
 url = SafeUrl.parse("https://example.com/path?query=1#hash")
 url.scheme  # "https"
@@ -268,7 +268,7 @@ SafeUrl.is_safe_redirect(
 
 [source,python]
 ----
-from bulletproof import SafeEmail
+from proven import SafeEmail
 
 SafeEmail.is_valid("user@example.com")  # True
 SafeEmail.is_valid("not an email")      # False
@@ -300,7 +300,7 @@ email.domain  # "example.com" (normalised)
 
 [source,python]
 ----
-from bulletproof import SafePath
+from proven import SafePath
 
 SafePath.join_safe("/var/uploads", "file.txt")
 # "/var/uploads/file.txt"
@@ -336,7 +336,7 @@ SafePath.sanitize("file\x00.txt")  # "file.txt" (null byte removed)
 
 [source,python]
 ----
-from bulletproof import SafeCrypto
+from proven import SafeCrypto
 
 # Cryptographic randomness (not random.random()!)
 token = SafeCrypto.random_bytes(32)
@@ -370,7 +370,7 @@ SafeCrypto.constant_time_eq(user_token, stored_token)
 
 [source,python]
 ----
-from bulletproof import SafePassword
+from proven import SafePassword
 
 # Hash with Argon2id (current best practice)
 hashed = SafePassword.hash("user_password")
@@ -390,7 +390,7 @@ SafePassword.is_strong("c0rr3ct-h0rs3-b4tt3ry-st4pl3")  # True
 
 [source,bash]
 ----
-cargo add bulletproof-core
+cargo add proven
 ----
 
 === Deno / JavaScript
@@ -398,13 +398,13 @@ cargo add bulletproof-core
 **Deno (recommended):**
 [source,typescript]
 ----
-import { SafeMath, SafeJson } from "jsr:@bulletproof/core";
+import { SafeMath, SafeJson } from "jsr:@proven/core";
 ----
 
 **Node.js:**
 [source,bash]
 ----
-npx jsr add @bulletproof/core
+npx jsr add @proven/core
 ----
 
 === Python
@@ -412,13 +412,13 @@ npx jsr add @bulletproof/core
 **Using pipx (recommended for isolated environments):**
 [source,bash]
 ----
-pipx install bulletproof-core
+pipx install proven
 ----
 
 **Using pip:**
 [source,bash]
 ----
-pip install bulletproof-core
+pip install proven
 ----
 
 TIP: `pipx` installs packages in isolated virtual environments, preventing dependency conflicts and improving security. Install it with `pip install pipx` if you don't have it.
@@ -427,7 +427,7 @@ TIP: `pipx` installs packages in isolated virtual environments, preventing depen
 
 [source,bash]
 ----
-go get github.com/hyperpolymath/bulletproof-core
+go get github.com/hyperpolymath/proven
 ----
 
 == How It Works (For the Curious)
@@ -437,7 +437,7 @@ go get github.com/hyperpolymath/bulletproof-core
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Your Python/Rust/JS App                     │
 └──────────────────────────┬──────────────────────────────────────┘
-                           │ import bulletproof
+                           │ import proven
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │              Language Bindings (auto-generated)                 │
@@ -476,7 +476,7 @@ Not required, but encouraged! The library bindings work like any standard librar
 
 **Q: What if I find a bug?**
 
-If you find a bug in bulletproof-core, you've likely found a bug in either:
+If you find a bug in proven, you've likely found a bug in either:
 1. The language bindings (our bug, please report)
 2. The Idris 2 compiler (extremely rare)
 3. Your understanding of the function (check the docs)
@@ -556,7 +556,7 @@ Especially needed:
 
 == License
 
-AGPL-3.0-or-later. See link:LICENSE[LICENSE].
+Palimpsest-MPL-1.0. See link:LICENSE[LICENSE].
 
 Commercial licensing available for proprietary use.
 

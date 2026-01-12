@@ -1,10 +1,10 @@
-; SPDX-License-Identifier: Palimpsest-MPL
-;; ECOSYSTEM.scm - bulletproof-core ecosystem relationships
+; SPDX-License-Identifier: Palimpsest-MPL-1.0
+;; ECOSYSTEM.scm - proven ecosystem relationships
 ;; How this project relates to and integrates with other projects
 
 (ecosystem
  (version . "1.0")
- (name . "bulletproof-core")
+ (name . "proven")
  (type . "verified-library")
  (purpose . "Provide mathematically proven safe operations for common dangerous programming patterns")
 
@@ -13,7 +13,7 @@
   (layer . "core-safety")
   (consumers . ("applications" "frameworks" "other-libraries"))
   (description
-   "bulletproof-core sits at the foundation layer, providing verified safe
+   "proven sits at the foundation layer, providing verified safe
     primitives that higher-level code can build upon. It integrates with
     ECHIDNA for theorem proving and echidnabot for CI verification."))
 
@@ -24,7 +24,7 @@
    (repo . "github.com/hyperpolymath/echidna")
    (integration-type . "verification-target")
    (description
-    "ECHIDNA is a neurosymbolic theorem proving platform. bulletproof-core's
+    "ECHIDNA is a neurosymbolic theorem proving platform. proven's
      Idris 2 proofs can be verified by ECHIDNA's multi-prover system.
      Future: Add Idris 2 as a Tier 2 prover backend.")
    (integration-points
@@ -38,7 +38,7 @@
    (repo . "github.com/hyperpolymath/echidnabot")
    (integration-type . "automation")
    (description
-    "echidnabot orchestrates ECHIDNA for CI/CD. PRs modifying bulletproof-core
+    "echidnabot orchestrates ECHIDNA for CI/CD. PRs modifying proven
      trigger automatic proof verification via echidnabot webhooks.")
    (integration-points
     ("Webhook triggers on .idr file changes"
@@ -51,26 +51,26 @@
    (relationship . "package-manager")
    (repo . "github.com/stefan-hoeck/idris2-pack")
    (integration-type . "distribution")
-   (description . "Package manager for Idris 2 - bulletproof-core will be distributed via pack"))
+   (description . "Package manager for Idris 2 - proven will be distributed via pack"))
 
   ((name . "idris2-lsp")
    (relationship . "development-tool")
    (repo . "github.com/idris-community/idris2-lsp")
    (integration-type . "tooling")
-   (description . "Language server providing IDE support for bulletproof development"))
+   (description . "Language server providing IDE support for proven development"))
 
   ;; hyperpolymath ecosystem
   ((name . "idris2-quickcheck")
    (relationship . "sibling-library")
    (repo . "github.com/hyperpolymath/idris2-quickcheck")
    (integration-type . "testing")
-   (description . "Property-based testing - complements bulletproof proofs with runtime checks"))
+   (description . "Property-based testing - complements proven proofs with runtime checks"))
 
   ((name . "idris2-elab-util")
    (relationship . "sibling-library")
    (repo . "github.com/hyperpolymath/idris2-elab-util")
    (integration-type . "metaprogramming")
-   (description . "Elaboration utilities - used for proof automation in bulletproof"))
+   (description . "Elaboration utilities - used for proof automation in proven"))
 
   ((name . "idris2-json")
    (relationship . "sibling-library")
@@ -149,7 +149,7 @@
                                 │
                                 ▼
   ┌─────────────────────────────────────────────────────────────────┐
-  │                   bulletproof-core                              │
+  │                   proven                              │
   │  SafeMath │ SafeString │ SafeJson │ SafeUrl │ SafeEmail │ ...  │
   │            Idris 2 with Dependent Types                        │
   └─────────────────────────────────────────────────────────────────┘

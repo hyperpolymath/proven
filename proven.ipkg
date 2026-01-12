@@ -1,0 +1,70 @@
+-- SPDX-License-Identifier: Palimpsest-MPL-1.0
+package proven
+
+version = 0.3.0
+authors = "Hyperpolymath"
+license = "Palimpsest-MPL-1.0"
+brief = "Verified safe operations - code that cannot crash"
+readme = "README.adoc"
+homepage = "https://github.com/hyperpolymath/proven"
+sourceloc = "https://github.com/hyperpolymath/proven"
+bugtracker = "https://github.com/hyperpolymath/proven/issues"
+
+sourcedir = "src"
+builddir = "build"
+outputdir = "build/exec"
+
+modules = Proven
+        , Proven.Core
+        , Proven.SafeMath
+        , Proven.SafeMath.Nat
+        , Proven.SafeMath.Int
+        , Proven.SafeMath.Bounded
+        , Proven.SafeMath.Proofs
+        , Proven.SafeString
+        , Proven.SafeString.UTF8
+        , Proven.SafeString.Escape
+        , Proven.SafeString.Proofs
+        , Proven.SafeJson
+        , Proven.SafeJson.Parser
+        , Proven.SafeJson.Access
+        , Proven.SafeJson.Proofs
+        , Proven.SafeUrl
+        , Proven.SafeUrl.Parser
+        , Proven.SafeUrl.Security
+        , Proven.SafeUrl.Proofs
+        , Proven.SafeEmail
+        , Proven.SafeEmail.Parser
+        , Proven.SafeEmail.Proofs
+        , Proven.SafePath
+        , Proven.SafePath.Traversal
+        , Proven.SafePath.Proofs
+        , Proven.SafeCrypto
+        , Proven.SafeCrypto.Hash
+        , Proven.SafeCrypto.Random
+        , Proven.SafeCrypto.Proofs
+        , Proven.SafePassword
+        , Proven.SafePassword.Policy
+        , Proven.SafePassword.Hash
+        , Proven.SafePassword.Strength
+        , Proven.SafePassword.Proofs
+        , Proven.SafeDateTime
+        , Proven.SafeDateTime.Types
+        , Proven.SafeDateTime.Parse
+        , Proven.SafeDateTime.Zones
+        , Proven.SafeDateTime.Proofs
+        , Proven.SafeNetwork
+        , Proven.SafeNetwork.IPv4
+        , Proven.SafeNetwork.IPv6
+        , Proven.SafeNetwork.CIDR
+        , Proven.SafeNetwork.Port
+        , Proven.SafeNetwork.Proofs
+        , Proven.FFI
+        , Proven.FFI.Types
+        , Proven.FFI.Export
+
+depends = base >= 0.6.0
+        , contrib
+        , network
+
+opts = "--total"
