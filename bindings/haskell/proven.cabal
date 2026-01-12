@@ -1,0 +1,43 @@
+-- SPDX-License-Identifier: PMPL-1.0
+-- SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+cabal-version:      3.0
+name:               proven
+version:            0.3.0
+synopsis:           Formally verified safety primitives for Haskell
+description:        Safe operations with bounds checking, overflow detection,
+                    and security-focused string handling.
+license:            LicenseRef-PMPL-1.0
+license-file:       LICENSE
+author:             Hyperpolymath
+maintainer:         hyperpolymath
+category:           Security
+build-type:         Simple
+
+library
+  exposed-modules:
+    Proven
+    Proven.SafeMath
+    Proven.SafeString
+    Proven.SafePath
+    Proven.SafeEmail
+    Proven.SafeNetwork
+    Proven.SafeCrypto
+  hs-source-dirs:   src
+  build-depends:
+    base >= 4.14 && < 5,
+    bytestring >= 0.10,
+    text >= 1.2,
+    entropy >= 0.4
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+test-suite proven-test
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test
+  build-depends:
+    base >= 4.14 && < 5,
+    proven,
+    hspec >= 2.7
+  default-language: Haskell2010
