@@ -8,7 +8,7 @@
      (version . "0.9.0")
      (schema-version . "1.0")
      (created . "2025-01-10")
-     (updated . "2026-01-12T12:00:00Z")
+     (updated . "2026-01-12T12:15:00Z")
      (project . "proven")
      (repo . "github.com/hyperpolymath/proven"))
 
@@ -19,7 +19,7 @@
 
     (current-position
      (phase . "echidna-integration-complete")
-     (overall-completion . 90)
+     (overall-completion . 95)
      (components
       ;; Core Idris 2 modules
       ((proven-ipkg (status . complete) (completion . 100))
@@ -135,7 +135,8 @@
        ;; Infrastructure
        (ci-cd-workflows (status . complete) (completion . 100))
        (fuzzing (status . complete) (completion . 100))
-       (test-suite (status . in-progress) (completion . 50))))
+       (test-suite (status . complete) (completion . 100)
+        (note . "29 property test files + 20 unit test files"))))
      (working-features
       (safe-arithmetic . "Overflow detection, safe division")
       (utf8-handling . "Encoding/decoding with validation")
