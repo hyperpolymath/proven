@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+name = "Proven"
+uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+version = "0.3.0"
+authors = ["Hyperpolymath"]
+
+[deps]
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
