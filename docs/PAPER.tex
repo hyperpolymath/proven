@@ -61,6 +61,19 @@
 }
 \lstset{style=codestyle}
 
+% Define Rust language for listings (not built-in)
+\lstdefinelanguage{Rust}{
+    keywords={as, break, const, continue, crate, else, enum, extern, false, fn, for, if, impl, in, let, loop, match, mod, move, mut, pub, ref, return, self, Self, static, struct, super, trait, true, type, unsafe, use, where, while, async, await, dyn},
+    keywordstyle=\color{blue}\bfseries,
+    keywords=[2]{i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, bool, char, str, String, Vec, Option, Result, Some, None, Ok, Err, Box, Rc, Arc, Cell, RefCell},
+    keywordstyle=[2]\color{codepurple},
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    morestring=[b]',
+    sensitive=true,
+}
+
 % Theorem environments
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
