@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: PMPL-1.0
+--  SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 --  Safe filesystem path operations with traversal attack prevention.
 

@@ -1,6 +1,6 @@
 {
   "name": "@hyperpolymath/proven",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "exports": "./mod.ts",
   "tasks": {
     "test": "deno test --allow-read",
