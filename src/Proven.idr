@@ -26,6 +26,9 @@
 ||| @ SafeEnv      Environment variable access with sensitivity detection
 ||| @ SafeArgs     CLI argument parsing with validation
 ||| @ SafeFile     Bounded file I/O with path validation
+||| @ SafeHeader   HTTP header handling with injection prevention
+||| @ SafeCookie   HTTP cookie handling with security enforcement
+||| @ SafeContentType Content-Type parsing with MIME sniffing prevention
 module Proven
 
 import public Proven.Core
@@ -51,3 +54,6 @@ import public Proven.SafeTOML
 import public Proven.SafeEnv
 import public Proven.SafeArgs
 import public Proven.SafeFile
+import public Proven.SafeHeader
+import public Proven.SafeCookie
+import public Proven.SafeContentType

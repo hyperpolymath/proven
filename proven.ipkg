@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: 2025 Hyperpolymath
 package proven
 
-version = 0.3.0
+version = 0.8.0
 authors = "Hyperpolymath"
 license = "PMPL-1.0"
 brief = "Verified safe operations - code that cannot crash"
@@ -115,6 +115,18 @@ modules = Proven
         , Proven.SafeFile.Types
         , Proven.SafeFile.Operations
         , Proven.SafeFile.Proofs
+        , Proven.SafeHeader
+        , Proven.SafeHeader.Types
+        , Proven.SafeHeader.Parser
+        , Proven.SafeHeader.Proofs
+        , Proven.SafeCookie
+        , Proven.SafeCookie.Types
+        , Proven.SafeCookie.Parser
+        , Proven.SafeCookie.Proofs
+        , Proven.SafeContentType
+        , Proven.SafeContentType.Types
+        , Proven.SafeContentType.Parser
+        , Proven.SafeContentType.Proofs
         , Proven.FFI
         , Proven.FFI.Types
         , Proven.FFI.Export
