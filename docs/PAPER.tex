@@ -87,7 +87,7 @@
 \newcommand{\zig}{\textsc{Zig}}
 
 % Title and authors
-\title{Proven: A Formally Verified Safety Library\\for 40+ Programming Languages}
+\title{Proven: A Formally Verified Safety Library\\for All Major Programming Languages}
 
 \author{
     Jonathan Jewell\\
@@ -102,7 +102,7 @@
 \maketitle
 
 \begin{abstract}
-We present \proven{}, an open-source library providing mathematically verified safe operations for common programming tasks across more than 40 programming languages. Written in \idris{}, a dependently typed functional programming language, \proven{} leverages the Curry-Howard correspondence to ensure that core operations—arithmetic, string manipulation, JSON parsing, URL handling, cryptographic primitives, and more—are proven correct at compile time. Through a novel Zig-based FFI bridge, these verified implementations become accessible to languages ranging from Python and JavaScript to Rust, Go, C++, and COBOL. Our evaluation demonstrates that \proven{} prevents entire classes of runtime errors and security vulnerabilities while maintaining performance within 5-15\% of hand-optimized implementations. This paper describes the design principles, implementation architecture, formal verification approach, and practical applications of \proven{}, along with benchmarks across representative workloads.
+We present \proven{}, an open-source library providing mathematically verified safe operations for common programming tasks across all major programming languages. Written in \idris{}, a dependently typed functional programming language, \proven{} leverages the Curry-Howard correspondence to ensure that core operations—arithmetic, string manipulation, JSON parsing, URL handling, cryptographic primitives, and more—are proven correct at compile time. Through a novel Zig-based FFI bridge, these verified implementations become accessible to languages ranging from Python and JavaScript to Rust, Go, C++, and COBOL. Our evaluation demonstrates that \proven{} prevents entire classes of runtime errors and security vulnerabilities while maintaining performance within 5-15\% of hand-optimized implementations. This paper describes the design principles, implementation architecture, formal verification approach, and practical applications of \proven{}, along with benchmarks across representative workloads.
 \end{abstract}
 
 \section{Introduction}
