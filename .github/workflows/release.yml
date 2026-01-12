@@ -1,0 +1,161 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v0.8.0)'
+        required: true
+        type: string
+      publish_crates:
+        description: 'Publish to crates.io'
+        required: false
+        default: true
+        type: boolean
+      publish_pypi:
+        description: 'Publish to PyPI'
+        required: false
+        default: true
+        type: boolean
+      publish_npm:
+        description: 'Publish to npm'
+        required: false
+        default: true
+        type: boolean
+      publish_jsr:
+        description: 'Publish to JSR'
+        required: false
+        default: true
+        type: boolean
+
+permissions: read-all
+
+jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "Release version: ${VERSION#v}"
+
+      - name: Verify version consistency
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Checking version consistency across packages..."
+
+          # Check Rust
+          RUST_VERSION=$(grep '^version' bindings/rust/Cargo.toml | head -1 | cut -d'"' -f2)
+          echo "Rust: $RUST_VERSION"
+
+          # Check Python
+          PYTHON_VERSION=$(grep '^version' bindings/python/pyproject.toml | head -1 | cut -d'"' -f2)
+          echo "Python: $PYTHON_VERSION"
+
+          # Check Deno
+          DENO_VERSION=$(jq -r '.version' bindings/deno/deno.json)
+          echo "Deno: $DENO_VERSION"
+
+          # Check JavaScript
+          JS_VERSION=$(jq -r '.version' bindings/javascript/package.json)
+          echo "JavaScript: $JS_VERSION"
+
+          # Check TypeScript
+          TS_VERSION=$(jq -r '.version' bindings/typescript/package.json)
+          echo "TypeScript: $TS_VERSION"
+
+          echo "All versions checked. Proceeding with release."
+
+  create-release:
+    name: Create GitHub Release
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## proven v${{ needs.validate.outputs.version }}
+
+            Formally verified safety library with bindings for 40 programming languages.
+
+            ### Install
+
+            **Rust**: `cargo add proven`
+            **Python**: `pip install proven`
+            **Deno**: `deno add @hyperpolymath/proven`
+            **npm**: `npm install @proven/javascript`
+
+            See [documentation](https://github.com/hyperpolymath/proven#readme) for all 40 language bindings.
+
+  publish-crates:
+    name: Publish to crates.io
+    needs: [validate, create-release]
+    if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_crates)
+    uses: ./.github/workflows/publish-crates.yml
+    secrets: inherit
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [validate, create-release]
+    if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_pypi)
+    uses: ./.github/workflows/publish-pypi.yml
+    secrets: inherit
+
+  publish-npm:
+    name: Publish to npm
+    needs: [validate, create-release]
+    if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_npm)
+    uses: ./.github/workflows/publish-npm.yml
+    secrets: inherit
+
+  publish-jsr:
+    name: Publish to JSR
+    needs: [validate, create-release]
+    if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_jsr)
+    uses: ./.github/workflows/publish-jsr.yml
+    secrets: inherit
+
+  summary:
+    name: Release summary
+    needs: [validate, publish-crates, publish-pypi, publish-npm, publish-jsr]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Summary
+        run: |
+          echo "# Release Summary v${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Registry | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| crates.io | ${{ needs.publish-crates.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| PyPI | ${{ needs.publish-pypi.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| npm | ${{ needs.publish-npm.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| JSR | ${{ needs.publish-jsr.result }} |" >> $GITHUB_STEP_SUMMARY

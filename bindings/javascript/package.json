@@ -1,6 +1,6 @@
 {
   "name": "@proven/javascript",
-  "version": "0.3.0",
+  "version": "0.8.0",
   "description": "Proven - Safe, formally verified library for JavaScript",
   "type": "module",
   "main": "./src/index.js",

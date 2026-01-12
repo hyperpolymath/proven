@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not actually publish)'
+        required: false
+        default: 'true'
+        type: boolean
+      package:
+        description: 'Package to publish'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - javascript
+          - typescript
+
+permissions: read-all
+
+jobs:
+  publish-javascript:
+    name: Publish JavaScript package
+    runs-on: ubuntu-latest
+    if: inputs.package == 'all' || inputs.package == 'javascript' || github.event_name == 'release'
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: bindings/javascript
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify package
+        run: npm pack --dry-run
+
+      - name: Publish to npm
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-typescript:
+    name: Publish TypeScript package
+    runs-on: ubuntu-latest
+    if: inputs.package == 'all' || inputs.package == 'typescript' || github.event_name == 'release'
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: bindings/typescript
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Verify package
+        run: npm pack --dry-run
+
+      - name: Publish to npm
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  summary:
+    name: Publish summary
+    needs: [publish-javascript, publish-typescript]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "## npm Packages Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Registry |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| @proven/javascript | [npm](https://www.npmjs.com/package/@proven/javascript) |" >> $GITHUB_STEP_SUMMARY
+          echo "| @proven/typescript | [npm](https://www.npmjs.com/package/@proven/typescript) |" >> $GITHUB_STEP_SUMMARY

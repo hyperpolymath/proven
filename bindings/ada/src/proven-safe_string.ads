@@ -3,8 +3,6 @@
 
 --  Safe string operations for security-sensitive contexts.
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 package Proven.Safe_String is
 
    --  Escape HTML special characters to prevent XSS attacks.

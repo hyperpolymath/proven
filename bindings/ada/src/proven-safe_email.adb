@@ -7,7 +7,7 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 package body Proven.Safe_Email is
 
    function Is_Valid (Email : String) return Boolean is
-      At_Pos : Natural := Index (Email, "@");
+      At_Pos : constant Natural := Index (Email, "@");
    begin
       if At_Pos = 0 then
          return False;
@@ -77,10 +77,15 @@ package body Proven.Safe_Email is
       if not Result.Valid then
          return (Valid => False);
       end if;
-      return (Valid => True,
-              Value => Result.Parts.Local_Part &
-                       To_Unbounded_String ("@") &
-                       To_Unbounded_String (To_Lower (To_String (Result.Parts.Domain))));
+      declare
+         Lower_Domain : constant String :=
+            To_Lower (To_String (Result.Parts.Domain));
+      begin
+         return (Valid => True,
+                 Value => Result.Parts.Local_Part &
+                          To_Unbounded_String ("@") &
+                          To_Unbounded_String (Lower_Domain));
+      end;
    end Normalize;
 
 end Proven.Safe_Email;

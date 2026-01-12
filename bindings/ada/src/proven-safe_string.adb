@@ -1,6 +1,8 @@
 --  SPDX-License-Identifier: PMPL-1.0
 --  SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
 package body Proven.Safe_String is
 
    function Escape_Html (Value : String) return String is
@@ -55,7 +57,8 @@ package body Proven.Safe_String is
    begin
       for C of Value loop
          case C is
-            when 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '-' | '_' | '.' | '~' =>
+            when 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9'
+               | '-' | '_' | '.' | '~' =>
                Append (Result, C);
             when others =>
                Append (Result, '%');

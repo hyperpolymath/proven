@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+name: Publish to JSR
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not actually publish)'
+        required: false
+        default: 'true'
+        type: boolean
+
+permissions: read-all
+
+jobs:
+  publish:
+    name: Publish Deno package to JSR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for JSR provenance
+    defaults:
+      run:
+        working-directory: bindings/deno
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@5fae568d37c3b73449009674875529a984555dd1 # v2
+        with:
+          deno-version: v2.x
+
+      - name: Verify package
+        run: deno publish --dry-run
+
+      - name: Run tests
+        run: deno test --allow-read
+
+      - name: Lint
+        run: deno lint
+
+      - name: Format check
+        run: deno fmt --check
+
+      - name: Publish to JSR
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        run: deno publish
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.JSR_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Deno Package Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: @hyperpolymath/proven" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: $(deno eval 'const c = JSON.parse(Deno.readTextFileSync("deno.json")); console.log(c.version)')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: [JSR](https://jsr.io/@hyperpolymath/proven)" >> $GITHUB_STEP_SUMMARY
