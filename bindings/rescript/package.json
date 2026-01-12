@@ -1,0 +1,33 @@
+{
+  "name": "@hyperpolymath/proven-rescript",
+  "version": "0.3.0",
+  "description": "ReScript bindings for Proven - code that cannot crash",
+  "type": "module",
+  "main": "./src/Proven.res.js",
+  "scripts": {
+    "build": "rescript build",
+    "clean": "rescript clean",
+    "dev": "rescript build -w"
+  },
+  "keywords": [
+    "rescript",
+    "proven",
+    "safety",
+    "verified",
+    "math",
+    "crypto",
+    "validation"
+  ],
+  "author": "Hyperpolymath <hyperpolymath@proton.me>",
+  "license": "PMPL-1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperpolymath/proven.git"
+  },
+  "peerDependencies": {
+    "rescript": ">=11.0.0"
+  },
+  "devDependencies": {
+    "rescript": "^11.1.0"
+  }
+}

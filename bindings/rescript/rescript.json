@@ -1,0 +1,25 @@
+{
+  "name": "@hyperpolymath/proven",
+  "version": "0.3.0",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    }
+  ],
+  "package-specs": [
+    {
+      "module": "es6",
+      "in-source": true
+    }
+  ],
+  "suffix": ".res.js",
+  "bs-dependencies": [],
+  "warnings": {
+    "error": "+101"
+  },
+  "jsx": {
+    "version": 4,
+    "mode": "automatic"
+  }
+}
