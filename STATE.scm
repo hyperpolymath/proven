@@ -18,8 +18,8 @@
      (tech-stack . (idris2 zig-ffi dependent-types theorem-proving)))
 
     (current-position
-     (phase . "bindings-complete")
-     (overall-completion . 85)
+     (phase . "roadmap-expanded")
+     (overall-completion . 45)
      (components
       ;; Core Idris 2 modules
       ((proven-ipkg (status . complete) (completion . 100))
@@ -47,6 +47,26 @@
        (safe-regex (status . pending) (completion . 0))
        (safe-html (status . pending) (completion . 0))
        (safe-command (status . pending) (completion . 0))
+       ;; v0.5.0 - Auth & Serialization
+       (safe-sql (status . pending) (completion . 0))
+       (safe-jwt (status . pending) (completion . 0))
+       (safe-xml (status . pending) (completion . 0))
+       (safe-yaml (status . pending) (completion . 0))
+       (safe-toml (status . pending) (completion . 0))
+       (safe-base64 (status . pending) (completion . 0))
+       ;; v0.6.0 - Data Types
+       (safe-uuid (status . pending) (completion . 0))
+       (safe-currency (status . pending) (completion . 0))
+       (safe-phone (status . pending) (completion . 0))
+       (safe-hex (status . pending) (completion . 0))
+       ;; v0.7.0 - I/O Safety
+       (safe-env (status . pending) (completion . 0))
+       (safe-args (status . pending) (completion . 0))
+       (safe-file (status . pending) (completion . 0))
+       ;; v0.8.0 - Network Extended
+       (safe-header (status . pending) (completion . 0))
+       (safe-cookie (status . pending) (completion . 0))
+       (safe-content-type (status . pending) (completion . 0))
        ;; FFI and bindings
        (zig-ffi-bridge (status . complete) (completion . 100))
        (rust-bindings (status . complete) (completion . 100))
@@ -127,7 +147,39 @@
        ((item . "CI workflows for all platforms") (done . #t))
        ((item . "ClusterFuzzLite fuzzing") (done . #t))))
 
-     ((milestone . "v0.5.0 - ECHIDNA Integration")
+     ((milestone . "v0.5.0 - Auth & Serialization")
+      (status . pending)
+      (items
+       ((item . "SafeSQL (parameterized queries, injection prevention)") (done . #f))
+       ((item . "SafeJWT (token validation, claim verification)") (done . #f))
+       ((item . "SafeBase64 (encoding/decoding with length proofs)") (done . #f))
+       ((item . "SafeXML (XXE prevention, entity expansion protection)") (done . #f))
+       ((item . "SafeYAML (safe deserialization)") (done . #f))
+       ((item . "SafeTOML (config parsing without crashes)") (done . #f))))
+
+     ((milestone . "v0.6.0 - Data Types")
+      (status . pending)
+      (items
+       ((item . "SafeUUID (parsing/generation with format proofs)") (done . #f))
+       ((item . "SafeCurrency (money handling without float errors)") (done . #f))
+       ((item . "SafePhone (E.164 international format validation)") (done . #f))
+       ((item . "SafeHex (hex encoding with bounds checking)") (done . #f))))
+
+     ((milestone . "v0.7.0 - I/O Safety")
+      (status . pending)
+      (items
+       ((item . "SafeEnv (environment variable access)") (done . #f))
+       ((item . "SafeArgs (CLI argument parsing)") (done . #f))
+       ((item . "SafeFile (bounded reads, safe handles)") (done . #f))))
+
+     ((milestone . "v0.8.0 - Network Extended")
+      (status . pending)
+      (items
+       ((item . "SafeHeader (HTTP header validation, injection prevention)") (done . #f))
+       ((item . "SafeCookie (cookie parsing/building, session security)") (done . #f))
+       ((item . "SafeContentType (MIME validation, sniffing prevention)") (done . #f))))
+
+     ((milestone . "v0.9.0 - ECHIDNA Integration")
       (status . pending)
       (items
        ((item . "Idris 2 prover backend") (done . #f))
@@ -139,27 +191,34 @@
       (status . pending)
       (items
        ((item . "Full test suite") (done . #f))
-       ((item . "Documentation") (done . #f))
+       ((item . "Documentation complete") (done . #f))
        ((item . "Benchmarks") (done . #f))
-       ((item . "CI/CD pipeline") (done . #f)))))
+       ((item . "Security audit") (done . #f))
+       ((item . "All registry publishing (crates.io, PyPI, npm, JSR)") (done . #f)))))
 
     (blockers-and-issues
      (critical . ())
      (high
-      ((issue . "Remaining safety modules not implemented")
-       (impact . "SafeRegex, SafeHTML, SafeCommand still pending")
+      ((issue . "Extended safety modules not implemented")
+       (impact . "SafeRegex, SafeHTML, SafeCommand still pending for v0.3.0")
        (resolution . "Implement v0.3.0 extended safety modules")))
      (medium
+      ((issue . "Auth/serialization modules pending")
+       (impact . "SafeSQL, SafeJWT, SafeXML needed for real-world security")
+       (resolution . "Implement v0.5.0 auth & serialization modules"))
       ((issue . "Stubs use believe_me for FFI calls")
        (impact . "Actual crypto not functional")
        (resolution . "Connect to real crypto libraries via Zig"))
       ((issue . "ECHIDNA integration not complete")
        (impact . "Cannot run formal verification in CI")
-       (resolution . "Complete v0.5.0 milestone")))
+       (resolution . "Complete v0.9.0 milestone")))
      (low
       ((issue . "Test coverage could be improved")
        (impact . "Some edge cases may not be tested")
-       (resolution . "Expand property-based and unit tests"))))
+       (resolution . "Expand property-based and unit tests"))
+      ((issue . "Registry publishing not configured")
+       (impact . "Cannot distribute via crates.io, PyPI, npm, JSR")
+       (resolution . "Add publish workflows for v1.0.0"))))
 
     (critical-next-actions
      (immediate
@@ -251,7 +310,35 @@
         "Added .github/workflows/quality.yml"
         "Added .clusterfuzzlite/ for fuzzing"
         "Added fuzz/zig/ with fuzz targets"
-        "Added .github/workflows/cflite_pr.yml and cflite_batch.yml"))))))
+        "Added .github/workflows/cflite_pr.yml and cflite_batch.yml")))
+
+     ((date . "2025-01-12")
+      (session . "roadmap-expansion")
+      (accomplishments
+       ("Created docs/PROOFS.md with comprehensive proof documentation"
+        "Expanded roadmap from v0.5.0 to v1.0.0 with 16 new modules:"
+        "  v0.5.0 Auth & Serialization:"
+        "    - SafeSQL: parameterized queries, SQL injection prevention"
+        "    - SafeJWT: token validation, claim verification"
+        "    - SafeBase64: encoding/decoding with length proofs"
+        "    - SafeXML: XXE prevention, entity expansion protection"
+        "    - SafeYAML: safe deserialization"
+        "    - SafeTOML: config parsing without crashes"
+        "  v0.6.0 Data Types:"
+        "    - SafeUUID: parsing/generation with format proofs"
+        "    - SafeCurrency: money handling without float errors"
+        "    - SafePhone: E.164 international format validation"
+        "    - SafeHex: hex encoding with bounds checking"
+        "  v0.7.0 I/O Safety:"
+        "    - SafeEnv: environment variable access"
+        "    - SafeArgs: CLI argument parsing"
+        "    - SafeFile: bounded reads, safe handles"
+        "  v0.8.0 Network Extended:"
+        "    - SafeHeader: HTTP header validation"
+        "    - SafeCookie: cookie parsing/building"
+        "    - SafeContentType: MIME validation"
+        "  v0.9.0 ECHIDNA Integration (moved from v0.5.0)"
+        "  v1.0.0 Production Release with security audit")))))
 
 ;; Helper functions
 (define (get-completion-percentage state)
