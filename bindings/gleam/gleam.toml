@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+name = "proven"
+version = "0.3.0"
+description = "Code that cannot crash - verified safety functions"
+
+licences = ["PMPL-1.0"]
+repository = { type = "github", user = "hyperpolymath", repo = "proven" }
+
+target = "javascript"
+
+[dependencies]
+gleam_stdlib = ">= 0.34.0 and < 2.0.0"
+gleam_javascript = ">= 0.8.0 and < 1.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
