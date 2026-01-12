@@ -90,6 +90,19 @@ modules = Proven
         , Proven.SafeBase64.Encode
         , Proven.SafeBase64.Decode
         , Proven.SafeBase64.Proofs
+        , Proven.SafeXML
+        , Proven.SafeXML.Types
+        , Proven.SafeXML.Parser
+        , Proven.SafeXML.Builder
+        , Proven.SafeXML.Proofs
+        , Proven.SafeYAML
+        , Proven.SafeYAML.Types
+        , Proven.SafeYAML.Parser
+        , Proven.SafeYAML.Proofs
+        , Proven.SafeTOML
+        , Proven.SafeTOML.Types
+        , Proven.SafeTOML.Parser
+        , Proven.SafeTOML.Proofs
         , Proven.FFI
         , Proven.FFI.Types
         , Proven.FFI.Export

@@ -20,6 +20,9 @@
 ||| @ SafeSQL      SQL operations that prevent injection attacks
 ||| @ SafeJWT      JWT token validation without exceptions
 ||| @ SafeBase64   Base64 encoding/decoding with correctness proofs
+||| @ SafeXML      XML parsing with XXE prevention
+||| @ SafeYAML     YAML parsing with deserialization attack prevention
+||| @ SafeTOML     TOML parsing with resource limits
 module Proven
 
 import public Proven.Core
@@ -39,3 +42,6 @@ import public Proven.SafeCommand
 import public Proven.SafeSQL
 import public Proven.SafeJWT
 import public Proven.SafeBase64
+import public Proven.SafeXML
+import public Proven.SafeYAML
+import public Proven.SafeTOML
