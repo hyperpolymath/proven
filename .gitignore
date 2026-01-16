@@ -90,3 +90,11 @@ bindings/ada/obj/
 bindings/ada/lib/
 *.ali
 *.lexch
+
+# Build artifacts
+bindings/dart/.dart_tool/
+bindings/dart/pubspec.lock
+bindings/elixir/_build/
+bindings/elixir/deps/
+bindings/elixir/mix.lock
+bindings/gleam/manifest.toml

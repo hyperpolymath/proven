@@ -32,4 +32,4 @@ export { SafeHex } from './safe_hex.js';
  * Library version.
  * @type {string}
  */
-export const VERSION = '0.3.0';
+export const VERSION = '0.9.0';
