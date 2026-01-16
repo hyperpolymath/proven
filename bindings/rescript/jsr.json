@@ -1,0 +1,9 @@
+{
+  "name": "@hyperpolymath/proven-rescript",
+  "version": "0.9.0",
+  "license": "PMPL-1.0",
+  "exports": "./src/Proven.res.js",
+  "publish": {
+    "include": ["src/**/*.res", "src/**/*.res.js", "rescript.json", "README.md", "LICENSE"]
+  }
+}
