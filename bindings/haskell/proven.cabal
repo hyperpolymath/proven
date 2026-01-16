@@ -3,7 +3,7 @@
 
 cabal-version:      3.0
 name:               proven
-version:            0.8.0
+version:            0.9.0
 synopsis:           Formally verified safety primitives for Haskell
 description:        Safe operations with bounds checking, overflow detection,
                     and security-focused string handling.

@@ -6,7 +6,7 @@ description: >-
   A safety library for Dart providing overflow-checked arithmetic, XSS prevention,
   path traversal protection, email validation, IP classification, and cryptographic
   operations.
-version: 0.1.0
+version: 0.9.0
 repository: https://github.com/hyperpolymath/proven
 homepage: https://github.com/hyperpolymath/proven/tree/main/bindings/dart
 

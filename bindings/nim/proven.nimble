@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 # Package
-version       = "0.3.0"
+version       = "0.9.0"
 author        = "Hyperpolymath"
 description   = "Formally verified safety primitives for Nim"
 license       = "PMPL-1.0"

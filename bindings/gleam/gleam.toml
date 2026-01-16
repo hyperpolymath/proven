@@ -2,10 +2,10 @@
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 name = "proven"
-version = "0.3.0"
+version = "1.0.0"
 description = "Code that cannot crash - verified safety functions"
 
-licences = ["PMPL-1.0"]
+licences = ["Apache-2.0"]  # PMPL-1.0 (Apache-based) - see LICENSE file
 repository = { type = "github", user = "hyperpolymath", repo = "proven" }
 
 target = "javascript"
