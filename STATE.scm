@@ -659,6 +659,7 @@
         "Bumped ReScript bindings to version 0.9.0"
         "Committed and pushed all changes to GitHub"
         "Published @hyperpolymath/proven-rescript@0.9.0 to GitHub Packages"
+        "Published @hyperpolymath/proven-rescript@0.9.0 to JSR (jsr.io)"
         "Added jsr.json for JSR (Deno) registry support")))))
 
 ;; Helper functions
