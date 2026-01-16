@@ -347,3 +347,63 @@ let xorHex = (hexA: string, hexB: string): result<string, hexError> => {
     }
   }
 }
+
+/** Encode a byte array to a spaced hex string (for display)
+ *
+ * Example: [72, 101, 108] -> "48 65 6c"
+ */
+let encodeSpaced = (bytes: array<int>): result<string, hexError> => {
+  if Belt.Array.length(bytes) == 0 {
+    Ok("")
+  } else {
+    let parts = ref([])
+    let valid = ref(true)
+
+    Belt.Array.forEach(bytes, byte => {
+      if valid.contents && byte >= 0 && byte <= 255 {
+        let high = lsr(byte, 4)
+        let low = land(byte, 0x0f)
+        let hex = Js.String2.charAt(hexChars, high) ++ Js.String2.charAt(hexChars, low)
+        parts := Belt.Array.concat(parts.contents, [hex])
+      } else {
+        valid := false
+      }
+    })
+
+    if valid.contents {
+      Ok(Js.Array2.joinWith(parts.contents, " "))
+    } else {
+      Error(InvalidCharacter)
+    }
+  }
+}
+
+/** Encode a byte array to a spaced uppercase hex string (for display)
+ *
+ * Example: [72, 101, 108] -> "48 65 6C"
+ */
+let encodeSpacedUppercase = (bytes: array<int>): result<string, hexError> => {
+  if Belt.Array.length(bytes) == 0 {
+    Ok("")
+  } else {
+    let parts = ref([])
+    let valid = ref(true)
+
+    Belt.Array.forEach(bytes, byte => {
+      if valid.contents && byte >= 0 && byte <= 255 {
+        let high = lsr(byte, 4)
+        let low = land(byte, 0x0f)
+        let hex = Js.String2.charAt(hexCharsUpper, high) ++ Js.String2.charAt(hexCharsUpper, low)
+        parts := Belt.Array.concat(parts.contents, [hex])
+      } else {
+        valid := false
+      }
+    })
+
+    if valid.contents {
+      Ok(Js.Array2.joinWith(parts.contents, " "))
+    } else {
+      Error(InvalidCharacter)
+    }
+  }
+}

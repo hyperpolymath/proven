@@ -26,11 +26,11 @@ let divOr = (default: int, numerator: int, denominator: int): int => {
 }
 
 /** Safe modulo that returns None on division by zero */
-let mod = (numerator: int, denominator: int): option<int> => {
+let safeMod = (numerator: int, denominator: int): option<int> => {
   if denominator == 0 {
     None
   } else {
-    Some(mod(numerator, denominator))
+    Some(Pervasives.mod(numerator, denominator))
   }
 }
 
@@ -107,7 +107,7 @@ let rec powChecked = (base: int, exp: int): option<int> => {
       switch mulChecked(half, half) {
       | None => None
       | Some(squared) =>
-        if mod(exp, 2) == 0 {
+        if Pervasives.mod(exp, 2) == 0 {
           Some(squared)
         } else {
           mulChecked(squared, base)
@@ -130,5 +130,49 @@ let asPercent = (part: int, whole: int): option<int> => {
   switch mulChecked(part, 100) {
   | None => None
   | Some(scaled) => div(scaled, whole)
+  }
+}
+
+/** Check if a value is within a range [lo, hi] (inclusive) */
+let inRange = (value: int, lo: int, hi: int): bool => {
+  value >= lo && value <= hi
+}
+
+/** Check if a value is within a range, excluding specific values */
+let inRangeExcluding = (value: int, lo: int, hi: int, excluded: array<int>): bool => {
+  if !inRange(value, lo, hi) {
+    false
+  } else {
+    !Belt.Array.some(excluded, e => e == value)
+  }
+}
+
+/** Safe integer parsing from string, returns None on invalid input */
+let fromString = (str: string): option<int> => {
+  let trimmed = Js.String2.trim(str)
+  if Js.String2.length(trimmed) == 0 {
+    None
+  } else {
+    // Check for valid integer format
+    let isValid = Js.Re.test_(%re("/^-?\\d+$/"), trimmed)
+    if !isValid {
+      None
+    } else {
+      let parsed = Belt.Int.fromString(trimmed)
+      parsed
+    }
+  }
+}
+
+/** Safe integer parsing with range validation */
+let fromStringInRange = (str: string, lo: int, hi: int): option<int> => {
+  switch fromString(str) {
+  | None => None
+  | Some(value) =>
+    if inRange(value, lo, hi) {
+      Some(value)
+    } else {
+      None
+    }
   }
 }
