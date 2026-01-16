@@ -1,6 +1,6 @@
 {
   "name": "@hyperpolymath/proven",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "Proven - Formally verified safety library for JavaScript",
   "type": "module",
   "main": "./src/index.js",
@@ -37,7 +37,7 @@
     "directory": "bindings/javascript"
   },
   "publishConfig": {
-    "@hyperpolymath:registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=18.0.0"
