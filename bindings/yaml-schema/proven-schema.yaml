@@ -1,0 +1,482 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+#
+# Proven Safety Types Schema (YAML Schema / JSON Schema in YAML format)
+# Formally verified type constraints for configuration files
+#
+# Compatible with:
+#   - VS Code YAML extension (redhat.vscode-yaml)
+#   - SchemaStore
+#   - Kubernetes-style validation
+#   - GitHub Actions schema validation
+#
+# Version: 0.9.0
+
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://proven.hyperpolymath.dev/schemas/proven-schema.yaml
+title: Proven Safety Types Schema
+description: YAML Schema definitions for Proven safety types
+
+$defs:
+  # ==========================================================================
+  # NUMERIC TYPES
+  # ==========================================================================
+
+  SafeInteger:
+    title: Safe Integer
+    description: 64-bit signed integer within safe bounds
+    type: integer
+    minimum: -9223372036854775808
+    maximum: 9223372036854775807
+
+  SafeInteger32:
+    title: Safe 32-bit Integer
+    description: 32-bit signed integer within safe bounds
+    type: integer
+    minimum: -2147483648
+    maximum: 2147483647
+
+  PositiveInteger:
+    title: Positive Integer
+    description: Integer greater than zero
+    type: integer
+    exclusiveMinimum: 0
+
+  NonNegativeInteger:
+    title: Non-Negative Integer
+    description: Integer greater than or equal to zero
+    type: integer
+    minimum: 0
+
+  Percentage:
+    title: Percentage
+    description: Value between 0 and 100 (inclusive)
+    type: number
+    minimum: 0
+    maximum: 100
+
+  Normalized:
+    title: Normalized Value
+    description: Value between 0.0 and 1.0 (inclusive)
+    type: number
+    minimum: 0.0
+    maximum: 1.0
+
+  BasisPoints:
+    title: Basis Points
+    description: Value in basis points (100 bps = 1%)
+    type: integer
+    minimum: 0
+    maximum: 10000
+
+  # ==========================================================================
+  # NETWORK TYPES
+  # ==========================================================================
+
+  Port:
+    title: Network Port
+    description: Valid TCP/UDP port number (1-65535)
+    type: integer
+    minimum: 1
+    maximum: 65535
+    examples:
+      - 80
+      - 443
+      - 8080
+
+  PrivilegedPort:
+    title: Privileged Port
+    description: Port requiring elevated privileges (1-1023)
+    type: integer
+    minimum: 1
+    maximum: 1023
+    examples:
+      - 22
+      - 80
+      - 443
+
+  UnprivilegedPort:
+    title: Unprivileged Port
+    description: Port not requiring elevated privileges (1024-65535)
+    type: integer
+    minimum: 1024
+    maximum: 65535
+    examples:
+      - 3000
+      - 8080
+
+  IPv4Address:
+    title: IPv4 Address
+    description: Valid IPv4 address in dotted decimal notation
+    type: string
+    pattern: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+    examples:
+      - "192.168.1.1"
+      - "10.0.0.1"
+      - "127.0.0.1"
+
+  IPv6Address:
+    title: IPv6 Address
+    description: Valid IPv6 address
+    type: string
+    format: ipv6
+    examples:
+      - "::1"
+      - "2001:db8::1"
+
+  Hostname:
+    title: Hostname
+    description: Valid DNS hostname
+    type: string
+    format: hostname
+    pattern: '^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'
+    maxLength: 253
+    examples:
+      - "example.com"
+      - "api.example.org"
+
+  CIDR:
+    title: CIDR Notation
+    description: IPv4 address with subnet mask in CIDR notation
+    type: string
+    pattern: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([0-9]|[1-2][0-9]|3[0-2])$'
+    examples:
+      - "192.168.1.0/24"
+      - "10.0.0.0/8"
+
+  # ==========================================================================
+  # STRING TYPES
+  # ==========================================================================
+
+  Email:
+    title: Email Address
+    description: Valid email address format
+    type: string
+    format: email
+    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    examples:
+      - "user@example.com"
+
+  NonEmptyString:
+    title: Non-Empty String
+    description: String with at least one character
+    type: string
+    minLength: 1
+
+  Identifier:
+    title: Identifier
+    description: Valid identifier (alphanumeric with underscores, starts with letter)
+    type: string
+    pattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+    minLength: 1
+    maxLength: 255
+    examples:
+      - "my_variable"
+      - "MyClass"
+      - "_private"
+
+  Slug:
+    title: URL Slug
+    description: URL-friendly string (lowercase, hyphens)
+    type: string
+    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+    minLength: 1
+    maxLength: 100
+    examples:
+      - "my-blog-post"
+      - "user-profile"
+
+  SafePath:
+    title: Safe Path
+    description: File path without traversal attacks (no ..)
+    type: string
+    pattern: '^(?!.*\.\.).*$'
+    minLength: 1
+    examples:
+      - "config/settings.yaml"
+      - "data/users/profile.json"
+
+  UUID:
+    title: UUID
+    description: Valid UUID (any version)
+    type: string
+    format: uuid
+    pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+    examples:
+      - "550e8400-e29b-41d4-a716-446655440000"
+
+  # ==========================================================================
+  # DATE/TIME TYPES
+  # ==========================================================================
+
+  UnixTimestamp:
+    title: Unix Timestamp
+    description: Unix timestamp in seconds since epoch
+    type: integer
+    minimum: 0
+    examples:
+      - 1704067200
+
+  UnixTimestampMs:
+    title: Unix Timestamp (Milliseconds)
+    description: Unix timestamp in milliseconds since epoch
+    type: integer
+    minimum: 0
+    examples:
+      - 1704067200000
+
+  ISO8601DateTime:
+    title: ISO 8601 DateTime
+    description: Date and time in ISO 8601 format
+    type: string
+    format: date-time
+    examples:
+      - "2024-01-01T00:00:00Z"
+      - "2024-06-15T14:30:00+05:30"
+
+  ISO8601Date:
+    title: ISO 8601 Date
+    description: Date in ISO 8601 format (YYYY-MM-DD)
+    type: string
+    format: date
+    examples:
+      - "2024-01-01"
+
+  Duration:
+    title: Duration
+    description: Duration in ISO 8601 format
+    type: string
+    format: duration
+    pattern: '^P(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$'
+    examples:
+      - "PT1H30M"
+      - "P1D"
+      - "P2W"
+
+  # ==========================================================================
+  # VERSION TYPES
+  # ==========================================================================
+
+  SemanticVersion:
+    title: Semantic Version
+    description: Version in SemVer 2.0 format
+    type: string
+    pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
+    examples:
+      - "1.0.0"
+      - "2.1.0-beta.1"
+      - "1.0.0+build.123"
+
+  CalVer:
+    title: Calendar Version
+    description: Version based on calendar date
+    type: string
+    pattern: '^\d{4}\.\d{1,2}(\.\d+)?(-[a-zA-Z0-9]+)?$'
+    examples:
+      - "2024.1"
+      - "2024.06.1"
+
+  # ==========================================================================
+  # VISUAL TYPES
+  # ==========================================================================
+
+  HexColor:
+    title: Hex Color
+    description: Color in hexadecimal format
+    type: string
+    pattern: '^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$'
+    examples:
+      - "#fff"
+      - "#FF5733"
+      - "#FF573380"
+
+  RGBColor:
+    title: RGB Color
+    description: RGB color with values 0-255
+    type: object
+    properties:
+      r:
+        type: integer
+        minimum: 0
+        maximum: 255
+      g:
+        type: integer
+        minimum: 0
+        maximum: 255
+      b:
+        type: integer
+        minimum: 0
+        maximum: 255
+    required: [r, g, b]
+
+  Color:
+    title: Color
+    description: RGBA color (0-1 range)
+    type: object
+    properties:
+      r:
+        $ref: '#/$defs/Normalized'
+      g:
+        $ref: '#/$defs/Normalized'
+      b:
+        $ref: '#/$defs/Normalized'
+      a:
+        $ref: '#/$defs/Normalized'
+        default: 1.0
+    required: [r, g, b]
+
+  # ==========================================================================
+  # GEOMETRY TYPES
+  # ==========================================================================
+
+  Vector2:
+    title: 2D Vector
+    description: Two-dimensional vector
+    type: object
+    properties:
+      x:
+        type: number
+      y:
+        type: number
+    required: [x, y]
+
+  Vector3:
+    title: 3D Vector
+    description: Three-dimensional vector
+    type: object
+    properties:
+      x:
+        type: number
+      y:
+        type: number
+      z:
+        type: number
+    required: [x, y, z]
+
+  Point2D:
+    title: 2D Point
+    description: Point in 2D space
+    $ref: '#/$defs/Vector2'
+
+  Point3D:
+    title: 3D Point
+    description: Point in 3D space
+    $ref: '#/$defs/Vector3'
+
+  Rectangle:
+    title: Rectangle
+    description: Rectangle defined by position and size
+    type: object
+    properties:
+      x:
+        type: number
+      y:
+        type: number
+      width:
+        type: number
+        minimum: 0
+      height:
+        type: number
+        minimum: 0
+    required: [x, y, width, height]
+
+  # ==========================================================================
+  # BOUNDED TYPES
+  # ==========================================================================
+
+  BoundedInteger:
+    title: Bounded Integer
+    description: Integer with configurable bounds
+    type: object
+    properties:
+      value:
+        type: integer
+      min:
+        type: integer
+      max:
+        type: integer
+    required: [value, min, max]
+
+  Range:
+    title: Range
+    description: Numeric range with min and max
+    type: object
+    properties:
+      min:
+        type: number
+      max:
+        type: number
+    required: [min, max]
+
+  # ==========================================================================
+  # RESULT TYPES
+  # ==========================================================================
+
+  Result:
+    title: Result
+    description: Result type for operations that can fail
+    oneOf:
+      - type: object
+        properties:
+          ok:
+            const: true
+          value: {}
+        required: [ok, value]
+      - type: object
+        properties:
+          ok:
+            const: false
+          error:
+            type: string
+        required: [ok, error]
+
+  Option:
+    title: Option
+    description: Optional value (Some or None)
+    oneOf:
+      - type: object
+        properties:
+          some: {}
+        required: [some]
+      - type: object
+        properties:
+          none:
+            const: true
+        required: [none]
+
+  # ==========================================================================
+  # RESOURCE TYPES (Kubernetes-style)
+  # ==========================================================================
+
+  ResourceQuantity:
+    title: Resource Quantity
+    description: Kubernetes-style resource quantity (e.g., "100Mi", "2Gi", "500m")
+    type: string
+    pattern: '^[0-9]+(\.[0-9]+)?[EPTGMK]?i?$|^[0-9]+m$'
+    examples:
+      - "100Mi"
+      - "2Gi"
+      - "500m"
+      - "1"
+
+  # ==========================================================================
+  # URL TYPES
+  # ==========================================================================
+
+  URL:
+    title: URL
+    description: Valid URL
+    type: string
+    format: uri
+    examples:
+      - "https://example.com/path"
+      - "http://localhost:8080"
+
+  HTTPSUrl:
+    title: HTTPS URL
+    description: URL with HTTPS protocol only
+    type: string
+    format: uri
+    pattern: '^https://'
+    examples:
+      - "https://secure.example.com"

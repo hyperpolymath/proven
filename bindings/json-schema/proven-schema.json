@@ -1,0 +1,325 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proven.hyperpolymath.dev/schemas/proven-schema.json",
+  "title": "Proven Safety Types Schema",
+  "description": "JSON Schema definitions for Proven safety types - formally verified type constraints",
+  "version": "0.9.0",
+
+  "$defs": {
+    "SafeInteger": {
+      "title": "Safe Integer",
+      "description": "64-bit signed integer within safe bounds",
+      "type": "integer",
+      "minimum": -9223372036854775808,
+      "maximum": 9223372036854775807
+    },
+
+    "SafeInteger32": {
+      "title": "Safe 32-bit Integer",
+      "description": "32-bit signed integer within safe bounds",
+      "type": "integer",
+      "minimum": -2147483648,
+      "maximum": 2147483647
+    },
+
+    "PositiveInteger": {
+      "title": "Positive Integer",
+      "description": "Integer greater than zero",
+      "type": "integer",
+      "exclusiveMinimum": 0
+    },
+
+    "NonNegativeInteger": {
+      "title": "Non-Negative Integer",
+      "description": "Integer greater than or equal to zero",
+      "type": "integer",
+      "minimum": 0
+    },
+
+    "Percentage": {
+      "title": "Percentage",
+      "description": "Value between 0 and 100 (inclusive)",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+
+    "Normalized": {
+      "title": "Normalized Value",
+      "description": "Value between 0.0 and 1.0 (inclusive)",
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+
+    "BasisPoints": {
+      "title": "Basis Points",
+      "description": "Value in basis points (100 bps = 1%)",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+
+    "Port": {
+      "title": "Network Port",
+      "description": "Valid TCP/UDP port number (1-65535)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+
+    "PrivilegedPort": {
+      "title": "Privileged Port",
+      "description": "Port requiring elevated privileges (1-1023)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1023
+    },
+
+    "UnprivilegedPort": {
+      "title": "Unprivileged Port",
+      "description": "Port not requiring elevated privileges (1024-65535)",
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 65535
+    },
+
+    "DynamicPort": {
+      "title": "Dynamic/Ephemeral Port",
+      "description": "Dynamic port range (49152-65535)",
+      "type": "integer",
+      "minimum": 49152,
+      "maximum": 65535
+    },
+
+    "IPv4Address": {
+      "title": "IPv4 Address",
+      "description": "Valid IPv4 address in dotted decimal notation",
+      "type": "string",
+      "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    },
+
+    "IPv6Address": {
+      "title": "IPv6 Address",
+      "description": "Valid IPv6 address",
+      "type": "string",
+      "pattern": "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,6}:([0-9a-fA-F]{1,4})?$"
+    },
+
+    "Email": {
+      "title": "Email Address",
+      "description": "Valid email address format",
+      "type": "string",
+      "format": "email",
+      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    },
+
+    "Hostname": {
+      "title": "Hostname",
+      "description": "Valid DNS hostname",
+      "type": "string",
+      "format": "hostname",
+      "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+      "maxLength": 253
+    },
+
+    "UUID": {
+      "title": "UUID",
+      "description": "Valid UUID (any version)",
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+
+    "NonEmptyString": {
+      "title": "Non-Empty String",
+      "description": "String with at least one character",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "Identifier": {
+      "title": "Identifier",
+      "description": "Valid identifier (alphanumeric with underscores, starts with letter)",
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+      "minLength": 1,
+      "maxLength": 255
+    },
+
+    "SafePath": {
+      "title": "Safe Path",
+      "description": "File path without traversal attacks (no ..)",
+      "type": "string",
+      "pattern": "^(?!.*\\.\\.).*$",
+      "minLength": 1
+    },
+
+    "UnixTimestamp": {
+      "title": "Unix Timestamp",
+      "description": "Unix timestamp in seconds since epoch",
+      "type": "integer",
+      "minimum": 0
+    },
+
+    "UnixTimestampMs": {
+      "title": "Unix Timestamp (Milliseconds)",
+      "description": "Unix timestamp in milliseconds since epoch",
+      "type": "integer",
+      "minimum": 0
+    },
+
+    "ISO8601DateTime": {
+      "title": "ISO 8601 DateTime",
+      "description": "Date and time in ISO 8601 format",
+      "type": "string",
+      "format": "date-time"
+    },
+
+    "ISO8601Date": {
+      "title": "ISO 8601 Date",
+      "description": "Date in ISO 8601 format (YYYY-MM-DD)",
+      "type": "string",
+      "format": "date"
+    },
+
+    "Duration": {
+      "title": "Duration",
+      "description": "Duration in ISO 8601 format",
+      "type": "string",
+      "format": "duration",
+      "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$"
+    },
+
+    "SemanticVersion": {
+      "title": "Semantic Version",
+      "description": "Version in SemVer 2.0 format",
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+
+    "HexColor": {
+      "title": "Hex Color",
+      "description": "Color in hexadecimal format (#RGB, #RGBA, #RRGGBB, #RRGGBBAA)",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+    },
+
+    "Base64": {
+      "title": "Base64 String",
+      "description": "Base64 encoded string",
+      "type": "string",
+      "contentEncoding": "base64"
+    },
+
+    "URL": {
+      "title": "URL",
+      "description": "Valid URL",
+      "type": "string",
+      "format": "uri"
+    },
+
+    "BoundedInteger": {
+      "title": "Bounded Integer",
+      "description": "Integer with configurable bounds",
+      "type": "object",
+      "properties": {
+        "value": { "type": "integer" },
+        "min": { "type": "integer" },
+        "max": { "type": "integer" }
+      },
+      "required": ["value", "min", "max"]
+    },
+
+    "Range": {
+      "title": "Range",
+      "description": "Numeric range with min and max",
+      "type": "object",
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      },
+      "required": ["min", "max"]
+    },
+
+    "Result": {
+      "title": "Result",
+      "description": "Result type for operations that can fail",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ok": { "const": true },
+            "value": {}
+          },
+          "required": ["ok", "value"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ok": { "const": false },
+            "error": { "type": "string" }
+          },
+          "required": ["ok", "error"]
+        }
+      ]
+    },
+
+    "Option": {
+      "title": "Option",
+      "description": "Optional value (Some or None)",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "some": {}
+          },
+          "required": ["some"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "none": { "const": true }
+          },
+          "required": ["none"]
+        }
+      ]
+    },
+
+    "Vector2": {
+      "title": "2D Vector",
+      "description": "Two-dimensional vector",
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      },
+      "required": ["x", "y"]
+    },
+
+    "Vector3": {
+      "title": "3D Vector",
+      "description": "Three-dimensional vector",
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "required": ["x", "y", "z"]
+    },
+
+    "Color": {
+      "title": "Color",
+      "description": "RGBA color (0-1 range)",
+      "type": "object",
+      "properties": {
+        "r": { "$ref": "#/$defs/Normalized" },
+        "g": { "$ref": "#/$defs/Normalized" },
+        "b": { "$ref": "#/$defs/Normalized" },
+        "a": { "$ref": "#/$defs/Normalized", "default": 1.0 }
+      },
+      "required": ["r", "g", "b"]
+    }
+  }
+}
