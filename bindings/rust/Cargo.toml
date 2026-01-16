@@ -1,16 +1,16 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 [package]
 name = "proven"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 authors = ["Hyperpolymath <hyperpolymath@proton.me>"]
-description = "Safe, formally verified library for math, crypto, parsing, and validation - Rust bindings"
+description = "Safe, formally verified library for math, crypto, parsing, validation, and ML - Rust bindings"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/hyperpolymath/proven"
 documentation = "https://docs.rs/proven"
 readme = "README.md"
-keywords = ["safety", "verification", "crypto", "parsing", "ffi"]
-categories = ["development-tools", "api-bindings", "cryptography"]
+keywords = ["safety", "verification", "ml", "tensor", "numerical"]
+categories = ["development-tools", "api-bindings", "science"]
 
 [lib]
 name = "proven"
@@ -21,7 +21,13 @@ thiserror = "2"
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
 
-# No build dependencies needed - pure Rust implementation
+# Cryptography (optional feature)
+sha3 = { version = "0.10", optional = true }
+blake3 = { version = "1", optional = true }
+hmac = { version = "0.12", optional = true }
+subtle = { version = "2", optional = true }
+hex = { version = "0.4", optional = true }
+rand = { version = "0.8", optional = true }
 
 [dev-dependencies]
 proptest = "1"
@@ -30,6 +36,8 @@ criterion = "0.5"
 [features]
 default = []
 serde = ["dep:serde", "dep:serde_json"]
+crypto = ["dep:sha3", "dep:blake3", "dep:hmac", "dep:subtle", "dep:hex", "dep:rand"]
+full = ["serde", "crypto"]
 
 [[bench]]
 name = "safe_math"
