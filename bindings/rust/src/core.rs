@@ -53,6 +53,10 @@ pub enum Error {
     /// Injection attempt detected
     #[error("Injection attempt detected: {0}")]
     InjectionDetected(String),
+
+    /// Input too long
+    #[error("Input too long: {0}")]
+    TooLong(String),
 }
 
 /// Result type for proven operations
