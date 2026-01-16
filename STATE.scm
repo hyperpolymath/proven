@@ -8,7 +8,7 @@
      (version . "1.0.0")
      (schema-version . "1.0")
      (created . "2025-01-10")
-     (updated . "2026-01-16T12:00:00Z")
+     (updated . "2026-01-16T18:30:00Z")
      (project . "proven")
      (repo . "github.com/hyperpolymath/proven"))
 
@@ -657,7 +657,9 @@
         "  - 29 files packaged, 193.5KiB (43.4KiB compressed)"
         "  - Available at https://crates.io/crates/proven"
         "Bumped ReScript bindings to version 0.9.0"
-        "Committed and pushed all changes to GitHub")))))
+        "Committed and pushed all changes to GitHub"
+        "Published @hyperpolymath/proven-rescript@0.9.0 to GitHub Packages"
+        "Added jsr.json for JSR (Deno) registry support")))))
 
 ;; Helper functions
 (define (get-completion-percentage state)
