@@ -1,5 +1,6 @@
 {
     "name": "hyperpolymath/proven",
+    "version": "0.9.0",
     "description": "Code that cannot crash - safe arithmetic, string escaping, path validation, and more",
     "type": "library",
     "license": "AGPL-3.0-or-later",
