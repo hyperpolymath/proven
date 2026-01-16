@@ -1,0 +1,274 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+"""
+Proven Safety Primitives for GraphQL
+
+Provides scalar types and directives for safe value validation
+in GraphQL schemas. These can be implemented in any GraphQL server.
+"""
+
+# ============================================================================
+# SCALAR TYPES - Safe Value Types
+# ============================================================================
+
+"""A non-empty string (at least 1 character)."""
+scalar NonEmptyString
+
+"""An email address with basic format validation."""
+scalar Email
+
+"""A URL with protocol validation (http/https)."""
+scalar URL
+
+"""A port number between 1 and 65535."""
+scalar Port
+
+"""A positive integer (> 0)."""
+scalar PositiveInt
+
+"""A non-negative integer (>= 0)."""
+scalar NonNegativeInt
+
+"""A percentage value between 0 and 100."""
+scalar Percentage
+
+"""A ratio between 0.0 and 1.0."""
+scalar Ratio
+
+"""An IPv4 address."""
+scalar IPv4
+
+"""A CIDR notation network address."""
+scalar CIDR
+
+"""A valid UUID."""
+scalar UUID
+
+"""A date in ISO 8601 format (YYYY-MM-DD)."""
+scalar Date
+
+"""A datetime in ISO 8601 format."""
+scalar DateTime
+
+"""A duration in ISO 8601 format (e.g., PT1H30M)."""
+scalar Duration
+
+"""A valid JSON object."""
+scalar JSON
+
+# ============================================================================
+# DIRECTIVES - Validation Rules
+# ============================================================================
+
+"""Validate string length bounds."""
+directive @length(
+  min: Int = 0
+  max: Int = 255
+) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | FIELD_DEFINITION
+
+"""Validate numeric range."""
+directive @range(
+  min: Float
+  max: Float
+) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | FIELD_DEFINITION
+
+"""Validate against a regex pattern."""
+directive @pattern(
+  regex: String!
+  message: String
+) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | FIELD_DEFINITION
+
+"""Mark a field as requiring authorization."""
+directive @auth(
+  requires: [Role!]!
+) on FIELD_DEFINITION | OBJECT
+
+"""Rate limit a field."""
+directive @rateLimit(
+  max: Int!
+  window: String!
+  message: String
+) on FIELD_DEFINITION
+
+"""Mark sensitive data that should not be logged."""
+directive @sensitive on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""Deprecation with migration guidance."""
+directive @safeDeprecated(
+  reason: String!
+  migratedTo: String
+  removalDate: Date
+) on FIELD_DEFINITION | ENUM_VALUE
+
+# ============================================================================
+# RESULT TYPE - Exception-free Error Handling
+# ============================================================================
+
+"""Generic result type for operations that can fail."""
+interface Result {
+  ok: Boolean!
+}
+
+"""Successful result with a value."""
+type Ok implements Result {
+  ok: Boolean!
+  value: JSON
+}
+
+"""Error result with an error message."""
+type Err implements Result {
+  ok: Boolean!
+  error: String!
+  code: String
+  details: JSON
+}
+
+# ============================================================================
+# COMMON SAFE INPUT TYPES
+# ============================================================================
+
+"""Pagination input with safe bounds."""
+input PaginationInput {
+  """Page number (1-indexed, default: 1)"""
+  page: PositiveInt = 1
+
+  """Items per page (1-100, default: 20)"""
+  pageSize: Int = 20 @range(min: 1, max: 100)
+}
+
+"""Safe date range input."""
+input DateRangeInput {
+  """Start date (inclusive)"""
+  from: DateTime!
+
+  """End date (inclusive)"""
+  to: DateTime!
+}
+
+"""Safe search input."""
+input SearchInput {
+  """Search query (1-500 characters)"""
+  query: NonEmptyString! @length(max: 500)
+
+  """Fields to search in"""
+  fields: [String!]
+
+  """Maximum results"""
+  limit: Int = 50 @range(min: 1, max: 100)
+}
+
+"""Safe sorting input."""
+input SortInput {
+  """Field to sort by"""
+  field: NonEmptyString!
+
+  """Sort direction"""
+  direction: SortDirection = ASC
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+"""Resource constraint input (Kubernetes-style)."""
+input ResourceConstraintInput {
+  """CPU request in millicores (e.g., 100)"""
+  cpuRequest: NonNegativeInt
+
+  """CPU limit in millicores"""
+  cpuLimit: NonNegativeInt
+
+  """Memory request in bytes"""
+  memoryRequest: NonNegativeInt
+
+  """Memory limit in bytes"""
+  memoryLimit: NonNegativeInt
+}
+
+# ============================================================================
+# ROLES FOR AUTHORIZATION
+# ============================================================================
+
+enum Role {
+  ANONYMOUS
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+# ============================================================================
+# EXAMPLE SAFE QUERY TYPES
+# ============================================================================
+
+type Query {
+  """Get user by ID with safe ID validation."""
+  user(id: UUID!): User @auth(requires: [USER])
+
+  """Search users with safe pagination."""
+  searchUsers(
+    search: SearchInput!
+    pagination: PaginationInput
+    sort: SortInput
+  ): UserConnection! @auth(requires: [USER]) @rateLimit(max: 100, window: "1m")
+
+  """Health check (public)."""
+  health: HealthStatus!
+}
+
+type Mutation {
+  """Create user with validated input."""
+  createUser(input: CreateUserInput!): UserResult! @auth(requires: [ADMIN])
+
+  """Update user with safe partial updates."""
+  updateUser(id: UUID!, input: UpdateUserInput!): UserResult! @auth(requires: [ADMIN])
+}
+
+# ============================================================================
+# EXAMPLE TYPES USING SAFE SCALARS
+# ============================================================================
+
+type User {
+  id: UUID!
+  email: Email!
+  name: NonEmptyString!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input CreateUserInput {
+  email: Email!
+  name: NonEmptyString! @length(min: 1, max: 255)
+  password: NonEmptyString! @length(min: 8, max: 128) @sensitive
+}
+
+input UpdateUserInput {
+  name: NonEmptyString @length(min: 1, max: 255)
+}
+
+union UserResult = User | Err
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+  totalCount: NonNegativeInt!
+}
+
+type UserEdge {
+  cursor: String!
+  node: User!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type HealthStatus {
+  status: String!
+  version: NonEmptyString!
+  uptime: Duration!
+}

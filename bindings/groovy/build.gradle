@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: PMPL-1.0
+// SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+plugins {
+    id 'groovy'
+    id 'maven-publish'
+}
+
+group = 'com.hyperpolymath'
+version = '0.9.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.groovy:groovy:4.0.18'
+    implementation project(':java')  // Reuse Java bindings
+
+    testImplementation 'org.spockframework:spock-core:2.4-groovy-4.0'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+
+            pom {
+                name = 'Proven Groovy Bindings'
+                description = 'Groovy bindings for Proven - formally verified safety primitives'
+                url = 'https://github.com/hyperpolymath/proven'
+                licenses {
+                    license {
+                        name = 'PMPL-1.0'
+                        url = 'https://github.com/hyperpolymath/proven/blob/main/LICENSE'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'hyperpolymath'
+                        name = 'Hyperpolymath'
+                        url = 'https://github.com/hyperpolymath'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/hyperpolymath/proven.git'
+                    developerConnection = 'scm:git:ssh://github.com/hyperpolymath/proven.git'
+                    url = 'https://github.com/hyperpolymath/proven'
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,251 @@
+// SPDX-License-Identifier: PMPL-1.0
+// SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+/**
+ * Proven Safety Primitives for Grain
+ *
+ * Grain is a functional language that compiles to WebAssembly.
+ * Its ML-style type system with algebraic data types makes it
+ * excellent for expressing Proven's safety guarantees.
+ */
+
+module Proven
+
+from "number" include Number
+from "int64" include Int64
+from "int32" include Int32
+from "option" include Option
+from "result" include Result
+from "string" include String
+from "list" include List
+
+// ============================================================================
+// TYPE ALIASES
+// ============================================================================
+
+// Re-export Result for convenience
+provide { module Result }
+
+// Error type for Proven operations
+provide enum ProvenError {
+  Overflow,
+  DivisionByZero,
+  OutOfBounds,
+  InvalidInput,
+  ParseError,
+}
+
+// ============================================================================
+// SAFE MATH
+// ============================================================================
+
+provide module SafeMath {
+  // Safe addition with overflow detection
+  provide let add = (a: Int64, b: Int64): Result<Int64, ProvenError> => {
+    let result = Int64.add(a, b)
+
+    // Check for overflow: same signs for a,b but different sign for result
+    let aPositive = Int64.gte(a, 0L)
+    let bPositive = Int64.gte(b, 0L)
+    let resultPositive = Int64.gte(result, 0L)
+
+    if (aPositive == bPositive && aPositive != resultPositive) {
+      Result.Err(Overflow)
+    } else {
+      Result.Ok(result)
+    }
+  }
+
+  // Safe subtraction with overflow detection
+  provide let sub = (a: Int64, b: Int64): Result<Int64, ProvenError> => {
+    let result = Int64.sub(a, b)
+
+    // Check for overflow: different signs for a,b and result sign differs from a
+    let aPositive = Int64.gte(a, 0L)
+    let bPositive = Int64.gte(b, 0L)
+    let resultPositive = Int64.gte(result, 0L)
+
+    if (aPositive != bPositive && aPositive != resultPositive) {
+      Result.Err(Overflow)
+    } else {
+      Result.Ok(result)
+    }
+  }
+
+  // Safe multiplication with overflow detection
+  provide let mul = (a: Int64, b: Int64): Result<Int64, ProvenError> => {
+    if (Int64.eq(a, 0L) || Int64.eq(b, 0L)) {
+      Result.Ok(0L)
+    } else {
+      let result = Int64.mul(a, b)
+      // Check for overflow by division
+      if (Int64.ne(Int64.div(result, a), b)) {
+        Result.Err(Overflow)
+      } else {
+        Result.Ok(result)
+      }
+    }
+  }
+
+  // Safe division (no divide by zero)
+  provide let div = (a: Int64, b: Int64): Result<Int64, ProvenError> => {
+    if (Int64.eq(b, 0L)) {
+      Result.Err(DivisionByZero)
+    } else {
+      Result.Ok(Int64.div(a, b))
+    }
+  }
+
+  // Safe modulo (no divide by zero)
+  provide let mod = (a: Int64, b: Int64): Result<Int64, ProvenError> => {
+    if (Int64.eq(b, 0L)) {
+      Result.Err(DivisionByZero)
+    } else {
+      Result.Ok(Int64.rem(a, b))
+    }
+  }
+
+  // Safe absolute value
+  provide let abs = (a: Int64): Result<Int64, ProvenError> => {
+    // INT64_MIN has no positive representation
+    if (Int64.eq(a, -9223372036854775808L)) {
+      Result.Err(Overflow)
+    } else if (Int64.lt(a, 0L)) {
+      Result.Ok(Int64.neg(a))
+    } else {
+      Result.Ok(a)
+    }
+  }
+
+  // Clamp value to range [min, max]
+  provide let clamp = (value: Int64, min: Int64, max: Int64): Int64 => {
+    if (Int64.lt(value, min)) {
+      min
+    } else if (Int64.gt(value, max)) {
+      max
+    } else {
+      value
+    }
+  }
+
+  // Check if value is in range [min, max]
+  provide let inRange = (value: Int64, min: Int64, max: Int64): Bool => {
+    Int64.gte(value, min) && Int64.lte(value, max)
+  }
+}
+
+// ============================================================================
+// SAFE VALIDATION
+// ============================================================================
+
+provide module SafeValidation {
+  // Validate port number (1-65535)
+  provide let isValidPort = (port: Int32): Bool => {
+    Int32.gte(port, 1l) && Int32.lte(port, 65535l)
+  }
+
+  // Validate port with Result
+  provide let validatePort = (port: Int32): Result<Int32, ProvenError> => {
+    if (isValidPort(port)) {
+      Result.Ok(port)
+    } else {
+      Result.Err(InvalidInput)
+    }
+  }
+
+  // Validate percentage (0-100)
+  provide let isValidPercentage = (value: Int32): Bool => {
+    Int32.gte(value, 0l) && Int32.lte(value, 100l)
+  }
+
+  // Validate positive number
+  provide let isPositive = (value: Int64): Bool => {
+    Int64.gt(value, 0L)
+  }
+
+  // Validate non-negative number
+  provide let isNonNegative = (value: Int64): Bool => {
+    Int64.gte(value, 0L)
+  }
+
+  // Validate non-empty string
+  provide let isNonEmpty = (s: String): Bool => {
+    String.length(s) > 0
+  }
+
+  // Validate non-empty string with Result
+  provide let validateNonEmpty = (s: String): Result<String, ProvenError> => {
+    if (isNonEmpty(s)) {
+      Result.Ok(s)
+    } else {
+      Result.Err(InvalidInput)
+    }
+  }
+
+  // Validate max string length
+  provide let validateMaxLength = (s: String, max: Number): Result<String, ProvenError> => {
+    if (String.length(s) <= max) {
+      Result.Ok(s)
+    } else {
+      Result.Err(InvalidInput)
+    }
+  }
+}
+
+// ============================================================================
+// SAFE LIST OPERATIONS
+// ============================================================================
+
+provide module SafeList {
+  // Safe list access
+  provide let getAt = (list: List<a>, index: Number): Result<a, ProvenError> => {
+    if (index < 0 || index >= List.length(list)) {
+      Result.Err(OutOfBounds)
+    } else {
+      match (List.nth(index, list)) {
+        Some(value) => Result.Ok(value),
+        None => Result.Err(OutOfBounds),
+      }
+    }
+  }
+
+  // Safe head
+  provide let head = (list: List<a>): Result<a, ProvenError> => {
+    match (List.head(list)) {
+      Some(value) => Result.Ok(value),
+      None => Result.Err(OutOfBounds),
+    }
+  }
+
+  // Safe tail
+  provide let tail = (list: List<a>): Result<List<a>, ProvenError> => {
+    match (List.tail(list)) {
+      Some(rest) => Result.Ok(rest),
+      None => Result.Err(OutOfBounds),
+    }
+  }
+}
+
+// ============================================================================
+// COMMON SAFE VALUES
+// ============================================================================
+
+provide module CommonPorts {
+  provide let http = 80l
+  provide let https = 443l
+  provide let ssh = 22l
+  provide let dns = 53l
+  provide let mysql = 3306l
+  provide let postgres = 5432l
+  provide let redis = 6379l
+}
+
+// ============================================================================
+// VERSION
+// ============================================================================
+
+provide let version = "0.9.0"
+
+provide let versionMajor = 0
+provide let versionMinor = 9
+provide let versionPatch = 0

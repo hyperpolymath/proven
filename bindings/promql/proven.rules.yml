@@ -1,0 +1,215 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+# Proven Safety Primitives for PromQL
+#
+# Recording rules and alerting rules that enforce safe bounds
+# and provide early warning for violations.
+
+groups:
+  # ============================================================================
+  # SAFE RECORDING RULES
+  # ============================================================================
+  - name: proven_safe_metrics
+    interval: 30s
+    rules:
+      # Bounded error rate (clamped 0-100%)
+      - record: proven:error_rate:safe
+        expr: |
+          clamp(
+            rate(http_requests_total{status=~"5.."}[5m])
+            / rate(http_requests_total[5m])
+            * 100,
+            0, 100
+          )
+
+      # Bounded latency percentile (clamped to reasonable max)
+      - record: proven:latency_p99:safe
+        expr: |
+          clamp(
+            histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])),
+            0, 60
+          )
+
+      # Bounded CPU utilization (0-100%)
+      - record: proven:cpu_utilization:safe
+        expr: |
+          clamp(
+            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100),
+            0, 100
+          )
+
+      # Bounded memory utilization (0-100%)
+      - record: proven:memory_utilization:safe
+        expr: |
+          clamp(
+            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100,
+            0, 100
+          )
+
+      # Bounded disk utilization (0-100%)
+      - record: proven:disk_utilization:safe
+        expr: |
+          clamp(
+            (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100,
+            0, 100
+          )
+
+      # Safe rate calculation (handles zero division)
+      - record: proven:request_rate:safe
+        expr: |
+          (rate(http_requests_total[5m]) > 0) or vector(0)
+
+      # Bounded queue depth
+      - record: proven:queue_depth:safe
+        expr: |
+          clamp(
+            sum(queue_messages_total) by (queue),
+            0, 1000000
+          )
+
+  # ============================================================================
+  # SAFE ALERTING RULES
+  # ============================================================================
+  - name: proven_safe_alerts
+    rules:
+      # High error rate (uses safe bounded metric)
+      - alert: ProvenHighErrorRate
+        expr: proven:error_rate:safe > 5
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "High error rate detected ({{ $value | printf \"%.2f\" }}%)"
+          description: "Error rate is above 5% for 5 minutes"
+          runbook_url: "https://runbooks.example.com/high-error-rate"
+
+      # Critical error rate
+      - alert: ProvenCriticalErrorRate
+        expr: proven:error_rate:safe > 25
+        for: 2m
+        labels:
+          severity: critical
+          proven: "true"
+        annotations:
+          summary: "Critical error rate ({{ $value | printf \"%.2f\" }}%)"
+          description: "Error rate is above 25% for 2 minutes"
+          runbook_url: "https://runbooks.example.com/critical-error-rate"
+
+      # High latency (uses safe bounded metric)
+      - alert: ProvenHighLatency
+        expr: proven:latency_p99:safe > 1
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "High p99 latency ({{ $value | printf \"%.2f\" }}s)"
+          description: "99th percentile latency exceeds 1 second"
+
+      # High CPU
+      - alert: ProvenHighCPU
+        expr: proven:cpu_utilization:safe > 80
+        for: 10m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "High CPU utilization ({{ $value | printf \"%.1f\" }}%)"
+          description: "CPU utilization above 80% for 10 minutes"
+
+      # High memory
+      - alert: ProvenHighMemory
+        expr: proven:memory_utilization:safe > 85
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "High memory utilization ({{ $value | printf \"%.1f\" }}%)"
+          description: "Memory utilization above 85% for 5 minutes"
+
+      # Disk space low
+      - alert: ProvenDiskSpaceLow
+        expr: proven:disk_utilization:safe > 80
+        for: 15m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "Low disk space ({{ $value | printf \"%.1f\" }}% used)"
+          description: "Disk utilization above 80%"
+
+      # Critical disk space
+      - alert: ProvenDiskSpaceCritical
+        expr: proven:disk_utilization:safe > 95
+        for: 5m
+        labels:
+          severity: critical
+          proven: "true"
+        annotations:
+          summary: "Critical disk space ({{ $value | printf \"%.1f\" }}% used)"
+          description: "Disk utilization above 95%"
+
+      # Queue depth high
+      - alert: ProvenQueueBacklog
+        expr: proven:queue_depth:safe > 10000
+        for: 10m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "Queue backlog detected ({{ $value }} messages)"
+          description: "Queue has over 10k messages for 10 minutes"
+
+  # ============================================================================
+  # SLO RULES (Safe bounds)
+  # ============================================================================
+  - name: proven_slo_rules
+    rules:
+      # Error budget calculation (bounded 0-100%)
+      - record: proven:slo:error_budget_remaining
+        expr: |
+          clamp(
+            100 - (
+              sum(rate(http_requests_total{status=~"5.."}[30d]))
+              / sum(rate(http_requests_total[30d]))
+              / 0.001  # 99.9% SLO
+              * 100
+            ),
+            0, 100
+          )
+
+      # Burn rate (how fast we're consuming budget)
+      - record: proven:slo:burn_rate
+        expr: |
+          clamp(
+            (
+              sum(rate(http_requests_total{status=~"5.."}[1h]))
+              / sum(rate(http_requests_total[1h]))
+            ) / 0.001,  # normalized to SLO
+            0, 100
+          )
+
+      # SLO burn rate alert
+      - alert: ProvenSLOBurnRateHigh
+        expr: proven:slo:burn_rate > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "SLO burn rate is {{ $value | printf \"%.1f\" }}x normal"
+          description: "Error budget is being consumed 10x faster than sustainable"
+
+      # Error budget exhausted
+      - alert: ProvenSLOBudgetExhausted
+        expr: proven:slo:error_budget_remaining < 10
+        for: 15m
+        labels:
+          severity: critical
+          proven: "true"
+        annotations:
+          summary: "Error budget nearly exhausted ({{ $value | printf \"%.1f\" }}% remaining)"
+          description: "Less than 10% of monthly error budget remaining"

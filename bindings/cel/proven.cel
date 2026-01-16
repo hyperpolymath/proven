@@ -1,0 +1,238 @@
+// SPDX-License-Identifier: PMPL-1.0
+// SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+// Proven Safety Primitives for CEL (Common Expression Language)
+//
+// CEL is used in Kubernetes admission control, Firebase security rules,
+// and other Google Cloud services. These are proto definitions and
+// CEL expression libraries for safe validation.
+
+// ============================================================================
+// This file defines CEL extension functions and validation macros
+// for use in ValidatingAdmissionPolicy, Firebase rules, etc.
+// ============================================================================
+
+// ============================================================================
+// STRING VALIDATION EXPRESSIONS
+// ============================================================================
+
+// Non-empty string check
+// Usage: proven.isNonEmpty(string_field)
+// Example: proven.isNonEmpty(object.metadata.name)
+//
+// CEL expression: size(s) > 0
+
+// Max length check
+// Usage: proven.maxLength(string_field, 255)
+// Example: object.metadata.name.size() <= 255
+
+// Email validation
+// Usage: proven.isEmail(string_field)
+// Example: object.spec.email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
+
+// ============================================================================
+// NUMERIC VALIDATION EXPRESSIONS
+// ============================================================================
+
+// Port validation (1-65535)
+// Usage: proven.isValidPort(port_field)
+// Example: object.spec.port >= 1 && object.spec.port <= 65535
+
+// Positive number
+// Usage: proven.isPositive(num_field)
+// Example: object.spec.replicas > 0
+
+// Range validation
+// Usage: proven.inRange(num_field, min, max)
+// Example: object.spec.replicas >= 1 && object.spec.replicas <= 100
+
+// ============================================================================
+// KUBERNETES ADMISSION POLICY EXAMPLES
+// ============================================================================
+
+/*
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: proven-container-security
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   [""]
+      apiVersions: ["v1"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["pods"]
+  validations:
+    # Non-root requirement
+    - expression: |
+        object.spec.containers.all(c,
+          has(c.securityContext) &&
+          has(c.securityContext.runAsNonRoot) &&
+          c.securityContext.runAsNonRoot == true
+        )
+      message: "All containers must run as non-root"
+
+    # No privileged containers
+    - expression: |
+        object.spec.containers.all(c,
+          !has(c.securityContext.privileged) ||
+          c.securityContext.privileged == false
+        )
+      message: "Containers must not run in privileged mode"
+
+    # Resource limits required
+    - expression: |
+        object.spec.containers.all(c,
+          has(c.resources) &&
+          has(c.resources.limits) &&
+          has(c.resources.limits.memory) &&
+          has(c.resources.limits.cpu)
+        )
+      message: "All containers must have CPU and memory limits"
+
+    # Valid port ranges
+    - expression: |
+        !has(object.spec.containers) ||
+        object.spec.containers.all(c,
+          !has(c.ports) ||
+          c.ports.all(p, p.containerPort >= 1 && p.containerPort <= 65535)
+        )
+      message: "Container ports must be between 1 and 65535"
+
+    # Replica bounds (for Deployments)
+    - expression: |
+        object.kind != "Deployment" ||
+        (object.spec.replicas >= 1 && object.spec.replicas <= 100)
+      message: "Replicas must be between 1 and 100"
+*/
+
+// ============================================================================
+// FIREBASE SECURITY RULES EXAMPLES
+// ============================================================================
+
+/*
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions (Proven patterns)
+    function isNonEmpty(s) {
+      return s != null && s.size() > 0;
+    }
+
+    function isValidEmail(s) {
+      return s.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function inRange(n, min, max) {
+      return n >= min && n <= max;
+    }
+
+    function isValidPort(p) {
+      return p is int && p >= 1 && p <= 65535;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && isNonEmpty(request.resource.data.name)
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.name.size() <= 255;
+      allow update: if request.auth.uid == userId
+        && isNonEmpty(request.resource.data.name)
+        && request.resource.data.name.size() <= 255;
+    }
+
+    // Config collection
+    match /config/{configId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.token.admin == true
+        && inRange(request.resource.data.maxConnections, 1, 1000)
+        && isValidPort(request.resource.data.port);
+    }
+  }
+}
+*/
+
+// ============================================================================
+// CEL LIBRARY DEFINITIONS (for embedding in Go/Java services)
+// ============================================================================
+
+/*
+// Go implementation of Proven CEL functions
+package proven
+
+import (
+    "github.com/google/cel-go/cel"
+    "github.com/google/cel-go/common/types"
+    "github.com/google/cel-go/common/types/ref"
+)
+
+// ProvenLib returns CEL function declarations for Proven safety primitives
+func ProvenLib() cel.EnvOption {
+    return cel.Lib(&provenLib{})
+}
+
+type provenLib struct{}
+
+func (*provenLib) CompileOptions() []cel.EnvOption {
+    return []cel.EnvOption{
+        cel.Function("proven.isValidPort",
+            cel.Overload("proven_is_valid_port_int",
+                []*cel.Type{cel.IntType},
+                cel.BoolType,
+                cel.UnaryBinding(isValidPort),
+            ),
+        ),
+        cel.Function("proven.inRange",
+            cel.Overload("proven_in_range_int_int_int",
+                []*cel.Type{cel.IntType, cel.IntType, cel.IntType},
+                cel.BoolType,
+                cel.FunctionBinding(inRange),
+            ),
+        ),
+        cel.Function("proven.isNonEmpty",
+            cel.Overload("proven_is_non_empty_string",
+                []*cel.Type{cel.StringType},
+                cel.BoolType,
+                cel.UnaryBinding(isNonEmpty),
+            ),
+        ),
+    }
+}
+
+func (*provenLib) ProgramOptions() []cel.ProgramOption {
+    return nil
+}
+
+func isValidPort(val ref.Val) ref.Val {
+    port, ok := val.Value().(int64)
+    if !ok {
+        return types.False
+    }
+    return types.Bool(port >= 1 && port <= 65535)
+}
+
+func inRange(args ...ref.Val) ref.Val {
+    if len(args) != 3 {
+        return types.False
+    }
+    n, ok1 := args[0].Value().(int64)
+    min, ok2 := args[1].Value().(int64)
+    max, ok3 := args[2].Value().(int64)
+    if !ok1 || !ok2 || !ok3 {
+        return types.False
+    }
+    return types.Bool(n >= min && n <= max)
+}
+
+func isNonEmpty(val ref.Val) ref.Val {
+    s, ok := val.Value().(string)
+    if !ok {
+        return types.False
+    }
+    return types.Bool(len(s) > 0)
+}
+*/
