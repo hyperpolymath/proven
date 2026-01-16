@@ -14,15 +14,25 @@ type parsedUrl = {
   fragment: option<string>,
 }
 
+// Web API URL bindings
+type url
+@new external makeUrl: string => url = "URL"
+@get external protocol: url => string = "protocol"
+@get external hostname: url => string = "hostname"
+@get external port: url => string = "port"
+@get external pathname: url => string = "pathname"
+@get external search: url => string = "search"
+@get external hash: url => string = "hash"
+
 /** Parse a URL into its components */
-let parse = (url: string): option<parsedUrl> => {
+let parse = (urlString: string): option<parsedUrl> => {
   try {
-    let jsUrl = Js.Url.make(url)
+    let jsUrl = makeUrl(urlString)
     Some({
-      scheme: Js.Url.protocol(jsUrl)->Js.String2.replace(":", ""),
-      host: Js.Url.hostname(jsUrl),
+      scheme: protocol(jsUrl)->Js.String2.replace(":", ""),
+      host: hostname(jsUrl),
       port: {
-        let portStr = Js.Url.port(jsUrl)
+        let portStr = port(jsUrl)
         if portStr == "" {
           None
         } else {
@@ -30,7 +40,7 @@ let parse = (url: string): option<parsedUrl> => {
         }
       },
       path: {
-        let p = Js.Url.pathname(jsUrl)
+        let p = pathname(jsUrl)
         if p == "" {
           "/"
         } else {
@@ -38,7 +48,7 @@ let parse = (url: string): option<parsedUrl> => {
         }
       },
       query: {
-        let q = Js.Url.search(jsUrl)
+        let q = search(jsUrl)
         if q == "" || q == "?" {
           None
         } else {
@@ -46,7 +56,7 @@ let parse = (url: string): option<parsedUrl> => {
         }
       },
       fragment: {
-        let f = Js.Url.hash(jsUrl)
+        let f = hash(jsUrl)
         if f == "" || f == "#" {
           None
         } else {
@@ -67,45 +77,55 @@ let isValid = (url: string): bool => {
   }
 }
 
-/** Extract the host from a URL */
+/** Validate and normalize a URL */
+let normalize = (url: string): option<string> => {
+  switch parse(url) {
+  | Some(parsed) =>
+    let portPart = switch parsed.port {
+    | Some(p) => ":" ++ Belt.Int.toString(p)
+    | None => ""
+    }
+    let queryPart = switch parsed.query {
+    | Some(q) => "?" ++ q
+    | None => ""
+    }
+    let fragmentPart = switch parsed.fragment {
+    | Some(f) => "#" ++ f
+    | None => ""
+    }
+    Some(parsed.scheme ++ "://" ++ parsed.host ++ portPart ++ parsed.path ++ queryPart ++ fragmentPart)
+  | None => None
+  }
+}
+
+/** Get just the host from a URL */
 let getHost = (url: string): option<string> => {
   switch parse(url) {
-  | Some({host}) => Some(host)
+  | Some(parsed) => Some(parsed.host)
   | None => None
   }
 }
 
-/** Extract the scheme from a URL */
-let getScheme = (url: string): option<string> => {
+/** Get just the path from a URL */
+let getPath = (url: string): option<string> => {
   switch parse(url) {
-  | Some({scheme}) => Some(scheme)
+  | Some(parsed) => Some(parsed.path)
   | None => None
   }
 }
 
-/** Check if a URL uses HTTPS */
+/** Check if URL uses HTTPS */
 let isHttps = (url: string): bool => {
-  switch getScheme(url) {
-  | Some(s) => Js.String2.toLowerCase(s) == "https"
+  switch parse(url) {
+  | Some(parsed) => parsed.scheme == "https"
   | None => false
   }
 }
 
-/** Reconstruct a URL from its components */
-let toString = (parsed: parsedUrl): string => {
-  let result = ref(`${parsed.scheme}://${parsed.host}`)
-  switch parsed.port {
-  | Some(p) => result := result.contents ++ `:${Belt.Int.toString(p)}`
-  | None => ()
+/** Check if URL uses HTTP or HTTPS */
+let isHttp = (url: string): bool => {
+  switch parse(url) {
+  | Some(parsed) => parsed.scheme == "http" || parsed.scheme == "https"
+  | None => false
   }
-  result := result.contents ++ parsed.path
-  switch parsed.query {
-  | Some(q) => result := result.contents ++ `?${q}`
-  | None => ()
-  }
-  switch parsed.fragment {
-  | Some(f) => result := result.contents ++ `#${f}`
-  | None => ()
-  }
-  result.contents
 }

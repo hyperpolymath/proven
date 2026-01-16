@@ -1,13 +1,14 @@
 {
   "name": "@hyperpolymath/proven-rescript",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "ReScript bindings for Proven - code that cannot crash. Calls Idris 2 verified code via Zig WASM ABI.",
   "type": "module",
   "main": "./src/Proven.res.js",
   "scripts": {
     "build": "rescript build",
     "clean": "rescript clean",
-    "dev": "rescript build -w"
+    "dev": "rescript build -w",
+    "test": "node --test src/__tests__/"
   },
   "keywords": [
     "rescript",
@@ -26,6 +27,10 @@
   },
   "peerDependencies": {
     "rescript": ">=11.0.0"
+  },
+  "dependencies": {
+    "js-sha3": "^0.9.3",
+    "blake3": "^2.1.7"
   },
   "devDependencies": {
     "rescript": "^11.1.0"

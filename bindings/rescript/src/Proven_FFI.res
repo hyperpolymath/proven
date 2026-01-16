@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+@@warning("-27")
+
 /**
  * Proven FFI - WebAssembly bindings to Zig ABI
  *
@@ -44,46 +46,55 @@ let statusFromInt = (code: int): provenStatus => {
 /** WASM memory interface */
 type wasmMemory
 
-/** WASM instance interface */
-type wasmInstance = {
-  exports: wasmExports,
-}
-and wasmExports = {
+/** Result types for FFI calls */
+type statusValueInt = {status: int, value: int}
+type statusValueBool = {status: int, value: bool}
+type statusValueIntLength = {status: int, value: int, length: int}
+
+/** WASM exports interface */
+type wasmExports = {
   memory: wasmMemory,
   // Math
-  proven_math_div: (. int, int) => {status: int, value: int},
-  proven_math_mod: (. int, int) => {status: int, value: int},
-  proven_math_add_checked: (. int, int) => {status: int, value: int},
-  proven_math_sub_checked: (. int, int) => {status: int, value: int},
-  proven_math_mul_checked: (. int, int) => {status: int, value: int},
-  proven_math_abs_safe: (. int) => {status: int, value: int},
-  proven_math_clamp: (. int, int, int) => int,
-  proven_math_pow_checked: (. int, int) => {status: int, value: int},
+  @as("proven_math_div") mathDiv: (. int, int) => statusValueInt,
+  @as("proven_math_mod") mathMod: (. int, int) => statusValueInt,
+  @as("proven_math_add_checked") mathAddChecked: (. int, int) => statusValueInt,
+  @as("proven_math_sub_checked") mathSubChecked: (. int, int) => statusValueInt,
+  @as("proven_math_mul_checked") mathMulChecked: (. int, int) => statusValueInt,
+  @as("proven_math_abs_safe") mathAbsSafe: (. int) => statusValueInt,
+  @as("proven_math_clamp") mathClamp: (. int, int, int) => int,
+  @as("proven_math_pow_checked") mathPowChecked: (. int, int) => statusValueInt,
   // Header
-  proven_header_has_crlf: (. int, int) => {status: int, value: bool},
-  proven_header_is_valid_name: (. int, int) => {status: int, value: bool},
-  proven_header_is_dangerous: (. int, int) => {status: int, value: bool},
-  proven_header_build_hsts: (. int, bool, bool) => {status: int, value: int, length: int},
+  @as("proven_header_has_crlf") headerHasCrlf: (. int, int) => statusValueBool,
+  @as("proven_header_is_valid_name") headerIsValidName: (. int, int) => statusValueBool,
+  @as("proven_header_is_dangerous") headerIsDangerous: (. int, int) => statusValueBool,
+  @as("proven_header_build_hsts") headerBuildHsts: (. int, bool, bool) => statusValueIntLength,
   // Cookie
-  proven_cookie_has_injection: (. int, int) => {status: int, value: bool},
-  proven_cookie_validate_name: (. int, int) => {status: int, value: bool},
-  proven_cookie_validate_value: (. int, int) => {status: int, value: bool},
-  proven_cookie_get_prefix: (. int, int) => {status: int, value: int},
+  @as("proven_cookie_has_injection") cookieHasInjection: (. int, int) => statusValueBool,
+  @as("proven_cookie_validate_name") cookieValidateName: (. int, int) => statusValueBool,
+  @as("proven_cookie_validate_value") cookieValidateValue: (. int, int) => statusValueBool,
+  @as("proven_cookie_get_prefix") cookieGetPrefix: (. int, int) => statusValueInt,
   // ContentType
-  proven_content_type_can_sniff_dangerous: (. int, int) => {status: int, value: bool},
-  proven_content_type_is_json: (. int, int, int, int) => {status: int, value: bool},
-  proven_content_type_is_xml: (. int, int, int, int) => {status: int, value: bool},
+  @as("proven_content_type_can_sniff_dangerous")
+  contentTypeCanSniffDangerous: (. int, int) => statusValueBool,
+  @as("proven_content_type_is_json") contentTypeIsJson: (. int, int, int, int) => statusValueBool,
+  @as("proven_content_type_is_xml") contentTypeIsXml: (. int, int, int, int) => statusValueBool,
   // Memory management
-  proven_free_string: (. int) => unit,
+  @as("proven_free_string") freeString: (. int) => unit,
   // Version
-  proven_version_major: (. unit) => int,
-  proven_version_minor: (. unit) => int,
-  proven_version_patch: (. unit) => int,
+  @as("proven_version_major") versionMajor: (. unit) => int,
+  @as("proven_version_minor") versionMinor: (. unit) => int,
+  @as("proven_version_patch") versionPatch: (. unit) => int,
   // Init
-  proven_init: (. unit) => int,
-  proven_deinit: (. unit) => unit,
-  proven_is_initialized: (. unit) => bool,
+  @as("proven_init") init_: (. unit) => int,
+  @as("proven_deinit") deinit_: (. unit) => unit,
+  @as("proven_is_initialized") isInitialized_: (. unit) => bool,
 }
+
+/** WASM instance interface */
+type wasmInstance = {exports: wasmExports}
+
+/** Instantiate result type */
+type instantiateResult = {instance: wasmInstance}
 
 /** WASM module state */
 let wasmInstance: ref<option<wasmInstance>> = ref(None)
@@ -93,7 +104,8 @@ let wasmInstance: ref<option<wasmInstance>> = ref(None)
 
 /** WebAssembly instantiate */
 @scope("WebAssembly") @val
-external instantiateStreaming: (promise<'a>, 'b) => promise<{instance: wasmInstance}> = "instantiateStreaming"
+external instantiateStreaming: (promise<'a>, 'b) => promise<instantiateResult> =
+  "instantiateStreaming"
 
 /** Initialize the WASM module */
 let init = async (wasmPath: string): result<unit, string> => {
@@ -102,11 +114,12 @@ let init = async (wasmPath: string): result<unit, string> => {
   | None =>
     try {
       let response = fetch(wasmPath)
-      let result = await instantiateStreaming(response, {})
+      let importObject = %raw(`{}`)
+      let result = await instantiateStreaming(response, importObject)
       wasmInstance := Some(result.instance)
 
       // Initialize the Proven runtime
-      let initResult = result.instance.exports.proven_init(.)
+      let initResult = result.instance.exports.init_(.)
       if initResult == 0 {
         Ok()
       } else {
@@ -118,31 +131,11 @@ let init = async (wasmPath: string): result<unit, string> => {
   }
 }
 
-/** Check if WASM is initialized */
+/** Check if WASM module is initialized */
 let isInitialized = (): bool => {
   switch wasmInstance.contents {
-  | Some(instance) => instance.exports.proven_is_initialized(.)
+  | Some(instance) => instance.exports.isInitialized_(.)
   | None => false
-  }
-}
-
-/** Get the WASM instance (throws if not initialized) */
-let getInstance = (): result<wasmInstance, string> => {
-  switch wasmInstance.contents {
-  | Some(instance) => Ok(instance)
-  | None => Error("WASM not initialized. Call Proven_FFI.init() first.")
-  }
-}
-
-/** Get version string */
-let version = (): result<string, string> => {
-  switch getInstance() {
-  | Error(e) => Error(e)
-  | Ok(instance) =>
-    let major = instance.exports.proven_version_major(.)
-    let minor = instance.exports.proven_version_minor(.)
-    let patch = instance.exports.proven_version_patch(.)
-    Ok(`${Belt.Int.toString(major)}.${Belt.Int.toString(minor)}.${Belt.Int.toString(patch)}`)
   }
 }
 
@@ -150,8 +143,28 @@ let version = (): result<string, string> => {
 let deinit = (): unit => {
   switch wasmInstance.contents {
   | Some(instance) =>
-    instance.exports.proven_deinit(.)
+    instance.exports.deinit_(.)
     wasmInstance := None
   | None => ()
+  }
+}
+
+/** Get the current exports (for internal use) */
+let getExports = (): option<wasmExports> => {
+  switch wasmInstance.contents {
+  | Some(instance) => Some(instance.exports)
+  | None => None
+  }
+}
+
+/** Get version string */
+let version = (): option<string> => {
+  switch getExports() {
+  | Some(exports) =>
+    let major = exports.versionMajor(.)
+    let minor = exports.versionMinor(.)
+    let patch = exports.versionPatch(.)
+    Some(Belt.Int.toString(major) ++ "." ++ Belt.Int.toString(minor) ++ "." ++ Belt.Int.toString(patch))
+  | None => None
   }
 }

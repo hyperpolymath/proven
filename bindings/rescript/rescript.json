@@ -1,6 +1,6 @@
 {
   "name": "@hyperpolymath/proven",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "sources": [
     {
       "dir": "src",
@@ -9,7 +9,7 @@
   ],
   "package-specs": [
     {
-      "module": "es6",
+      "module": "esmodule",
       "in-source": true
     }
   ],

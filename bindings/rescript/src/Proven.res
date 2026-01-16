@@ -33,7 +33,7 @@ module SafeHex = Proven_SafeHex
 // FFI layer
 module FFI = Proven_FFI
 
-let version = "0.8.0"
+let version = "0.9.0"
 
 /** Initialize the WASM module
  * @param wasmPath Path to the proven.wasm file

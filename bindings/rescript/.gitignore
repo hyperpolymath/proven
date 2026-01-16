@@ -1,0 +1,9 @@
+# Dependencies
+node_modules/
+
+# ReScript build cache
+lib/
+.bsb.lock
+
+# Editor
+.merlin
