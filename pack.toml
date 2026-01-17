@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: PMPL-1.0
+# pack.toml - Pack package manager configuration for proven
+
+[package]
+name = "proven"
+version = "1.0.0"
+authors = ["Hyperpolymath"]
+brief = "Verified safe operations - code that cannot crash"
+langversion = ">= 0.6.0"
+
+[build]
+ipkg = "proven.ipkg"
+
+[custom.all.proven]
+type = "local"
+path = "."
+ipkg = "proven.ipkg"
