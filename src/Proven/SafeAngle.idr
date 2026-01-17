@@ -1,352 +1,222 @@
 -- SPDX-License-Identifier: Palimpsest-MPL-1.0
-||| SafeAngle - Verified angle operations
+||| SafeAngle - Safe angle operations with normalization
 |||
-||| Safe angle handling with wrapping, clamping, and unit conversion.
-||| Prevents common bugs in graphics, robotics, quantum computing, and physics.
-|||
-||| All angles are internally stored in radians with values in (-π, π].
+||| This module provides safe angle operations including
+||| normalization, unit conversion, and trigonometry.
 module Proven.SafeAngle
 
-import Proven.Core
-import Data.So
+import public Proven.Core
+import public Proven.SafeFloat
 
 %default total
 
--- ============================================================================
--- CONSTANTS
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Angle Types
+--------------------------------------------------------------------------------
 
-||| Pi constant (high precision)
+||| Angle unit
 public export
-PI : Double
-PI = 3.14159265358979323846
+data AngleUnit : Type where
+  Degrees : AngleUnit
+  Radians : AngleUnit
+  Gradians : AngleUnit
+  Turns : AngleUnit
 
-||| Tau (2π) - full circle
 public export
-TAU : Double
-TAU = 2.0 * PI
+Eq AngleUnit where
+  Degrees == Degrees = True
+  Radians == Radians = True
+  Gradians == Gradians = True
+  Turns == Turns = True
+  _ == _ = False
 
-||| Epsilon for floating point comparison
-public export
-ANGLE_EPSILON : Double
-ANGLE_EPSILON = 1.0e-10
-
--- ============================================================================
--- ANGLE TYPE
--- ============================================================================
-
-||| A normalized angle in radians, always in the range (-π, π]
+||| An angle with its unit
 public export
 record Angle where
   constructor MkAngle
-  radians : Double
-  0 inRange : So (radians > negate PI && radians <= PI)
+  value : Double
+  unit : AngleUnit
 
-||| Proof that a value is a valid normalized angle
+--------------------------------------------------------------------------------
+-- Constants
+--------------------------------------------------------------------------------
+
+||| Pi constant
 public export
-IsNormalizedAngle : Double -> Type
-IsNormalizedAngle x = So (x > negate PI && x <= PI)
+piConst : Double
+piConst = 3.141592653589793
 
--- ============================================================================
--- NORMALIZATION
--- ============================================================================
+||| Tau (2*pi) constant
+public export
+tauConst : Double
+tauConst = 6.283185307179586
 
-||| Normalize an angle to (-π, π]
-||| This is the core operation that ensures all angles are in canonical form
-export
-normalize : Double -> Double
-normalize angle =
-  let wrapped = angle - TAU * floor ((angle + PI) / TAU)
-  in if wrapped <= negate PI then wrapped + TAU
-     else if wrapped > PI then wrapped - TAU
-     else wrapped
+--------------------------------------------------------------------------------
+-- Unit Conversion
+--------------------------------------------------------------------------------
 
-||| Wrap angle to [0, 2π)
-export
-normalizePositive : Double -> Double
-normalizePositive angle =
-  let wrapped = angle - TAU * floor (angle / TAU)
-  in if wrapped < 0.0 then wrapped + TAU else wrapped
-
--- ============================================================================
--- CONSTRUCTORS
--- ============================================================================
-
-||| Create an angle from radians (normalizes automatically)
-export
-fromRadians : Double -> Angle
-fromRadians r =
-  let norm = normalize r
-  in believe_me (MkAngle norm) -- Normalization guarantees range
-
-||| Create an angle from degrees
-export
-fromDegrees : Double -> Angle
-fromDegrees deg = fromRadians (deg * PI / 180.0)
-
-||| Create an angle from turns (1 turn = 360°)
-export
-fromTurns : Double -> Angle
-fromTurns turns = fromRadians (turns * TAU)
-
-||| Create an angle from gradians (400 gradians = 360°)
-export
-fromGradians : Double -> Angle
-fromGradians grad = fromRadians (grad * PI / 200.0)
-
-||| Zero angle
-export
-zero : Angle
-zero = fromRadians 0.0
-
-||| Right angle (π/2)
-export
-rightAngle : Angle
-rightAngle = fromRadians (PI / 2.0)
-
-||| Straight angle (π)
-export
-straightAngle : Angle
-straightAngle = fromRadians PI
-
--- ============================================================================
--- EXTRACTION
--- ============================================================================
-
-||| Get angle in radians
-export
+||| Convert angle to radians
+public export
 toRadians : Angle -> Double
-toRadians a = a.radians
+toRadians (MkAngle v Radians) = v
+toRadians (MkAngle v Degrees) = v * piConst / 180.0
+toRadians (MkAngle v Gradians) = v * piConst / 200.0
+toRadians (MkAngle v Turns) = v * tauConst
 
-||| Get angle in degrees
-export
+||| Convert angle to degrees
+public export
 toDegrees : Angle -> Double
-toDegrees a = a.radians * 180.0 / PI
+toDegrees (MkAngle v Degrees) = v
+toDegrees (MkAngle v Radians) = v * 180.0 / piConst
+toDegrees (MkAngle v Gradians) = v * 0.9  -- 360/400
+toDegrees (MkAngle v Turns) = v * 360.0
 
-||| Get angle in turns
-export
-toTurns : Angle -> Double
-toTurns a = a.radians / TAU
-
-||| Get angle in gradians
-export
+||| Convert angle to gradians
+public export
 toGradians : Angle -> Double
-toGradians a = a.radians * 200.0 / PI
+toGradians (MkAngle v Gradians) = v
+toGradians (MkAngle v Degrees) = v * 400.0 / 360.0
+toGradians (MkAngle v Radians) = v * 200.0 / piConst
+toGradians (MkAngle v Turns) = v * 400.0
 
-||| Get angle in [0, 2π) range
-export
-toPositiveRadians : Angle -> Double
-toPositiveRadians a = normalizePositive a.radians
+||| Convert angle to turns
+public export
+toTurns : Angle -> Double
+toTurns (MkAngle v Turns) = v
+toTurns (MkAngle v Degrees) = v / 360.0
+toTurns (MkAngle v Radians) = v / tauConst
+toTurns (MkAngle v Gradians) = v / 400.0
 
-||| Get angle in [0, 360) range
-export
-toPositiveDegrees : Angle -> Double
-toPositiveDegrees a = normalizePositive a.radians * 180.0 / PI
+||| Create angle from degrees
+public export
+fromDegrees : Double -> Angle
+fromDegrees d = MkAngle d Degrees
 
--- ============================================================================
--- ARITHMETIC
--- ============================================================================
+||| Create angle from radians
+public export
+fromRadians : Double -> Angle
+fromRadians r = MkAngle r Radians
 
-||| Add two angles (result is normalized)
-export
-add : Angle -> Angle -> Angle
-add a b = fromRadians (a.radians + b.radians)
+--------------------------------------------------------------------------------
+-- Normalization
+--------------------------------------------------------------------------------
 
-||| Subtract two angles (result is normalized)
-export
-sub : Angle -> Angle -> Angle
-sub a b = fromRadians (a.radians - b.radians)
+||| Normalize angle to [0, 360) degrees
+public export
+normalizeDegrees : Double -> Double
+normalizeDegrees d =
+  let n = d - 360.0 * floor (d / 360.0)
+  in if n < 0.0 then n + 360.0 else n
 
-||| Negate an angle
-export
-neg : Angle -> Angle
-neg a = fromRadians (negate a.radians)
+||| Normalize angle to [0, 2*pi) radians
+public export
+normalizeRadians : Double -> Double
+normalizeRadians r =
+  let n = r - tauConst * floor (r / tauConst)
+  in if n < 0.0 then n + tauConst else n
 
-||| Multiply angle by scalar
-export
-scale : Double -> Angle -> Angle
-scale k a = fromRadians (k * a.radians)
+||| Normalize angle to [-180, 180) degrees
+public export
+normalizeDegreesSymmetric : Double -> Double
+normalizeDegreesSymmetric d =
+  let n = normalizeDegrees d
+  in if n >= 180.0 then n - 360.0 else n
 
-||| Divide angle by scalar (returns None if divisor is zero)
-export
-divideBy : Angle -> Double -> Maybe Angle
-divideBy a k =
-  if abs k < ANGLE_EPSILON
-  then Nothing
-  else Just (fromRadians (a.radians / k))
+||| Normalize angle to [-pi, pi) radians
+public export
+normalizeRadiansSymmetric : Double -> Double
+normalizeRadiansSymmetric r =
+  let n = normalizeRadians r
+  in if n >= piConst then n - tauConst else n
 
-||| Bisect an angle (divide by 2)
-export
-bisect : Angle -> Angle
-bisect a = fromRadians (a.radians / 2.0)
+||| Normalize an angle in its current unit
+public export
+normalize : Angle -> Angle
+normalize (MkAngle v Degrees) = MkAngle (normalizeDegrees v) Degrees
+normalize (MkAngle v Radians) = MkAngle (normalizeRadians v) Radians
+normalize (MkAngle v Gradians) =
+  let n = v - 400.0 * floor (v / 400.0)
+  in MkAngle (if n < 0.0 then n + 400.0 else n) Gradians
+normalize (MkAngle v Turns) =
+  let n = v - floor v
+  in MkAngle (if n < 0.0 then n + 1.0 else n) Turns
 
--- ============================================================================
--- COMPARISON
--- ============================================================================
-
-||| Check if two angles are approximately equal
-export
-approxEqual : Angle -> Angle -> Double -> Bool
-approxEqual a b epsilon = abs (a.radians - b.radians) < epsilon
-
-||| Check if two angles are equal (within default epsilon)
-export
-equal : Angle -> Angle -> Bool
-equal a b = approxEqual a b ANGLE_EPSILON
-
-||| Signed angular distance from a to b (shortest path)
-export
-signedDistance : Angle -> Angle -> Double
-signedDistance a b = normalize (b.radians - a.radians)
-
-||| Unsigned angular distance (always positive)
-export
-distance : Angle -> Angle -> Double
-distance a b = abs (signedDistance a b)
-
-||| Check if angle is in range [lo, hi] (going counterclockwise from lo to hi)
-export
-inRange : Angle -> Angle -> Angle -> Bool
-inRange angle lo hi =
-  let a = normalizePositive angle.radians
-      l = normalizePositive lo.radians
-      h = normalizePositive hi.radians
-  in if l <= h
-     then a >= l && a <= h
-     else a >= l || a <= h  -- Range wraps around 0
-
--- ============================================================================
--- TRIGONOMETRY
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Trigonometric Functions (safe wrappers)
+--------------------------------------------------------------------------------
 
 ||| Safe sine
-export
-sin : Angle -> Double
-sin a = prim__doubleSin a.radians
+public export
+safeSin : Angle -> Double
+safeSin a = sin (toRadians a)
 
 ||| Safe cosine
-export
-cos : Angle -> Double
-cos a = prim__doubleCos a.radians
+public export
+safeCos : Angle -> Double
+safeCos a = cos (toRadians a)
 
-||| Safe tangent (returns None at ±π/2)
-export
-tan : Angle -> Maybe Double
-tan a =
-  let c = cos a
-  in if abs c < ANGLE_EPSILON then Nothing else Just (sin a / c)
+||| Safe tangent (returns Nothing at discontinuities)
+public export
+safeTan : Angle -> Maybe Double
+safeTan a =
+  let r = normalizeRadians (toRadians a)
+  in if approxEqual 0.0001 r (piConst / 2.0) ||
+        approxEqual 0.0001 r (3.0 * piConst / 2.0)
+     then Nothing
+     else Just (tan r)
 
-||| Arctangent (single argument, result in (-π/2, π/2))
-export
-atan : Double -> Angle
-atan x = fromRadians (prim__doubleATan x)
+||| Safe arcsine (returns Nothing outside [-1, 1])
+public export
+safeAsin : Double -> Maybe Angle
+safeAsin x =
+  if x < -1.0 || x > 1.0
+    then Nothing
+    else Just (MkAngle (asin x) Radians)
 
-||| Arctangent with two arguments (result in (-π, π])
-export
-atan2 : Double -> Double -> Angle
-atan2 y x = fromRadians (prim__doubleATan2 y x)
+||| Safe arccosine (returns Nothing outside [-1, 1])
+public export
+safeAcos : Double -> Maybe Angle
+safeAcos x =
+  if x < -1.0 || x > 1.0
+    then Nothing
+    else Just (MkAngle (acos x) Radians)
 
-||| Arcsine (returns None if |x| > 1)
-export
-asin : Double -> Maybe Angle
-asin x = if abs x > 1.0 then Nothing else Just (fromRadians (prim__doubleASin x))
+||| Safe arctangent
+public export
+safeAtan : Double -> Angle
+safeAtan x = MkAngle (atan x) Radians
 
-||| Arccosine (returns None if |x| > 1)
-export
-acos : Double -> Maybe Angle
-acos x = if abs x > 1.0 then Nothing else Just (fromRadians (prim__doubleACos x))
+||| Safe arctangent with two arguments
+public export
+safeAtan2 : Double -> Double -> Angle
+safeAtan2 y x = MkAngle (atan2 y x) Radians
 
--- ============================================================================
--- INTERPOLATION
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Angle Arithmetic
+--------------------------------------------------------------------------------
 
-||| Linear interpolation between two angles (shortest path)
-||| t=0 gives a, t=1 gives b
-export
-lerp : Angle -> Angle -> Double -> Angle
-lerp a b t =
-  let t' = max 0.0 (min 1.0 t)  -- Clamp t to [0,1]
-      diff = signedDistance a b
-  in fromRadians (a.radians + t' * diff)
+||| Add two angles
+public export
+addAngle : Angle -> Angle -> Angle
+addAngle a b = MkAngle (toRadians a + toRadians b) Radians
 
-||| Spherical linear interpolation (constant angular velocity)
-export
-slerp : Angle -> Angle -> Double -> Angle
-slerp a b t =
-  let t' = max 0.0 (min 1.0 t)
-      diff = signedDistance a b
-      -- Smoothstep for smoother interpolation
-      t'' = t' * t' * (3.0 - 2.0 * t')
-  in fromRadians (a.radians + t'' * diff)
+||| Subtract angles
+public export
+subAngle : Angle -> Angle -> Angle
+subAngle a b = MkAngle (toRadians a - toRadians b) Radians
 
--- ============================================================================
--- CLAMPING
--- ============================================================================
+||| Multiply angle by scalar
+public export
+scaleAngle : Double -> Angle -> Angle
+scaleAngle s a = MkAngle (s * toRadians a) Radians
 
-||| Clamp angle to range [lo, hi]
-export
-clamp : Angle -> Angle -> Angle -> Angle
-clamp angle lo hi =
-  if angle.radians < lo.radians then lo
-  else if angle.radians > hi.radians then hi
-  else angle
+||| Calculate the smallest difference between two angles
+public export
+angleDifference : Angle -> Angle -> Angle
+angleDifference a b =
+  let diff = normalizeRadiansSymmetric (toRadians a - toRadians b)
+  in MkAngle diff Radians
 
-||| Clamp angle to ±limit (symmetric around zero)
-export
-clampSymmetric : Angle -> Double -> Angle
-clampSymmetric angle limit =
-  let lim = abs limit
-  in if angle.radians < negate lim then fromRadians (negate lim)
-     else if angle.radians > lim then fromRadians lim
-     else angle
-
--- ============================================================================
--- SPECIAL VALUES
--- ============================================================================
-
-||| Check if angle is approximately zero
-export
-isZero : Angle -> Bool
-isZero a = abs a.radians < ANGLE_EPSILON
-
-||| Check if angle is approximately a right angle (±π/2)
-export
-isRightAngle : Angle -> Bool
-isRightAngle a = abs (abs a.radians - PI / 2.0) < ANGLE_EPSILON
-
-||| Check if angle is approximately a straight angle (±π)
-export
-isStraightAngle : Angle -> Bool
-isStraightAngle a = abs (abs a.radians - PI) < ANGLE_EPSILON
-
-||| Quadrant (1-4) for angle in standard position
-export
-quadrant : Angle -> Nat
-quadrant a =
-  let pos = toPositiveRadians a
-  in if pos < PI / 2.0 then 1
-     else if pos < PI then 2
-     else if pos < 3.0 * PI / 2.0 then 3
-     else 4
-
--- ============================================================================
--- VECTOR OPERATIONS
--- ============================================================================
-
-||| Unit vector components (cos θ, sin θ)
-export
-toUnitVector : Angle -> (Double, Double)
-toUnitVector a = (cos a, sin a)
-
-||| Angle from unit vector components
-export
-fromUnitVector : Double -> Double -> Angle
-fromUnitVector x y = atan2 y x
-
-||| Rotate a 2D point by angle around origin
-export
-rotate2D : Angle -> (Double, Double) -> (Double, Double)
-rotate2D angle (x, y) =
-  let c = cos angle
-      s = sin angle
-  in (x * c - y * s, x * s + y * c)
+public export
+Show Angle where
+  show a = show (toDegrees a) ++ "°"
