@@ -1,0 +1,170 @@
+* SPDX-License-Identifier: Apache-2.0
+* Proven - Safety primitives for SPICE analog circuit simulation
+*
+* Safe subcircuits for analog computing including bounded sources,
+* protected op-amps, and safe computation blocks.
+*
+* Compatible with: ngspice, LTspice, HSPICE, PSpice
+
+* ============================================================================
+* PARAMETERS
+* ============================================================================
+
+.PARAM proven_vdd=5.0
+.PARAM proven_vss=0.0
+.PARAM proven_vmax=10.0
+.PARAM proven_vmin=-10.0
+.PARAM proven_imax=100m
+
+* ============================================================================
+* SAFE BOUNDED VOLTAGE SOURCE
+* ============================================================================
+
+.SUBCKT proven_bounded_vsrc out_p out_n ctrl vmin=-10 vmax=10
+B1 out_p out_n V = MIN(MAX(V(ctrl), vmin), vmax)
+.ENDS
+
+* ============================================================================
+* SAFE BOUNDED CURRENT SOURCE
+* ============================================================================
+
+.SUBCKT proven_bounded_isrc out_p out_n ctrl imin=-100m imax=100m
+B1 out_p out_n I = MIN(MAX(V(ctrl)*1m, imin), imax)
+.ENDS
+
+* ============================================================================
+* SAFE OP-AMP WITH OUTPUT LIMITING
+* ============================================================================
+
+.SUBCKT proven_safe_opamp inp inn out vsat_p=10 vsat_n=-10 gain=100k gbw=1MEG
+Rin inp inn 1MEG
+Ediff diff 0 inp inn {gain}
+Rpole diff int 1k
+Cpole int 0 {1/(2*3.14159*gbw*1k)}
+Bout out 0 V = MIN(MAX(V(int), vsat_n), vsat_p)
+Rout out 0 100
+.ENDS
+
+* ============================================================================
+* SAFE ADDER
+* ============================================================================
+
+.SUBCKT proven_safe_adder in1 in2 in3 in4 out vref=0 vmin=-10 vmax=10
++ r1=10k r2=10k r3=10k r4=10k rf=10k
+R1 in1 sum {r1}
+R2 in2 sum {r2}
+R3 in3 sum {r3}
+R4 in4 sum {r4}
+Rf sum out_int {rf}
+Xopamp vref sum out_int proven_safe_opamp vsat_p={vmax} vsat_n={vmin}
+B1 out 0 V = MIN(MAX(V(out_int), vmin), vmax)
+.ENDS
+
+* ============================================================================
+* SAFE MULTIPLIER
+* ============================================================================
+
+.SUBCKT proven_safe_multiplier x y out scale=10 vmin=-10 vmax=10
+B1 out 0 V = MIN(MAX(V(x)*V(y)/{scale}, vmin), vmax)
+.ENDS
+
+* ============================================================================
+* SAFE DIVIDER (with divide-by-zero protection)
+* ============================================================================
+
+.SUBCKT proven_safe_divider x y out scale=1 vmin=-10 vmax=10 y_min=0.1
+B1 y_safe 0 V = IF(ABS(V(y)) < {y_min}, SIGN(V(y))*{y_min}, V(y))
+B2 out 0 V = MIN(MAX(V(x)/V(y_safe)*{scale}, vmin), vmax)
+.ENDS
+
+* ============================================================================
+* SAFE INTEGRATOR
+* ============================================================================
+
+.SUBCKT proven_safe_integrator in out reset vmin=-10 vmax=10 tau=1m ic=0
+Cint int 0 1 IC={ic}
+Gin 0 int in 0 {1/tau}
+Sreset int 0 reset 0 SW
+.MODEL SW SW VT=0.5 RON=1 ROFF=1MEG
+B1 out 0 V = MIN(MAX(V(int), vmin), vmax)
+.ENDS
+
+* ============================================================================
+* SAFE DIFFERENTIATOR
+* ============================================================================
+
+.SUBCKT proven_safe_differentiator in out vmin=-10 vmax=10 tau=1m fc=10k
+Cdiff in diff {tau}
+Rdiff diff 0 1
+Rlp diff lp 1k
+Clp lp 0 {1/(2*3.14159*fc*1k)}
+B1 out 0 V = MIN(MAX(V(lp)*1k, vmin), vmax)
+.ENDS
+
+* ============================================================================
+* SAFE COMPARATOR
+* ============================================================================
+
+.SUBCKT proven_safe_comparator inp inn out vhigh=5 vlow=0 hyst=0.1
+.PARAM vth_high = {hyst/2}
+.PARAM vth_low = {-hyst/2}
+B1 out 0 V = IF(V(inp)-V(inn) > vth_high, vhigh,
++              IF(V(inp)-V(inn) < vth_low, vlow, V(out)))
+.ENDS
+
+* ============================================================================
+* SAFE FUNCTIONS
+* ============================================================================
+
+.SUBCKT proven_safe_abs in out vmax=10
+B1 out 0 V = MIN(ABS(V(in)), vmax)
+.ENDS
+
+.SUBCKT proven_safe_sqrt in out vmax=10
+B1 out 0 V = MIN(IF(V(in) > 0, SQRT(V(in)), 0), vmax)
+.ENDS
+
+.SUBCKT proven_safe_exp in out scale=1 vmax=10
+B1 out 0 V = MIN(EXP(V(in)/{scale}), vmax)
+.ENDS
+
+.SUBCKT proven_safe_log in out in_min=1m vmin=-10
+B1 out 0 V = MAX(IF(V(in) > {in_min}, LOG(V(in)), LOG({in_min})), vmin)
+.ENDS
+
+* ============================================================================
+* INTERPOLATION
+* ============================================================================
+
+.SUBCKT proven_lerp a b t out vmin=-10 vmax=10
+Bt t_clamp 0 V = MIN(MAX(V(t), 0), 1)
+Bout out 0 V = MIN(MAX(V(a) + (V(b) - V(a)) * V(t_clamp), vmin), vmax)
+.ENDS
+
+.SUBCKT proven_smoothstep a b t out vmin=-10 vmax=10
+Bt t_clamp 0 V = MIN(MAX(V(t), 0), 1)
+Bt_smooth t_smooth 0 V = V(t_clamp)*V(t_clamp)*(3 - 2*V(t_clamp))
+Bout out 0 V = MIN(MAX(V(a) + (V(b) - V(a)) * V(t_smooth), vmin), vmax)
+.ENDS
+
+* ============================================================================
+* NEURAL NETWORK ACTIVATIONS
+* ============================================================================
+
+.SUBCKT proven_sigmoid in out gain=1 vmin=0 vmax=1
+B1 out 0 V = {vmin} + ({vmax}-{vmin}) / (1 + EXP(-V(in)*{gain}))
+.ENDS
+
+.SUBCKT proven_tanh in out vmin=-1 vmax=1
+B1 out 0 V = ({vmax}-{vmin})/2 * TANH(V(in)) + ({vmax}+{vmin})/2
+.ENDS
+
+.SUBCKT proven_relu in out vmax=10
+B1 out 0 V = MIN(MAX(V(in), 0), vmax)
+.ENDS
+
+.SUBCKT proven_leaky_relu in out alpha=0.01 vmin=-10 vmax=10
+B1 out 0 V = MIN(MAX(IF(V(in) > 0, V(in), V(in)*{alpha}), vmin), vmax)
+.ENDS
+
+.END

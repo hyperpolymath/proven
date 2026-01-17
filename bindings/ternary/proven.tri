@@ -1,0 +1,205 @@
+; SPDX-License-Identifier: Apache-2.0
+; Proven - Safety primitives for Balanced Ternary Computing
+;
+; Balanced ternary uses three values: N (-1), Z (0), P (+1)
+; Based on the Soviet Setun computer architecture.
+; This is a specification format for ternary computing simulation.
+
+; ============================================================================
+; TRIT VALUES
+; ============================================================================
+
+(define-trit N -1)  ; Negative
+(define-trit Z  0)  ; Zero
+(define-trit P +1)  ; Positive
+
+; ============================================================================
+; RESULT TYPE
+; ============================================================================
+
+(define-type (Result T)
+  (variant Ok (value T))
+  (variant Err (code Integer) (message String)))
+
+(define (result-ok v) (Ok v))
+(define (result-err code msg) (Err code msg))
+(define (result-is-ok r) (match r ((Ok _) #t) ((Err _ _) #f)))
+(define (result-unwrap-or r default) (match r ((Ok v) v) ((Err _ _) default)))
+
+; ============================================================================
+; OPTION TYPE
+; ============================================================================
+
+(define-type (Option T)
+  (variant Some (value T))
+  (variant None))
+
+(define (option-some v) (Some v))
+(define (option-none) (None))
+(define (option-is-some o) (match o ((Some _) #t) ((None) #f)))
+
+; ============================================================================
+; TRIT OPERATIONS
+; ============================================================================
+
+; Negation: N->P, Z->Z, P->N
+(define (trit-neg t) (match t (N P) (Z Z) (P N)))
+
+; AND (minimum)
+(define (trit-and a b)
+  (cond ((or (= a N) (= b N)) N)
+        ((or (= a Z) (= b Z)) Z)
+        (else P)))
+
+; OR (maximum)
+(define (trit-or a b)
+  (cond ((or (= a P) (= b P)) P)
+        ((or (= a Z) (= b Z)) Z)
+        (else N)))
+
+; XOR (sum mod 3)
+(define (trit-xor a b)
+  (let ((sum (+ a b)))
+    (cond ((> sum 1) N) ((< sum -1) P) (else sum))))
+
+; Multiplication
+(define (trit-mul a b) (* a b))
+
+; ============================================================================
+; TRYTE (6 trits, range -364 to +364)
+; ============================================================================
+
+(define TRYTE-MIN -364)
+(define TRYTE-MAX  364)
+
+(define (tryte-from-int n)
+  (cond ((< n TRYTE-MIN) (result-err 1 "Underflow"))
+        ((> n TRYTE-MAX) (result-err 2 "Overflow"))
+        (else (result-ok (int-to-tryte n)))))
+
+(define (tryte-clamp n)
+  (cond ((< n TRYTE-MIN) TRYTE-MIN)
+        ((> n TRYTE-MAX) TRYTE-MAX)
+        (else n)))
+
+; Safe arithmetic
+(define (tryte-add a b)
+  (let ((sum (+ a b)))
+    (cond ((< sum TRYTE-MIN) (result-err 1 "Underflow"))
+          ((> sum TRYTE-MAX) (result-err 2 "Overflow"))
+          (else (result-ok sum)))))
+
+(define (tryte-add-saturating a b) (tryte-clamp (+ a b)))
+
+(define (tryte-sub a b)
+  (let ((diff (- a b)))
+    (cond ((< diff TRYTE-MIN) (result-err 1 "Underflow"))
+          ((> diff TRYTE-MAX) (result-err 2 "Overflow"))
+          (else (result-ok diff)))))
+
+(define (tryte-mul a b)
+  (let ((prod (* a b)))
+    (cond ((< prod TRYTE-MIN) (result-err 1 "Underflow"))
+          ((> prod TRYTE-MAX) (result-err 2 "Overflow"))
+          (else (result-ok prod)))))
+
+(define (tryte-div a b)
+  (if (= b 0) (result-err 3 "Division by zero")
+      (result-ok (quotient a b))))
+
+; ============================================================================
+; TERNARY LOGIC GATES
+; ============================================================================
+
+; Consensus (majority of 3)
+(define (ternary-consensus a b c)
+  (let ((sum (+ a b c)))
+    (cond ((>= sum 2) P) ((<= sum -2) N) (else Z))))
+
+; Half-adder: returns (sum . carry)
+(define (ternary-half-adder a b)
+  (let ((sum (+ a b)))
+    (cond ((= sum 2) (cons N P))
+          ((= sum -2) (cons P N))
+          (else (cons sum Z)))))
+
+; Full-adder
+(define (ternary-full-adder a b cin)
+  (let ((sum (+ a b cin)))
+    (cond ((>= sum 2) (cons (- sum 3) P))
+          ((<= sum -2) (cons (+ sum 3) N))
+          (else (cons sum Z)))))
+
+; ============================================================================
+; BOUNDED TYPES
+; ============================================================================
+
+; Percentage (0-100)
+(define (percentage-create n) (max 0 (min 100 n)))
+(define (percentage-to-fraction p) (/ p 100.0))
+
+; Resource bar
+(define-type ResourceBar (current Integer) (maximum Integer))
+
+(define (resource-create curr max-val)
+  (let ((m (max 1 max-val)))
+    (ResourceBar (max 0 (min m curr)) m)))
+
+(define (resource-add rb amount)
+  (resource-create (+ (resource-current rb) amount) (resource-maximum rb)))
+
+(define (resource-empty? rb) (= (resource-current rb) 0))
+(define (resource-full? rb) (= (resource-current rb) (resource-maximum rb)))
+
+; ============================================================================
+; VECTOR2
+; ============================================================================
+
+(define-type TernaryVec2 (x Integer) (y Integer))
+
+(define (tvec2-create x y) (TernaryVec2 (tryte-clamp x) (tryte-clamp y)))
+(define (tvec2-add a b) (tvec2-create (+ (tvec2-x a) (tvec2-x b))
+                                       (+ (tvec2-y a) (tvec2-y b))))
+(define (tvec2-sub a b) (tvec2-create (- (tvec2-x a) (tvec2-x b))
+                                       (- (tvec2-y a) (tvec2-y b))))
+(define (tvec2-neg v) (tvec2-create (- (tvec2-x v)) (- (tvec2-y v))))
+
+; Manhattan distance
+(define (tvec2-manhattan a b)
+  (+ (abs (- (tvec2-x a) (tvec2-x b)))
+     (abs (- (tvec2-y a) (tvec2-y b)))))
+
+; ============================================================================
+; SETUN COMPATIBILITY
+; ============================================================================
+
+; Setun used 9-trit words (-9841 to +9841)
+(define SETUN-MIN -9841)
+(define SETUN-MAX  9841)
+
+(define (setun-word-from-int n)
+  (cond ((< n SETUN-MIN) (result-err 1 "Below Setun range"))
+        ((> n SETUN-MAX) (result-err 2 "Above Setun range"))
+        (else (result-ok n))))
+
+; Setun address (5 trits, -121 to +121)
+(define SETUN-ADDR-MIN -121)
+(define SETUN-ADDR-MAX  121)
+
+(define (setun-addr-valid? n)
+  (and (>= n SETUN-ADDR-MIN) (<= n SETUN-ADDR-MAX)))
+
+; ============================================================================
+; UTILITY
+; ============================================================================
+
+; Convert int to ternary string (N/0/P notation)
+(define (int-to-ternary-string n width)
+  (letrec ((convert (lambda (v acc count)
+    (if (= count width) (list->string (reverse acc))
+        (let* ((rem (modulo (+ v 1) 3))
+               (trit (- rem 1))
+               (next (quotient (+ v 1 (- trit)) 3))
+               (ch (cond ((= trit -1) #\N) ((= trit 0) #\0) (else #\P))))
+          (convert next (cons ch acc) (+ count 1)))))))
+    (convert n '() 0)))

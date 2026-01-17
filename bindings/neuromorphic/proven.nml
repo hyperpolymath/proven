@@ -1,0 +1,250 @@
+// SPDX-License-Identifier: Apache-2.0
+// Proven - Safety primitives for Neuromorphic Computing (Spiking Neural Networks)
+//
+// Safe abstractions for neuromorphic chips (Intel Loihi, IBM TrueNorth)
+// including bounded membrane potentials, synaptic weights, and spike rates.
+
+// ============================================================================
+// RESULT/OPTION TYPES
+// ============================================================================
+
+enum ResultTag { OK, ERR }
+struct Result<T> { tag: ResultTag, value: T, error_code: i32, error_msg: string }
+
+fn ok<T>(v: T) -> Result<T> { Result { tag: OK, value: v, error_code: 0, error_msg: "" } }
+fn err<T>(code: i32, msg: string, def: T) -> Result<T> { Result { tag: ERR, value: def, error_code: code, error_msg: msg } }
+fn is_ok<T>(r: Result<T>) -> bool { r.tag == OK }
+fn unwrap_or<T>(r: Result<T>, def: T) -> T { if r.tag == OK { r.value } else { def } }
+
+enum OptionTag { SOME, NONE }
+struct Option<T> { tag: OptionTag, value: T }
+fn some<T>(v: T) -> Option<T> { Option { tag: SOME, value: v } }
+fn none<T>(def: T) -> Option<T> { Option { tag: NONE, value: def } }
+
+// ============================================================================
+// CONSTANTS (Biological/Physical Bounds)
+// ============================================================================
+
+const V_REST: f64 = -70.0       // Resting potential (mV)
+const V_THRESHOLD: f64 = -55.0  // Spike threshold (mV)
+const V_RESET: f64 = -80.0      // Post-spike reset (mV)
+const V_MIN: f64 = -100.0       // Absolute minimum (mV)
+const V_MAX: f64 = 50.0         // Absolute maximum (mV)
+
+const TAU_MEMBRANE: f64 = 20.0  // Membrane time constant (ms)
+const TAU_STDP: f64 = 20.0      // STDP time window (ms)
+
+const WEIGHT_MIN: f64 = 0.0
+const WEIGHT_MAX: f64 = 1.0
+
+const SPIKE_RATE_MAX: f64 = 500.0  // Max physiological rate (Hz)
+
+const REFRACTORY_ABS: f64 = 1.0    // Absolute refractory (ms)
+const REFRACTORY_REL: f64 = 3.0    // Relative refractory (ms)
+
+// ============================================================================
+// MEMBRANE POTENTIAL
+// ============================================================================
+
+struct MembranePotential {
+    value: f64, v_rest: f64, v_thresh: f64, v_reset: f64
+}
+
+fn membrane_create(v_rest: f64, v_thresh: f64, v_reset: f64) -> MembranePotential {
+    MembranePotential {
+        value: clamp(v_rest, V_MIN, V_MAX),
+        v_rest: clamp(v_rest, V_MIN, V_MAX),
+        v_thresh: clamp(v_thresh, v_rest, V_MAX),
+        v_reset: clamp(v_reset, V_MIN, v_rest)
+    }
+}
+
+fn membrane_default() -> MembranePotential {
+    membrane_create(V_REST, V_THRESHOLD, V_RESET)
+}
+
+fn membrane_set(m: MembranePotential, v: f64) -> MembranePotential {
+    MembranePotential { value: clamp(v, V_MIN, V_MAX), ..m }
+}
+
+fn membrane_is_spiking(m: MembranePotential) -> bool { m.value >= m.v_thresh }
+fn membrane_reset(m: MembranePotential) -> MembranePotential { membrane_set(m, m.v_reset) }
+
+fn membrane_decay(m: MembranePotential, dt: f64, tau: f64) -> MembranePotential {
+    let safe_tau = max(tau, 0.1)
+    let decay = exp(-dt / safe_tau)
+    let new_v = m.v_rest + (m.value - m.v_rest) * decay
+    membrane_set(m, new_v)
+}
+
+fn membrane_add_input(m: MembranePotential, current: f64) -> MembranePotential {
+    membrane_set(m, m.value + current)
+}
+
+// ============================================================================
+// SYNAPTIC WEIGHT
+// ============================================================================
+
+enum SynapseType { EXCITATORY, INHIBITORY }
+
+struct SynapticWeight {
+    value: f64, synapse_type: SynapseType, min_w: f64, max_w: f64
+}
+
+fn weight_excitatory(w: f64) -> SynapticWeight {
+    SynapticWeight { value: clamp(w, 0.0, WEIGHT_MAX), synapse_type: EXCITATORY, min_w: 0.0, max_w: WEIGHT_MAX }
+}
+
+fn weight_inhibitory(w: f64) -> SynapticWeight {
+    SynapticWeight { value: clamp(w, -WEIGHT_MAX, 0.0), synapse_type: INHIBITORY, min_w: -WEIGHT_MAX, max_w: 0.0 }
+}
+
+fn weight_set(w: SynapticWeight, v: f64) -> SynapticWeight {
+    SynapticWeight { value: clamp(v, w.min_w, w.max_w), ..w }
+}
+
+fn weight_potentiate(w: SynapticWeight, delta: f64) -> SynapticWeight {
+    if w.synapse_type == EXCITATORY { weight_set(w, w.value + abs(delta)) }
+    else { weight_set(w, w.value - abs(delta)) }
+}
+
+fn weight_depress(w: SynapticWeight, delta: f64) -> SynapticWeight {
+    if w.synapse_type == EXCITATORY { weight_set(w, w.value - abs(delta)) }
+    else { weight_set(w, w.value + abs(delta)) }
+}
+
+// ============================================================================
+// SPIKE RATE
+// ============================================================================
+
+struct SpikeRate { value: f64, max_rate: f64 }
+
+fn spike_rate_create(rate: f64, max_r: f64) -> SpikeRate {
+    let m = clamp(max_r, 1.0, SPIKE_RATE_MAX)
+    SpikeRate { value: clamp(rate, 0.0, m), max_rate: m }
+}
+
+fn spike_rate_set(sr: SpikeRate, rate: f64) -> SpikeRate {
+    SpikeRate { value: clamp(rate, 0.0, sr.max_rate), ..sr }
+}
+
+fn spike_rate_to_isi(sr: SpikeRate) -> Option<f64> {
+    if sr.value <= 0.0 { none(0.0) } else { some(1000.0 / sr.value) }
+}
+
+// ============================================================================
+// REFRACTORY PERIOD
+// ============================================================================
+
+struct RefractoryPeriod { absolute: f64, relative: f64, current: f64 }
+
+fn refractory_create(abs_p: f64, rel_p: f64) -> RefractoryPeriod {
+    RefractoryPeriod {
+        absolute: clamp(abs_p, 0.0, 10.0),
+        relative: clamp(rel_p, 0.0, 10.0),
+        current: 0.0
+    }
+}
+
+fn refractory_default() -> RefractoryPeriod { refractory_create(REFRACTORY_ABS, REFRACTORY_REL) }
+
+fn refractory_trigger(rp: RefractoryPeriod) -> RefractoryPeriod {
+    RefractoryPeriod { current: rp.absolute + rp.relative, ..rp }
+}
+
+fn refractory_update(rp: RefractoryPeriod, dt: f64) -> RefractoryPeriod {
+    RefractoryPeriod { current: max(0.0, rp.current - dt), ..rp }
+}
+
+fn refractory_is_absolute(rp: RefractoryPeriod) -> bool { rp.current > rp.relative }
+fn refractory_can_spike(rp: RefractoryPeriod) -> bool { rp.current <= 0.0 }
+
+// ============================================================================
+// STDP (Spike-Timing-Dependent Plasticity)
+// ============================================================================
+
+struct STDPParams { a_plus: f64, a_minus: f64, tau_plus: f64, tau_minus: f64 }
+
+fn stdp_create(a_p: f64, a_m: f64, tau_p: f64, tau_m: f64) -> STDPParams {
+    STDPParams {
+        a_plus: clamp(a_p, 0.0, 1.0),
+        a_minus: clamp(a_m, 0.0, 1.0),
+        tau_plus: clamp(tau_p, 1.0, 100.0),
+        tau_minus: clamp(tau_m, 1.0, 100.0)
+    }
+}
+
+fn stdp_default() -> STDPParams { stdp_create(0.1, 0.12, TAU_STDP, TAU_STDP) }
+
+fn stdp_compute(params: STDPParams, dt: f64) -> f64 {
+    // dt = t_post - t_pre
+    // dt > 0: LTP (potentiation), dt < 0: LTD (depression)
+    if dt > 0.0 { params.a_plus * exp(-dt / params.tau_plus) }
+    else if dt < 0.0 { -params.a_minus * exp(dt / params.tau_minus) }
+    else { 0.0 }
+}
+
+// ============================================================================
+// LIF NEURON
+// ============================================================================
+
+struct LIFNeuron {
+    membrane: MembranePotential,
+    tau_m: f64,
+    refractory: RefractoryPeriod,
+    last_spike: Option<f64>
+}
+
+fn lif_create(v_rest: f64, v_thresh: f64, v_reset: f64, tau: f64) -> LIFNeuron {
+    LIFNeuron {
+        membrane: membrane_create(v_rest, v_thresh, v_reset),
+        tau_m: clamp(tau, 1.0, 100.0),
+        refractory: refractory_default(),
+        last_spike: none(0.0)
+    }
+}
+
+fn lif_default() -> LIFNeuron { lif_create(V_REST, V_THRESHOLD, V_RESET, TAU_MEMBRANE) }
+
+struct LIFUpdate { neuron: LIFNeuron, spiked: bool }
+
+fn lif_update(n: LIFNeuron, input: f64, dt: f64, time: f64) -> LIFUpdate {
+    let new_ref = refractory_update(n.refractory, dt)
+
+    if refractory_is_absolute(new_ref) {
+        return LIFUpdate { neuron: LIFNeuron { refractory: new_ref, ..n }, spiked: false }
+    }
+
+    let decayed = membrane_decay(n.membrane, dt, n.tau_m)
+    let with_input = membrane_add_input(decayed, input * dt)
+
+    if membrane_is_spiking(with_input) && refractory_can_spike(new_ref) {
+        LIFUpdate {
+            neuron: LIFNeuron {
+                membrane: membrane_reset(with_input),
+                refractory: refractory_trigger(new_ref),
+                last_spike: some(time),
+                ..n
+            },
+            spiked: true
+        }
+    } else {
+        LIFUpdate {
+            neuron: LIFNeuron { membrane: with_input, refractory: new_ref, ..n },
+            spiked: false
+        }
+    }
+}
+
+// ============================================================================
+// UTILITY
+// ============================================================================
+
+fn clamp(x: f64, min_v: f64, max_v: f64) -> f64 {
+    if x < min_v { min_v } else if x > max_v { max_v } else { x }
+}
+
+fn max(a: f64, b: f64) -> f64 { if a > b { a } else { b } }
+fn min(a: f64, b: f64) -> f64 { if a < b { a } else { b } }
+fn abs(x: f64) -> f64 { if x < 0.0 { -x } else { x } }
+fn exp(x: f64) -> f64 { builtin_exp(clamp(x, -700.0, 700.0)) }

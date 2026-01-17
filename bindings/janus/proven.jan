@@ -1,0 +1,266 @@
+// SPDX-License-Identifier: Apache-2.0
+// Proven - Safety primitives for Janus (Reversible Computing)
+//
+// In reversible computing, every operation is bijective (invertible).
+// This enables energy-efficient computation approaching Landauer's limit.
+// Based on Janus programming language semantics.
+
+// ============================================================================
+// REVERSIBLE RESULT TYPE
+// ============================================================================
+
+// Errors must preserve original value for reversal
+data Result<T> = Ok T | Err Int String T
+
+procedure result_ok(T v | Result<T> r)
+    r += Ok v
+
+procedure result_err(Int code, String msg, T orig | Result<T> r)
+    r += Err code msg orig
+
+// ============================================================================
+// REVERSIBLE OPTION TYPE
+// ============================================================================
+
+data Option<T> = Some T | None
+
+procedure option_some(T v | Option<T> o)
+    o += Some v
+
+procedure option_none(| Option<T> o)
+    o += None
+
+// ============================================================================
+// BOUNDED INTEGER (with overflow tracking for reversibility)
+// ============================================================================
+
+data BoundedInt = BoundedInt Int Int Int Int  // value, min, max, overflow_count
+
+procedure bounded_create(Int v, Int min_v, Int max_v | BoundedInt b)
+    local Int clamped = v
+    local Int overflow = 0
+
+    if clamped < min_v then
+        overflow -= (min_v - clamped)
+        clamped += (min_v - clamped)
+    fi clamped = min_v
+
+    if clamped > max_v then
+        overflow += (clamped - max_v)
+        clamped -= (clamped - max_v)
+    fi clamped = max_v
+
+    b += BoundedInt clamped min_v max_v overflow
+
+    delocal Int overflow = (if v < min_v then min_v - v
+                           else if v > max_v then v - max_v else 0 fi fi)
+    delocal Int clamped = (if v < min_v then min_v
+                          else if v > max_v then max_v else v fi fi)
+
+procedure bounded_get(BoundedInt b | Int v)
+    from b = BoundedInt val _ _ _ do v += val
+    until b = BoundedInt v _ _ _
+
+procedure bounded_add(BoundedInt a, Int delta | BoundedInt result)
+    from a = BoundedInt v min_v max_v ov do
+        local Int new_v = v + delta
+        local Int new_ov = ov
+
+        if new_v > max_v then
+            new_ov += (new_v - max_v)
+            new_v -= (new_v - max_v)
+        fi new_v = max_v
+
+        if new_v < min_v then
+            new_ov -= (min_v - new_v)
+            new_v += (min_v - new_v)
+        fi new_v = min_v
+
+        result += BoundedInt new_v min_v max_v new_ov
+
+        delocal Int new_ov = ov + (if v + delta > max_v then v + delta - max_v
+                                  else if v + delta < min_v then min_v - v - delta
+                                  else 0 fi fi)
+        delocal Int new_v = (if v + delta > max_v then max_v
+                            else if v + delta < min_v then min_v
+                            else v + delta fi fi)
+    until a = BoundedInt _ min_v max_v _
+
+// ============================================================================
+// SAFE REVERSIBLE ARITHMETIC
+// ============================================================================
+
+// Add with overflow tracking (reversible)
+procedure safe_add(Int a, Int b, Int max_v | Int result, Int overflow)
+    result += a + b
+    if result > max_v then
+        overflow += result - max_v
+        result -= result - max_v
+    fi result = max_v
+
+// Subtract with underflow tracking
+procedure safe_sub(Int a, Int b, Int min_v | Int result, Int underflow)
+    result += a - b
+    if result < min_v then
+        underflow += min_v - result
+        result += min_v - result
+    fi result = min_v
+
+// Multiply (store originals for reversal)
+procedure safe_mul(Int a, Int b | Int result, Int orig_a, Int orig_b)
+    orig_a += a
+    orig_b += b
+    result += a * b
+
+// Divide with remainder (a = quotient * b + remainder)
+procedure safe_div(Int a, Int b | Int quotient, Int remainder)
+    // Precondition: b != 0
+    quotient += a / b
+    remainder += a % b
+
+// ============================================================================
+// PERCENTAGE (0-100, reversible)
+// ============================================================================
+
+data Percentage = Percentage Int Int  // value, overflow_track
+
+procedure percentage_create(Int v | Percentage p)
+    local Int clamped = v
+    local Int overflow = 0
+
+    if clamped < 0 then overflow -= clamped; clamped += -clamped fi clamped = 0
+    if clamped > 100 then overflow += clamped - 100; clamped -= clamped - 100 fi clamped = 100
+
+    p += Percentage clamped overflow
+
+    delocal Int overflow = (if v < 0 then -v else if v > 100 then v - 100 else 0 fi fi)
+    delocal Int clamped = (if v < 0 then 0 else if v > 100 then 100 else v fi fi)
+
+procedure percentage_get(Percentage p | Int v)
+    from p = Percentage val _ do v += val until p = Percentage v _
+
+// ============================================================================
+// RESOURCE BAR (reversible)
+// ============================================================================
+
+data ResourceBar = ResourceBar Int Int Int  // current, max, overflow
+
+procedure resource_create(Int curr, Int max_v | ResourceBar rb)
+    local Int safe_max = max_v
+    if safe_max < 1 then safe_max += 1 - safe_max fi safe_max = 1
+
+    local Int safe_curr = curr
+    local Int overflow = 0
+
+    if safe_curr < 0 then overflow -= safe_curr; safe_curr += -safe_curr fi safe_curr = 0
+    if safe_curr > safe_max then overflow += safe_curr - safe_max; safe_curr -= safe_curr - safe_max fi safe_curr = safe_max
+
+    rb += ResourceBar safe_curr safe_max overflow
+
+    delocal Int overflow = (if curr < 0 then -curr
+                           else if curr > (if max_v < 1 then 1 else max_v fi)
+                                then curr - (if max_v < 1 then 1 else max_v fi) else 0 fi fi)
+    delocal Int safe_curr = (if curr < 0 then 0
+                            else if curr > safe_max then safe_max else curr fi fi)
+    delocal Int safe_max = (if max_v < 1 then 1 else max_v fi)
+
+procedure resource_add(ResourceBar rb, Int amount | ResourceBar result)
+    from rb = ResourceBar curr max_v ov do
+        local Int new_curr = curr + amount
+        local Int new_ov = ov
+
+        if new_curr < 0 then new_ov -= new_curr; new_curr += -new_curr fi new_curr = 0
+        if new_curr > max_v then new_ov += new_curr - max_v; new_curr -= new_curr - max_v fi new_curr = max_v
+
+        result += ResourceBar new_curr max_v new_ov
+
+        delocal Int new_ov = ov + (if curr + amount < 0 then -(curr + amount)
+                                  else if curr + amount > max_v then curr + amount - max_v else 0 fi fi)
+        delocal Int new_curr = (if curr + amount < 0 then 0
+                               else if curr + amount > max_v then max_v else curr + amount fi fi)
+    until rb = ResourceBar _ max_v _
+
+// ============================================================================
+// VECTOR2 (reversible integer vectors)
+// ============================================================================
+
+data Vector2 = Vector2 Int Int
+
+procedure vec2_create(Int x, Int y | Vector2 v)
+    v += Vector2 x y
+
+procedure vec2_add(Vector2 a, Vector2 b | Vector2 result)
+    from a = Vector2 ax ay, b = Vector2 bx by do
+        result += Vector2 (ax + bx) (ay + by)
+    until a = Vector2 _ _, b = Vector2 _ _
+
+procedure vec2_sub(Vector2 a, Vector2 b | Vector2 result)
+    from a = Vector2 ax ay, b = Vector2 bx by do
+        result += Vector2 (ax - bx) (ay - by)
+    until a = Vector2 _ _, b = Vector2 _ _
+
+procedure vec2_neg(Vector2 v | Vector2 result)
+    from v = Vector2 x y do result += Vector2 (-x) (-y) until v = Vector2 _ _
+
+// ============================================================================
+// FUNDAMENTAL REVERSIBLE OPERATIONS
+// ============================================================================
+
+// Swap (using XOR)
+procedure swap(Int a | Int b)
+    a ^= b
+    b ^= a
+    a ^= b
+
+// Controlled increment
+procedure cinc(Bool ctrl, Int target |)
+    if ctrl then target += 1 fi ctrl
+
+// Controlled decrement
+procedure cdec(Bool ctrl, Int target |)
+    if ctrl then target -= 1 fi ctrl
+
+// Controlled XOR
+procedure cxor(Bool ctrl, Int a, Int b |)
+    if ctrl then a ^= b fi ctrl
+
+// ============================================================================
+// LANDAUER LIMIT TRACKING
+// ============================================================================
+
+// Track irreversible operations for energy analysis
+// Each irreversible bit erasure costs kT ln(2) energy
+data LandauerTracker = LandauerTracker Int
+
+procedure landauer_create(| LandauerTracker lt)
+    lt += LandauerTracker 0
+
+procedure landauer_record(LandauerTracker lt, Int bits | LandauerTracker result)
+    from lt = LandauerTracker count do
+        result += LandauerTracker (count + bits)
+    until lt = LandauerTracker _
+
+// At 300K: ~2.87e-21 J per bit erased
+
+// ============================================================================
+// UTILITY
+// ============================================================================
+
+// Reversible absolute value (tracks sign)
+procedure abs_with_sign(Int x | Int result, Bool was_neg)
+    if x < 0 then
+        was_neg ^= True
+        x += -2 * x
+    fi x >= 0
+    result += x
+
+// Reversible min/max
+procedure rev_min(Int a, Int b | Int result, Int other, Bool a_smaller)
+    if a <= b then
+        a_smaller ^= True
+        result += a
+        other += b
+    else
+        result += b
+        other += a
+    fi a_smaller = (a <= b)
