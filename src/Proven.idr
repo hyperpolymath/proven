@@ -48,6 +48,21 @@
 ||| @ SafeGeo      Geographic coordinates with distance and bearing calculations
 ||| @ SafeVersion  Semantic versioning parsing and comparison
 ||| @ SafeChecksum CRC, Adler-32, Fletcher, and hash functions
+||| @ SafeMarkdown Markdown parsing with XSS prevention
+||| @ SafeGit Git operations with command injection prevention
+||| @ SafeDocker Docker operations with security validation
+||| @ SafeDNS DNS record handling with homograph detection
+||| @ SafeSSH SSH key handling with weak algorithm detection
+||| @ SafeLog Structured logging with PII redaction
+||| @ SafeI18n Internationalization with injection prevention
+||| @ SafeTemplate Template rendering with SSTI prevention
+||| @ SafeArchive Archive handling with Zip Slip prevention
+||| @ SafeCert X.509 certificate handling with validation
+||| @ SafeOAuth OAuth 2.0/OIDC with CSRF prevention
+||| @ SafeWebhook Webhook handling with signature verification
+||| @ SafeCron Cron expressions with frequency limits
+||| @ SafeBibTeX BibTeX parsing with LaTeX injection prevention
+||| @ SafeMCP Model Context Protocol with prompt injection detection
 module Proven
 
 import public Proven.Core
@@ -95,3 +110,18 @@ import public Proven.SafeColor
 import public Proven.SafeGeo
 import public Proven.SafeVersion
 import public Proven.SafeChecksum
+import public Proven.SafeMarkdown
+import public Proven.SafeGit
+import public Proven.SafeDocker
+import public Proven.SafeDNS
+import public Proven.SafeSSH
+import public Proven.SafeLog
+import public Proven.SafeI18n
+import public Proven.SafeTemplate
+import public Proven.SafeArchive
+import public Proven.SafeCert
+import public Proven.SafeOAuth
+import public Proven.SafeWebhook
+import public Proven.SafeCron
+import public Proven.SafeBibTeX
+import public Proven.SafeMCP

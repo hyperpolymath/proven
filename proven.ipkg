@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: 2025 Hyperpolymath
 package proven
 
-version = 0.9.0
+version = 1.0.0
 authors = "Hyperpolymath"
 license = "PMPL-1.0"
 brief = "Verified safe operations - code that cannot crash"
@@ -172,6 +172,36 @@ modules = Proven
         , Proven.SafeProvenance
         -- SafeStateMachine (v0.9.0 - tma-mark2 integration)
         , Proven.SafeStateMachine
+        -- SafeMarkdown (v1.0.0 - markdown with XSS prevention)
+        , Proven.SafeMarkdown
+        -- SafeGit (v1.0.0 - git operations with command injection prevention)
+        , Proven.SafeGit
+        -- SafeDocker (v1.0.0 - docker operations with security validation)
+        , Proven.SafeDocker
+        -- SafeDNS (v1.0.0 - DNS records with homograph detection)
+        , Proven.SafeDNS
+        -- SafeSSH (v1.0.0 - SSH key handling with weak algorithm detection)
+        , Proven.SafeSSH
+        -- SafeLog (v1.0.0 - structured logging with PII redaction)
+        , Proven.SafeLog
+        -- SafeI18n (v1.0.0 - internationalization with injection prevention)
+        , Proven.SafeI18n
+        -- SafeTemplate (v1.0.0 - template rendering with SSTI prevention)
+        , Proven.SafeTemplate
+        -- SafeArchive (v1.0.0 - archive handling with Zip Slip prevention)
+        , Proven.SafeArchive
+        -- SafeCert (v1.0.0 - X.509 certificate handling with validation)
+        , Proven.SafeCert
+        -- SafeOAuth (v1.0.0 - OAuth 2.0/OIDC with CSRF prevention)
+        , Proven.SafeOAuth
+        -- SafeWebhook (v1.0.0 - webhook handling with signature verification)
+        , Proven.SafeWebhook
+        -- SafeCron (v1.0.0 - cron expressions with frequency limits)
+        , Proven.SafeCron
+        -- SafeBibTeX (v1.0.0 - BibTeX parsing with LaTeX injection prevention)
+        , Proven.SafeBibTeX
+        -- SafeMCP (v1.0.0 - MCP handling with prompt injection detection)
+        , Proven.SafeMCP
         -- FFI (ECHIDNA integration) - temporarily excluded due to syntax issues
         -- , Proven.FFI.Echidna
 
