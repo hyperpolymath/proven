@@ -33,6 +33,21 @@
 ||| @ SafeCurrency ISO 4217 currency codes and safe money arithmetic
 ||| @ SafePhone    E.164 phone number parsing and validation
 ||| @ SafeHex      Hexadecimal encoding/decoding with bounds checking
+||| @ SafeAngle    Angle handling with wrapping, clamping, and conversions
+||| @ SafeProbability Probability values with distribution operations
+||| @ SafeUnit     Physical units with dimensional analysis
+||| @ SafeFiniteField Finite field arithmetic (GF(p) and GF(2^n))
+||| @ SafeMonotonic Monotonic counters, Lamport clocks, HLC, version vectors
+||| @ SafeRateLimiter Token bucket, leaky bucket, sliding window rate limiting
+||| @ SafeCircuitBreaker Circuit breaker pattern for fault tolerance
+||| @ SafeRetry    Retry policies with exponential backoff and jitter
+||| @ SafeQueue    Bounded queues, priority queues, ring buffers
+||| @ SafeBloom    Bloom filters with false positive rate guarantees
+||| @ SafeLRU      LRU caches with TTL support and statistics
+||| @ SafeColor    Color handling with gamut clamping and WCAG compliance
+||| @ SafeGeo      Geographic coordinates with distance and bearing calculations
+||| @ SafeVersion  Semantic versioning parsing and comparison
+||| @ SafeChecksum CRC, Adler-32, Fletcher, and hash functions
 module Proven
 
 import public Proven.Core
@@ -65,3 +80,18 @@ import public Proven.SafeUUID
 import public Proven.SafeCurrency
 import public Proven.SafePhone
 import public Proven.SafeHex
+import public Proven.SafeAngle
+import public Proven.SafeProbability
+import public Proven.SafeUnit
+import public Proven.SafeFiniteField
+import public Proven.SafeMonotonic
+import public Proven.SafeRateLimiter
+import public Proven.SafeCircuitBreaker
+import public Proven.SafeRetry
+import public Proven.SafeQueue
+import public Proven.SafeBloom
+import public Proven.SafeLRU
+import public Proven.SafeColor
+import public Proven.SafeGeo
+import public Proven.SafeVersion
+import public Proven.SafeChecksum
