@@ -1,326 +1,196 @@
 -- SPDX-License-Identifier: Palimpsest-MPL-1.0
-||| SafeRetry - Verified retry policies
+||| SafeRetry - Safe retry strategies and backoff algorithms
 |||
-||| Type-safe retry mechanisms with exponential backoff, jitter,
-||| and bounded attempts.
-|||
-||| Guarantees retry limits are respected and delays are bounded.
+||| This module provides configurable retry logic with various
+||| backoff strategies for resilient error handling.
 module Proven.SafeRetry
 
-import Proven.Core
-import Data.So
+import public Proven.Core
 
 %default total
 
--- ============================================================================
--- RETRY POLICY
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Backoff Strategies
+--------------------------------------------------------------------------------
 
-||| Types of backoff strategies
+||| Backoff strategy for retries
 public export
 data BackoffStrategy : Type where
-  ||| Constant delay between retries
-  Constant : BackoffStrategy
-  ||| Delay doubles each retry
-  Exponential : BackoffStrategy
-  ||| Linear increase in delay
-  Linear : BackoffStrategy
-  ||| Fibonacci sequence delays
-  Fibonacci : BackoffStrategy
+  ||| Fixed delay between retries
+  FixedBackoff : (delay : Nat) -> BackoffStrategy
+  ||| Linearly increasing delay
+  LinearBackoff : (initial : Nat) -> (increment : Nat) -> BackoffStrategy
+  ||| Exponentially increasing delay
+  ExponentialBackoff : (initial : Nat) -> (multiplier : Nat) -> BackoffStrategy
+  ||| Exponential with jitter (randomness bounds)
+  JitteredBackoff : (initial : Nat) -> (multiplier : Nat) -> (maxJitter : Nat) -> BackoffStrategy
 
-||| Jitter strategies to prevent thundering herd
 public export
-data JitterStrategy : Type where
-  ||| No jitter (exact delays)
-  NoJitter : JitterStrategy
-  ||| Add random 0-25% to delay
-  FullJitter : JitterStrategy
-  ||| Add random ±12.5% to delay
-  EqualJitter : JitterStrategy
-  ||| Decorrelated jitter (AWS style)
-  DecorrelatedJitter : JitterStrategy
+Show BackoffStrategy where
+  show (FixedBackoff d) = "Fixed(" ++ show d ++ ")"
+  show (LinearBackoff i inc) = "Linear(" ++ show i ++ ", +" ++ show inc ++ ")"
+  show (ExponentialBackoff i m) = "Exponential(" ++ show i ++ ", *" ++ show m ++ ")"
+  show (JitteredBackoff i m j) = "Jittered(" ++ show i ++ ", *" ++ show m ++ ", ±" ++ show j ++ ")"
 
--- ============================================================================
--- RETRY CONFIGURATION
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Retry Configuration
+--------------------------------------------------------------------------------
 
-||| Configuration for retry behavior
+||| Retry configuration
 public export
 record RetryConfig where
   constructor MkRetryConfig
   maxAttempts : Nat          -- Maximum number of attempts (including first)
-  baseDelay : Integer        -- Base delay in milliseconds
-  maxDelay : Integer         -- Maximum delay cap
-  backoff : BackoffStrategy
-  jitter : JitterStrategy
-  multiplier : Double        -- For exponential/linear backoff
-  0 attemptsPositive : So (maxAttempts > 0)
-  0 baseDelayNonNeg : So (baseDelay >= 0)
-  0 maxDelayPositive : So (maxDelay > 0)
+  backoff : BackoffStrategy  -- Backoff strategy
+  maxDelay : Nat             -- Cap on delay between retries
+  retryOn : Nat -> Bool      -- Error codes to retry on (True = retry)
 
-||| Create a retry configuration
-export
-mkRetryConfig : (maxAttempts : Nat)
-             -> (baseDelay : Integer)
-             -> (maxDelay : Integer)
-             -> (backoff : BackoffStrategy)
-             -> (jitter : JitterStrategy)
-             -> (multiplier : Double)
-             -> Maybe RetryConfig
-mkRetryConfig attempts base maxD bo ji mult =
-  if attempts == 0 || base < 0 || maxD <= 0 || mult <= 0.0
-  then Nothing
-  else Just (believe_me (MkRetryConfig attempts base maxD bo ji mult))
-
-||| Default retry configuration (3 attempts, exponential backoff)
-export
+||| Default retry configuration
+public export
 defaultRetryConfig : RetryConfig
-defaultRetryConfig = believe_me (MkRetryConfig 3 1000 30000 Exponential EqualJitter 2.0)
+defaultRetryConfig = MkRetryConfig 3 (ExponentialBackoff 100 2) 30000 (const True)
 
-||| Simple constant retry (fixed delay)
-export
-constantRetry : Nat -> Integer -> Maybe RetryConfig
-constantRetry attempts delay =
-  mkRetryConfig attempts delay delay Constant NoJitter 1.0
+||| Create a retry config with fixed delay
+public export
+fixedRetry : (attempts : Nat) -> (delay : Nat) -> RetryConfig
+fixedRetry n d = MkRetryConfig n (FixedBackoff d) d (const True)
 
-||| Exponential backoff with jitter
-export
-exponentialBackoff : Nat -> Integer -> Integer -> Maybe RetryConfig
-exponentialBackoff attempts base maxD =
-  mkRetryConfig attempts base maxD Exponential EqualJitter 2.0
+||| Create a retry config with exponential backoff
+public export
+exponentialRetry : (attempts : Nat) -> (initialDelay : Nat) -> RetryConfig
+exponentialRetry n d = MkRetryConfig n (ExponentialBackoff d 2) (d * 64) (const True)
 
--- ============================================================================
--- DELAY CALCULATION
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Delay Calculation
+--------------------------------------------------------------------------------
 
-||| Calculate delay for a given attempt (0-indexed)
-export
-calculateDelay : RetryConfig -> Nat -> Integer
-calculateDelay cfg attempt =
-  let rawDelay = case cfg.backoff of
-        Constant => cfg.baseDelay
-        Exponential =>
-          let factor = pow cfg.multiplier (cast attempt)
-          in cast (cast cfg.baseDelay * factor)
-        Linear =>
-          cfg.baseDelay + cast attempt * cast (ceiling cfg.multiplier * 1000.0)
-        Fibonacci =>
-          cfg.baseDelay * cast (fib (S attempt))
-  in min rawDelay cfg.maxDelay
+||| Calculate delay for a given attempt number
+public export
+calculateDelay : BackoffStrategy -> (attempt : Nat) -> Nat
+calculateDelay (FixedBackoff d) _ = d
+calculateDelay (LinearBackoff initial inc) attempt = initial + (inc * attempt)
+calculateDelay (ExponentialBackoff initial mult) attempt = initial * (power mult attempt)
   where
-    fib : Nat -> Nat
-    fib Z = 1
-    fib (S Z) = 1
-    fib (S (S n)) = fib (S n) + fib n
+    power : Nat -> Nat -> Nat
+    power _ Z = 1
+    power b (S n) = b * power b n
+calculateDelay (JitteredBackoff initial mult _) attempt =
+  -- Without actual randomness, we just use the base exponential
+  initial * (power mult attempt)
+  where
+    power : Nat -> Nat -> Nat
+    power _ Z = 1
+    power b (S n) = b * power b n
 
-||| Apply jitter to a delay
-||| Takes a "random" value between 0.0 and 1.0
-export
-applyJitter : RetryConfig -> Integer -> Double -> Integer
-applyJitter cfg delay rand =
-  case cfg.jitter of
-    NoJitter => delay
-    FullJitter =>
-      -- Random value between 0 and delay
-      cast (cast delay * rand)
-    EqualJitter =>
-      -- delay/2 + random value between 0 and delay/2
-      let half = delay `div` 2
-      in half + cast (cast half * rand)
-    DecorrelatedJitter =>
-      -- Random between baseDelay and delay * 3
-      let minD = cfg.baseDelay
-          maxD = delay * 3
-          range = maxD - minD
-      in minD + cast (cast range * rand)
+||| Calculate delay with cap
+public export
+calculateDelayWithCap : RetryConfig -> (attempt : Nat) -> Nat
+calculateDelayWithCap config attempt =
+  min config.maxDelay (calculateDelay config.backoff attempt)
 
-||| Calculate delay with jitter for a given attempt
-export
-calculateDelayWithJitter : RetryConfig -> Nat -> Double -> Integer
-calculateDelayWithJitter cfg attempt rand =
-  let baseDelay = calculateDelay cfg attempt
-  in min cfg.maxDelay (applyJitter cfg baseDelay rand)
+--------------------------------------------------------------------------------
+-- Retry State
+--------------------------------------------------------------------------------
 
--- ============================================================================
--- RETRY STATE
--- ============================================================================
-
-||| Current state of a retry operation
+||| State of retry operation
 public export
 record RetryState where
   constructor MkRetryState
-  attempt : Nat              -- Current attempt (0-indexed)
-  totalDelay : Integer       -- Total delay so far
-  lastError : Maybe String   -- Last error message
-  config : RetryConfig
+  attempt : Nat              -- Current attempt number (0-indexed)
+  totalDelay : Nat           -- Cumulative delay so far
+  lastError : Maybe Nat      -- Last error code (if any)
 
-||| Create initial retry state
-export
-initialRetryState : RetryConfig -> RetryState
-initialRetryState cfg = MkRetryState 0 0 Nothing cfg
+||| Initial retry state
+public export
+initialState : RetryState
+initialState = MkRetryState 0 0 Nothing
 
 ||| Check if more retries are allowed
-export
-canRetry : RetryState -> Bool
-canRetry rs = rs.attempt < rs.config.maxAttempts
+public export
+canRetry : RetryConfig -> RetryState -> Bool
+canRetry config state = S state.attempt < config.maxAttempts
+
+||| Check if should retry based on error
+public export
+shouldRetry : RetryConfig -> RetryState -> (errorCode : Nat) -> Bool
+shouldRetry config state err =
+  canRetry config state && config.retryOn err
+
+||| Advance to next retry attempt
+public export
+nextAttempt : RetryConfig -> RetryState -> (errorCode : Nat) -> RetryState
+nextAttempt config state err =
+  let delay = calculateDelayWithCap config state.attempt
+  in MkRetryState (S state.attempt) (state.totalDelay + delay) (Just err)
 
 ||| Get remaining attempts
-export
-remainingAttempts : RetryState -> Nat
-remainingAttempts rs = rs.config.maxAttempts `minus` rs.attempt
+public export
+remainingAttempts : RetryConfig -> RetryState -> Nat
+remainingAttempts config state = minus config.maxAttempts (S state.attempt)
 
-||| Record a failure and advance to next attempt
-export
-recordRetryFailure : RetryState -> String -> Double -> (RetryState, Integer)
-recordRetryFailure rs errMsg rand =
-  let nextAttempt = S rs.attempt
-      delay = calculateDelayWithJitter rs.config rs.attempt rand
-      newTotal = rs.totalDelay + delay
-  in (MkRetryState nextAttempt newTotal (Just errMsg) rs.config, delay)
+--------------------------------------------------------------------------------
+-- Retry Result
+--------------------------------------------------------------------------------
 
--- ============================================================================
--- RETRY RESULT
--- ============================================================================
-
-||| Result of a retry operation
+||| Result of retry operation
 public export
 data RetryResult a : Type where
   ||| Operation succeeded
-  RetrySuccess : (value : a) -> (attempts : Nat) -> (totalDelay : Integer) -> RetryResult a
+  Success : a -> RetryResult a
   ||| All retries exhausted
-  RetryExhausted : (lastError : String) -> (attempts : Nat) -> (totalDelay : Integer) -> RetryResult a
+  Exhausted : (attempts : Nat) -> (lastError : Maybe Nat) -> RetryResult a
+  ||| Operation should not be retried
+  NoRetry : (errorCode : Nat) -> RetryResult a
 
-||| Check if retry was successful
-export
-isRetrySuccess : RetryResult a -> Bool
-isRetrySuccess (RetrySuccess _ _ _) = True
-isRetrySuccess _ = False
-
-||| Get value or default
-export
-retryGetOrDefault : a -> RetryResult a -> a
-retryGetOrDefault _ (RetrySuccess v _ _) = v
-retryGetOrDefault def _ = def
-
-||| Get number of attempts made
-export
-retryAttempts : RetryResult a -> Nat
-retryAttempts (RetrySuccess _ n _) = n
-retryAttempts (RetryExhausted _ n _) = n
-
-||| Get total delay incurred
-export
-retryTotalDelay : RetryResult a -> Integer
-retryTotalDelay (RetrySuccess _ _ d) = d
-retryTotalDelay (RetryExhausted _ _ d) = d
-
--- ============================================================================
--- RETRY PREDICATES
--- ============================================================================
-
-||| Predicate for determining if an error is retryable
 public export
-RetryPredicate : Type -> Type
-RetryPredicate e = e -> Bool
+Functor RetryResult where
+  map f (Success x) = Success (f x)
+  map _ (Exhausted n e) = Exhausted n e
+  map _ (NoRetry e) = NoRetry e
 
-||| Always retry (any error)
-export
-alwaysRetry : RetryPredicate e
-alwaysRetry _ = True
+--------------------------------------------------------------------------------
+-- Retry Policies
+--------------------------------------------------------------------------------
+
+||| Retry only on specific error codes
+public export
+retryOnCodes : List Nat -> (Nat -> Bool)
+retryOnCodes codes = \err => any (== err) codes
+
+||| Retry on all errors except specific codes
+public export
+retryExceptCodes : List Nat -> (Nat -> Bool)
+retryExceptCodes codes = \err => not (any (== err) codes)
 
 ||| Never retry
-export
-neverRetry : RetryPredicate e
-neverRetry _ = False
-
-||| Retry on specific errors
-export
-retryOn : Eq e => List e -> RetryPredicate e
-retryOn retryable err = err `elem` retryable
-
-||| Don't retry on specific errors
-export
-dontRetryOn : Eq e => List e -> RetryPredicate e
-dontRetryOn nonRetryable err = not (err `elem` nonRetryable)
-
--- ============================================================================
--- DEADLINE-AWARE RETRY
--- ============================================================================
-
-||| Retry state with deadline awareness
 public export
-record DeadlineRetryState where
-  constructor MkDeadlineRetry
-  baseState : RetryState
-  deadline : Integer         -- Absolute deadline timestamp
-  startTime : Integer        -- When retry started
+noRetry : Nat -> Bool
+noRetry = const False
 
-||| Create deadline-aware retry state
-export
-withDeadline : RetryConfig -> Integer -> Integer -> DeadlineRetryState
-withDeadline cfg now deadline =
-  MkDeadlineRetry (initialRetryState cfg) deadline now
-
-||| Check if deadline allows another retry
-export
-deadlineAllowsRetry : DeadlineRetryState -> Integer -> Bool
-deadlineAllowsRetry drs now =
-  canRetry drs.baseState && now < drs.deadline
-
-||| Calculate delay respecting deadline
-export
-deadlineAwareDelay : DeadlineRetryState -> Integer -> Double -> Integer
-deadlineAwareDelay drs now rand =
-  let normalDelay = calculateDelayWithJitter drs.baseState.config drs.baseState.attempt rand
-      remainingTime = drs.deadline - now
-  in min normalDelay (max 0 remainingTime)
-
-||| Record failure with deadline awareness
-export
-recordDeadlineFailure : DeadlineRetryState -> String -> Double -> (DeadlineRetryState, Integer)
-recordDeadlineFailure drs errMsg rand =
-  let (newBase, delay) = recordRetryFailure drs.baseState errMsg rand
-  in (MkDeadlineRetry newBase drs.deadline drs.startTime, delay)
-
--- ============================================================================
--- RETRY BUDGET
--- ============================================================================
-
-||| Retry budget for controlling retry rate across a system
+||| Always retry
 public export
-record RetryBudget where
-  constructor MkRetryBudget
-  tokensPerSecond : Double   -- Rate at which tokens are added
-  maxTokens : Double         -- Maximum tokens (budget capacity)
-  currentTokens : Double     -- Current available tokens
-  lastUpdate : Integer       -- Last update timestamp
+alwaysRetry : Nat -> Bool
+alwaysRetry = const True
 
-||| Create a retry budget
-export
-newRetryBudget : Double -> Double -> Integer -> Maybe RetryBudget
-newRetryBudget rate maxT now =
-  if rate <= 0.0 || maxT <= 0.0 then Nothing
-  else Just (MkRetryBudget rate maxT maxT now)
+--------------------------------------------------------------------------------
+-- Statistics
+--------------------------------------------------------------------------------
 
-||| Refill budget based on elapsed time
-export
-refillBudget : RetryBudget -> Integer -> RetryBudget
-refillBudget rb now =
-  let elapsed = cast (now - rb.lastUpdate) / 1000.0
-      added = elapsed * rb.tokensPerSecond
-      newTokens = min rb.maxTokens (rb.currentTokens + added)
-  in { currentTokens := newTokens, lastUpdate := now } rb
+||| Get retry statistics
+public export
+record RetryStats where
+  constructor MkStats
+  totalAttempts : Nat
+  totalDelayMs : Nat
+  succeeded : Bool
 
-||| Try to consume a token for retry
-export
-tryConsumeBudget : RetryBudget -> Integer -> Double -> (Bool, RetryBudget)
-tryConsumeBudget rb now cost =
-  let refilled = refillBudget rb now
-  in if refilled.currentTokens >= cost
-     then (True, { currentTokens $= (\t => t - cost) } refilled)
-     else (False, refilled)
+||| Build stats from state
+public export
+buildStats : RetryState -> (succeeded : Bool) -> RetryStats
+buildStats state succ = MkStats (S state.attempt) state.totalDelay succ
 
-||| Check available budget
-export
-availableBudget : RetryBudget -> Integer -> Double
-availableBudget rb now = (refillBudget rb now).currentTokens
+public export
+Show RetryState where
+  show state = "RetryState(attempt=" ++ show state.attempt ++
+               ", totalDelay=" ++ show state.totalDelay ++ "ms)"
+

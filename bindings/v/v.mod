@@ -3,8 +3,8 @@
 
 Module {
 	name: 'proven'
-	description: 'Safe, validated operations library for V applications'
-	version: '0.1.0'
+	description: 'Safe, verified operations for V - 38 modules providing bulletproof error handling'
+	version: '0.4.0'
 	license: 'PMPL-1.0'
 	repo_url: 'https://github.com/hyperpolymath/proven'
 	dependencies: []

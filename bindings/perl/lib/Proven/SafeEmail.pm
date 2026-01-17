@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our $VERSION = '0.3.0';
+our $VERSION = '0.4.0';
 our @EXPORT_OK = qw(
     is_valid split_email get_domain get_local_part
     normalize has_mx_record is_disposable

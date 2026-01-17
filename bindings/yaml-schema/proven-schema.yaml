@@ -10,17 +10,69 @@
 #   - Kubernetes-style validation
 #   - GitHub Actions schema validation
 #
-# Version: 0.9.0
+# Version: 0.4.0
+# Module Count: 38
 
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://proven.hyperpolymath.dev/schemas/proven-schema.yaml
 title: Proven Safety Types Schema
-description: YAML Schema definitions for Proven safety types
+description: |
+  YAML Schema definitions for Proven safety types library.
+  Provides formally verified type constraints for 38 safety modules.
+
+# ==============================================================================
+# METADATA
+# ==============================================================================
+
+x-proven-metadata:
+  version: "0.4.0"
+  moduleCount: 38
+  categories:
+    - name: Core
+      count: 11
+      modules: [safe_math, safe_string, safe_path, safe_email, safe_url, safe_network, safe_crypto, safe_uuid, safe_currency, safe_phone, safe_hex]
+    - name: Data
+      count: 7
+      modules: [safe_json, safe_datetime, safe_float, safe_version, safe_color, safe_angle, safe_unit]
+    - name: DataStructures
+      count: 5
+      modules: [safe_buffer, safe_queue, safe_bloom, safe_lru, safe_graph]
+    - name: Resilience
+      count: 4
+      modules: [safe_rate_limiter, safe_circuit_breaker, safe_retry, safe_monotonic]
+    - name: State
+      count: 2
+      modules: [safe_state_machine, safe_calculator]
+    - name: Algorithm
+      count: 4
+      modules: [safe_geo, safe_probability, safe_checksum, safe_tensor]
+    - name: Security
+      count: 2
+      modules: [safe_password, safe_ml]
+    - name: HTTP
+      count: 3
+      modules: [safe_header, safe_cookie, safe_content_type]
 
 $defs:
-  # ==========================================================================
-  # NUMERIC TYPES
-  # ==========================================================================
+  # ============================================================================
+  # CORE MODULES (11)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_math - Safe mathematical operations with overflow detection
+  # --------------------------------------------------------------------------
+  SafeMath:
+    title: Safe Math Module
+    description: Safe mathematical operations that never panic on overflow
+    type: object
+    properties:
+      operation:
+        type: string
+        enum: [add, sub, mul, div, modulo, negate, abs, pow, clamp]
+      operand_a:
+        $ref: '#/$defs/SafeInteger'
+      operand_b:
+        $ref: '#/$defs/SafeInteger'
 
   SafeInteger:
     title: Safe Integer
@@ -69,10 +121,128 @@ $defs:
     minimum: 0
     maximum: 10000
 
-  # ==========================================================================
-  # NETWORK TYPES
-  # ==========================================================================
+  # --------------------------------------------------------------------------
+  # safe_string - UTF-8 validation, injection-safe escaping
+  # --------------------------------------------------------------------------
+  SafeString:
+    title: Safe String Module
+    description: Safe string operations with escaping and validation
+    type: object
+    properties:
+      escape_type:
+        type: string
+        enum: [html, sql, shell, regex, json, xml, css, javascript, url]
 
+  NonEmptyString:
+    title: Non-Empty String
+    description: String with at least one character
+    type: string
+    minLength: 1
+
+  Identifier:
+    title: Identifier
+    description: Valid identifier (alphanumeric with underscores, starts with letter)
+    type: string
+    pattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+    minLength: 1
+    maxLength: 255
+    examples:
+      - "my_variable"
+      - "MyClass"
+      - "_private"
+
+  Slug:
+    title: URL Slug
+    description: URL-friendly string (lowercase, hyphens)
+    type: string
+    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+    minLength: 1
+    maxLength: 100
+    examples:
+      - "my-blog-post"
+      - "user-profile"
+
+  # --------------------------------------------------------------------------
+  # safe_path - Traversal prevention, glob matching
+  # --------------------------------------------------------------------------
+  SafePath:
+    title: Safe Path
+    description: File path without traversal attacks (no ..)
+    type: string
+    pattern: '^(?!.*\.\.).*$'
+    minLength: 1
+    examples:
+      - "config/settings.yaml"
+      - "data/users/profile.json"
+
+  AbsolutePath:
+    title: Absolute Path
+    description: Path starting with / or drive letter
+    type: string
+    pattern: '^(/|[a-zA-Z]:)'
+    minLength: 1
+
+  RelativePath:
+    title: Relative Path
+    description: Path not starting with / or drive letter, no parent traversal
+    type: string
+    pattern: '^(?!/)(?!.*\.\.).*$'
+    minLength: 1
+
+  GlobPattern:
+    title: Glob Pattern
+    description: Safe glob pattern for file matching
+    type: string
+    pattern: '^[^/]*(\*|\?|\[.*\])?[^/]*$'
+
+  # --------------------------------------------------------------------------
+  # safe_email - RFC 5321/5322 validation
+  # --------------------------------------------------------------------------
+  Email:
+    title: Email Address
+    description: Valid email address format per RFC 5321/5322
+    type: string
+    format: email
+    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    examples:
+      - "user@example.com"
+
+  EmailDomain:
+    title: Email Domain
+    description: Domain part of email address
+    type: string
+    pattern: '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+  # --------------------------------------------------------------------------
+  # safe_url - RFC 3986 compliant parsing
+  # --------------------------------------------------------------------------
+  URL:
+    title: URL
+    description: Valid URL per RFC 3986
+    type: string
+    format: uri
+    examples:
+      - "https://example.com/path"
+      - "http://localhost:8080"
+
+  HTTPSUrl:
+    title: HTTPS URL
+    description: URL with HTTPS protocol only
+    type: string
+    format: uri
+    pattern: '^https://'
+    examples:
+      - "https://secure.example.com"
+
+  DataURL:
+    title: Data URL
+    description: RFC 2397 data URL
+    type: string
+    pattern: '^data:[a-zA-Z]+/[a-zA-Z0-9.+-]+;base64,'
+
+  # --------------------------------------------------------------------------
+  # safe_network - IPv4/IPv6 parsing, CIDR, ports
+  # --------------------------------------------------------------------------
   Port:
     title: Network Port
     description: Valid TCP/UDP port number (1-65535)
@@ -144,71 +314,181 @@ $defs:
       - "192.168.1.0/24"
       - "10.0.0.0/8"
 
-  # ==========================================================================
-  # STRING TYPES
-  # ==========================================================================
-
-  Email:
-    title: Email Address
-    description: Valid email address format
+  CIDRv6:
+    title: CIDR IPv6 Notation
+    description: IPv6 address with prefix length
     type: string
-    format: email
-    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    pattern: '^([0-9a-fA-F:]+)/([0-9]|[1-9][0-9]|1[0-2][0-8])$'
     examples:
-      - "user@example.com"
+      - "2001:db8::/32"
+      - "fe80::/10"
 
-  NonEmptyString:
-    title: Non-Empty String
-    description: String with at least one character
+  MACAddress:
+    title: MAC Address
+    description: IEEE 802 MAC address
     type: string
-    minLength: 1
-
-  Identifier:
-    title: Identifier
-    description: Valid identifier (alphanumeric with underscores, starts with letter)
-    type: string
-    pattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
-    minLength: 1
-    maxLength: 255
+    pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
     examples:
-      - "my_variable"
-      - "MyClass"
-      - "_private"
+      - "00:1B:44:11:3A:B7"
 
-  Slug:
-    title: URL Slug
-    description: URL-friendly string (lowercase, hyphens)
+  # --------------------------------------------------------------------------
+  # safe_crypto - Secure hashing, HMAC, random generation
+  # --------------------------------------------------------------------------
+  SafeCrypto:
+    title: Safe Crypto Module
+    description: Cryptographic operations with secure defaults
+    type: object
+    properties:
+      algorithm:
+        type: string
+        enum: [sha256, sha384, sha512, blake2b, blake3, argon2, bcrypt]
+
+  HashDigest:
+    title: Hash Digest
+    description: Hexadecimal hash digest
     type: string
-    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
-    minLength: 1
-    maxLength: 100
-    examples:
-      - "my-blog-post"
-      - "user-profile"
+    pattern: '^[0-9a-fA-F]+$'
 
-  SafePath:
-    title: Safe Path
-    description: File path without traversal attacks (no ..)
+  SHA256Hash:
+    title: SHA-256 Hash
+    description: 64 character hex SHA-256 digest
     type: string
-    pattern: '^(?!.*\.\.).*$'
-    minLength: 1
-    examples:
-      - "config/settings.yaml"
-      - "data/users/profile.json"
+    pattern: '^[0-9a-fA-F]{64}$'
 
+  SHA512Hash:
+    title: SHA-512 Hash
+    description: 128 character hex SHA-512 digest
+    type: string
+    pattern: '^[0-9a-fA-F]{128}$'
+
+  # --------------------------------------------------------------------------
+  # safe_uuid - RFC 4122 UUID generation and validation
+  # --------------------------------------------------------------------------
   UUID:
     title: UUID
-    description: Valid UUID (any version)
+    description: Valid UUID (any version) per RFC 4122
     type: string
     format: uuid
     pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     examples:
       - "550e8400-e29b-41d4-a716-446655440000"
 
-  # ==========================================================================
-  # DATE/TIME TYPES
-  # ==========================================================================
+  UUIDv4:
+    title: UUID Version 4
+    description: Random UUID version 4
+    type: string
+    pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
 
+  UUIDv7:
+    title: UUID Version 7
+    description: Time-ordered UUID version 7
+    type: string
+    pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+
+  # --------------------------------------------------------------------------
+  # safe_currency - Type-safe monetary values with ISO 4217 codes
+  # --------------------------------------------------------------------------
+  Money:
+    title: Money
+    description: Monetary value with currency code
+    type: object
+    properties:
+      amount:
+        type: number
+      currency:
+        $ref: '#/$defs/CurrencyCode'
+      minor_units:
+        type: integer
+        minimum: 0
+    required: [amount, currency]
+
+  CurrencyCode:
+    title: Currency Code
+    description: ISO 4217 currency code
+    type: string
+    pattern: '^[A-Z]{3}$'
+    examples:
+      - "USD"
+      - "EUR"
+      - "GBP"
+      - "JPY"
+
+  # --------------------------------------------------------------------------
+  # safe_phone - E.164 phone number parsing and formatting
+  # --------------------------------------------------------------------------
+  PhoneNumber:
+    title: Phone Number
+    description: E.164 international phone number
+    type: string
+    pattern: '^\+[1-9]\d{1,14}$'
+    examples:
+      - "+14155551234"
+      - "+442071234567"
+
+  PhoneNumberObject:
+    title: Phone Number Object
+    description: Structured phone number
+    type: object
+    properties:
+      country_code:
+        type: integer
+        minimum: 1
+        maximum: 999
+      national_number:
+        type: string
+        pattern: '^\d+$'
+      extension:
+        type: string
+    required: [country_code, national_number]
+
+  # --------------------------------------------------------------------------
+  # safe_hex - Hexadecimal encoding and decoding
+  # --------------------------------------------------------------------------
+  HexString:
+    title: Hex String
+    description: Hexadecimal encoded string
+    type: string
+    pattern: '^[0-9a-fA-F]*$'
+
+  HexByte:
+    title: Hex Byte
+    description: Single byte in hexadecimal (00-FF)
+    type: string
+    pattern: '^[0-9a-fA-F]{2}$'
+
+  # ============================================================================
+  # DATA MODULES (7)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_json - Exception-free parsing with type-safe access
+  # --------------------------------------------------------------------------
+  SafeJson:
+    title: Safe JSON Module
+    description: Safe JSON parsing without exceptions
+    type: object
+
+  JSONPointer:
+    title: JSON Pointer
+    description: RFC 6901 JSON Pointer
+    type: string
+    pattern: '^(/[^/~]*(~[01][^/~]*)*)*$'
+    examples:
+      - "/foo/bar"
+      - "/items/0"
+
+  JSONPath:
+    title: JSON Path
+    description: JSONPath expression
+    type: string
+    pattern: '^\$'
+    examples:
+      - "$.store.book[0].title"
+      - "$..author"
+
+  # --------------------------------------------------------------------------
+  # safe_datetime - ISO 8601 parsing, timezone handling
+  # --------------------------------------------------------------------------
   UnixTimestamp:
     title: Unix Timestamp
     description: Unix timestamp in seconds since epoch
@@ -242,6 +522,16 @@ $defs:
     examples:
       - "2024-01-01"
 
+  ISO8601Time:
+    title: ISO 8601 Time
+    description: Time in ISO 8601 format (HH:MM:SS)
+    type: string
+    format: time
+    pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$'
+    examples:
+      - "14:30:00"
+      - "14:30:00.123Z"
+
   Duration:
     title: Duration
     description: Duration in ISO 8601 format
@@ -253,10 +543,44 @@ $defs:
       - "P1D"
       - "P2W"
 
-  # ==========================================================================
-  # VERSION TYPES
-  # ==========================================================================
+  Timezone:
+    title: Timezone
+    description: IANA timezone identifier
+    type: string
+    pattern: '^[A-Za-z]+(/[A-Za-z_]+)+$'
+    examples:
+      - "America/New_York"
+      - "Europe/London"
 
+  # --------------------------------------------------------------------------
+  # safe_float - NaN/Infinity prevention, safe division for f32/f64
+  # --------------------------------------------------------------------------
+  SafeFloat:
+    title: Safe Float
+    description: Float value excluding NaN and Infinity
+    type: number
+    # JSON Schema doesn't have NaN/Infinity checks, but we document the constraint
+
+  FiniteFloat:
+    title: Finite Float
+    description: Float value that is finite (not NaN or Infinity)
+    type: number
+
+  PositiveFloat:
+    title: Positive Float
+    description: Float greater than zero
+    type: number
+    exclusiveMinimum: 0
+
+  NonNegativeFloat:
+    title: Non-Negative Float
+    description: Float greater than or equal to zero
+    type: number
+    minimum: 0
+
+  # --------------------------------------------------------------------------
+  # safe_version - Semantic versioning parsing
+  # --------------------------------------------------------------------------
   SemanticVersion:
     title: Semantic Version
     description: Version in SemVer 2.0 format
@@ -276,10 +600,19 @@ $defs:
       - "2024.1"
       - "2024.06.1"
 
-  # ==========================================================================
-  # VISUAL TYPES
-  # ==========================================================================
+  VersionRange:
+    title: Version Range
+    description: SemVer version range constraint
+    type: string
+    pattern: '^([<>=~^]?=?\s*)?(\d+\.)?(\d+\.)?(\*|\d+)'
+    examples:
+      - ">=1.0.0"
+      - "^2.0.0"
+      - "~1.2.3"
 
+  # --------------------------------------------------------------------------
+  # safe_color - RGB/RGBA with WCAG contrast calculations
+  # --------------------------------------------------------------------------
   HexColor:
     title: Hex Color
     description: Color in hexadecimal format
@@ -309,8 +642,29 @@ $defs:
         maximum: 255
     required: [r, g, b]
 
-  Color:
-    title: Color
+  RGBAColor:
+    title: RGBA Color
+    description: RGBA color with alpha channel
+    type: object
+    properties:
+      r:
+        type: integer
+        minimum: 0
+        maximum: 255
+      g:
+        type: integer
+        minimum: 0
+        maximum: 255
+      b:
+        type: integer
+        minimum: 0
+        maximum: 255
+      a:
+        $ref: '#/$defs/Normalized'
+    required: [r, g, b, a]
+
+  NormalizedColor:
+    title: Normalized Color
     description: RGBA color (0-1 range)
     type: object
     properties:
@@ -325,9 +679,887 @@ $defs:
         default: 1.0
     required: [r, g, b]
 
-  # ==========================================================================
-  # GEOMETRY TYPES
-  # ==========================================================================
+  HSLColor:
+    title: HSL Color
+    description: HSL color (Hue, Saturation, Lightness)
+    type: object
+    properties:
+      h:
+        type: number
+        minimum: 0
+        maximum: 360
+      s:
+        $ref: '#/$defs/Percentage'
+      l:
+        $ref: '#/$defs/Percentage'
+    required: [h, s, l]
+
+  # --------------------------------------------------------------------------
+  # safe_angle - Degree/radian conversions
+  # --------------------------------------------------------------------------
+  Degrees:
+    title: Degrees
+    description: Angle in degrees (0-360)
+    type: number
+    minimum: 0
+    maximum: 360
+
+  DegreesUnbounded:
+    title: Degrees (Unbounded)
+    description: Angle in degrees (any value, normalized on use)
+    type: number
+
+  Radians:
+    title: Radians
+    description: Angle in radians (0-2π)
+    type: number
+    minimum: 0
+    maximum: 6.283185307179586
+
+  RadiansUnbounded:
+    title: Radians (Unbounded)
+    description: Angle in radians (any value)
+    type: number
+
+  # --------------------------------------------------------------------------
+  # safe_unit - Physical unit conversions
+  # --------------------------------------------------------------------------
+  LengthValue:
+    title: Length Value
+    description: Length with unit
+    type: object
+    properties:
+      value:
+        type: number
+      unit:
+        type: string
+        enum: [meter, kilometer, centimeter, millimeter, mile, yard, foot, inch, nautical_mile]
+    required: [value, unit]
+
+  MassValue:
+    title: Mass Value
+    description: Mass with unit
+    type: object
+    properties:
+      value:
+        type: number
+      unit:
+        type: string
+        enum: [kilogram, gram, milligram, pound, ounce, ton, metric_ton]
+    required: [value, unit]
+
+  TemperatureValue:
+    title: Temperature Value
+    description: Temperature with unit
+    type: object
+    properties:
+      value:
+        type: number
+      unit:
+        type: string
+        enum: [celsius, fahrenheit, kelvin]
+    required: [value, unit]
+
+  TimeValue:
+    title: Time Value
+    description: Time duration with unit
+    type: object
+    properties:
+      value:
+        type: number
+        minimum: 0
+      unit:
+        type: string
+        enum: [nanosecond, microsecond, millisecond, second, minute, hour, day, week]
+    required: [value, unit]
+
+  DataSizeValue:
+    title: Data Size Value
+    description: Data size with unit
+    type: object
+    properties:
+      value:
+        type: number
+        minimum: 0
+      unit:
+        type: string
+        enum: [bit, byte, kilobyte, megabyte, gigabyte, terabyte, petabyte, kibibyte, mebibyte, gibibyte, tebibyte, pebibyte]
+    required: [value, unit]
+
+  ResourceQuantity:
+    title: Resource Quantity
+    description: Kubernetes-style resource quantity (e.g., "100Mi", "2Gi", "500m")
+    type: string
+    pattern: '^[0-9]+(\.[0-9]+)?[EPTGMK]?i?$|^[0-9]+m$'
+    examples:
+      - "100Mi"
+      - "2Gi"
+      - "500m"
+      - "1"
+
+  # ============================================================================
+  # DATA STRUCTURES MODULES (5)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_buffer - Bounded buffers and ring buffers
+  # --------------------------------------------------------------------------
+  BoundedBuffer:
+    title: Bounded Buffer
+    description: Fixed-capacity buffer configuration
+    type: object
+    properties:
+      capacity:
+        $ref: '#/$defs/PositiveInteger'
+      items:
+        type: array
+    required: [capacity]
+
+  RingBuffer:
+    title: Ring Buffer
+    description: Circular buffer configuration
+    type: object
+    properties:
+      capacity:
+        $ref: '#/$defs/PositiveInteger'
+      overwrite_on_full:
+        type: boolean
+        default: true
+    required: [capacity]
+
+  # --------------------------------------------------------------------------
+  # safe_queue - Bounded FIFO and priority queues
+  # --------------------------------------------------------------------------
+  BoundedQueue:
+    title: Bounded Queue
+    description: FIFO queue with capacity limit
+    type: object
+    properties:
+      capacity:
+        $ref: '#/$defs/PositiveInteger'
+      reject_when_full:
+        type: boolean
+        default: true
+    required: [capacity]
+
+  PriorityQueue:
+    title: Priority Queue
+    description: Priority queue configuration
+    type: object
+    properties:
+      capacity:
+        $ref: '#/$defs/PositiveInteger'
+      ordering:
+        type: string
+        enum: [min, max]
+        default: min
+    required: [capacity]
+
+  # --------------------------------------------------------------------------
+  # safe_bloom - Probabilistic set membership
+  # --------------------------------------------------------------------------
+  BloomFilter:
+    title: Bloom Filter
+    description: Bloom filter configuration
+    type: object
+    properties:
+      size:
+        $ref: '#/$defs/PositiveInteger'
+        description: Number of bits in the filter
+      num_hashes:
+        $ref: '#/$defs/PositiveInteger'
+        description: Number of hash functions
+      expected_items:
+        $ref: '#/$defs/PositiveInteger'
+        description: Expected number of items
+      false_positive_rate:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 1
+        description: Target false positive rate
+    oneOf:
+      - required: [size, num_hashes]
+      - required: [expected_items, false_positive_rate]
+
+  # --------------------------------------------------------------------------
+  # safe_lru - Least-recently-used cache
+  # --------------------------------------------------------------------------
+  LRUCache:
+    title: LRU Cache
+    description: Least-recently-used cache configuration
+    type: object
+    properties:
+      capacity:
+        $ref: '#/$defs/PositiveInteger'
+      ttl_seconds:
+        $ref: '#/$defs/NonNegativeInteger'
+        description: Time-to-live in seconds (0 = no expiry)
+    required: [capacity]
+
+  # --------------------------------------------------------------------------
+  # safe_graph - Directed graph with cycle detection
+  # --------------------------------------------------------------------------
+  Graph:
+    title: Graph
+    description: Directed graph structure
+    type: object
+    properties:
+      nodes:
+        type: array
+        items:
+          type: string
+      edges:
+        type: array
+        items:
+          $ref: '#/$defs/GraphEdge'
+      allow_cycles:
+        type: boolean
+        default: false
+    required: [nodes, edges]
+
+  GraphEdge:
+    title: Graph Edge
+    description: Directed edge in a graph
+    type: object
+    properties:
+      from:
+        type: string
+      to:
+        type: string
+      weight:
+        type: number
+        default: 1
+    required: [from, to]
+
+  # ============================================================================
+  # RESILIENCE MODULES (4)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_rate_limiter - Token bucket, sliding window rate limiting
+  # --------------------------------------------------------------------------
+  TokenBucket:
+    title: Token Bucket
+    description: Token bucket rate limiter configuration
+    type: object
+    properties:
+      capacity:
+        $ref: '#/$defs/PositiveInteger'
+        description: Maximum tokens in bucket
+      refill_rate:
+        $ref: '#/$defs/PositiveInteger'
+        description: Tokens added per time unit
+      refill_interval_ms:
+        $ref: '#/$defs/PositiveInteger'
+        description: Milliseconds between refills
+    required: [capacity, refill_rate]
+
+  SlidingWindow:
+    title: Sliding Window
+    description: Sliding window rate limiter configuration
+    type: object
+    properties:
+      max_requests:
+        $ref: '#/$defs/PositiveInteger'
+      window_size_ms:
+        $ref: '#/$defs/PositiveInteger'
+        description: Window size in milliseconds
+    required: [max_requests, window_size_ms]
+
+  FixedWindow:
+    title: Fixed Window
+    description: Fixed window rate limiter configuration
+    type: object
+    properties:
+      max_requests:
+        $ref: '#/$defs/PositiveInteger'
+      window_size_ms:
+        $ref: '#/$defs/PositiveInteger'
+        description: Window size in milliseconds
+    required: [max_requests, window_size_ms]
+
+  RateLimitResult:
+    title: Rate Limit Result
+    description: Result of a rate limit check
+    oneOf:
+      - type: object
+        properties:
+          allowed:
+            const: true
+        required: [allowed]
+      - type: object
+        properties:
+          allowed:
+            const: false
+          retry_after_ms:
+            $ref: '#/$defs/NonNegativeInteger'
+        required: [allowed, retry_after_ms]
+
+  # --------------------------------------------------------------------------
+  # safe_circuit_breaker - Fault tolerance pattern
+  # --------------------------------------------------------------------------
+  CircuitBreaker:
+    title: Circuit Breaker
+    description: Circuit breaker configuration
+    type: object
+    properties:
+      failure_threshold:
+        $ref: '#/$defs/PositiveInteger'
+        description: Failures before opening
+      success_threshold:
+        $ref: '#/$defs/PositiveInteger'
+        description: Successes to close from half-open
+      timeout_ms:
+        $ref: '#/$defs/PositiveInteger'
+        description: Time before half-open attempt
+      half_open_max_calls:
+        $ref: '#/$defs/PositiveInteger'
+        description: Max calls allowed in half-open state
+    required: [failure_threshold, success_threshold, timeout_ms]
+
+  CircuitState:
+    title: Circuit State
+    description: Current state of circuit breaker
+    type: string
+    enum: [closed, open, half_open]
+
+  # --------------------------------------------------------------------------
+  # safe_retry - Exponential backoff with jitter
+  # --------------------------------------------------------------------------
+  RetryConfig:
+    title: Retry Configuration
+    description: Retry policy configuration
+    type: object
+    properties:
+      max_attempts:
+        $ref: '#/$defs/PositiveInteger'
+      initial_delay_ms:
+        $ref: '#/$defs/PositiveInteger'
+      max_delay_ms:
+        $ref: '#/$defs/PositiveInteger'
+      multiplier:
+        type: number
+        exclusiveMinimum: 1
+        default: 2
+      jitter:
+        type: string
+        enum: [none, full, equal, decorrelated]
+        default: full
+    required: [max_attempts, initial_delay_ms]
+
+  RetryState:
+    title: Retry State
+    description: Current retry state
+    type: object
+    properties:
+      attempt:
+        $ref: '#/$defs/NonNegativeInteger'
+      next_delay_ms:
+        $ref: '#/$defs/NonNegativeInteger'
+      exhausted:
+        type: boolean
+    required: [attempt, exhausted]
+
+  # --------------------------------------------------------------------------
+  # safe_monotonic - Monotonically increasing sequences
+  # --------------------------------------------------------------------------
+  MonotonicCounter:
+    title: Monotonic Counter
+    description: Counter that only increases
+    type: object
+    properties:
+      value:
+        $ref: '#/$defs/NonNegativeInteger'
+      initial:
+        $ref: '#/$defs/NonNegativeInteger'
+        default: 0
+
+  SequenceGenerator:
+    title: Sequence Generator
+    description: Generates sequential IDs
+    type: object
+    properties:
+      prefix:
+        type: string
+      current:
+        $ref: '#/$defs/NonNegativeInteger'
+      padding:
+        $ref: '#/$defs/PositiveInteger'
+        description: Zero-padding width
+
+  HighWaterMark:
+    title: High Water Mark
+    description: Tracks maximum observed value
+    type: object
+    properties:
+      current:
+        type: number
+      initial:
+        type: number
+
+  EpochGenerator:
+    title: Epoch Generator
+    description: Generates timestamps that never go backwards
+    type: object
+    properties:
+      last_epoch:
+        $ref: '#/$defs/UnixTimestampMs'
+
+  # ============================================================================
+  # STATE MODULES (2)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_state_machine - Type-safe state transitions
+  # --------------------------------------------------------------------------
+  StateMachine:
+    title: State Machine
+    description: State machine configuration
+    type: object
+    properties:
+      initial_state:
+        type: string
+      current_state:
+        type: string
+      states:
+        type: array
+        items:
+          type: string
+        minItems: 1
+      transitions:
+        type: array
+        items:
+          $ref: '#/$defs/StateTransition'
+      max_history:
+        $ref: '#/$defs/PositiveInteger'
+        default: 100
+    required: [initial_state, states, transitions]
+
+  StateTransition:
+    title: State Transition
+    description: Valid state transition
+    type: object
+    properties:
+      from:
+        type: string
+      to:
+        type: string
+      event:
+        type: string
+      guard:
+        type: string
+        description: Optional guard condition name
+    required: [from, to]
+
+  # --------------------------------------------------------------------------
+  # safe_calculator - Expression evaluator with overflow/division protection
+  # --------------------------------------------------------------------------
+  SafeCalculator:
+    title: Safe Calculator
+    description: Safe expression evaluation
+    type: object
+    properties:
+      expression:
+        type: string
+        description: Mathematical expression
+      variables:
+        type: object
+        additionalProperties:
+          type: number
+      max_depth:
+        $ref: '#/$defs/PositiveInteger'
+        default: 100
+        description: Maximum nesting depth
+
+  CalculatorResult:
+    title: Calculator Result
+    description: Result of expression evaluation
+    oneOf:
+      - type: object
+        properties:
+          ok:
+            const: true
+          value:
+            type: number
+        required: [ok, value]
+      - type: object
+        properties:
+          ok:
+            const: false
+          error:
+            type: string
+        required: [ok, error]
+
+  # ============================================================================
+  # ALGORITHM MODULES (4)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_geo - Geographic coordinates, Haversine distance
+  # --------------------------------------------------------------------------
+  Coordinate:
+    title: Geographic Coordinate
+    description: Latitude/longitude coordinate
+    type: object
+    properties:
+      lat:
+        type: number
+        minimum: -90
+        maximum: 90
+        description: Latitude in degrees
+      lon:
+        type: number
+        minimum: -180
+        maximum: 180
+        description: Longitude in degrees
+    required: [lat, lon]
+    examples:
+      - lat: 40.7128
+        lon: -74.0060
+
+  BoundingBox:
+    title: Bounding Box
+    description: Geographic bounding box
+    type: object
+    properties:
+      min_lat:
+        type: number
+        minimum: -90
+        maximum: 90
+      max_lat:
+        type: number
+        minimum: -90
+        maximum: 90
+      min_lon:
+        type: number
+        minimum: -180
+        maximum: 180
+      max_lon:
+        type: number
+        minimum: -180
+        maximum: 180
+    required: [min_lat, max_lat, min_lon, max_lon]
+
+  GeoDistance:
+    title: Geographic Distance
+    description: Distance with unit
+    type: object
+    properties:
+      value:
+        type: number
+        minimum: 0
+      unit:
+        type: string
+        enum: [kilometers, miles, meters, nautical_miles]
+    required: [value, unit]
+
+  # --------------------------------------------------------------------------
+  # safe_probability - Probability values clamped to [0,1]
+  # --------------------------------------------------------------------------
+  Probability:
+    title: Probability
+    description: Probability value between 0 and 1
+    type: number
+    minimum: 0
+    maximum: 1
+
+  ProbabilityDistribution:
+    title: Probability Distribution
+    description: Probability distribution that sums to 1
+    type: array
+    items:
+      $ref: '#/$defs/Probability'
+
+  Odds:
+    title: Odds
+    description: Odds ratio (non-negative)
+    type: number
+    minimum: 0
+
+  LogOdds:
+    title: Log Odds
+    description: Log odds (any real number)
+    type: number
+
+  # --------------------------------------------------------------------------
+  # safe_checksum - CRC-32, Adler-32, FNV, Luhn
+  # --------------------------------------------------------------------------
+  ChecksumConfig:
+    title: Checksum Configuration
+    description: Checksum algorithm configuration
+    type: object
+    properties:
+      algorithm:
+        type: string
+        enum: [crc32, adler32, fnv1a_32, fnv1a_64, djb2, sdbm, fletcher16, luhn]
+    required: [algorithm]
+
+  CRC32:
+    title: CRC-32 Checksum
+    description: CRC-32 checksum value
+    type: integer
+    minimum: 0
+    maximum: 4294967295
+
+  LuhnDigit:
+    title: Luhn Check Digit
+    description: Luhn algorithm check digit (0-9)
+    type: integer
+    minimum: 0
+    maximum: 9
+
+  # --------------------------------------------------------------------------
+  # safe_tensor - Bounds-checked vector/matrix ops, shape validation
+  # --------------------------------------------------------------------------
+  Vector:
+    title: Vector
+    description: 1D array of numbers
+    type: array
+    items:
+      type: number
+
+  Matrix:
+    title: Matrix
+    description: 2D array of numbers
+    type: array
+    items:
+      type: array
+      items:
+        type: number
+
+  TensorShape:
+    title: Tensor Shape
+    description: Shape of a tensor (dimensions)
+    type: array
+    items:
+      $ref: '#/$defs/PositiveInteger'
+    minItems: 1
+
+  Tensor:
+    title: Tensor
+    description: N-dimensional array with shape
+    type: object
+    properties:
+      data:
+        type: array
+        items:
+          type: number
+      shape:
+        $ref: '#/$defs/TensorShape'
+    required: [data, shape]
+
+  # ============================================================================
+  # SECURITY MODULES (2)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_password - Policy validation, strength analysis
+  # --------------------------------------------------------------------------
+  PasswordPolicy:
+    title: Password Policy
+    description: Password strength requirements
+    type: object
+    properties:
+      min_length:
+        $ref: '#/$defs/PositiveInteger'
+        default: 8
+      max_length:
+        $ref: '#/$defs/PositiveInteger'
+        default: 128
+      require_uppercase:
+        type: boolean
+        default: true
+      require_lowercase:
+        type: boolean
+        default: true
+      require_digit:
+        type: boolean
+        default: true
+      require_special:
+        type: boolean
+        default: false
+      special_chars:
+        type: string
+        default: "!@#$%^&*()_+-=[]{}|;':\",./<>?"
+      disallow_common:
+        type: boolean
+        default: true
+        description: Reject commonly-used passwords
+
+  PasswordStrength:
+    title: Password Strength
+    description: Password strength score
+    type: string
+    enum: [very_weak, weak, fair, strong, very_strong]
+
+  PasswordValidationResult:
+    title: Password Validation Result
+    description: Result of password validation
+    type: object
+    properties:
+      valid:
+        type: boolean
+      strength:
+        $ref: '#/$defs/PasswordStrength'
+      issues:
+        type: array
+        items:
+          type: string
+    required: [valid, strength, issues]
+
+  # --------------------------------------------------------------------------
+  # safe_ml - Numerically stable softmax, loss functions, activations
+  # --------------------------------------------------------------------------
+  ActivationFunction:
+    title: Activation Function
+    description: Neural network activation function
+    type: string
+    enum: [relu, leaky_relu, elu, selu, sigmoid, tanh, softmax, gelu, swish]
+
+  LossFunction:
+    title: Loss Function
+    description: Machine learning loss function
+    type: string
+    enum: [mse, mae, cross_entropy, binary_cross_entropy, huber, hinge]
+
+  MLConfig:
+    title: ML Configuration
+    description: Machine learning operation configuration
+    type: object
+    properties:
+      activation:
+        $ref: '#/$defs/ActivationFunction'
+      loss:
+        $ref: '#/$defs/LossFunction'
+      epsilon:
+        type: number
+        exclusiveMinimum: 0
+        default: 1e-7
+        description: Numerical stability epsilon
+      temperature:
+        type: number
+        exclusiveMinimum: 0
+        default: 1.0
+        description: Softmax temperature
+
+  # ============================================================================
+  # HTTP MODULES (3)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # safe_header - HTTP header validation, CRLF injection prevention
+  # --------------------------------------------------------------------------
+  HTTPHeader:
+    title: HTTP Header
+    description: Safe HTTP header
+    type: object
+    properties:
+      name:
+        type: string
+        pattern: '^[a-zA-Z][a-zA-Z0-9-]*$'
+        maxLength: 256
+      value:
+        type: string
+        pattern: '^[^\r\n]*$'
+        maxLength: 8192
+    required: [name, value]
+
+  HTTPHeaders:
+    title: HTTP Headers
+    description: Collection of HTTP headers
+    type: object
+    additionalProperties:
+      type: string
+      pattern: '^[^\r\n]*$'
+
+  # --------------------------------------------------------------------------
+  # safe_cookie - HTTP cookie validation, injection prevention
+  # --------------------------------------------------------------------------
+  Cookie:
+    title: HTTP Cookie
+    description: Safe HTTP cookie
+    type: object
+    properties:
+      name:
+        type: string
+        pattern: '^[a-zA-Z0-9!#$%&\'*+.^_`|~-]+$'
+        maxLength: 256
+      value:
+        type: string
+        pattern: '^[^\s;,\\]*$'
+        maxLength: 4096
+      domain:
+        type: string
+      path:
+        type: string
+        default: "/"
+      expires:
+        $ref: '#/$defs/ISO8601DateTime'
+      max_age:
+        type: integer
+      secure:
+        type: boolean
+        default: false
+      http_only:
+        type: boolean
+        default: false
+      same_site:
+        $ref: '#/$defs/SameSite'
+    required: [name, value]
+
+  SameSite:
+    title: SameSite Policy
+    description: Cookie SameSite attribute
+    type: string
+    enum: [Strict, Lax, None]
+
+  CookiePrefix:
+    title: Cookie Prefix
+    description: Secure cookie prefix
+    type: string
+    enum: [__Host-, __Secure-]
+
+  # --------------------------------------------------------------------------
+  # safe_content_type - MIME type validation, sniffing prevention
+  # --------------------------------------------------------------------------
+  ContentType:
+    title: Content-Type
+    description: MIME type with parameters
+    type: object
+    properties:
+      type:
+        type: string
+        pattern: '^[a-zA-Z]+$'
+        examples: [text, application, image, audio, video]
+      subtype:
+        type: string
+        pattern: '^[a-zA-Z0-9.+-]+$'
+        examples: [html, json, png, mpeg]
+      parameters:
+        type: object
+        additionalProperties:
+          type: string
+    required: [type, subtype]
+
+  MIMEType:
+    title: MIME Type
+    description: MIME type string
+    type: string
+    pattern: '^[a-zA-Z]+/[a-zA-Z0-9.+-]+$'
+    examples:
+      - "text/html"
+      - "application/json"
+      - "image/png"
+
+  MediaCategory:
+    title: Media Category
+    description: High-level media category
+    type: string
+    enum: [text, image, audio, video, application, font, model, message, multipart]
+
+  # ============================================================================
+  # GEOMETRY TYPES (shared across modules)
+  # ============================================================================
 
   Vector2:
     title: 2D Vector
@@ -380,37 +1612,9 @@ $defs:
         minimum: 0
     required: [x, y, width, height]
 
-  # ==========================================================================
-  # BOUNDED TYPES
-  # ==========================================================================
-
-  BoundedInteger:
-    title: Bounded Integer
-    description: Integer with configurable bounds
-    type: object
-    properties:
-      value:
-        type: integer
-      min:
-        type: integer
-      max:
-        type: integer
-    required: [value, min, max]
-
-  Range:
-    title: Range
-    description: Numeric range with min and max
-    type: object
-    properties:
-      min:
-        type: number
-      max:
-        type: number
-    required: [min, max]
-
-  # ==========================================================================
-  # RESULT TYPES
-  # ==========================================================================
+  # ============================================================================
+  # RESULT TYPES (shared across modules)
+  # ============================================================================
 
   Result:
     title: Result
@@ -444,39 +1648,41 @@ $defs:
             const: true
         required: [none]
 
-  # ==========================================================================
-  # RESOURCE TYPES (Kubernetes-style)
-  # ==========================================================================
+  # ============================================================================
+  # BOUNDED TYPES (shared across modules)
+  # ============================================================================
 
-  ResourceQuantity:
-    title: Resource Quantity
-    description: Kubernetes-style resource quantity (e.g., "100Mi", "2Gi", "500m")
-    type: string
-    pattern: '^[0-9]+(\.[0-9]+)?[EPTGMK]?i?$|^[0-9]+m$'
-    examples:
-      - "100Mi"
-      - "2Gi"
-      - "500m"
-      - "1"
+  BoundedInteger:
+    title: Bounded Integer
+    description: Integer with configurable bounds
+    type: object
+    properties:
+      value:
+        type: integer
+      min:
+        type: integer
+      max:
+        type: integer
+    required: [value, min, max]
 
-  # ==========================================================================
-  # URL TYPES
-  # ==========================================================================
+  Range:
+    title: Range
+    description: Numeric range with min and max
+    type: object
+    properties:
+      min:
+        type: number
+      max:
+        type: number
+    required: [min, max]
 
-  URL:
-    title: URL
-    description: Valid URL
-    type: string
-    format: uri
-    examples:
-      - "https://example.com/path"
-      - "http://localhost:8080"
-
-  HTTPSUrl:
-    title: HTTPS URL
-    description: URL with HTTPS protocol only
-    type: string
-    format: uri
-    pattern: '^https://'
-    examples:
-      - "https://secure.example.com"
+  IntegerRange:
+    title: Integer Range
+    description: Integer range with min and max
+    type: object
+    properties:
+      min:
+        type: integer
+      max:
+        type: integer
+    required: [min, max]

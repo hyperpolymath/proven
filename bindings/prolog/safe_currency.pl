@@ -1,8 +1,8 @@
-%% SPDX-License-Identifier: AGPL-3.0-or-later
-%% SPDX-FileCopyrightText: 2025 Hyperpolymath
-%%
-%% Proven SafeCurrency - Type-safe currency operations for Prolog
-%% Following ISO 4217 currency codes.
+% SPDX-License-Identifier: PMPL-1.0
+% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%
+% Proven SafeCurrency - Type-safe currency operations for Prolog
+% Following ISO 4217 currency codes.
 
 :- module(safe_currency, [
     currency_code/2,

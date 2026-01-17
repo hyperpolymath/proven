@@ -1,5 +1,5 @@
-      * SPDX-License-Identifier: AGPL-3.0-or-later
-      * SPDX-FileCopyrightText: 2025 Hyperpolymath
+      *> SPDX-License-Identifier: PMPL-1.0
+      *> SPDX-FileCopyrightText: 2025 Hyperpolymath
       *
       * Proven SafeCrypto - Cryptographic operations for COBOL
       * Note: For production use, integrate with platform crypto APIs

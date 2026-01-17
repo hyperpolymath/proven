@@ -1,353 +1,251 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
---
--- SafeResource: Formally verified resource lifecycle management
---
--- Provides:
--- - Linear resource tracking (use-once semantics)
--- - RAII-style resource acquisition with guaranteed cleanup
--- - Pool management with bounds checking
--- - Reference counting with leak prevention
-
+-- SPDX-License-Identifier: Palimpsest-MPL-1.0
+||| SafeResource - Safe resource acquisition and release
+|||
+||| This module provides patterns for safe resource management,
+||| ensuring resources are properly acquired and released.
 module Proven.SafeResource
 
-import Data.List
-import Data.Nat
-import Data.Vect
-import Data.Fin
-import Decidable.Equality
+import public Proven.Core
 
 %default total
 
-||| Resource identifier
-public export
-ResourceId : Type
-ResourceId = Nat
+--------------------------------------------------------------------------------
+-- Resource Handle
+--------------------------------------------------------------------------------
 
-||| Resource lifecycle states
+||| Resource state
 public export
-data ResourceState = Uninitialized | Acquired | InUse | Released | Failed
+data ResourceState : Type where
+  Unacquired : ResourceState
+  Acquired : ResourceState
+  Released : ResourceState
 
-||| Equality for resource states
 public export
 Eq ResourceState where
-  Uninitialized == Uninitialized = True
+  Unacquired == Unacquired = True
   Acquired == Acquired = True
-  InUse == InUse = True
   Released == Released = True
-  Failed == Failed = True
   _ == _ = False
 
-||| A resource with tracked lifecycle state
 public export
-data Resource : (state : ResourceState) -> (a : Type) -> Type where
-  ||| Uninitialized resource (no value yet)
-  MkUninitialized : ResourceId -> Resource Uninitialized a
-  ||| Acquired resource (has value)
-  MkAcquired : ResourceId -> a -> Resource Acquired a
-  ||| Resource in use
-  MkInUse : ResourceId -> a -> Resource InUse a
-  ||| Released resource (value consumed)
-  MkReleased : ResourceId -> Resource Released a
-  ||| Failed resource
-  MkFailed : ResourceId -> String -> Resource Failed a
+Show ResourceState where
+  show Unacquired = "Unacquired"
+  show Acquired = "Acquired"
+  show Released = "Released"
 
-||| Get resource ID
+||| A tracked resource handle
 public export
-getResourceId : Resource state a -> ResourceId
-getResourceId (MkUninitialized rid) = rid
-getResourceId (MkAcquired rid _) = rid
-getResourceId (MkInUse rid _) = rid
-getResourceId (MkReleased rid) = rid
-getResourceId (MkFailed rid _) = rid
+record ResourceHandle (id : Type) where
+  constructor MkHandle
+  resourceId : id
+  state : ResourceState
+  acquiredAt : Maybe Nat    -- Timestamp when acquired
+  releasedAt : Maybe Nat    -- Timestamp when released
 
-||| Acquire a resource (transition from Uninitialized to Acquired)
+||| Create an unacquired resource handle
 public export
-acquire : Resource Uninitialized a -> (ResourceId -> Either String a) ->
-          Either (Resource Failed a) (Resource Acquired a)
-acquire (MkUninitialized rid) acquireFn =
-  case acquireFn rid of
-    Left err => Left (MkFailed rid err)
-    Right val => Right (MkAcquired rid val)
+newHandle : id -> ResourceHandle id
+newHandle rid = MkHandle rid Unacquired Nothing Nothing
 
-||| Begin using a resource
+||| Mark resource as acquired
 public export
-beginUse : Resource Acquired a -> Resource InUse a
-beginUse (MkAcquired rid val) = MkInUse rid val
+markAcquired : (timestamp : Nat) -> ResourceHandle id -> ResourceHandle id
+markAcquired ts h = MkHandle h.resourceId Acquired (Just ts) Nothing
 
-||| Get value from resource in use
+||| Mark resource as released
 public export
-useResource : Resource InUse a -> (a, Resource InUse a)
-useResource r@(MkInUse _ val) = (val, r)
+markReleased : (timestamp : Nat) -> ResourceHandle id -> ResourceHandle id
+markReleased ts h = MkHandle h.resourceId Released h.acquiredAt (Just ts)
 
-||| End use and return to acquired state
+||| Check if resource is currently held
 public export
-endUse : Resource InUse a -> Resource Acquired a
-endUse (MkInUse rid val) = MkAcquired rid val
+isHeld : ResourceHandle id -> Bool
+isHeld h = h.state == Acquired
 
-||| Release a resource (consumes it)
-public export
-release : Resource Acquired a -> (a -> IO ()) -> IO (Resource Released a)
-release (MkAcquired rid val) cleanup = do
-  cleanup val
-  pure (MkReleased rid)
+--------------------------------------------------------------------------------
+-- Resource Pool
+--------------------------------------------------------------------------------
 
-||| Linear resource - must be used exactly once
+||| A pool of managed resources
 public export
-data Linear : (a : Type) -> Type where
-  MkLinear : (used : Bool) -> a -> Linear a
+record ResourcePool id where
+  constructor MkPool
+  available : List id
+  inUse : List id
+  maxSize : Nat
 
-||| Create a fresh linear resource
+||| Create a new resource pool
 public export
-fresh : a -> Linear a
-fresh val = MkLinear False val
+newPool : (maxSize : Nat) -> (resources : List id) -> ResourcePool id
+newPool maxSz res = MkPool (take maxSz res) [] maxSz
 
-||| Consume a linear resource (can only be called once)
+||| Acquire a resource from the pool
 public export
-consume : Linear a -> (a, Linear a)
-consume (MkLinear False val) = (val, MkLinear True val)
-consume (MkLinear True val) = (val, MkLinear True val)  -- Error case in real impl
-
-||| Check if linear resource was used
-public export
-wasUsed : Linear a -> Bool
-wasUsed (MkLinear used _) = used
-
-||| RAII-style bracket for resource management
-public export
-bracket : IO (Resource Acquired a) ->         -- Acquire
-          (Resource Acquired a -> IO b) ->    -- Use
-          (a -> IO ()) ->                     -- Release
-          IO (Either String b)
-bracket acq use rel = do
-  res <- acq
-  case res of
-    r@(MkAcquired rid val) => do
-      result <- use r
-      _ <- release r rel
-      pure (Right result)
-    _ => pure (Left "Acquisition failed")
-
-||| Resource pool with bounded capacity
-public export
-record ResourcePool (n : Nat) (a : Type) where
-  constructor MkResourcePool
-  poolResources : Vect n (Maybe a)
-  poolAvailable : List (Fin n)
-
-||| Create an empty pool
-public export
-emptyPool : {n : Nat} -> ResourcePool n a
-emptyPool = MkResourcePool (replicate n Nothing) (toList (allFins n))
-  where
-    allFins : (m : Nat) -> Vect m (Fin m)
-    allFins Z = []
-    allFins (S k) = FZ :: map FS (allFins k)
-
-||| Try to acquire from pool
-public export
-poolAcquire : ResourcePool n a -> a -> Maybe (Fin n, ResourcePool n a)
-poolAcquire pool val =
-  case poolAvailable pool of
+acquire : ResourcePool id -> Maybe (id, ResourcePool id)
+acquire pool =
+  case pool.available of
     [] => Nothing
-    (idx :: rest) =>
-      Just (idx, { poolResources := replaceAt idx (Just val) (poolResources pool),
-                   poolAvailable := rest } pool)
+    (r :: rest) => Just (r, MkPool rest (r :: pool.inUse) pool.maxSize)
 
-||| Release back to pool
+||| Release a resource back to the pool
 public export
-poolRelease : Fin n -> ResourcePool n a -> ResourcePool n a
-poolRelease idx pool =
-  { poolResources := replaceAt idx Nothing (poolResources pool),
-    poolAvailable := idx :: poolAvailable pool } pool
+release : Eq id => id -> ResourcePool id -> ResourcePool id
+release rid pool =
+  if any (== rid) pool.inUse
+    then MkPool (rid :: pool.available) 
+                (filter (/= rid) pool.inUse)
+                pool.maxSize
+    else pool
 
-||| Get resource from pool slot
+||| Get number of available resources
 public export
-poolGet : Fin n -> ResourcePool n a -> Maybe a
-poolGet idx pool = index idx (poolResources pool)
+availableCount : ResourcePool id -> Nat
+availableCount pool = length pool.available
 
-||| Pool utilization
+||| Get number of resources in use
 public export
-poolUtilization : ResourcePool n a -> (used : Nat ** available : Nat ** used + available = n)
-poolUtilization pool =
-  let avail = length (poolAvailable pool)
-      used = minus n avail
-  in (used ** avail ** ?poolUtilProof)
+inUseCount : ResourcePool id -> Nat
+inUseCount pool = length pool.inUse
 
-||| Reference counted resource
+||| Check if pool is exhausted
 public export
-record RefCounted (a : Type) where
+isExhausted : ResourcePool id -> Bool
+isExhausted pool = isNil pool.available
+
+--------------------------------------------------------------------------------
+-- Lease-based Resources
+--------------------------------------------------------------------------------
+
+||| A resource lease with expiration
+public export
+record Lease id where
+  constructor MkLease
+  resourceId : id
+  acquiredAt : Nat
+  expiresAt : Nat
+  renewable : Bool
+
+||| Create a new lease
+public export
+newLease : id -> (acquiredAt : Nat) -> (duration : Nat) -> (renewable : Bool) -> Lease id
+newLease rid acq dur ren = MkLease rid acq (acq + dur) ren
+
+||| Check if lease is expired
+public export
+isExpired : (currentTime : Nat) -> Lease id -> Bool
+isExpired now lease = now >= lease.expiresAt
+
+||| Check if lease is valid
+public export
+isValid : (currentTime : Nat) -> Lease id -> Bool
+isValid now lease = now < lease.expiresAt
+
+||| Renew a lease (if renewable)
+public export
+renew : (currentTime : Nat) -> (duration : Nat) -> Lease id -> Maybe (Lease id)
+renew now dur lease =
+  if not lease.renewable
+    then Nothing
+    else if isExpired now lease
+      then Nothing
+      else Just (MkLease lease.resourceId now (now + dur) lease.renewable)
+
+||| Get remaining time on lease
+public export
+remainingTime : (currentTime : Nat) -> Lease id -> Nat
+remainingTime now lease =
+  if now >= lease.expiresAt then 0
+  else minus lease.expiresAt now
+
+--------------------------------------------------------------------------------
+-- Reference Counting
+--------------------------------------------------------------------------------
+
+||| Reference-counted resource
+public export
+record RefCounted a where
   constructor MkRefCounted
-  rcValue : a
-  rcCount : Nat
+  value : a
+  refCount : Nat
 
-||| Create with initial reference
+||| Create a new reference-counted value
 public export
 newRef : a -> RefCounted a
-newRef val = MkRefCounted val 1
+newRef x = MkRefCounted x 1
 
 ||| Increment reference count
 public export
-incRef : RefCounted a -> RefCounted a
-incRef rc = { rcCount := S (rcCount rc) } rc
+addRef : RefCounted a -> RefCounted a
+addRef rc = MkRefCounted rc.value (S rc.refCount)
 
-||| Decrement reference count (returns Nothing when reaching zero)
+||| Decrement reference count (returns Nothing if count reaches 0)
 public export
-decRef : RefCounted a -> Maybe (RefCounted a)
-decRef rc =
-  case rcCount rc of
-    Z => Nothing      -- Already zero (shouldn't happen)
-    S Z => Nothing    -- Last reference, should cleanup
-    S (S n) => Just ({ rcCount := S n } rc)
+releaseRef : RefCounted a -> Maybe (RefCounted a)
+releaseRef rc =
+  case rc.refCount of
+    Z => Nothing
+    S Z => Nothing  -- Last reference, should be freed
+    S n => Just (MkRefCounted rc.value n)
 
 ||| Check if this is the last reference
 public export
 isLastRef : RefCounted a -> Bool
-isLastRef rc = rcCount rc == 1
+isLastRef rc = rc.refCount == 1
 
-||| Proof that reference count is positive
+||| Get current reference count
 public export
-data PositiveRefs : RefCounted a -> Type where
-  MkPositiveRefs : (gt : GT (rcCount rc) 0) -> PositiveRefs rc
+getRefCount : RefCounted a -> Nat
+getRefCount = refCount
 
-||| Resource handle with type-level tracking
+||| Get the value (always safe)
 public export
-data Handle : (state : ResourceState) -> Type where
-  OpenHandle : ResourceId -> Handle Acquired
-  ClosedHandle : ResourceId -> Handle Released
+getValue : RefCounted a -> a
+getValue = value
 
-||| File-like resource operations
-public export
-interface FileResource (f : ResourceState -> Type) where
-  open : String -> IO (Either String (f Acquired))
-  read : f Acquired -> IO (String, f Acquired)
-  write : f Acquired -> String -> IO (f Acquired)
-  close : f Acquired -> IO (f Released)
+--------------------------------------------------------------------------------
+-- Resource Lifecycle Events
+--------------------------------------------------------------------------------
 
-||| Scoped resource - automatically released at scope end
+||| Resource lifecycle event
 public export
-record Scoped (a : Type) where
-  constructor MkScoped
-  scopedValue : a
-  scopedCleanup : a -> IO ()
-  scopedValid : Bool
+data LifecycleEvent : Type where
+  Created : (timestamp : Nat) -> LifecycleEvent
+  Acquired : (timestamp : Nat) -> (by : String) -> LifecycleEvent
+  Released : (timestamp : Nat) -> (by : String) -> LifecycleEvent
+  Destroyed : (timestamp : Nat) -> LifecycleEvent
 
-||| Create a scoped resource
+||| Resource with lifecycle tracking
 public export
-withScope : a -> (a -> IO ()) -> Scoped a
-withScope val cleanup = MkScoped val cleanup True
+record TrackedResource id a where
+  constructor MkTracked
+  resourceId : id
+  value : a
+  events : List LifecycleEvent
 
-||| Use scoped value
+||| Create a tracked resource
 public export
-useScoped : Scoped a -> Maybe a
-useScoped sc = if scopedValid sc then Just (scopedValue sc) else Nothing
-
-||| Invalidate scope (mark as cleaned up)
-public export
-invalidateScope : Scoped a -> Scoped a
-invalidateScope sc = { scopedValid := False } sc
-
-||| Resource leak detector - tracks all acquired resources
-public export
-record LeakDetector where
-  constructor MkLeakDetector
-  acquired : List ResourceId
-  released : List ResourceId
-
-||| Empty leak detector
-public export
-noLeaks : LeakDetector
-noLeaks = MkLeakDetector [] []
+createTracked : id -> a -> (timestamp : Nat) -> TrackedResource id a
+createTracked rid val ts = MkTracked rid val [Created ts]
 
 ||| Record acquisition
 public export
-recordAcquire : ResourceId -> LeakDetector -> LeakDetector
-recordAcquire rid ld = { acquired := rid :: acquired ld } ld
+recordAcquisition : (timestamp : Nat) -> (owner : String) -> TrackedResource id a -> TrackedResource id a
+recordAcquisition ts owner tr = MkTracked tr.resourceId tr.value (Acquired ts owner :: tr.events)
 
 ||| Record release
 public export
-recordRelease : ResourceId -> LeakDetector -> LeakDetector
-recordRelease rid ld = { released := rid :: released ld } ld
+recordRelease : (timestamp : Nat) -> (owner : String) -> TrackedResource id a -> TrackedResource id a
+recordRelease ts owner tr = MkTracked tr.resourceId tr.value (Released ts owner :: tr.events)
 
-||| Check for leaks
-public export
-checkLeaks : LeakDetector -> List ResourceId
-checkLeaks ld = filter (\rid => not (elem rid (released ld))) (acquired ld)
+--------------------------------------------------------------------------------
+-- Display
+--------------------------------------------------------------------------------
 
-||| Proof of no leaks
 public export
-data NoLeaks : LeakDetector -> Type where
-  MkNoLeaks : (checkLeaks ld = []) -> NoLeaks ld
+Show id => Show (ResourceHandle id) where
+  show h = "Handle(" ++ show h.resourceId ++ ", " ++ show h.state ++ ")"
 
-||| Double-free detector
 public export
-isDoubleFree : ResourceId -> LeakDetector -> Bool
-isDoubleFree rid ld =
-  length (filter (== rid) (released ld)) > 1
-
-||| Use-after-free detector
-public export
-isUseAfterFree : ResourceId -> LeakDetector -> Bool
-isUseAfterFree rid ld = elem rid (released ld)
-
-||| Resource quota - limit resource usage
-public export
-record Quota where
-  constructor MkQuota
-  quotaLimit : Nat
-  quotaUsed : Nat
-
-||| Check if quota allows acquisition
-public export
-quotaAllows : Quota -> Bool
-quotaAllows q = quotaUsed q < quotaLimit q
-
-||| Consume from quota
-public export
-quotaConsume : Quota -> Maybe Quota
-quotaConsume q =
-  if quotaAllows q
-    then Just ({ quotaUsed := S (quotaUsed q) } q)
-    else Nothing
-
-||| Return to quota
-public export
-quotaReturn : Quota -> Quota
-quotaReturn q =
-  case quotaUsed q of
-    Z => q
-    S n => { quotaUsed := n } q
-
-||| Proof quota is not exceeded
-public export
-data QuotaValid : Quota -> Type where
-  MkQuotaValid : LTE (quotaUsed q) (quotaLimit q) -> QuotaValid q
-
-||| Semaphore for resource counting
-public export
-record Semaphore (max : Nat) where
-  constructor MkSemaphore
-  semCount : Nat
-  semWaiters : Nat
-
-||| Try to acquire semaphore
-public export
-semAcquire : Semaphore max -> Maybe (Semaphore max)
-semAcquire sem =
-  if semCount sem < max
-    then Just ({ semCount := S (semCount sem) } sem)
-    else Nothing
-
-||| Release semaphore
-public export
-semRelease : Semaphore max -> Semaphore max
-semRelease sem =
-  case semCount sem of
-    Z => sem
-    S n => { semCount := n } sem
-
-||| Check semaphore availability
-public export
-semAvailable : Semaphore max -> Nat
-semAvailable sem = minus max (semCount sem)
+Show id => Show (Lease id) where
+  show l = "Lease(" ++ show l.resourceId ++ ", expires=" ++ show l.expiresAt ++ ")"
 

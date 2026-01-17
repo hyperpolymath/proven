@@ -7,7 +7,7 @@ use warnings;
 use Encode qw(decode encode is_utf8);
 use Exporter 'import';
 
-our $VERSION = '0.3.0';
+our $VERSION = '0.4.0';
 our @EXPORT_OK = qw(
     is_valid_utf8 escape_html escape_sql escape_js
     escape_url truncate_safe safe_decode strip_html

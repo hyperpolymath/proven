@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: PMPL-1.0
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+[package]
+name = "proven_nif"
+version = "0.10.0"
+edition = "2021"
+authors = ["Hyperpolymath"]
+description = "Rustler NIF bindings for Proven safety library"
+license = "PMPL-1.0"
+publish = false
+
+[lib]
+name = "proven_nif"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.35"
+
+# Use the proven core library from the parent bindings
+[dependencies.proven]
+path = "../../../rust"
+
+[profile.release]
+lto = true
+opt-level = 3

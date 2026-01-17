@@ -1,8 +1,8 @@
-%% SPDX-License-Identifier: AGPL-3.0-or-later
-%% SPDX-FileCopyrightText: 2025 Hyperpolymath
-%%
-%% Proven SafeHex - Hexadecimal encoding/decoding for Prolog
-%% With constant-time comparison for security.
+% SPDX-License-Identifier: PMPL-1.0
+% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%
+% Proven SafeHex - Hexadecimal encoding/decoding for Prolog
+% With constant-time comparison for security.
 
 :- module(safe_hex, [
     hex_encode/2,

@@ -1,18 +1,22 @@
 Package: proven
 Title: Safe, Validated Operations Library for R
-Version: 0.1.0
+Version: 0.4.0
 Authors@R:
     person("Hyperpolymath", email = "hyperpolymath@example.com", role = c("aut", "cre"))
-Description: Provides type-safe operations with overflow checking, XSS prevention,
-    path traversal protection, email validation, IP classification, and
-    cryptographic operations.
+Description: Provides 38 type-safe modules with overflow checking, XSS prevention,
+    path traversal protection, email/URL/phone validation, IP classification,
+    cryptographic operations, data structures (buffer, queue, bloom filter, LRU cache,
+    graph), resilience patterns (rate limiter, circuit breaker, retry, monotonic),
+    state machines, calculators, geographic operations, probability, checksums,
+    tensors, ML utilities, and HTTP components (header, cookie, content-type).
 License: file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports:
     openssl,
-    base64enc
+    base64enc,
+    digest
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

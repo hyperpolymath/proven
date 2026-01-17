@@ -1,170 +1,1773 @@
 # SPDX-License-Identifier: PMPL-1.0
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
-
+#
 # Proven Safety Primitives for PromQL
+# Version: 0.4.0
+# Module Count: 38
 #
 # Recording rules and alerting rules that enforce safe bounds
-# and provide early warning for violations.
+# and provide early warning for safety violations across all proven modules.
+#
+# Categories:
+#   Core (11): safe_math, safe_string, safe_path, safe_email, safe_url,
+#              safe_network, safe_crypto, safe_uuid, safe_currency, safe_phone, safe_hex
+#   Data (7): safe_json, safe_datetime, safe_float, safe_version, safe_color,
+#             safe_angle, safe_unit
+#   Data Structures (5): safe_buffer, safe_queue, safe_bloom, safe_lru, safe_graph
+#   Resilience (4): safe_rate_limiter, safe_circuit_breaker, safe_retry, safe_monotonic
+#   State (2): safe_state_machine, safe_calculator
+#   Algorithm (4): safe_geo, safe_probability, safe_checksum, safe_tensor
+#   Security (2): safe_password, safe_ml
+#   HTTP (3): safe_header, safe_cookie, safe_content_type
 
 groups:
   # ============================================================================
-  # SAFE RECORDING RULES
+  # MODULE METADATA
   # ============================================================================
-  - name: proven_safe_metrics
+  - name: proven_metadata
+    interval: 1h
+    rules:
+      # Library version tracking
+      - record: proven:library:version
+        expr: vector(0.4)
+        labels:
+          version: "0.4.0"
+          module_count: "38"
+
+      # Module availability indicators
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "core"
+          modules: "safe_math,safe_string,safe_path,safe_email,safe_url,safe_network,safe_crypto,safe_uuid,safe_currency,safe_phone,safe_hex"
+          count: "11"
+
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "data"
+          modules: "safe_json,safe_datetime,safe_float,safe_version,safe_color,safe_angle,safe_unit"
+          count: "7"
+
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "data_structures"
+          modules: "safe_buffer,safe_queue,safe_bloom,safe_lru,safe_graph"
+          count: "5"
+
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "resilience"
+          modules: "safe_rate_limiter,safe_circuit_breaker,safe_retry,safe_monotonic"
+          count: "4"
+
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "state"
+          modules: "safe_state_machine,safe_calculator"
+          count: "2"
+
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "algorithm"
+          modules: "safe_geo,safe_probability,safe_checksum,safe_tensor"
+          count: "4"
+
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "security"
+          modules: "safe_password,safe_ml"
+          count: "2"
+
+      - record: proven:module:available
+        expr: |
+          vector(1)
+        labels:
+          category: "http"
+          modules: "safe_header,safe_cookie,safe_content_type"
+          count: "3"
+
+  # ============================================================================
+  # CORE MODULES (11)
+  # ============================================================================
+  - name: proven_core_safe_math
     interval: 30s
     rules:
-      # Bounded error rate (clamped 0-100%)
-      - record: proven:error_rate:safe
+      # Overflow detection rate
+      - record: proven:safe_math:overflow_rate
         expr: |
           clamp(
-            rate(http_requests_total{status=~"5.."}[5m])
-            / rate(http_requests_total[5m])
-            * 100,
-            0, 100
+            rate(proven_safe_math_overflow_total[5m])
+            / (rate(proven_safe_math_operations_total[5m]) > 0),
+            0, 1
+          ) or vector(0)
+
+      # Division by zero prevention rate
+      - record: proven:safe_math:div_zero_prevented
+        expr: |
+          rate(proven_safe_math_div_by_zero_prevented_total[5m])
+
+      # Bounded integer usage
+      - record: proven:safe_math:bounded_usage_ratio
+        expr: |
+          clamp(
+            sum(rate(proven_safe_math_bounded_int_total[5m]))
+            / sum(rate(proven_safe_math_operations_total[5m])),
+            0, 1
+          ) or vector(0)
+
+  - name: proven_core_safe_string
+    interval: 30s
+    rules:
+      # XSS prevention (HTML escaping)
+      - record: proven:safe_string:xss_prevented
+        expr: |
+          rate(proven_safe_string_html_escaped_total[5m])
+
+      # SQL injection prevention
+      - record: proven:safe_string:sql_injection_prevented
+        expr: |
+          rate(proven_safe_string_sql_escaped_total[5m])
+
+      # UTF-8 validation failures
+      - record: proven:safe_string:utf8_invalid_rate
+        expr: |
+          clamp(
+            rate(proven_safe_string_utf8_invalid_total[5m])
+            / rate(proven_safe_string_utf8_validated_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Truncation operations
+      - record: proven:safe_string:truncations
+        expr: |
+          rate(proven_safe_string_truncated_total[5m])
+
+  - name: proven_core_safe_path
+    interval: 30s
+    rules:
+      # Path traversal prevention
+      - record: proven:safe_path:traversal_blocked
+        expr: |
+          rate(proven_safe_path_traversal_blocked_total[5m])
+
+      # Symlink resolution
+      - record: proven:safe_path:symlink_resolved
+        expr: |
+          rate(proven_safe_path_symlink_resolved_total[5m])
+
+      # Glob pattern matches
+      - record: proven:safe_path:glob_matches
+        expr: |
+          rate(proven_safe_path_glob_matched_total[5m])
+
+  - name: proven_core_safe_email
+    interval: 30s
+    rules:
+      # Email validation success rate
+      - record: proven:safe_email:valid_rate
+        expr: |
+          clamp(
+            rate(proven_safe_email_valid_total[5m])
+            / rate(proven_safe_email_validated_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Normalized emails
+      - record: proven:safe_email:normalized
+        expr: |
+          rate(proven_safe_email_normalized_total[5m])
+
+  - name: proven_core_safe_url
+    interval: 30s
+    rules:
+      # URL parsing success rate
+      - record: proven:safe_url:parse_success_rate
+        expr: |
+          clamp(
+            rate(proven_safe_url_parsed_total[5m])
+            / rate(proven_safe_url_parse_attempts_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Scheme validation
+      - record: proven:safe_url:scheme_blocked
+        expr: |
+          rate(proven_safe_url_scheme_blocked_total[5m])
+
+      # Query parameter encoding
+      - record: proven:safe_url:params_encoded
+        expr: |
+          rate(proven_safe_url_params_encoded_total[5m])
+
+  - name: proven_core_safe_network
+    interval: 30s
+    rules:
+      # IPv4/IPv6 parsing
+      - record: proven:safe_network:ip_parsed
+        expr: |
+          sum by (version) (rate(proven_safe_network_ip_parsed_total[5m]))
+
+      # CIDR validation
+      - record: proven:safe_network:cidr_validated
+        expr: |
+          rate(proven_safe_network_cidr_validated_total[5m])
+
+      # Port validation (1-65535)
+      - record: proven:safe_network:port_out_of_range
+        expr: |
+          rate(proven_safe_network_port_invalid_total[5m])
+
+      # Private IP detection
+      - record: proven:safe_network:private_ip_detected
+        expr: |
+          rate(proven_safe_network_private_ip_total[5m])
+
+  - name: proven_core_safe_crypto
+    interval: 30s
+    rules:
+      # Hash operations
+      - record: proven:safe_crypto:hash_operations
+        expr: |
+          sum by (algorithm) (rate(proven_safe_crypto_hash_total[5m]))
+
+      # HMAC operations
+      - record: proven:safe_crypto:hmac_operations
+        expr: |
+          rate(proven_safe_crypto_hmac_total[5m])
+
+      # Random bytes generated
+      - record: proven:safe_crypto:random_bytes
+        expr: |
+          rate(proven_safe_crypto_random_bytes_total[5m])
+
+      # Constant-time comparison
+      - record: proven:safe_crypto:timing_safe_compare
+        expr: |
+          rate(proven_safe_crypto_constant_time_compare_total[5m])
+
+  - name: proven_core_safe_uuid
+    interval: 30s
+    rules:
+      # UUID generation by version
+      - record: proven:safe_uuid:generated
+        expr: |
+          sum by (version) (rate(proven_safe_uuid_generated_total[5m]))
+
+      # UUID validation
+      - record: proven:safe_uuid:validation_rate
+        expr: |
+          clamp(
+            rate(proven_safe_uuid_valid_total[5m])
+            / rate(proven_safe_uuid_validated_total[5m]),
+            0, 1
+          ) or vector(0)
+
+  - name: proven_core_safe_currency
+    interval: 30s
+    rules:
+      # Currency conversions
+      - record: proven:safe_currency:conversions
+        expr: |
+          sum by (from_currency, to_currency) (rate(proven_safe_currency_converted_total[5m]))
+
+      # Precision preserved
+      - record: proven:safe_currency:precision_maintained
+        expr: |
+          rate(proven_safe_currency_operations_total{precision_loss="false"}[5m])
+
+      # Overflow prevention
+      - record: proven:safe_currency:overflow_prevented
+        expr: |
+          rate(proven_safe_currency_overflow_prevented_total[5m])
+
+  - name: proven_core_safe_phone
+    interval: 30s
+    rules:
+      # Phone number parsing
+      - record: proven:safe_phone:parsed
+        expr: |
+          sum by (country_code) (rate(proven_safe_phone_parsed_total[5m]))
+
+      # E.164 formatting
+      - record: proven:safe_phone:e164_formatted
+        expr: |
+          rate(proven_safe_phone_e164_formatted_total[5m])
+
+  - name: proven_core_safe_hex
+    interval: 30s
+    rules:
+      # Hex encoding
+      - record: proven:safe_hex:encoded_bytes
+        expr: |
+          rate(proven_safe_hex_encoded_bytes_total[5m])
+
+      # Hex decoding with validation
+      - record: proven:safe_hex:decode_failures
+        expr: |
+          rate(proven_safe_hex_decode_failed_total[5m])
+
+  # ============================================================================
+  # DATA MODULES (7)
+  # ============================================================================
+  - name: proven_data_safe_json
+    interval: 30s
+    rules:
+      # JSON parsing success rate
+      - record: proven:safe_json:parse_success_rate
+        expr: |
+          clamp(
+            rate(proven_safe_json_parsed_total[5m])
+            / rate(proven_safe_json_parse_attempts_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Deep nesting prevention
+      - record: proven:safe_json:depth_exceeded
+        expr: |
+          rate(proven_safe_json_depth_exceeded_total[5m])
+
+      # Size limit enforcement
+      - record: proven:safe_json:size_exceeded
+        expr: |
+          rate(proven_safe_json_size_exceeded_total[5m])
+
+  - name: proven_data_safe_datetime
+    interval: 30s
+    rules:
+      # ISO 8601 parsing
+      - record: proven:safe_datetime:iso8601_parsed
+        expr: |
+          rate(proven_safe_datetime_iso8601_parsed_total[5m])
+
+      # Timezone conversions
+      - record: proven:safe_datetime:tz_conversions
+        expr: |
+          sum by (from_tz, to_tz) (rate(proven_safe_datetime_tz_converted_total[5m]))
+
+      # Duration calculations
+      - record: proven:safe_datetime:duration_calculated
+        expr: |
+          rate(proven_safe_datetime_duration_calculated_total[5m])
+
+      # Leap year handling
+      - record: proven:safe_datetime:leap_year_handled
+        expr: |
+          rate(proven_safe_datetime_leap_year_total[5m])
+
+  - name: proven_data_safe_float
+    interval: 30s
+    rules:
+      # NaN prevention
+      - record: proven:safe_float:nan_prevented
+        expr: |
+          rate(proven_safe_float_nan_prevented_total[5m])
+
+      # Infinity prevention
+      - record: proven:safe_float:infinity_prevented
+        expr: |
+          rate(proven_safe_float_infinity_prevented_total[5m])
+
+      # Safe division operations
+      - record: proven:safe_float:safe_divisions
+        expr: |
+          rate(proven_safe_float_safe_div_total[5m])
+
+      # Epsilon comparisons
+      - record: proven:safe_float:epsilon_comparisons
+        expr: |
+          rate(proven_safe_float_epsilon_compare_total[5m])
+
+  - name: proven_data_safe_version
+    interval: 30s
+    rules:
+      # Semver parsing
+      - record: proven:safe_version:parsed
+        expr: |
+          rate(proven_safe_version_parsed_total[5m])
+
+      # Version comparisons
+      - record: proven:safe_version:comparisons
+        expr: |
+          rate(proven_safe_version_compared_total[5m])
+
+      # Compatibility checks
+      - record: proven:safe_version:compatibility_checks
+        expr: |
+          rate(proven_safe_version_compatible_total[5m])
+
+  - name: proven_data_safe_color
+    interval: 30s
+    rules:
+      # Color parsing (RGB/RGBA)
+      - record: proven:safe_color:parsed
+        expr: |
+          sum by (format) (rate(proven_safe_color_parsed_total[5m]))
+
+      # WCAG contrast calculations
+      - record: proven:safe_color:wcag_contrast_calculated
+        expr: |
+          rate(proven_safe_color_wcag_contrast_total[5m])
+
+      # Accessibility compliance
+      - record: proven:safe_color:wcag_aa_passed
+        expr: |
+          rate(proven_safe_color_wcag_aa_pass_total[5m])
+
+      - record: proven:safe_color:wcag_aaa_passed
+        expr: |
+          rate(proven_safe_color_wcag_aaa_pass_total[5m])
+
+  - name: proven_data_safe_angle
+    interval: 30s
+    rules:
+      # Degree/radian conversions
+      - record: proven:safe_angle:conversions
+        expr: |
+          sum by (direction) (rate(proven_safe_angle_converted_total[5m]))
+
+      # Normalization (0-360)
+      - record: proven:safe_angle:normalized
+        expr: |
+          rate(proven_safe_angle_normalized_total[5m])
+
+      # Angle interpolation
+      - record: proven:safe_angle:lerp_operations
+        expr: |
+          rate(proven_safe_angle_lerp_total[5m])
+
+  - name: proven_data_safe_unit
+    interval: 30s
+    rules:
+      # Unit conversions by category
+      - record: proven:safe_unit:conversions
+        expr: |
+          sum by (category) (rate(proven_safe_unit_converted_total[5m]))
+
+      # Length conversions
+      - record: proven:safe_unit:length_conversions
+        expr: |
+          sum by (from_unit, to_unit) (rate(proven_safe_unit_length_converted_total[5m]))
+
+      # Temperature conversions
+      - record: proven:safe_unit:temperature_conversions
+        expr: |
+          sum by (from_unit, to_unit) (rate(proven_safe_unit_temperature_converted_total[5m]))
+
+      # Data size conversions
+      - record: proven:safe_unit:data_conversions
+        expr: |
+          sum by (from_unit, to_unit) (rate(proven_safe_unit_data_converted_total[5m]))
+
+  # ============================================================================
+  # DATA STRUCTURES MODULES (5)
+  # ============================================================================
+  - name: proven_structures_safe_buffer
+    interval: 30s
+    rules:
+      # Buffer utilization
+      - record: proven:safe_buffer:utilization
+        expr: |
+          clamp(
+            proven_safe_buffer_used_bytes
+            / proven_safe_buffer_capacity_bytes,
+            0, 1
           )
 
-      # Bounded latency percentile (clamped to reasonable max)
-      - record: proven:latency_p99:safe
+      # Buffer overflow prevented
+      - record: proven:safe_buffer:overflow_prevented
+        expr: |
+          rate(proven_safe_buffer_overflow_prevented_total[5m])
+
+      # Ring buffer wraps
+      - record: proven:safe_buffer:ring_wraps
+        expr: |
+          rate(proven_safe_buffer_ring_wrap_total[5m])
+
+  - name: proven_structures_safe_queue
+    interval: 30s
+    rules:
+      # Queue depth (bounded)
+      - record: proven:safe_queue:depth
         expr: |
           clamp(
-            histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])),
-            0, 60
-          )
-
-      # Bounded CPU utilization (0-100%)
-      - record: proven:cpu_utilization:safe
-        expr: |
-          clamp(
-            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100),
-            0, 100
-          )
-
-      # Bounded memory utilization (0-100%)
-      - record: proven:memory_utilization:safe
-        expr: |
-          clamp(
-            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100,
-            0, 100
-          )
-
-      # Bounded disk utilization (0-100%)
-      - record: proven:disk_utilization:safe
-        expr: |
-          clamp(
-            (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100,
-            0, 100
-          )
-
-      # Safe rate calculation (handles zero division)
-      - record: proven:request_rate:safe
-        expr: |
-          (rate(http_requests_total[5m]) > 0) or vector(0)
-
-      # Bounded queue depth
-      - record: proven:queue_depth:safe
-        expr: |
-          clamp(
-            sum(queue_messages_total) by (queue),
+            proven_safe_queue_messages_current,
             0, 1000000
           )
 
-  # ============================================================================
-  # SAFE ALERTING RULES
-  # ============================================================================
-  - name: proven_safe_alerts
+      # Queue utilization
+      - record: proven:safe_queue:utilization
+        expr: |
+          clamp(
+            proven_safe_queue_messages_current
+            / proven_safe_queue_capacity,
+            0, 1
+          )
+
+      # Enqueue rate
+      - record: proven:safe_queue:enqueue_rate
+        expr: |
+          rate(proven_safe_queue_enqueued_total[5m])
+
+      # Dequeue rate
+      - record: proven:safe_queue:dequeue_rate
+        expr: |
+          rate(proven_safe_queue_dequeued_total[5m])
+
+      # Queue full rejections
+      - record: proven:safe_queue:rejections
+        expr: |
+          rate(proven_safe_queue_rejected_total[5m])
+
+      # Priority queue operations
+      - record: proven:safe_queue:priority_ops
+        expr: |
+          rate(proven_safe_queue_priority_ops_total[5m])
+
+  - name: proven_structures_safe_bloom
+    interval: 30s
     rules:
-      # High error rate (uses safe bounded metric)
-      - alert: ProvenHighErrorRate
-        expr: proven:error_rate:safe > 5
+      # Bloom filter insert rate
+      - record: proven:safe_bloom:insert_rate
+        expr: |
+          rate(proven_safe_bloom_inserted_total[5m])
+
+      # Bloom filter query rate
+      - record: proven:safe_bloom:query_rate
+        expr: |
+          rate(proven_safe_bloom_queried_total[5m])
+
+      # False positive rate (estimated)
+      - record: proven:safe_bloom:false_positive_rate
+        expr: |
+          clamp(
+            proven_safe_bloom_false_positives_total
+            / (proven_safe_bloom_queried_total > 0),
+            0, 1
+          ) or vector(0)
+
+      # Fill ratio
+      - record: proven:safe_bloom:fill_ratio
+        expr: |
+          clamp(
+            proven_safe_bloom_bits_set
+            / proven_safe_bloom_total_bits,
+            0, 1
+          )
+
+  - name: proven_structures_safe_lru
+    interval: 30s
+    rules:
+      # Cache hit rate
+      - record: proven:safe_lru:hit_rate
+        expr: |
+          clamp(
+            rate(proven_safe_lru_hits_total[5m])
+            / (rate(proven_safe_lru_accesses_total[5m]) > 0),
+            0, 1
+          ) or vector(0)
+
+      # Cache miss rate
+      - record: proven:safe_lru:miss_rate
+        expr: |
+          clamp(
+            rate(proven_safe_lru_misses_total[5m])
+            / (rate(proven_safe_lru_accesses_total[5m]) > 0),
+            0, 1
+          ) or vector(0)
+
+      # Eviction rate
+      - record: proven:safe_lru:eviction_rate
+        expr: |
+          rate(proven_safe_lru_evictions_total[5m])
+
+      # Cache utilization
+      - record: proven:safe_lru:utilization
+        expr: |
+          clamp(
+            proven_safe_lru_entries_current
+            / proven_safe_lru_capacity,
+            0, 1
+          )
+
+  - name: proven_structures_safe_graph
+    interval: 30s
+    rules:
+      # Node count
+      - record: proven:safe_graph:nodes
+        expr: |
+          proven_safe_graph_nodes_current
+
+      # Edge count
+      - record: proven:safe_graph:edges
+        expr: |
+          proven_safe_graph_edges_current
+
+      # Cycle detection
+      - record: proven:safe_graph:cycles_detected
+        expr: |
+          rate(proven_safe_graph_cycles_detected_total[5m])
+
+      # Topological sorts
+      - record: proven:safe_graph:topo_sorts
+        expr: |
+          rate(proven_safe_graph_topo_sort_total[5m])
+
+      # Path finding operations
+      - record: proven:safe_graph:path_searches
+        expr: |
+          rate(proven_safe_graph_path_search_total[5m])
+
+  # ============================================================================
+  # RESILIENCE MODULES (4)
+  # ============================================================================
+  - name: proven_resilience_safe_rate_limiter
+    interval: 30s
+    rules:
+      # Token bucket - tokens available
+      - record: proven:safe_rate_limiter:tokens_available
+        expr: |
+          clamp(
+            proven_safe_rate_limiter_tokens_current,
+            0, proven_safe_rate_limiter_bucket_capacity
+          )
+
+      # Rate limit acceptance rate
+      - record: proven:safe_rate_limiter:accept_rate
+        expr: |
+          clamp(
+            rate(proven_safe_rate_limiter_accepted_total[5m])
+            / rate(proven_safe_rate_limiter_requests_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Rate limit rejection rate
+      - record: proven:safe_rate_limiter:reject_rate
+        expr: |
+          clamp(
+            rate(proven_safe_rate_limiter_rejected_total[5m])
+            / rate(proven_safe_rate_limiter_requests_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Sliding window requests
+      - record: proven:safe_rate_limiter:sliding_window_count
+        expr: |
+          proven_safe_rate_limiter_sliding_window_current
+
+      # Fixed window resets
+      - record: proven:safe_rate_limiter:window_resets
+        expr: |
+          rate(proven_safe_rate_limiter_window_reset_total[5m])
+
+  - name: proven_resilience_safe_circuit_breaker
+    interval: 30s
+    rules:
+      # Circuit state (0=closed, 1=half-open, 2=open)
+      - record: proven:safe_circuit_breaker:state
+        expr: |
+          proven_safe_circuit_breaker_state
+
+      # Success rate during closed state
+      - record: proven:safe_circuit_breaker:success_rate
+        expr: |
+          clamp(
+            rate(proven_safe_circuit_breaker_success_total[5m])
+            / rate(proven_safe_circuit_breaker_calls_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Failure rate
+      - record: proven:safe_circuit_breaker:failure_rate
+        expr: |
+          clamp(
+            rate(proven_safe_circuit_breaker_failure_total[5m])
+            / rate(proven_safe_circuit_breaker_calls_total[5m]),
+            0, 1
+          ) or vector(0)
+
+      # Trips (closed -> open transitions)
+      - record: proven:safe_circuit_breaker:trips
+        expr: |
+          rate(proven_safe_circuit_breaker_trip_total[5m])
+
+      # Half-open probes
+      - record: proven:safe_circuit_breaker:probes
+        expr: |
+          rate(proven_safe_circuit_breaker_probe_total[5m])
+
+      # Recovery (open -> closed)
+      - record: proven:safe_circuit_breaker:recoveries
+        expr: |
+          rate(proven_safe_circuit_breaker_recovery_total[5m])
+
+  - name: proven_resilience_safe_retry
+    interval: 30s
+    rules:
+      # Retry attempts
+      - record: proven:safe_retry:attempts
+        expr: |
+          rate(proven_safe_retry_attempts_total[5m])
+
+      # Success after retry
+      - record: proven:safe_retry:success_after_retry
+        expr: |
+          rate(proven_safe_retry_success_after_retry_total[5m])
+
+      # Exhausted retries (all attempts failed)
+      - record: proven:safe_retry:exhausted
+        expr: |
+          rate(proven_safe_retry_exhausted_total[5m])
+
+      # Average retry count per operation
+      - record: proven:safe_retry:avg_attempts
+        expr: |
+          clamp(
+            rate(proven_safe_retry_attempts_total[5m])
+            / rate(proven_safe_retry_operations_total[5m]),
+            1, 100
+          ) or vector(1)
+
+      # Backoff delay (histogram)
+      - record: proven:safe_retry:backoff_p99
+        expr: |
+          histogram_quantile(0.99, rate(proven_safe_retry_backoff_seconds_bucket[5m]))
+
+  - name: proven_resilience_safe_monotonic
+    interval: 30s
+    rules:
+      # Monotonic counter value
+      - record: proven:safe_monotonic:counter_value
+        expr: |
+          proven_safe_monotonic_counter_current
+
+      # High water mark
+      - record: proven:safe_monotonic:high_water_mark
+        expr: |
+          proven_safe_monotonic_high_water_mark
+
+      # Sequence generation rate
+      - record: proven:safe_monotonic:sequence_rate
+        expr: |
+          rate(proven_safe_monotonic_sequences_generated_total[5m])
+
+      # Epoch transitions
+      - record: proven:safe_monotonic:epoch_transitions
+        expr: |
+          rate(proven_safe_monotonic_epoch_transitions_total[5m])
+
+      # Wraparound detection
+      - record: proven:safe_monotonic:wraparound_prevented
+        expr: |
+          rate(proven_safe_monotonic_wraparound_prevented_total[5m])
+
+  # ============================================================================
+  # STATE MODULES (2)
+  # ============================================================================
+  - name: proven_state_safe_state_machine
+    interval: 30s
+    rules:
+      # State transitions
+      - record: proven:safe_state_machine:transitions
+        expr: |
+          sum by (from_state, to_state) (rate(proven_safe_state_machine_transition_total[5m]))
+
+      # Invalid transition attempts
+      - record: proven:safe_state_machine:invalid_transitions
+        expr: |
+          rate(proven_safe_state_machine_invalid_transition_total[5m])
+
+      # Current state distribution
+      - record: proven:safe_state_machine:state_distribution
+        expr: |
+          sum by (state) (proven_safe_state_machine_current_state)
+
+      # Time in state (histogram)
+      - record: proven:safe_state_machine:time_in_state_p99
+        expr: |
+          histogram_quantile(0.99, rate(proven_safe_state_machine_state_duration_seconds_bucket[5m]))
+
+  - name: proven_state_safe_calculator
+    interval: 30s
+    rules:
+      # Expression evaluations
+      - record: proven:safe_calculator:evaluations
+        expr: |
+          rate(proven_safe_calculator_evaluations_total[5m])
+
+      # Overflow prevention
+      - record: proven:safe_calculator:overflow_prevented
+        expr: |
+          rate(proven_safe_calculator_overflow_prevented_total[5m])
+
+      # Division by zero prevented
+      - record: proven:safe_calculator:div_zero_prevented
+        expr: |
+          rate(proven_safe_calculator_div_zero_prevented_total[5m])
+
+      # Parse errors
+      - record: proven:safe_calculator:parse_errors
+        expr: |
+          rate(proven_safe_calculator_parse_error_total[5m])
+
+      # Variable bindings
+      - record: proven:safe_calculator:variables_bound
+        expr: |
+          proven_safe_calculator_variables_current
+
+  # ============================================================================
+  # ALGORITHM MODULES (4)
+  # ============================================================================
+  - name: proven_algorithm_safe_geo
+    interval: 30s
+    rules:
+      # Haversine distance calculations
+      - record: proven:safe_geo:haversine_calculations
+        expr: |
+          rate(proven_safe_geo_haversine_total[5m])
+
+      # Bearing calculations
+      - record: proven:safe_geo:bearing_calculations
+        expr: |
+          rate(proven_safe_geo_bearing_total[5m])
+
+      # Bounding box checks
+      - record: proven:safe_geo:bbox_checks
+        expr: |
+          rate(proven_safe_geo_bbox_contains_total[5m])
+
+      # Coordinate validations
+      - record: proven:safe_geo:coordinate_validations
+        expr: |
+          rate(proven_safe_geo_coordinate_validated_total[5m])
+
+      # Out of bounds coordinates
+      - record: proven:safe_geo:out_of_bounds
+        expr: |
+          rate(proven_safe_geo_out_of_bounds_total[5m])
+
+  - name: proven_algorithm_safe_probability
+    interval: 30s
+    rules:
+      # Probability value operations
+      - record: proven:safe_probability:operations
+        expr: |
+          rate(proven_safe_probability_operations_total[5m])
+
+      # Clamping to [0,1]
+      - record: proven:safe_probability:clamped
+        expr: |
+          rate(proven_safe_probability_clamped_total[5m])
+
+      # Complement calculations
+      - record: proven:safe_probability:complements
+        expr: |
+          rate(proven_safe_probability_complement_total[5m])
+
+      # Combined probabilities
+      - record: proven:safe_probability:combinations
+        expr: |
+          rate(proven_safe_probability_combined_total[5m])
+
+  - name: proven_algorithm_safe_checksum
+    interval: 30s
+    rules:
+      # Checksum calculations by algorithm
+      - record: proven:safe_checksum:calculations
+        expr: |
+          sum by (algorithm) (rate(proven_safe_checksum_calculated_total[5m]))
+
+      # CRC-32 calculations
+      - record: proven:safe_checksum:crc32
+        expr: |
+          rate(proven_safe_checksum_crc32_total[5m])
+
+      # Adler-32 calculations
+      - record: proven:safe_checksum:adler32
+        expr: |
+          rate(proven_safe_checksum_adler32_total[5m])
+
+      # Luhn check digit validations
+      - record: proven:safe_checksum:luhn_validations
+        expr: |
+          rate(proven_safe_checksum_luhn_validated_total[5m])
+
+      # Hash functions (FNV, DJB2, SDBM)
+      - record: proven:safe_checksum:hash_functions
+        expr: |
+          sum by (function) (rate(proven_safe_checksum_hash_total[5m]))
+
+  - name: proven_algorithm_safe_tensor
+    interval: 30s
+    rules:
+      # Tensor operations
+      - record: proven:safe_tensor:operations
+        expr: |
+          sum by (operation) (rate(proven_safe_tensor_operations_total[5m]))
+
+      # Shape validations
+      - record: proven:safe_tensor:shape_validations
+        expr: |
+          rate(proven_safe_tensor_shape_validated_total[5m])
+
+      # Shape mismatches (prevented)
+      - record: proven:safe_tensor:shape_mismatches
+        expr: |
+          rate(proven_safe_tensor_shape_mismatch_total[5m])
+
+      # Bounds-checked accesses
+      - record: proven:safe_tensor:bounds_checked
+        expr: |
+          rate(proven_safe_tensor_bounds_checked_total[5m])
+
+      # Out of bounds prevented
+      - record: proven:safe_tensor:out_of_bounds_prevented
+        expr: |
+          rate(proven_safe_tensor_out_of_bounds_prevented_total[5m])
+
+      # Matrix multiplications
+      - record: proven:safe_tensor:matmul
+        expr: |
+          rate(proven_safe_tensor_matmul_total[5m])
+
+  # ============================================================================
+  # SECURITY MODULES (2)
+  # ============================================================================
+  - name: proven_security_safe_password
+    interval: 30s
+    rules:
+      # Password strength scores (histogram)
+      - record: proven:safe_password:strength_p50
+        expr: |
+          histogram_quantile(0.5, rate(proven_safe_password_strength_bucket[5m]))
+
+      # Policy validations
+      - record: proven:safe_password:policy_validated
+        expr: |
+          rate(proven_safe_password_policy_validated_total[5m])
+
+      # Policy failures
+      - record: proven:safe_password:policy_failed
+        expr: |
+          rate(proven_safe_password_policy_failed_total[5m])
+
+      # Entropy calculations
+      - record: proven:safe_password:entropy_calculated
+        expr: |
+          rate(proven_safe_password_entropy_calculated_total[5m])
+
+      # Breach checks (if integrated)
+      - record: proven:safe_password:breach_checked
+        expr: |
+          rate(proven_safe_password_breach_checked_total[5m])
+
+  - name: proven_security_safe_ml
+    interval: 30s
+    rules:
+      # Softmax operations (numerically stable)
+      - record: proven:safe_ml:softmax_operations
+        expr: |
+          rate(proven_safe_ml_softmax_total[5m])
+
+      # Numerical stability interventions
+      - record: proven:safe_ml:stability_interventions
+        expr: |
+          rate(proven_safe_ml_stability_intervention_total[5m])
+
+      # Loss function calculations
+      - record: proven:safe_ml:loss_calculations
+        expr: |
+          sum by (function) (rate(proven_safe_ml_loss_total[5m]))
+
+      # Activation functions
+      - record: proven:safe_ml:activations
+        expr: |
+          sum by (function) (rate(proven_safe_ml_activation_total[5m]))
+
+      # Gradient clipping
+      - record: proven:safe_ml:gradient_clipped
+        expr: |
+          rate(proven_safe_ml_gradient_clipped_total[5m])
+
+  # ============================================================================
+  # HTTP MODULES (3)
+  # ============================================================================
+  - name: proven_http_safe_header
+    interval: 30s
+    rules:
+      # Header validations
+      - record: proven:safe_header:validated
+        expr: |
+          rate(proven_safe_header_validated_total[5m])
+
+      # CRLF injection prevention
+      - record: proven:safe_header:crlf_prevented
+        expr: |
+          rate(proven_safe_header_crlf_prevented_total[5m])
+
+      # Header size limit enforcement
+      - record: proven:safe_header:size_exceeded
+        expr: |
+          rate(proven_safe_header_size_exceeded_total[5m])
+
+      # Invalid characters blocked
+      - record: proven:safe_header:invalid_chars_blocked
+        expr: |
+          rate(proven_safe_header_invalid_chars_total[5m])
+
+  - name: proven_http_safe_cookie
+    interval: 30s
+    rules:
+      # Cookie parsing
+      - record: proven:safe_cookie:parsed
+        expr: |
+          rate(proven_safe_cookie_parsed_total[5m])
+
+      # Cookie validation
+      - record: proven:safe_cookie:validated
+        expr: |
+          rate(proven_safe_cookie_validated_total[5m])
+
+      # Injection prevention
+      - record: proven:safe_cookie:injection_prevented
+        expr: |
+          rate(proven_safe_cookie_injection_prevented_total[5m])
+
+      # SameSite attribute usage
+      - record: proven:safe_cookie:samesite_usage
+        expr: |
+          sum by (policy) (rate(proven_safe_cookie_samesite_total[5m]))
+
+      # Secure flag enforcement
+      - record: proven:safe_cookie:secure_enforced
+        expr: |
+          rate(proven_safe_cookie_secure_enforced_total[5m])
+
+      # Cookie prefix validation
+      - record: proven:safe_cookie:prefix_validated
+        expr: |
+          sum by (prefix) (rate(proven_safe_cookie_prefix_validated_total[5m]))
+
+  - name: proven_http_safe_content_type
+    interval: 30s
+    rules:
+      # Content-Type parsing
+      - record: proven:safe_content_type:parsed
+        expr: |
+          rate(proven_safe_content_type_parsed_total[5m])
+
+      # MIME type validations
+      - record: proven:safe_content_type:validated
+        expr: |
+          sum by (category) (rate(proven_safe_content_type_validated_total[5m]))
+
+      # Sniffing prevention
+      - record: proven:safe_content_type:sniffing_prevented
+        expr: |
+          rate(proven_safe_content_type_sniffing_prevented_total[5m])
+
+      # Charset validations
+      - record: proven:safe_content_type:charset_validated
+        expr: |
+          rate(proven_safe_content_type_charset_validated_total[5m])
+
+  # ============================================================================
+  # AGGREGATE SAFETY METRICS
+  # ============================================================================
+  - name: proven_aggregate_safety
+    interval: 1m
+    rules:
+      # Overall safety operations per second
+      - record: proven:aggregate:operations_per_second
+        expr: |
+          sum(
+            rate(proven_safe_math_operations_total[5m])
+            + rate(proven_safe_string_operations_total[5m])
+            + rate(proven_safe_json_parse_attempts_total[5m])
+            + rate(proven_safe_url_parse_attempts_total[5m])
+            + rate(proven_safe_path_operations_total[5m])
+            + rate(proven_safe_email_validated_total[5m])
+            + rate(proven_safe_network_operations_total[5m])
+            + rate(proven_safe_crypto_hash_total[5m])
+            + rate(proven_safe_uuid_validated_total[5m])
+            + rate(proven_safe_currency_operations_total[5m])
+            + rate(proven_safe_phone_operations_total[5m])
+            + rate(proven_safe_hex_operations_total[5m])
+            + rate(proven_safe_datetime_operations_total[5m])
+            + rate(proven_safe_float_operations_total[5m])
+            + rate(proven_safe_version_operations_total[5m])
+            + rate(proven_safe_color_operations_total[5m])
+            + rate(proven_safe_angle_operations_total[5m])
+            + rate(proven_safe_unit_operations_total[5m])
+            + rate(proven_safe_buffer_operations_total[5m])
+            + rate(proven_safe_queue_operations_total[5m])
+            + rate(proven_safe_bloom_operations_total[5m])
+            + rate(proven_safe_lru_accesses_total[5m])
+            + rate(proven_safe_graph_operations_total[5m])
+            + rate(proven_safe_rate_limiter_requests_total[5m])
+            + rate(proven_safe_circuit_breaker_calls_total[5m])
+            + rate(proven_safe_retry_operations_total[5m])
+            + rate(proven_safe_monotonic_sequences_generated_total[5m])
+            + rate(proven_safe_state_machine_transition_total[5m])
+            + rate(proven_safe_calculator_evaluations_total[5m])
+            + rate(proven_safe_geo_operations_total[5m])
+            + rate(proven_safe_probability_operations_total[5m])
+            + rate(proven_safe_checksum_calculated_total[5m])
+            + rate(proven_safe_tensor_operations_total[5m])
+            + rate(proven_safe_password_operations_total[5m])
+            + rate(proven_safe_ml_operations_total[5m])
+            + rate(proven_safe_header_validated_total[5m])
+            + rate(proven_safe_cookie_operations_total[5m])
+            + rate(proven_safe_content_type_operations_total[5m])
+          )
+
+      # Total safety violations prevented
+      - record: proven:aggregate:violations_prevented
+        expr: |
+          sum(
+            rate(proven_safe_math_overflow_total[5m])
+            + rate(proven_safe_math_div_by_zero_prevented_total[5m])
+            + rate(proven_safe_string_xss_prevented_total[5m])
+            + rate(proven_safe_string_sql_injection_prevented_total[5m])
+            + rate(proven_safe_path_traversal_blocked_total[5m])
+            + rate(proven_safe_json_depth_exceeded_total[5m])
+            + rate(proven_safe_float_nan_prevented_total[5m])
+            + rate(proven_safe_float_infinity_prevented_total[5m])
+            + rate(proven_safe_buffer_overflow_prevented_total[5m])
+            + rate(proven_safe_queue_rejected_total[5m])
+            + rate(proven_safe_graph_cycles_detected_total[5m])
+            + rate(proven_safe_rate_limiter_rejected_total[5m])
+            + rate(proven_safe_circuit_breaker_trip_total[5m])
+            + rate(proven_safe_monotonic_wraparound_prevented_total[5m])
+            + rate(proven_safe_state_machine_invalid_transition_total[5m])
+            + rate(proven_safe_calculator_overflow_prevented_total[5m])
+            + rate(proven_safe_geo_out_of_bounds_total[5m])
+            + rate(proven_safe_tensor_out_of_bounds_prevented_total[5m])
+            + rate(proven_safe_header_crlf_prevented_total[5m])
+            + rate(proven_safe_cookie_injection_prevented_total[5m])
+            + rate(proven_safe_content_type_sniffing_prevented_total[5m])
+          )
+
+      # Safety ratio (successful safe operations / total operations)
+      - record: proven:aggregate:safety_ratio
+        expr: |
+          clamp(
+            1 - (proven:aggregate:violations_prevented / (proven:aggregate:operations_per_second > 0)),
+            0, 1
+          ) or vector(1)
+
+  # ============================================================================
+  # ALERTING RULES - CORE MODULES
+  # ============================================================================
+  - name: proven_alerts_core
+    rules:
+      # High overflow rate in math operations
+      - alert: ProvenMathOverflowRateHigh
+        expr: proven:safe_math:overflow_rate > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_math
+        annotations:
+          summary: "High overflow rate in safe_math ({{ $value | printf \"%.2f\" }}%)"
+          description: "More than 1% of math operations are hitting overflow protection"
+          runbook_url: "https://proven.dev/runbooks/math-overflow"
+
+      # XSS prevention spike
+      - alert: ProvenXSSPreventionSpike
+        expr: rate(proven_safe_string_html_escaped_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_string
+        annotations:
+          summary: "High XSS prevention rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Unusual spike in HTML escaping operations may indicate attack"
+
+      # SQL injection prevention spike
+      - alert: ProvenSQLInjectionPreventionSpike
+        expr: rate(proven_safe_string_sql_escaped_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_string
+        annotations:
+          summary: "High SQL injection prevention rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Unusual spike in SQL escaping may indicate injection attempt"
+
+      # Path traversal attacks
+      - alert: ProvenPathTraversalBlocked
+        expr: rate(proven_safe_path_traversal_blocked_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          proven: "true"
+          module: safe_path
+        annotations:
+          summary: "Path traversal attacks detected ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Multiple path traversal attempts blocked - potential attack"
+
+      # Low email validation rate
+      - alert: ProvenEmailValidationRateLow
+        expr: proven:safe_email:valid_rate < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_email
+        annotations:
+          summary: "Low email validation rate ({{ $value | printf \"%.1f\" }}%)"
+          description: "More than 50% of email addresses are invalid"
+
+      # URL scheme blocked
+      - alert: ProvenURLSchemeBlocked
+        expr: rate(proven_safe_url_scheme_blocked_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_url
+        annotations:
+          summary: "URL scheme blocking detected ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Potentially dangerous URL schemes being blocked"
+
+      # Port out of range
+      - alert: ProvenPortOutOfRange
+        expr: rate(proven_safe_network_port_invalid_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_network
+        annotations:
+          summary: "Invalid port numbers detected ({{ $value | printf \"%.0f\" }}/s)"
+          description: "High rate of port validation failures"
+
+  # ============================================================================
+  # ALERTING RULES - DATA MODULES
+  # ============================================================================
+  - name: proven_alerts_data
+    rules:
+      # JSON parsing failures
+      - alert: ProvenJSONParseFailures
+        expr: proven:safe_json:parse_success_rate < 0.9
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_json
+        annotations:
+          summary: "High JSON parse failure rate ({{ $value | printf \"%.1f\" }}%)"
+          description: "More than 10% of JSON parsing attempts are failing"
+
+      # JSON depth limit exceeded
+      - alert: ProvenJSONDepthExceeded
+        expr: rate(proven_safe_json_depth_exceeded_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_json
+        annotations:
+          summary: "JSON depth limit exceeded ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Deeply nested JSON detected - possible DoS attempt"
+
+      # NaN prevention high
+      - alert: ProvenFloatNaNPreventionHigh
+        expr: rate(proven_safe_float_nan_prevented_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_float
+        annotations:
+          summary: "High NaN prevention rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Many operations would have produced NaN"
+
+      # Infinity prevention high
+      - alert: ProvenFloatInfinityPreventionHigh
+        expr: rate(proven_safe_float_infinity_prevented_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_float
+        annotations:
+          summary: "High infinity prevention rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Many operations would have produced infinity"
+
+      # WCAG contrast failures
+      - alert: ProvenWCAGContrastFailures
+        expr: |
+          (1 - proven:safe_color:wcag_aa_passed / (proven:safe_color:wcag_contrast_calculated > 0)) > 0.2
+        for: 15m
+        labels:
+          severity: info
+          proven: "true"
+          module: safe_color
+        annotations:
+          summary: "Low WCAG AA compliance ({{ $value | printf \"%.1f\" }}% failing)"
+          description: "More than 20% of color combinations fail WCAG AA contrast"
+
+  # ============================================================================
+  # ALERTING RULES - DATA STRUCTURES
+  # ============================================================================
+  - name: proven_alerts_structures
+    rules:
+      # Buffer near capacity
+      - alert: ProvenBufferNearCapacity
+        expr: proven:safe_buffer:utilization > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_buffer
+        annotations:
+          summary: "Buffer near capacity ({{ $value | printf \"%.1f\" }}%)"
+          description: "Buffer utilization above 90%"
+
+      # Buffer overflow prevention
+      - alert: ProvenBufferOverflowPrevention
+        expr: rate(proven_safe_buffer_overflow_prevented_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_buffer
+        annotations:
+          summary: "Buffer overflow prevented ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Buffer capacity limit being hit"
+
+      # Queue near capacity
+      - alert: ProvenQueueNearCapacity
+        expr: proven:safe_queue:utilization > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_queue
+        annotations:
+          summary: "Queue near capacity ({{ $value | printf \"%.1f\" }}%)"
+          description: "Queue utilization above 90%"
+
+      # Queue rejections
+      - alert: ProvenQueueRejections
+        expr: rate(proven_safe_queue_rejected_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_queue
+        annotations:
+          summary: "Queue rejecting messages ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Queue at capacity, rejecting new messages"
+
+      # Bloom filter high fill ratio
+      - alert: ProvenBloomFilterHighFill
+        expr: proven:safe_bloom:fill_ratio > 0.5
+        for: 15m
+        labels:
+          severity: info
+          proven: "true"
+          module: safe_bloom
+        annotations:
+          summary: "Bloom filter fill ratio high ({{ $value | printf \"%.1f\" }}%)"
+          description: "Bloom filter may have high false positive rate"
+
+      # LRU cache low hit rate
+      - alert: ProvenLRUCacheLowHitRate
+        expr: proven:safe_lru:hit_rate < 0.5
+        for: 15m
+        labels:
+          severity: info
+          proven: "true"
+          module: safe_lru
+        annotations:
+          summary: "LRU cache hit rate low ({{ $value | printf \"%.1f\" }}%)"
+          description: "Cache effectiveness below 50%"
+
+      # LRU high eviction rate
+      - alert: ProvenLRUHighEvictionRate
+        expr: rate(proven_safe_lru_evictions_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_lru
+        annotations:
+          summary: "LRU high eviction rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Cache may be undersized"
+
+      # Graph cycle detected
+      - alert: ProvenGraphCycleDetected
+        expr: rate(proven_safe_graph_cycles_detected_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: info
+          proven: "true"
+          module: safe_graph
+        annotations:
+          summary: "Graph cycles detected ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Dependency cycles being detected and handled"
+
+  # ============================================================================
+  # ALERTING RULES - RESILIENCE
+  # ============================================================================
+  - name: proven_alerts_resilience
+    rules:
+      # Rate limiter high rejection
+      - alert: ProvenRateLimiterHighRejection
+        expr: proven:safe_rate_limiter:reject_rate > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_rate_limiter
+        annotations:
+          summary: "High rate limit rejection ({{ $value | printf \"%.1f\" }}%)"
+          description: "More than 50% of requests being rate limited"
+
+      # Rate limiter critical rejection
+      - alert: ProvenRateLimiterCriticalRejection
+        expr: proven:safe_rate_limiter:reject_rate > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          proven: "true"
+          module: safe_rate_limiter
+        annotations:
+          summary: "Critical rate limit rejection ({{ $value | printf \"%.1f\" }}%)"
+          description: "More than 90% of requests being rate limited - possible DoS"
+
+      # Circuit breaker open
+      - alert: ProvenCircuitBreakerOpen
+        expr: proven:safe_circuit_breaker:state == 2
+        for: 1m
+        labels:
+          severity: critical
+          proven: "true"
+          module: safe_circuit_breaker
+        annotations:
+          summary: "Circuit breaker is OPEN"
+          description: "Circuit breaker has tripped - downstream service failing"
+
+      # Circuit breaker half-open
+      - alert: ProvenCircuitBreakerHalfOpen
+        expr: proven:safe_circuit_breaker:state == 1
+        for: 1m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_circuit_breaker
+        annotations:
+          summary: "Circuit breaker is HALF-OPEN"
+          description: "Circuit breaker is testing downstream service"
+
+      # Circuit breaker high failure rate
+      - alert: ProvenCircuitBreakerHighFailureRate
+        expr: proven:safe_circuit_breaker:failure_rate > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_circuit_breaker
+        annotations:
+          summary: "High failure rate ({{ $value | printf \"%.1f\" }}%)"
+          description: "More than 50% of calls failing - circuit may trip"
+
+      # Retry exhaustion
+      - alert: ProvenRetryExhaustion
+        expr: rate(proven_safe_retry_exhausted_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_retry
+        annotations:
+          summary: "Retry attempts exhausted ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Operations failing after all retry attempts"
+
+      # High retry rate
+      - alert: ProvenHighRetryRate
+        expr: proven:safe_retry:avg_attempts > 3
+        for: 10m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_retry
+        annotations:
+          summary: "High average retry count ({{ $value | printf \"%.1f\" }})"
+          description: "Operations requiring many retries - possible instability"
+
+      # Monotonic wraparound prevention
+      - alert: ProvenMonotonicWraparoundPrevention
+        expr: rate(proven_safe_monotonic_wraparound_prevented_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_monotonic
+        annotations:
+          summary: "Monotonic counter wraparound prevented"
+          description: "Counter approaching maximum value"
+
+  # ============================================================================
+  # ALERTING RULES - STATE
+  # ============================================================================
+  - name: proven_alerts_state
+    rules:
+      # Invalid state transitions
+      - alert: ProvenInvalidStateTransition
+        expr: rate(proven_safe_state_machine_invalid_transition_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_state_machine
+        annotations:
+          summary: "Invalid state transitions ({{ $value | printf \"%.0f\" }}/s)"
+          description: "State machine rejecting invalid transition attempts"
+
+      # Calculator overflow prevention
+      - alert: ProvenCalculatorOverflow
+        expr: rate(proven_safe_calculator_overflow_prevented_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_calculator
+        annotations:
+          summary: "Calculator overflow prevention ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Expression evaluation hitting overflow limits"
+
+      # Calculator parse errors
+      - alert: ProvenCalculatorParseErrors
+        expr: rate(proven_safe_calculator_parse_error_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_calculator
+        annotations:
+          summary: "High calculator parse error rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Many expression parsing failures"
+
+  # ============================================================================
+  # ALERTING RULES - ALGORITHM
+  # ============================================================================
+  - name: proven_alerts_algorithm
+    rules:
+      # Geo out of bounds
+      - alert: ProvenGeoOutOfBounds
+        expr: rate(proven_safe_geo_out_of_bounds_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_geo
+        annotations:
+          summary: "Invalid coordinates detected ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Coordinates outside valid ranges"
+
+      # Tensor shape mismatch
+      - alert: ProvenTensorShapeMismatch
+        expr: rate(proven_safe_tensor_shape_mismatch_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_tensor
+        annotations:
+          summary: "Tensor shape mismatches ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Matrix/vector operations with incompatible shapes"
+
+      # Tensor out of bounds
+      - alert: ProvenTensorOutOfBounds
+        expr: rate(proven_safe_tensor_out_of_bounds_prevented_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_tensor
+        annotations:
+          summary: "Tensor out-of-bounds prevented ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Accessing tensor elements outside valid indices"
+
+      # Probability clamping
+      - alert: ProvenProbabilityClamping
+        expr: rate(proven_safe_probability_clamped_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: info
+          proven: "true"
+          module: safe_probability
+        annotations:
+          summary: "High probability clamping rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Many values being clamped to [0,1] range"
+
+  # ============================================================================
+  # ALERTING RULES - SECURITY
+  # ============================================================================
+  - name: proven_alerts_security
+    rules:
+      # Weak password detection
+      - alert: ProvenWeakPasswords
+        expr: proven:safe_password:strength_p50 < 2
+        for: 15m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_password
+        annotations:
+          summary: "Low median password strength ({{ $value | printf \"%.1f\" }})"
+          description: "Users creating weak passwords"
+
+      # Password policy failures
+      - alert: ProvenPasswordPolicyFailures
+        expr: |
+          rate(proven_safe_password_policy_failed_total[5m])
+          / rate(proven_safe_password_policy_validated_total[5m]) > 0.5
+        for: 15m
+        labels:
+          severity: info
+          proven: "true"
+          module: safe_password
+        annotations:
+          summary: "High password policy failure rate"
+          description: "Many passwords failing policy validation"
+
+      # ML numerical stability
+      - alert: ProvenMLStabilityIntervention
+        expr: rate(proven_safe_ml_stability_intervention_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_ml
+        annotations:
+          summary: "ML numerical stability interventions ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Frequent numerical stability corrections in ML operations"
+
+      # Gradient clipping
+      - alert: ProvenMLGradientClipping
+        expr: rate(proven_safe_ml_gradient_clipped_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_ml
+        annotations:
+          summary: "High gradient clipping rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Many gradients being clipped - possible training instability"
+
+  # ============================================================================
+  # ALERTING RULES - HTTP
+  # ============================================================================
+  - name: proven_alerts_http
+    rules:
+      # CRLF injection prevention
+      - alert: ProvenCRLFInjectionPrevention
+        expr: rate(proven_safe_header_crlf_prevented_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          proven: "true"
+          module: safe_header
+        annotations:
+          summary: "CRLF injection attempts blocked ({{ $value | printf \"%.0f\" }}/s)"
+          description: "HTTP header injection attacks being prevented"
+
+      # Header size exceeded
+      - alert: ProvenHeaderSizeExceeded
+        expr: rate(proven_safe_header_size_exceeded_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_header
+        annotations:
+          summary: "Header size limits exceeded ({{ $value | printf \"%.0f\" }}/s)"
+          description: "HTTP headers exceeding size limits"
+
+      # Cookie injection prevention
+      - alert: ProvenCookieInjectionPrevention
+        expr: rate(proven_safe_cookie_injection_prevented_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          proven: "true"
+          module: safe_cookie
+        annotations:
+          summary: "Cookie injection attempts blocked ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Cookie injection attacks being prevented"
+
+      # Content-Type sniffing prevention
+      - alert: ProvenContentTypeSniffingPrevention
+        expr: rate(proven_safe_content_type_sniffing_prevented_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          proven: "true"
+          module: safe_content_type
+        annotations:
+          summary: "Content-Type sniffing prevented ({{ $value | printf \"%.0f\" }}/s)"
+          description: "MIME type sniffing attacks being blocked"
+
+  # ============================================================================
+  # AGGREGATE SAFETY ALERTS
+  # ============================================================================
+  - name: proven_alerts_aggregate
+    rules:
+      # Overall safety ratio degraded
+      - alert: ProvenSafetyRatioDegraded
+        expr: proven:aggregate:safety_ratio < 0.99
+        for: 10m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "Overall safety ratio degraded ({{ $value | printf \"%.2f\" }}%)"
+          description: "More than 1% of operations triggering safety protections"
+
+      # High violation prevention rate
+      - alert: ProvenHighViolationPreventionRate
+        expr: proven:aggregate:violations_prevented > 100
         for: 5m
         labels:
           severity: warning
           proven: "true"
         annotations:
-          summary: "High error rate detected ({{ $value | printf \"%.2f\" }}%)"
-          description: "Error rate is above 5% for 5 minutes"
-          runbook_url: "https://runbooks.example.com/high-error-rate"
+          summary: "High safety violation prevention rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Many potentially unsafe operations being caught"
 
-      # Critical error rate
-      - alert: ProvenCriticalErrorRate
-        expr: proven:error_rate:safe > 25
+      # Critical violation prevention rate
+      - alert: ProvenCriticalViolationRate
+        expr: proven:aggregate:violations_prevented > 1000
         for: 2m
         labels:
           severity: critical
           proven: "true"
         annotations:
-          summary: "Critical error rate ({{ $value | printf \"%.2f\" }}%)"
-          description: "Error rate is above 25% for 2 minutes"
-          runbook_url: "https://runbooks.example.com/critical-error-rate"
-
-      # High latency (uses safe bounded metric)
-      - alert: ProvenHighLatency
-        expr: proven:latency_p99:safe > 1
-        for: 5m
-        labels:
-          severity: warning
-          proven: "true"
-        annotations:
-          summary: "High p99 latency ({{ $value | printf \"%.2f\" }}s)"
-          description: "99th percentile latency exceeds 1 second"
-
-      # High CPU
-      - alert: ProvenHighCPU
-        expr: proven:cpu_utilization:safe > 80
-        for: 10m
-        labels:
-          severity: warning
-          proven: "true"
-        annotations:
-          summary: "High CPU utilization ({{ $value | printf \"%.1f\" }}%)"
-          description: "CPU utilization above 80% for 10 minutes"
-
-      # High memory
-      - alert: ProvenHighMemory
-        expr: proven:memory_utilization:safe > 85
-        for: 5m
-        labels:
-          severity: warning
-          proven: "true"
-        annotations:
-          summary: "High memory utilization ({{ $value | printf \"%.1f\" }}%)"
-          description: "Memory utilization above 85% for 5 minutes"
-
-      # Disk space low
-      - alert: ProvenDiskSpaceLow
-        expr: proven:disk_utilization:safe > 80
-        for: 15m
-        labels:
-          severity: warning
-          proven: "true"
-        annotations:
-          summary: "Low disk space ({{ $value | printf \"%.1f\" }}% used)"
-          description: "Disk utilization above 80%"
-
-      # Critical disk space
-      - alert: ProvenDiskSpaceCritical
-        expr: proven:disk_utilization:safe > 95
-        for: 5m
-        labels:
-          severity: critical
-          proven: "true"
-        annotations:
-          summary: "Critical disk space ({{ $value | printf \"%.1f\" }}% used)"
-          description: "Disk utilization above 95%"
-
-      # Queue depth high
-      - alert: ProvenQueueBacklog
-        expr: proven:queue_depth:safe > 10000
-        for: 10m
-        labels:
-          severity: warning
-          proven: "true"
-        annotations:
-          summary: "Queue backlog detected ({{ $value }} messages)"
-          description: "Queue has over 10k messages for 10 minutes"
+          summary: "Critical safety violation rate ({{ $value | printf \"%.0f\" }}/s)"
+          description: "Extremely high rate of safety interventions - possible attack"
 
   # ============================================================================
-  # SLO RULES (Safe bounds)
+  # SLO RULES
   # ============================================================================
   - name: proven_slo_rules
     rules:
@@ -213,3 +1816,26 @@ groups:
         annotations:
           summary: "Error budget nearly exhausted ({{ $value | printf \"%.1f\" }}% remaining)"
           description: "Less than 10% of monthly error budget remaining"
+
+      # Safety SLO - violations prevented should be under threshold
+      - record: proven:slo:safety_violations_budget
+        expr: |
+          clamp(
+            100 - (
+              sum(proven:aggregate:violations_prevented)
+              / 10000  # 10k violations/day budget
+              * 100
+            ),
+            0, 100
+          )
+
+      # Safety SLO alert
+      - alert: ProvenSafetyBudgetLow
+        expr: proven:slo:safety_violations_budget < 20
+        for: 30m
+        labels:
+          severity: warning
+          proven: "true"
+        annotations:
+          summary: "Safety violation budget low ({{ $value | printf \"%.1f\" }}% remaining)"
+          description: "High rate of safety violations consuming daily budget"

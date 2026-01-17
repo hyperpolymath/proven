@@ -1,249 +1,247 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
---
--- SafeGraph: Formally verified graph operations with cycle detection
---
--- Provides:
--- - Type-safe directed graphs and DAGs
--- - Compile-time acyclicity proofs for DAGs
--- - Topological sorting with correctness guarantees
--- - Path finding with termination proofs
-
+-- SPDX-License-Identifier: Palimpsest-MPL-1.0
+||| SafeGraph - Safe graph data structure operations
+|||
+||| This module provides safe graph operations with
+||| bounds checking and cycle detection.
 module Proven.SafeGraph
 
-import Data.List
-import Data.List1
-import Data.Maybe
-import Data.Nat
-import Decidable.Equality
+import public Proven.Core
 
 %default total
 
-||| An edge in a graph from source to target
+--------------------------------------------------------------------------------
+-- Graph Types
+--------------------------------------------------------------------------------
+
+||| Edge in a graph
 public export
-record Edge (node : Type) where
+record Edge v w where
   constructor MkEdge
-  source : node
-  target : node
+  source : v
+  target : v
+  weight : w
 
-||| A directed graph with nodes and edges
+||| A directed graph with vertices and weighted edges
 public export
-record Graph (node : Type) where
+record Graph v w where
   constructor MkGraph
-  nodes : List node
-  edges : List (Edge node)
+  vertices : List v
+  edges : List (Edge v w)
 
-||| Empty graph
+||| An undirected graph (edges go both ways)
 public export
-emptyGraph : Graph node
-emptyGraph = MkGraph [] []
+record UndirectedGraph v w where
+  constructor MkUndirected
+  graph : Graph v w
 
-||| Add a node to the graph
+--------------------------------------------------------------------------------
+-- Construction
+--------------------------------------------------------------------------------
+
+||| Create an empty graph
 public export
-addNode : Eq node => node -> Graph node -> Graph node
-addNode n g =
-  if elem n (nodes g)
+empty : Graph v w
+empty = MkGraph [] []
+
+||| Create a graph from a list of vertices
+public export
+fromVertices : List v -> Graph v w
+fromVertices vs = MkGraph vs []
+
+||| Add a vertex to the graph
+public export
+addVertex : Eq v => v -> Graph v w -> Graph v w
+addVertex v g =
+  if any (== v) g.vertices
     then g
-    else MkGraph (n :: nodes g) (edges g)
+    else MkGraph (v :: g.vertices) g.edges
 
-||| Add an edge to the graph (nodes must exist)
+||| Add an edge to the graph
 public export
-addEdge : Eq node => node -> node -> Graph node -> Maybe (Graph node)
-addEdge from to g =
-  if elem from (nodes g) && elem to (nodes g)
-    then Just (MkGraph (nodes g) (MkEdge from to :: edges g))
-    else Nothing
+addEdge : Eq v => v -> v -> w -> Graph v w -> Graph v w
+addEdge src tgt weight g =
+  let g' = addVertex src (addVertex tgt g)
+  in MkGraph g'.vertices (MkEdge src tgt weight :: g'.edges)
 
-||| Get all outgoing edges from a node
+||| Remove a vertex and all its edges
 public export
-outEdges : Eq node => node -> Graph node -> List node
-outEdges n g = map target (filter (\e => source e == n) (edges g))
+removeVertex : Eq v => v -> Graph v w -> Graph v w
+removeVertex v g =
+  MkGraph (filter (/= v) g.vertices)
+          (filter (\e => e.source /= v && e.target /= v) g.edges)
 
-||| Get all incoming edges to a node
+||| Remove an edge
 public export
-inEdges : Eq node => node -> Graph node -> List node
-inEdges n g = map source (filter (\e => target e == n) (edges g))
+removeEdge : Eq v => v -> v -> Graph v w -> Graph v w
+removeEdge src tgt g =
+  MkGraph g.vertices (filter (\e => not (e.source == src && e.target == tgt)) g.edges)
 
-||| In-degree of a node (number of incoming edges)
+--------------------------------------------------------------------------------
+-- Queries
+--------------------------------------------------------------------------------
+
+||| Check if vertex exists in graph
 public export
-inDegree : Eq node => node -> Graph node -> Nat
-inDegree n g = length (inEdges n g)
+hasVertex : Eq v => v -> Graph v w -> Bool
+hasVertex v g = any (== v) g.vertices
 
-||| Out-degree of a node (number of outgoing edges)
+||| Check if edge exists
 public export
-outDegree : Eq node => node -> Graph node -> Nat
-outDegree n g = length (outEdges n g)
+hasEdge : Eq v => v -> v -> Graph v w -> Bool
+hasEdge src tgt g = any (\e => e.source == src && e.target == tgt) g.edges
 
-||| Check if there's a direct edge from a to b
+||| Get all neighbors of a vertex (outgoing edges)
 public export
-hasEdge : Eq node => node -> node -> Graph node -> Bool
-hasEdge from to g = any (\e => source e == from && target e == to) (edges g)
+neighbors : Eq v => v -> Graph v w -> List v
+neighbors v g = map target (filter (\e => e.source == v) g.edges)
 
-||| A path through the graph
+||| Get predecessors of a vertex (incoming edges)
 public export
-data Path : (node : Type) -> (from : node) -> (to : node) -> Type where
-  ||| Single node path (from = to)
-  Here : Path node n n
-  ||| Extend path with an edge
-  There : (edge : Edge node) -> source edge = from ->
-          Path node (target edge) to -> Path node from to
+predecessors : Eq v => v -> Graph v w -> List v
+predecessors v g = map source (filter (\e => e.target == v) g.edges)
 
-||| Length of a path
+||| Get out-degree of a vertex
 public export
-pathLength : Path node from to -> Nat
-pathLength Here = 0
-pathLength (There _ _ rest) = S (pathLength rest)
+outDegree : Eq v => v -> Graph v w -> Nat
+outDegree v g = length (filter (\e => e.source == v) g.edges)
 
-||| A proof that a graph contains no cycles
+||| Get in-degree of a vertex
 public export
-data Acyclic : Graph node -> Type where
-  MkAcyclic : (topoOrder : List node) ->
-              (allNodes : (n : node) -> Elem n (nodes g) -> Elem n topoOrder) ->
-              (ordered : (e : Edge node) -> Elem e (edges g) ->
-                        LT (fromMaybe 0 (elemIndex (target e) topoOrder))
-                           (fromMaybe 0 (elemIndex (source e) topoOrder))) ->
-              Acyclic g
+inDegree : Eq v => v -> Graph v w -> Nat
+inDegree v g = length (filter (\e => e.target == v) g.edges)
 
-||| A Directed Acyclic Graph with proof of acyclicity
+||| Get total degree of a vertex
 public export
-record DAG (node : Type) where
-  constructor MkDAG
-  graph : Graph node
-  acyclicProof : Acyclic graph
+degree : Eq v => v -> Graph v w -> Nat
+degree v g = outDegree v g + inDegree v g
 
-||| Result of cycle detection
+||| Get edge weight
 public export
-data CycleCheck : (node : Type) -> Type where
-  NoCycle : DAG node -> CycleCheck node
-  HasCycle : List node -> CycleCheck node  -- The cycle path
+getWeight : Eq v => v -> v -> Graph v w -> Maybe w
+getWeight src tgt g =
+  case find (\e => e.source == src && e.target == tgt) g.edges of
+    Nothing => Nothing
+    Just e => Just e.weight
 
-||| DFS state for cycle detection
-data DFSState : Type -> Type where
-  MkDFSState : (visited : List node) -> (stack : List node) -> DFSState node
+--------------------------------------------------------------------------------
+-- Graph Properties
+--------------------------------------------------------------------------------
 
-||| Topological sort result
+||| Number of vertices
 public export
-data TopoResult : (node : Type) -> Type where
-  TopoSorted : List node -> TopoResult node
-  CycleDetected : List node -> TopoResult node
+vertexCount : Graph v w -> Nat
+vertexCount g = length g.vertices
 
-||| Kahn's algorithm for topological sorting
-||| Returns Nothing if cycle detected
+||| Number of edges
 public export
-topoSort : Eq node => Graph node -> TopoResult node
-topoSort g = kahnLoop (nodes g) [] (computeInDegrees g)
+edgeCount : Graph v w -> Nat
+edgeCount g = length g.edges
+
+||| Check if graph is empty
+public export
+isEmpty : Graph v w -> Bool
+isEmpty g = isNil g.vertices
+
+||| Get all edges from a vertex
+public export
+edgesFrom : Eq v => v -> Graph v w -> List (Edge v w)
+edgesFrom v g = filter (\e => e.source == v) g.edges
+
+||| Get all edges to a vertex
+public export
+edgesTo : Eq v => v -> Graph v w -> List (Edge v w)
+edgesTo v g = filter (\e => e.target == v) g.edges
+
+--------------------------------------------------------------------------------
+-- Path Finding (BFS)
+--------------------------------------------------------------------------------
+
+||| Find a path between two vertices using BFS
+||| Returns Nothing if no path exists
+public export
+findPath : Eq v => v -> v -> Graph v w -> Maybe (List v)
+findPath start end g =
+  if not (hasVertex start g) || not (hasVertex end g)
+    then Nothing
+    else bfs [(start, [start])] []
   where
-    computeInDegrees : Graph node -> List (node, Nat)
-    computeInDegrees g = map (\n => (n, inDegree n g)) (nodes g)
+    bfs : List (v, List v) -> List v -> Maybe (List v)
+    bfs [] _ = Nothing
+    bfs ((current, path) :: queue) visited =
+      if current == end
+        then Just (reverse path)
+        else if any (== current) visited
+          then bfs queue visited
+          else let newVisited = current :: visited
+                   nextNodes = filter (\n => not (any (== n) newVisited)) (neighbors current g)
+                   newQueue = queue ++ map (\n => (n, n :: path)) nextNodes
+               in bfs newQueue newVisited
 
-    getZeroInDegree : List (node, Nat) -> List node
-    getZeroInDegree = map fst . filter (\p => snd p == 0)
-
-    decrementInDegree : Eq node => node -> List (node, Nat) -> List (node, Nat)
-    decrementInDegree n = map (\p => if fst p == n then (fst p, pred (snd p)) else p)
-
-    kahnLoop : List node -> List node -> List (node, Nat) -> TopoResult node
-    kahnLoop [] result _ = TopoSorted (reverse result)
-    kahnLoop remaining result degrees =
-      let zeros = filter (\n => elem n remaining) (getZeroInDegree degrees)
-      in case zeros of
-           [] => CycleDetected remaining  -- Cycle detected
-           (n :: _) =>
-             let newRemaining = filter (/= n) remaining
-                 newDegrees = foldl (flip decrementInDegree) degrees (outEdges n g)
-             in kahnLoop newRemaining (n :: result) newDegrees
-
-||| Find all paths from source to target (with depth limit to ensure termination)
+||| Check if two vertices are connected
 public export
-findPaths : Eq node => Graph node -> node -> node -> Nat -> List (List node)
-findPaths g from to maxDepth = dfs [from] maxDepth
+isConnected : Eq v => v -> v -> Graph v w -> Bool
+isConnected start end g =
+  case findPath start end g of
+    Nothing => False
+    Just _ => True
+
+--------------------------------------------------------------------------------
+-- Cycle Detection
+--------------------------------------------------------------------------------
+
+||| Detect if graph has a cycle (using DFS)
+public export
+hasCycle : Eq v => Graph v w -> Bool
+hasCycle g = any (checkFromVertex []) g.vertices
   where
-    dfs : List node -> Nat -> List (List node)
-    dfs path Z = []  -- Depth limit reached
-    dfs path (S depth) =
-      let current = case path of
-                      [] => from
-                      (h :: _) => h
-      in if current == to
-           then [reverse path]
-           else let nexts = filter (\n => not (elem n path)) (outEdges current g)
-                in concatMap (\n => dfs (n :: path) depth) nexts
+    dfs : List v -> List v -> v -> Bool
+    dfs visited stack current =
+      if any (== current) stack
+        then True  -- Back edge found, cycle exists
+        else if any (== current) visited
+          then False  -- Already fully explored
+          else let newStack = current :: stack
+                   succs = neighbors current g
+               in any (dfs visited newStack) succs
+    
+    checkFromVertex : List v -> v -> Bool
+    checkFromVertex visited v = dfs visited [] v
 
-||| Check if node is reachable from another
-public export
-isReachable : Eq node => Graph node -> node -> node -> Nat -> Bool
-isReachable g from to maxDepth = not (null (findPaths g from to maxDepth))
+--------------------------------------------------------------------------------
+-- Topological Sort
+--------------------------------------------------------------------------------
 
-||| Strongly connected components (Kosaraju's algorithm concept)
+||| Topological sort (returns Nothing if graph has cycles)
 public export
-record SCC (node : Type) where
-  constructor MkSCC
-  component : List node
-
-||| Reverse all edges in a graph
-public export
-reverseGraph : Graph node -> Graph node
-reverseGraph g = MkGraph (nodes g) (map reverseEdge (edges g))
+topologicalSort : Eq v => Graph v w -> Maybe (List v)
+topologicalSort g =
+  if hasCycle g
+    then Nothing
+    else Just (topoSort g.vertices [] [])
   where
-    reverseEdge : Edge node -> Edge node
-    reverseEdge e = MkEdge (target e) (source e)
+    topoSort : List v -> List v -> List v -> List v
+    topoSort [] _ result = result
+    topoSort (v :: vs) visited result =
+      if any (== v) visited
+        then topoSort vs visited result
+        else let (newVisited, newResult) = visit v visited result
+             in topoSort vs newVisited newResult
+    
+    visit : v -> List v -> List v -> (List v, List v)
+    visit v visited result =
+      if any (== v) visited
+        then (visited, result)
+        else let newVisited = v :: visited
+                 succs = neighbors v g
+                 (finalVisited, afterSuccs) = foldl (\(vis, res), s => visit s vis res) (newVisited, result) succs
+             in (finalVisited, v :: afterSuccs)
 
-||| Get root nodes (no incoming edges)
-public export
-getRoots : Eq node => Graph node -> List node
-getRoots g = filter (\n => inDegree n g == 0) (nodes g)
+--------------------------------------------------------------------------------
+-- Display
+--------------------------------------------------------------------------------
 
-||| Get leaf nodes (no outgoing edges)
 public export
-getLeaves : Eq node => Graph node -> List node
-getLeaves g = filter (\n => outDegree n g == 0) (nodes g)
+Show v => Show (Graph v w) where
+  show g = "Graph(vertices=" ++ show (length g.vertices) ++
+           ", edges=" ++ show (length g.edges) ++ ")"
 
-||| Subgraph induced by a subset of nodes
-public export
-inducedSubgraph : Eq node => List node -> Graph node -> Graph node
-inducedSubgraph subset g =
-  let validEdges = filter (\e => elem (source e) subset && elem (target e) subset) (edges g)
-  in MkGraph subset validEdges
-
-||| Transitive closure - add edge for all reachable pairs
-public export
-transitiveClosure : Eq node => Graph node -> Nat -> Graph node
-transitiveClosure g maxDepth =
-  let newEdges = concatMap (\n =>
-                   map (\m => MkEdge n m)
-                       (filter (\m => m /= n && isReachable g n m maxDepth) (nodes g)))
-                 (nodes g)
-  in MkGraph (nodes g) (nub (edges g ++ newEdges))
-  where
-    nub : Eq a => List a -> List a
-    nub [] = []
-    nub (x :: xs) = x :: nub (filter (/= x) xs)
-
-||| Proof that a path exists in a graph
-public export
-data PathExists : Graph node -> node -> node -> Type where
-  DirectEdge : Elem (MkEdge from to) (edges g) -> PathExists g from to
-  IndirectPath : Elem (MkEdge from mid) (edges g) -> PathExists g mid to -> PathExists g from to
-
-||| A weighted edge
-public export
-record WeightedEdge (node : Type) (weight : Type) where
-  constructor MkWeightedEdge
-  wSource : node
-  wTarget : node
-  wWeight : weight
-
-||| A weighted graph
-public export
-record WeightedGraph (node : Type) (weight : Type) where
-  constructor MkWeightedGraph
-  wgNodes : List node
-  wgEdges : List (WeightedEdge node weight)
-
-||| Convert weighted graph to unweighted
-public export
-forgetWeights : WeightedGraph node weight -> Graph node
-forgetWeights wg = MkGraph (wgNodes wg) (map toEdge (wgEdges wg))
-  where
-    toEdge : WeightedEdge node weight -> Edge node
-    toEdge we = MkEdge (wSource we) (wTarget we)

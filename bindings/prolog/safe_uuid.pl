@@ -1,8 +1,8 @@
-%% SPDX-License-Identifier: AGPL-3.0-or-later
-%% SPDX-FileCopyrightText: 2025 Hyperpolymath
-%%
-%% Proven SafeUUID - UUID validation and manipulation for Prolog
-%% Following RFC 4122 specification.
+% SPDX-License-Identifier: PMPL-1.0
+% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%
+% Proven SafeUUID - UUID validation and manipulation for Prolog
+% Following RFC 4122 specification.
 
 :- module(safe_uuid, [
     uuid/2,

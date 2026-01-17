@@ -8,7 +8,7 @@
 
 image:https://img.shields.io/badge/version-1.0.0-blue[Version 1.0.0]
 image:https://img.shields.io/badge/license-PMPL--1.0-green[License: PMPL-1.0]
-image:https://img.shields.io/badge/modules-74-blue[74 Modules]
+image:https://img.shields.io/badge/modules-87-blue[87 Modules]
 image:https://img.shields.io/badge/bindings-89_targets-orange[89 Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
 image:https://img.shields.io/badge/Idris-Inside-blueviolet?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJMMyA3djEwbDkgNSA5LTVWN2wtOS01em0wIDJsNyA0djhsLTcgNC03LTRWOGw3LTR6Ii8+PC9zdmc+[Idris Inside]
@@ -85,7 +85,7 @@ image:https://img.shields.io/badge/build-passing-brightgreen[Build Status]
 | Metric | Count | Notes
 
 | Core Modules
-| 74
+| 87
 | Idris 2 verified implementations
 
 | Binding Targets

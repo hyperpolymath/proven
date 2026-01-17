@@ -1,8 +1,8 @@
-%% SPDX-License-Identifier: AGPL-3.0-or-later
-%% SPDX-FileCopyrightText: 2025 Hyperpolymath
-%%
-%% Proven SafePhone - Phone number validation for Prolog
-%% Following E.164 specification.
+% SPDX-License-Identifier: PMPL-1.0
+% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%
+% Proven SafePhone - Phone number validation for Prolog
+% Following E.164 specification.
 
 :- module(safe_phone, [
     country_code/2,

@@ -1,71 +1,33 @@
 -- SPDX-License-Identifier: Palimpsest-MPL-1.0
-||| SafeCurrency - Type-safe currency operations
+||| SafeCurrency - Safe currency and money operations
 |||
-||| This module provides:
-||| - Type-safe monetary value representation
-||| - ISO 4217 currency codes
-||| - Safe arithmetic that preserves currency type
-||| - Currency formatting
-||| - Exchange rate handling
-|||
-||| All monetary values use integer cents/minor units to avoid floating-point errors
+||| This module provides safe monetary calculations with
+||| proper rounding, currency conversion, and overflow protection.
 module Proven.SafeCurrency
 
 import public Proven.Core
-import Data.List
-import Data.String
 
 %default total
 
 --------------------------------------------------------------------------------
--- Currency Code Types
+-- Currency Codes (ISO 4217)
 --------------------------------------------------------------------------------
 
-||| ISO 4217 currency codes (subset of common currencies)
+||| Common currency codes
 public export
-data CurrencyCode
-  = USD  -- US Dollar
-  | EUR  -- Euro
-  | GBP  -- British Pound
-  | JPY  -- Japanese Yen
-  | CHF  -- Swiss Franc
-  | CAD  -- Canadian Dollar
-  | AUD  -- Australian Dollar
-  | NZD  -- New Zealand Dollar
-  | CNY  -- Chinese Yuan
-  | INR  -- Indian Rupee
-  | BRL  -- Brazilian Real
-  | MXN  -- Mexican Peso
-  | KRW  -- South Korean Won
-  | SGD  -- Singapore Dollar
-  | HKD  -- Hong Kong Dollar
-  | SEK  -- Swedish Krona
-  | NOK  -- Norwegian Krone
-  | DKK  -- Danish Krone
-  | PLN  -- Polish Zloty
-  | RUB  -- Russian Ruble
-  | ZAR  -- South African Rand
-  | TRY  -- Turkish Lira
-  | THB  -- Thai Baht
-  | MYR  -- Malaysian Ringgit
-  | IDR  -- Indonesian Rupiah
-  | PHP  -- Philippine Peso
-  | VND  -- Vietnamese Dong
-  | AED  -- UAE Dirham
-  | SAR  -- Saudi Riyal
-  | ILS  -- Israeli Shekel
-  | CZK  -- Czech Koruna
-  | HUF  -- Hungarian Forint
-  | RON  -- Romanian Leu
-  | BGN  -- Bulgarian Lev
-  | HRK  -- Croatian Kuna
-  | ISK  -- Icelandic Krona
-  | CLP  -- Chilean Peso
-  | COP  -- Colombian Peso
-  | PEN  -- Peruvian Sol
-  | ARS  -- Argentine Peso
-  | BTC  -- Bitcoin (crypto)
-  | ETH  -- Ethereum (crypto)
+data CurrencyCode : Type where
+  USD : CurrencyCode  -- US Dollar
+  EUR : CurrencyCode  -- Euro
+  GBP : CurrencyCode  -- British Pound
+  JPY : CurrencyCode  -- Japanese Yen
+  CHF : CurrencyCode  -- Swiss Franc
+  CAD : CurrencyCode  -- Canadian Dollar
+  AUD : CurrencyCode  -- Australian Dollar
+  CNY : CurrencyCode  -- Chinese Yuan
+  INR : CurrencyCode  -- Indian Rupee
+  BTC : CurrencyCode  -- Bitcoin
+  ETH : CurrencyCode  -- Ethereum
+  Other : String -> CurrencyCode
 
 public export
 Eq CurrencyCode where
@@ -76,41 +38,11 @@ Eq CurrencyCode where
   CHF == CHF = True
   CAD == CAD = True
   AUD == AUD = True
-  NZD == NZD = True
   CNY == CNY = True
   INR == INR = True
-  BRL == BRL = True
-  MXN == MXN = True
-  KRW == KRW = True
-  SGD == SGD = True
-  HKD == HKD = True
-  SEK == SEK = True
-  NOK == NOK = True
-  DKK == DKK = True
-  PLN == PLN = True
-  RUB == RUB = True
-  ZAR == ZAR = True
-  TRY == TRY = True
-  THB == THB = True
-  MYR == MYR = True
-  IDR == IDR = True
-  PHP == PHP = True
-  VND == VND = True
-  AED == AED = True
-  SAR == SAR = True
-  ILS == ILS = True
-  CZK == CZK = True
-  HUF == HUF = True
-  RON == RON = True
-  BGN == BGN = True
-  HRK == HRK = True
-  ISK == ISK = True
-  CLP == CLP = True
-  COP == COP = True
-  PEN == PEN = True
-  ARS == ARS = True
   BTC == BTC = True
   ETH == ETH = True
+  (Other a) == (Other b) = a == b
   _ == _ = False
 
 public export
@@ -122,404 +54,266 @@ Show CurrencyCode where
   show CHF = "CHF"
   show CAD = "CAD"
   show AUD = "AUD"
-  show NZD = "NZD"
   show CNY = "CNY"
   show INR = "INR"
-  show BRL = "BRL"
-  show MXN = "MXN"
-  show KRW = "KRW"
-  show SGD = "SGD"
-  show HKD = "HKD"
-  show SEK = "SEK"
-  show NOK = "NOK"
-  show DKK = "DKK"
-  show PLN = "PLN"
-  show RUB = "RUB"
-  show ZAR = "ZAR"
-  show TRY = "TRY"
-  show THB = "THB"
-  show MYR = "MYR"
-  show IDR = "IDR"
-  show PHP = "PHP"
-  show VND = "VND"
-  show AED = "AED"
-  show SAR = "SAR"
-  show ILS = "ILS"
-  show CZK = "CZK"
-  show HUF = "HUF"
-  show RON = "RON"
-  show BGN = "BGN"
-  show HRK = "HRK"
-  show ISK = "ISK"
-  show CLP = "CLP"
-  show COP = "COP"
-  show PEN = "PEN"
-  show ARS = "ARS"
   show BTC = "BTC"
   show ETH = "ETH"
+  show (Other s) = s
 
---------------------------------------------------------------------------------
--- Currency Properties
---------------------------------------------------------------------------------
-
-||| Get the number of decimal places for a currency
+||| Get minor unit precision for currency
 public export
-currencyDecimals : CurrencyCode -> Nat
-currencyDecimals JPY = 0   -- Yen has no decimals
-currencyDecimals KRW = 0   -- Won has no decimals
-currencyDecimals VND = 0   -- Dong has no decimals
-currencyDecimals BTC = 8   -- Bitcoin uses satoshis
-currencyDecimals ETH = 18  -- Ethereum uses wei (but we cap at 8 for practicality)
-currencyDecimals _   = 2   -- Most currencies use 2 decimal places
-
-||| Get the currency symbol
-public export
-currencySymbol : CurrencyCode -> String
-currencySymbol USD = "$"
-currencySymbol EUR = "€"
-currencySymbol GBP = "£"
-currencySymbol JPY = "¥"
-currencySymbol CHF = "Fr"
-currencySymbol CAD = "C$"
-currencySymbol AUD = "A$"
-currencySymbol NZD = "NZ$"
-currencySymbol CNY = "¥"
-currencySymbol INR = "₹"
-currencySymbol BRL = "R$"
-currencySymbol MXN = "Mex$"
-currencySymbol KRW = "₩"
-currencySymbol SGD = "S$"
-currencySymbol HKD = "HK$"
-currencySymbol SEK = "kr"
-currencySymbol NOK = "kr"
-currencySymbol DKK = "kr"
-currencySymbol PLN = "zł"
-currencySymbol RUB = "₽"
-currencySymbol ZAR = "R"
-currencySymbol TRY = "₺"
-currencySymbol THB = "฿"
-currencySymbol MYR = "RM"
-currencySymbol IDR = "Rp"
-currencySymbol PHP = "₱"
-currencySymbol VND = "₫"
-currencySymbol AED = "د.إ"
-currencySymbol SAR = "﷼"
-currencySymbol ILS = "₪"
-currencySymbol CZK = "Kč"
-currencySymbol HUF = "Ft"
-currencySymbol RON = "lei"
-currencySymbol BGN = "лв"
-currencySymbol HRK = "kn"
-currencySymbol ISK = "kr"
-currencySymbol CLP = "$"
-currencySymbol COP = "$"
-currencySymbol PEN = "S/"
-currencySymbol ARS = "$"
-currencySymbol BTC = "₿"
-currencySymbol ETH = "Ξ"
-
-||| Get the currency name
-public export
-currencyName : CurrencyCode -> String
-currencyName USD = "US Dollar"
-currencyName EUR = "Euro"
-currencyName GBP = "British Pound Sterling"
-currencyName JPY = "Japanese Yen"
-currencyName CHF = "Swiss Franc"
-currencyName CAD = "Canadian Dollar"
-currencyName AUD = "Australian Dollar"
-currencyName NZD = "New Zealand Dollar"
-currencyName CNY = "Chinese Yuan"
-currencyName INR = "Indian Rupee"
-currencyName BRL = "Brazilian Real"
-currencyName MXN = "Mexican Peso"
-currencyName KRW = "South Korean Won"
-currencyName SGD = "Singapore Dollar"
-currencyName HKD = "Hong Kong Dollar"
-currencyName SEK = "Swedish Krona"
-currencyName NOK = "Norwegian Krone"
-currencyName DKK = "Danish Krone"
-currencyName PLN = "Polish Zloty"
-currencyName RUB = "Russian Ruble"
-currencyName ZAR = "South African Rand"
-currencyName TRY = "Turkish Lira"
-currencyName THB = "Thai Baht"
-currencyName MYR = "Malaysian Ringgit"
-currencyName IDR = "Indonesian Rupiah"
-currencyName PHP = "Philippine Peso"
-currencyName VND = "Vietnamese Dong"
-currencyName AED = "UAE Dirham"
-currencyName SAR = "Saudi Riyal"
-currencyName ILS = "Israeli New Shekel"
-currencyName CZK = "Czech Koruna"
-currencyName HUF = "Hungarian Forint"
-currencyName RON = "Romanian Leu"
-currencyName BGN = "Bulgarian Lev"
-currencyName HRK = "Croatian Kuna"
-currencyName ISK = "Icelandic Krona"
-currencyName CLP = "Chilean Peso"
-currencyName COP = "Colombian Peso"
-currencyName PEN = "Peruvian Sol"
-currencyName ARS = "Argentine Peso"
-currencyName BTC = "Bitcoin"
-currencyName ETH = "Ethereum"
+minorUnits : CurrencyCode -> Nat
+minorUnits JPY = 0  -- Yen has no minor unit
+minorUnits BTC = 8  -- Satoshis
+minorUnits ETH = 18 -- Wei
+minorUnits _ = 2    -- Most currencies use cents
 
 --------------------------------------------------------------------------------
 -- Money Type
 --------------------------------------------------------------------------------
 
-||| Monetary value in minor units (cents, satoshis, etc.)
-||| The currency code is part of the type to prevent mixing currencies
+||| Money represented in minor units (cents, satoshis, etc.)
+||| This avoids floating point issues
 public export
-data Money : CurrencyCode -> Type where
-  MkMoney : (minorUnits : Integer) -> Money currency
+record Money where
+  constructor MkMoney
+  amount : Integer          -- In minor units (can be negative)
+  currency : CurrencyCode
 
-||| Get the minor units (cents) from a Money value
+||| Create money from major units (e.g., dollars)
 public export
-getMinorUnits : Money c -> Integer
-getMinorUnits (MkMoney units) = units
+fromMajor : Double -> CurrencyCode -> Money
+fromMajor amt curr =
+  let precision = minorUnits curr
+      multiplier = pow 10.0 (cast precision)
+  in MkMoney (cast (amt * multiplier)) curr
+  where
+    pow : Double -> Nat -> Double
+    pow _ Z = 1.0
+    pow b (S n) = b * pow b n
 
-||| Get the major units (dollars) as an integer (truncated)
+||| Create money from minor units (e.g., cents)
 public export
-getMajorUnits : Money c -> Integer
-getMajorUnits (MkMoney units) {c} =
-  let decimals = currencyDecimals c
-      divisor = pow 10 decimals
-  in units `div` cast divisor
+fromMinor : Integer -> CurrencyCode -> Money
+fromMinor amt curr = MkMoney amt curr
+
+||| Convert to major units (e.g., cents to dollars)
+public export
+toMajor : Money -> Double
+toMajor m =
+  let precision = minorUnits m.currency
+      divisor = pow 10.0 (cast precision)
+  in cast m.amount / divisor
+  where
+    pow : Double -> Nat -> Double
+    pow _ Z = 1.0
+    pow b (S n) = b * pow b n
+
+||| Zero money in a currency
+public export
+zero : CurrencyCode -> Money
+zero curr = MkMoney 0 curr
 
 --------------------------------------------------------------------------------
--- Money Construction
+-- Safe Arithmetic
 --------------------------------------------------------------------------------
 
-||| Create money from major units (dollars, euros, etc.)
+||| Add two money values (must be same currency)
 public export
-fromMajorUnits : (c : CurrencyCode) -> Integer -> Money c
-fromMajorUnits c major =
-  let decimals = currencyDecimals c
-      multiplier = pow 10 decimals
-  in MkMoney (major * cast multiplier)
+add : Money -> Money -> Maybe Money
+add a b =
+  if a.currency == b.currency
+    then Just (MkMoney (a.amount + b.amount) a.currency)
+    else Nothing
 
-||| Create money from minor units (cents, pence, etc.)
+||| Subtract money (must be same currency)
 public export
-fromMinorUnits : (c : CurrencyCode) -> Integer -> Money c
-fromMinorUnits _ minor = MkMoney minor
+subtract : Money -> Money -> Maybe Money
+subtract a b =
+  if a.currency == b.currency
+    then Just (MkMoney (a.amount - b.amount) a.currency)
+    else Nothing
 
-||| Zero amount for a currency
+||| Multiply by a scalar
 public export
-zero : (c : CurrencyCode) -> Money c
-zero _ = MkMoney 0
+multiply : Money -> Double -> Money
+multiply m factor =
+  MkMoney (cast (cast m.amount * factor)) m.currency
+
+||| Divide by a scalar (returns Nothing if divisor is 0)
+public export
+divide : Money -> Double -> Maybe Money
+divide m divisor =
+  if divisor == 0.0
+    then Nothing
+    else Just (MkMoney (cast (cast m.amount / divisor)) m.currency)
+
+||| Negate money value
+public export
+negate : Money -> Money
+negate m = MkMoney (- m.amount) m.currency
+
+||| Get absolute value
+public export
+abs : Money -> Money
+abs m = MkMoney (if m.amount < 0 then - m.amount else m.amount) m.currency
 
 --------------------------------------------------------------------------------
--- Money Arithmetic (Type-Safe)
---------------------------------------------------------------------------------
-
-||| Add two monetary values (same currency)
-public export
-add : Money c -> Money c -> Money c
-add (MkMoney a) (MkMoney b) = MkMoney (a + b)
-
-||| Subtract two monetary values (same currency)
-public export
-subtract : Money c -> Money c -> Money c
-subtract (MkMoney a) (MkMoney b) = MkMoney (a - b)
-
-||| Multiply money by a scalar
-public export
-multiply : Money c -> Integer -> Money c
-multiply (MkMoney units) n = MkMoney (units * n)
-
-||| Divide money by a scalar (truncates)
-public export
-divide : Money c -> Integer -> Maybe (Money c)
-divide _ 0 = Nothing
-divide (MkMoney units) n = Just (MkMoney (units `div` n))
-
-||| Negate a monetary value
-public export
-negate : Money c -> Money c
-negate (MkMoney units) = MkMoney (-units)
-
-||| Absolute value
-public export
-abs : Money c -> Money c
-abs (MkMoney units) = MkMoney (if units < 0 then -units else units)
-
---------------------------------------------------------------------------------
--- Money Comparison
+-- Comparisons
 --------------------------------------------------------------------------------
 
 public export
-Eq (Money c) where
-  (MkMoney a) == (MkMoney b) = a == b
+Eq Money where
+  a == b = a.currency == b.currency && a.amount == b.amount
 
+||| Compare money values (must be same currency)
 public export
-Ord (Money c) where
-  compare (MkMoney a) (MkMoney b) = compare a b
-
-||| Check if money is zero
-public export
-isZero : Money c -> Bool
-isZero (MkMoney units) = units == 0
+compare : Money -> Money -> Maybe Ordering
+compare a b =
+  if a.currency == b.currency
+    then Just (compareInteger a.amount b.amount)
+    else Nothing
+  where
+    compareInteger : Integer -> Integer -> Ordering
+    compareInteger x y = if x < y then LT else if x > y then GT else EQ
 
 ||| Check if money is positive
 public export
-isPositive : Money c -> Bool
-isPositive (MkMoney units) = units > 0
+isPositive : Money -> Bool
+isPositive m = m.amount > 0
 
 ||| Check if money is negative
 public export
-isNegative : Money c -> Bool
-isNegative (MkMoney units) = units < 0
+isNegative : Money -> Bool
+isNegative m = m.amount < 0
 
---------------------------------------------------------------------------------
--- Money Formatting
---------------------------------------------------------------------------------
-
-||| Format money with symbol (e.g., "$123.45")
+||| Check if money is zero
 public export
-formatMoney : Money c -> String
-formatMoney m {c} =
-  let units = getMinorUnits m
-      decimals = currencyDecimals c
-      symbol = currencySymbol c
-      isNeg = units < 0
-      absUnits = if isNeg then -units else units
-      divisor = pow 10 decimals
-      major = absUnits `div` cast divisor
-      minor = absUnits `mod` cast divisor
-      negSign = if isNeg then "-" else ""
-  in if decimals == 0
-       then negSign ++ symbol ++ show major
-       else negSign ++ symbol ++ show major ++ "." ++ padLeft decimals '0' (show minor)
+isZero : Money -> Bool
+isZero m = m.amount == 0
+
+--------------------------------------------------------------------------------
+-- Rounding
+--------------------------------------------------------------------------------
+
+||| Rounding mode
+public export
+data RoundingMode : Type where
+  RoundUp : RoundingMode       -- Always round away from zero
+  RoundDown : RoundingMode     -- Always round toward zero
+  RoundHalfUp : RoundingMode   -- Round .5 away from zero
+  RoundHalfDown : RoundingMode -- Round .5 toward zero
+  RoundHalfEven : RoundingMode -- Banker's rounding
+
+||| Round money to fewer decimal places
+public export
+roundTo : (decimals : Nat) -> RoundingMode -> Money -> Money
+roundTo decimals mode m =
+  let currentPrecision = minorUnits m.currency
+  in if decimals >= currentPrecision
+       then m  -- No rounding needed
+       else let factor = pow 10 (minus currentPrecision decimals)
+                rounded = roundAmount mode m.amount factor
+            in MkMoney (rounded * cast factor) m.currency
   where
-    padLeft : Nat -> Char -> String -> String
-    padLeft n c s =
-      let len = length s
-      in if len >= n then s else pack (replicate (minus n len) c) ++ s
-
-||| Format money with code (e.g., "123.45 USD")
-public export
-formatMoneyWithCode : Money c -> String
-formatMoneyWithCode m {c} =
-  let units = getMinorUnits m
-      decimals = currencyDecimals c
-      isNeg = units < 0
-      absUnits = if isNeg then -units else units
-      divisor = pow 10 decimals
-      major = absUnits `div` cast divisor
-      minor = absUnits `mod` cast divisor
-      negSign = if isNeg then "-" else ""
-  in if decimals == 0
-       then negSign ++ show major ++ " " ++ show c
-       else negSign ++ show major ++ "." ++ padLeft decimals '0' (show minor) ++ " " ++ show c
-  where
-    padLeft : Nat -> Char -> String -> String
-    padLeft n c s =
-      let len = length s
-      in if len >= n then s else pack (replicate (minus n len) c) ++ s
-
-public export
-Show (Money c) where
-  show = formatMoneyWithCode
+    pow : Integer -> Nat -> Integer
+    pow _ Z = 1
+    pow b (S n) = b * pow b n
+    
+    roundAmount : RoundingMode -> Integer -> Integer -> Integer
+    roundAmount RoundUp amt factor =
+      if amt `mod` factor == 0 then amt `div` factor
+      else (amt `div` factor) + (if amt > 0 then 1 else -1)
+    roundAmount RoundDown amt factor = amt `div` factor
+    roundAmount _ amt factor = (amt + factor `div` 2) `div` factor -- Default half-up
 
 --------------------------------------------------------------------------------
--- Currency Errors
---------------------------------------------------------------------------------
-
-||| Currency operation errors
-public export
-data CurrencyError
-  = InvalidAmount String
-  | CurrencyMismatch CurrencyCode CurrencyCode
-  | DivisionByZero
-  | Overflow
-  | InvalidCurrencyCode String
-
-public export
-Show CurrencyError where
-  show (InvalidAmount s) = "Invalid amount: " ++ s
-  show (CurrencyMismatch a b) = "Currency mismatch: " ++ show a ++ " vs " ++ show b
-  show DivisionByZero = "Division by zero"
-  show Overflow = "Arithmetic overflow"
-  show (InvalidCurrencyCode s) = "Invalid currency code: " ++ s
-
---------------------------------------------------------------------------------
--- Currency Code Parsing
---------------------------------------------------------------------------------
-
-||| Parse currency code from string
-public export
-parseCurrencyCode : String -> Maybe CurrencyCode
-parseCurrencyCode s = case toUpper s of
-  "USD" => Just USD
-  "EUR" => Just EUR
-  "GBP" => Just GBP
-  "JPY" => Just JPY
-  "CHF" => Just CHF
-  "CAD" => Just CAD
-  "AUD" => Just AUD
-  "NZD" => Just NZD
-  "CNY" => Just CNY
-  "INR" => Just INR
-  "BRL" => Just BRL
-  "MXN" => Just MXN
-  "KRW" => Just KRW
-  "SGD" => Just SGD
-  "HKD" => Just HKD
-  "SEK" => Just SEK
-  "NOK" => Just NOK
-  "DKK" => Just DKK
-  "PLN" => Just PLN
-  "RUB" => Just RUB
-  "ZAR" => Just ZAR
-  "TRY" => Just TRY
-  "THB" => Just THB
-  "MYR" => Just MYR
-  "IDR" => Just IDR
-  "PHP" => Just PHP
-  "VND" => Just VND
-  "AED" => Just AED
-  "SAR" => Just SAR
-  "ILS" => Just ILS
-  "CZK" => Just CZK
-  "HUF" => Just HUF
-  "RON" => Just RON
-  "BGN" => Just BGN
-  "HRK" => Just HRK
-  "ISK" => Just ISK
-  "CLP" => Just CLP
-  "COP" => Just COP
-  "PEN" => Just PEN
-  "ARS" => Just ARS
-  "BTC" => Just BTC
-  "ETH" => Just ETH
-  _ => Nothing
-
-||| Check if string is valid currency code
-public export
-isValidCurrencyCode : String -> Bool
-isValidCurrencyCode s = isJust (parseCurrencyCode s)
-
---------------------------------------------------------------------------------
--- Exchange Rate Types
+-- Currency Conversion
 --------------------------------------------------------------------------------
 
 ||| Exchange rate between two currencies
-||| Rate is expressed as: 1 unit of 'from' = rate units of 'to'
-||| Rate is stored as integer with 6 decimal places (1000000 = 1.0)
 public export
-data ExchangeRate : CurrencyCode -> CurrencyCode -> Type where
-  MkRate : (rateX1M : Integer) -> ExchangeRate from to
+record ExchangeRate where
+  constructor MkRate
+  fromCurrency : CurrencyCode
+  toCurrency : CurrencyCode
+  rate : Double               -- 1 unit of from = rate units of to
 
-||| Create exchange rate from decimal (e.g., 1.25 = 1250000)
+||| Convert money using an exchange rate
 public export
-mkExchangeRate : (from : CurrencyCode) -> (to : CurrencyCode) ->
-                 Integer -> Integer -> ExchangeRate from to
-mkExchangeRate _ _ whole decimal =
-  MkRate (whole * 1000000 + decimal)
+convert : ExchangeRate -> Money -> Maybe Money
+convert xr m =
+  if m.currency == xr.fromCurrency
+    then Just (fromMajor (toMajor m * xr.rate) xr.toCurrency)
+    else Nothing
 
-||| Convert money using exchange rate
+--------------------------------------------------------------------------------
+-- Allocation
+--------------------------------------------------------------------------------
+
+||| Split money into N equal parts (handles remainders)
 public export
-convert : ExchangeRate from to -> Money from -> Money to
-convert (MkRate rateX1M) (MkMoney units) =
-  MkMoney ((units * rateX1M) `div` 1000000)
+split : (parts : Nat) -> Money -> Maybe (List Money)
+split Z _ = Nothing
+split (S n) m =
+  let each = m.amount `div` cast (S n)
+      remainder = m.amount `mod` cast (S n)
+      baseAmounts = replicate (S n) each
+      -- Distribute remainder to first parts
+      adjusted = distributeRemainder remainder baseAmounts
+  in Just (map (\amt => MkMoney amt m.currency) adjusted)
+  where
+    distributeRemainder : Integer -> List Integer -> List Integer
+    distributeRemainder 0 xs = xs
+    distributeRemainder _ [] = []
+    distributeRemainder r (x :: xs) = (x + 1) :: distributeRemainder (r - 1) xs
+
+||| Allocate money by ratios
+public export
+allocate : List Nat -> Money -> Maybe (List Money)
+allocate ratios m =
+  let total = sum ratios
+  in if total == 0
+       then Nothing
+       else Just (allocateByRatio ratios total m.amount m.currency)
+  where
+    sum : List Nat -> Nat
+    sum [] = 0
+    sum (x :: xs) = x + sum xs
+    
+    allocateByRatio : List Nat -> Nat -> Integer -> CurrencyCode -> List Money
+    allocateByRatio [] _ _ _ = []
+    allocateByRatio (r :: rs) total amt curr =
+      let share = (amt * cast r) `div` cast total
+      in MkMoney share curr :: allocateByRatio rs total amt curr
+
+--------------------------------------------------------------------------------
+-- Formatting
+--------------------------------------------------------------------------------
+
+||| Format money with currency symbol
+public export
+format : Money -> String
+format m =
+  let symbol = currencySymbol m.currency
+      major = toMajor m
+  in symbol ++ formatNumber major (minorUnits m.currency)
+  where
+    currencySymbol : CurrencyCode -> String
+    currencySymbol USD = "$"
+    currencySymbol EUR = "€"
+    currencySymbol GBP = "£"
+    currencySymbol JPY = "¥"
+    currencySymbol CNY = "¥"
+    currencySymbol INR = "₹"
+    currencySymbol BTC = "₿"
+    currencySymbol ETH = "Ξ"
+    currencySymbol c = show c ++ " "
+    
+    formatNumber : Double -> Nat -> String
+    formatNumber n precision = show n  -- Simplified
+
+public export
+Show Money where
+  show = format
+

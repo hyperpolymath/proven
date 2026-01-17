@@ -1,318 +1,239 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
---
--- SafeTransaction: Formally verified transaction semantics with ACID guarantees
---
--- Provides:
--- - Type-safe transactions with commit/rollback
--- - Isolation level proofs
--- - Atomicity guarantees via linear types
--- - Serializability checking
-
+-- SPDX-License-Identifier: Palimpsest-MPL-1.0
+||| SafeTransaction - Safe transactional operations
+|||
+||| This module provides ACID-like transaction semantics
+||| for safe state modifications with rollback support.
 module Proven.SafeTransaction
 
-import Data.List
-import Data.Nat
-import Data.Maybe
+import public Proven.Core
 
 %default total
 
-||| Transaction isolation levels (SQL standard)
-public export
-data IsolationLevel =
-    ReadUncommitted  -- Dirty reads possible
-  | ReadCommitted    -- No dirty reads
-  | RepeatableRead   -- No non-repeatable reads
-  | Serializable     -- Full isolation
+--------------------------------------------------------------------------------
+-- Transaction State
+--------------------------------------------------------------------------------
 
-||| Ordering on isolation levels
+||| Transaction status
 public export
-Ord IsolationLevel where
-  compare ReadUncommitted ReadUncommitted = EQ
-  compare ReadUncommitted _ = LT
-  compare ReadCommitted ReadUncommitted = GT
-  compare ReadCommitted ReadCommitted = EQ
-  compare ReadCommitted _ = LT
-  compare RepeatableRead ReadUncommitted = GT
-  compare RepeatableRead ReadCommitted = GT
-  compare RepeatableRead RepeatableRead = EQ
-  compare RepeatableRead Serializable = LT
-  compare Serializable Serializable = EQ
-  compare Serializable _ = GT
+data TxStatus : Type where
+  Pending : TxStatus
+  Committed : TxStatus
+  RolledBack : TxStatus
+  Failed : (reason : String) -> TxStatus
 
-||| Transaction state
 public export
-data TxState = Active | Committed | RolledBack | Aborted
+Eq TxStatus where
+  Pending == Pending = True
+  Committed == Committed = True
+  RolledBack == RolledBack = True
+  (Failed a) == (Failed b) = a == b
+  _ == _ = False
 
-||| A database operation type
 public export
-data Operation : (key : Type) -> (value : Type) -> Type where
-  Read : key -> Operation key value
-  Write : key -> value -> Operation key value
-  Delete : key -> Operation key value
+Show TxStatus where
+  show Pending = "Pending"
+  show Committed = "Committed"
+  show RolledBack = "RolledBack"
+  show (Failed r) = "Failed(" ++ r ++ ")"
 
-||| A write-ahead log entry
+--------------------------------------------------------------------------------
+-- Transaction Operations
+--------------------------------------------------------------------------------
+
+||| A single operation in a transaction
 public export
-record WALEntry (key : Type) (value : Type) where
-  constructor MkWALEntry
-  txId : Nat
-  op : Operation key value
+data TxOp state : Type where
+  ||| Set a new state value
+  SetState : state -> TxOp state
+  ||| Modify state with a function
+  ModifyState : (state -> state) -> TxOp state
+  ||| Validate current state
+  Validate : (state -> Bool) -> String -> TxOp state
+
+||| Transaction log entry
+public export
+record TxLogEntry state where
+  constructor MkLogEntry
+  operation : String
+  beforeState : state
+  afterState : state
   timestamp : Nat
 
-||| Transaction context with linear state
-public export
-data Transaction : (state : TxState) -> (key : Type) -> (value : Type) -> Type where
-  ||| Active transaction
-  MkActiveTx : (txId : Nat) ->
-               (isolation : IsolationLevel) ->
-               (wal : List (WALEntry key value)) ->
-               (readSet : List key) ->
-               (writeSet : List (key, value)) ->
-               Transaction Active key value
-  ||| Committed transaction
-  MkCommittedTx : (txId : Nat) -> Transaction Committed key value
-  ||| Rolled back transaction
-  MkRolledBackTx : (txId : Nat) -> Transaction RolledBack key value
+--------------------------------------------------------------------------------
+-- Transaction Type
+--------------------------------------------------------------------------------
 
-||| Begin a new transaction
+||| A transaction with operations and state
 public export
-beginTx : Nat -> IsolationLevel -> Transaction Active key value
-beginTx txId isolation = MkActiveTx txId isolation [] [] []
+record Transaction state where
+  constructor MkTx
+  txId : Nat
+  initialState : state
+  currentState : state
+  operations : List (TxOp state)
+  log : List (TxLogEntry state)
+  status : TxStatus
 
-||| Result of a transaction operation
+||| Create a new transaction
 public export
-data TxResult : (a : Type) -> (key : Type) -> (value : Type) -> Type where
-  TxOk : a -> Transaction Active key value -> TxResult a key value
-  TxError : String -> Transaction Active key value -> TxResult a key value
+begin : (txId : Nat) -> state -> Transaction state
+begin tid initial = MkTx tid initial initial [] [] Pending
 
-||| Record a read operation
+||| Check if transaction is active
 public export
-txRead : Eq key => key -> Transaction Active key value -> Transaction Active key value
-txRead k (MkActiveTx txId iso wal readSet writeSet) =
-  MkActiveTx txId iso
-             (MkWALEntry txId (Read k) 0 :: wal)
-             (if elem k readSet then readSet else k :: readSet)
-             writeSet
+isActive : Transaction state -> Bool
+isActive tx = tx.status == Pending
 
-||| Record a write operation
+||| Check if transaction succeeded
 public export
-txWrite : Eq key => key -> value -> Transaction Active key value ->
-          Transaction Active key value
-txWrite k v (MkActiveTx txId iso wal readSet writeSet) =
-  MkActiveTx txId iso
-             (MkWALEntry txId (Write k v) 0 :: wal)
-             readSet
-             ((k, v) :: filter (\p => fst p /= k) writeSet)
+isCommitted : Transaction state -> Bool
+isCommitted tx = tx.status == Committed
 
-||| Record a delete operation
-public export
-txDelete : Eq key => key -> Transaction Active key value ->
-           Transaction Active key value
-txDelete k (MkActiveTx txId iso wal readSet writeSet) =
-  MkActiveTx txId iso
-             (MkWALEntry txId (Delete k) 0 :: wal)
-             readSet
-             (filter (\p => fst p /= k) writeSet)
+--------------------------------------------------------------------------------
+-- Operations
+--------------------------------------------------------------------------------
 
-||| Commit result - transaction is consumed
+||| Add an operation to the transaction
 public export
-data CommitResult : (key : Type) -> (value : Type) -> Type where
-  CommitSuccess : Transaction Committed key value -> CommitResult key value
-  CommitFailure : String -> Transaction RolledBack key value -> CommitResult key value
+addOp : TxOp state -> Transaction state -> Transaction state
+addOp op tx =
+  if isActive tx
+    then MkTx tx.txId tx.initialState tx.currentState (op :: tx.operations) tx.log tx.status
+    else tx
 
-||| Commit a transaction (consumes the active transaction)
+||| Set state value
 public export
-commit : Transaction Active key value -> CommitResult key value
-commit (MkActiveTx txId _ _ _ _) =
-  -- In a real implementation, this would:
-  -- 1. Flush WAL to disk
-  -- 2. Check constraints
-  -- 3. Release locks
-  CommitSuccess (MkCommittedTx txId)
+set : state -> Transaction state -> Transaction state
+set s = addOp (SetState s)
 
-||| Rollback a transaction
+||| Modify state
 public export
-rollback : Transaction Active key value -> Transaction RolledBack key value
-rollback (MkActiveTx txId _ _ _ _) = MkRolledBackTx txId
+modify : (state -> state) -> Transaction state -> Transaction state
+modify f = addOp (ModifyState f)
 
-||| Proof that transaction preserves atomicity
+||| Add a validation check
 public export
-data AtomicExecution : Type where
-  ||| All operations in transaction are executed or none are
-  MkAtomic : (ops : List (Operation key value)) ->
-             (result : Either (Transaction RolledBack key value)
-                              (Transaction Committed key value)) ->
-             AtomicExecution
+validate : (state -> Bool) -> String -> Transaction state -> Transaction state
+validate pred msg = addOp (Validate pred msg)
 
-||| Conflict detection for write-write conflicts
-public export
-hasWriteConflict : Eq key =>
-                   Transaction Active key value ->
-                   Transaction Active key value ->
-                   Bool
-hasWriteConflict (MkActiveTx _ _ _ _ ws1) (MkActiveTx _ _ _ _ ws2) =
-  any (\p1 => any (\p2 => fst p1 == fst p2) ws2) ws1
+--------------------------------------------------------------------------------
+-- Execution
+--------------------------------------------------------------------------------
 
-||| Conflict detection for read-write conflicts
-public export
-hasReadWriteConflict : Eq key =>
-                       Transaction Active key value ->
-                       Transaction Active key value ->
-                       Bool
-hasReadWriteConflict (MkActiveTx _ _ _ rs1 _) (MkActiveTx _ _ _ _ ws2) =
-  any (\k => any (\p => fst p == k) ws2) rs1
+||| Execute a single operation
+executeOp : (timestamp : Nat) -> TxOp state -> state -> Either String (state, TxLogEntry state)
+executeOp ts (SetState newState) oldState =
+  Right (newState, MkLogEntry "set" oldState newState ts)
+executeOp ts (ModifyState f) oldState =
+  let newState = f oldState
+  in Right (newState, MkLogEntry "modify" oldState newState ts)
+executeOp ts (Validate pred msg) st =
+  if pred st
+    then Right (st, MkLogEntry ("validate: " ++ msg) st st ts)
+    else Left msg
 
-||| Check if two transactions are serializable
+||| Execute all operations in order
+executeOps : (timestamp : Nat) -> List (TxOp state) -> state -> List (TxLogEntry state) -> Either String (state, List (TxLogEntry state))
+executeOps _ [] st log = Right (st, log)
+executeOps ts (op :: ops) st log =
+  case executeOp ts op st of
+    Left err => Left err
+    Right (newSt, entry) => executeOps (S ts) ops newSt (entry :: log)
+
+||| Commit the transaction
 public export
-serializable : Eq key =>
-               Transaction Active key value ->
-               Transaction Active key value ->
-               Bool
-serializable tx1 tx2 =
-  not (hasWriteConflict tx1 tx2) &&
-  not (hasReadWriteConflict tx1 tx2) &&
-  not (hasReadWriteConflict tx2 tx1)
+commit : (timestamp : Nat) -> Transaction state -> Transaction state
+commit ts tx =
+  if not (isActive tx)
+    then tx
+    else case executeOps ts (reverse tx.operations) tx.initialState [] of
+           Left err => MkTx tx.txId tx.initialState tx.initialState tx.operations tx.log (Failed err)
+           Right (finalState, newLog) => MkTx tx.txId tx.initialState finalState tx.operations newLog Committed
+
+||| Rollback the transaction
+public export
+rollback : Transaction state -> Transaction state
+rollback tx =
+  if isActive tx
+    then MkTx tx.txId tx.initialState tx.initialState tx.operations tx.log RolledBack
+    else tx
+
+--------------------------------------------------------------------------------
+-- Savepoints
+--------------------------------------------------------------------------------
 
 ||| A savepoint within a transaction
 public export
-record Savepoint (key : Type) (value : Type) where
+record Savepoint state where
   constructor MkSavepoint
   name : String
-  walPosition : Nat
-  writeSetSnapshot : List (key, value)
+  state : state
+  opCount : Nat
 
 ||| Create a savepoint
 public export
-createSavepoint : String -> Transaction Active key value ->
-                  (Savepoint key value, Transaction Active key value)
-createSavepoint name tx@(MkActiveTx _ _ wal _ writeSet) =
-  (MkSavepoint name (length wal) writeSet, tx)
+savepoint : String -> Transaction state -> (Savepoint state, Transaction state)
+savepoint name tx =
+  let sp = MkSavepoint name tx.currentState (length tx.operations)
+  in (sp, tx)
 
-||| Rollback to savepoint
+||| Rollback to a savepoint
 public export
-rollbackToSavepoint : Savepoint key value -> Transaction Active key value ->
-                      Transaction Active key value
-rollbackToSavepoint sp (MkActiveTx txId iso wal readSet _) =
-  MkActiveTx txId iso
-             (take (walPosition sp) wal)
-             readSet
-             (writeSetSnapshot sp)
+rollbackTo : Savepoint state -> Transaction state -> Transaction state
+rollbackTo sp tx =
+  if isActive tx
+    then MkTx tx.txId tx.initialState sp.state (drop (minus (length tx.operations) sp.opCount) tx.operations) tx.log Pending
+    else tx
 
-||| Two-phase commit coordinator state
-public export
-data TwoPhaseState = Preparing | Prepared | Committing | Aborting | Done
+--------------------------------------------------------------------------------
+-- Transaction Isolation
+--------------------------------------------------------------------------------
 
-||| Participant in distributed transaction
+||| Isolation level
 public export
-record Participant where
-  constructor MkParticipant
-  participantId : Nat
-  vote : Maybe Bool  -- Nothing = not voted, Just True = yes, Just False = no
+data IsolationLevel : Type where
+  ReadUncommitted : IsolationLevel
+  ReadCommitted : IsolationLevel
+  RepeatableRead : IsolationLevel
+  Serializable : IsolationLevel
 
-||| Distributed transaction coordinator
 public export
-record Coordinator (key : Type) (value : Type) where
-  constructor MkCoordinator
-  coordTxId : Nat
-  state : TwoPhaseState
-  participants : List Participant
-  localTx : Transaction Active key value
+Eq IsolationLevel where
+  ReadUncommitted == ReadUncommitted = True
+  ReadCommitted == ReadCommitted = True
+  RepeatableRead == RepeatableRead = True
+  Serializable == Serializable = True
+  _ == _ = False
 
-||| Prepare phase - ask all participants to vote
 public export
-prepare : Coordinator key value -> Coordinator key value
-prepare coord = { state := Preparing } coord
+Show IsolationLevel where
+  show ReadUncommitted = "ReadUncommitted"
+  show ReadCommitted = "ReadCommitted"
+  show RepeatableRead = "RepeatableRead"
+  show Serializable = "Serializable"
 
-||| Collect vote from participant
-public export
-collectVote : Nat -> Bool -> Coordinator key value -> Coordinator key value
-collectVote pid vote coord =
-  { participants := map updateVote (participants coord) } coord
-  where
-    updateVote : Participant -> Participant
-    updateVote p = if participantId p == pid then { vote := Just vote } p else p
+--------------------------------------------------------------------------------
+-- Statistics
+--------------------------------------------------------------------------------
 
-||| Check if all participants voted yes
+||| Get operation count
 public export
-allVotedYes : Coordinator key value -> Bool
-allVotedYes coord = all (\p => vote p == Just True) (participants coord)
+opCount : Transaction state -> Nat
+opCount tx = length tx.operations
 
-||| Two-phase commit decision
+||| Get log entry count
 public export
-twoPhaseDecision : Coordinator key value -> Either String (Coordinator key value)
-twoPhaseDecision coord =
-  if allVotedYes coord
-    then Right ({ state := Committing } coord)
-    else Left "Transaction aborted: not all participants voted yes"
+logCount : Transaction state -> Nat
+logCount tx = length tx.log
 
-||| Pessimistic locking - lock types
+||| Get final state (if committed)
 public export
-data LockType = SharedLock | ExclusiveLock
+finalState : Transaction state -> Maybe state
+finalState tx =
+  if isCommitted tx then Just tx.currentState else Nothing
 
-||| Lock compatibility matrix
 public export
-locksCompatible : LockType -> LockType -> Bool
-locksCompatible SharedLock SharedLock = True
-locksCompatible _ _ = False
+Show state => Show (Transaction state) where
+  show tx = "Transaction(" ++ show tx.txId ++ ", " ++ show tx.status ++ 
+            ", ops=" ++ show (opCount tx) ++ ")"
 
-||| A lock on a resource
-public export
-record Lock (key : Type) where
-  constructor MkLock
-  lockKey : key
-  lockType : LockType
-  lockHolder : Nat  -- Transaction ID
-
-||| Lock manager state
-public export
-record LockManager (key : Type) where
-  constructor MkLockManager
-  heldLocks : List (Lock key)
-  waitingQueue : List (Nat, key, LockType)  -- (txId, key, requested lock type)
-
-||| Try to acquire a lock
-public export
-acquireLock : Eq key => Nat -> key -> LockType -> LockManager key ->
-              Either String (LockManager key)
-acquireLock txId k lockType mgr =
-  let existingLocks = filter (\l => lockKey l == k) (heldLocks mgr)
-      compatible = all (\l => lockHolder l == txId || locksCompatible (lockType l) lockType)
-                       existingLocks
-  in if compatible
-       then Right ({ heldLocks := MkLock k lockType txId :: heldLocks mgr } mgr)
-       else Left "Lock conflict"
-
-||| Release all locks held by a transaction
-public export
-releaseLocks : Nat -> LockManager key -> LockManager key
-releaseLocks txId mgr =
-  { heldLocks := filter (\l => lockHolder l /= txId) (heldLocks mgr) } mgr
-
-||| MVCC version record
-public export
-record Version (value : Type) where
-  constructor MkVersion
-  versionData : value
-  versionTxId : Nat  -- Transaction that created this version
-  versionTimestamp : Nat
-  versionDeleted : Bool
-
-||| MVCC data item with version history
-public export
-record MVCCItem (value : Type) where
-  constructor MkMVCCItem
-  versions : List (Version value)  -- Most recent first
-
-||| Find visible version for a transaction (snapshot isolation)
-public export
-findVisibleVersion : Nat -> MVCCItem value -> Maybe value
-findVisibleVersion snapshotTime item =
-  map versionData $
-    find (\v => versionTimestamp v <= snapshotTime && not (versionDeleted v))
-         (versions item)
-
-||| Add new version
-public export
-addVersion : value -> Nat -> Nat -> MVCCItem value -> MVCCItem value
-addVersion val txId timestamp item =
-  { versions := MkVersion val txId timestamp False :: versions item } item

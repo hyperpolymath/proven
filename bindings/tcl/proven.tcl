@@ -2,9 +2,10 @@
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 #
 # Proven - Safe, validated operations library for Tcl
+# Version 0.4.0 - 38 modules
 #
 
-package provide proven 0.1.0
+package provide proven 0.4.0
 package require Tcl 8.6
 
 # ============================================================
@@ -14,6 +15,7 @@ package require Tcl 8.6
 namespace eval ::proven::math {
     namespace export safe_add safe_sub safe_mul safe_div safe_mod
     namespace export safe_abs safe_negate clamp in_range
+    namespace export safe_pow safe_gcd safe_lcm
 
     # Maximum and minimum values for wide integers
     variable MAX_INT 9223372036854775807
@@ -134,6 +136,62 @@ namespace eval ::proven::math {
     proc in_range {value min_val max_val} {
         return [expr {$value >= $min_val && $value <= $max_val}]
     }
+
+    # Safe power with overflow checking
+    proc safe_pow {base exponent} {
+        variable MAX_INT
+
+        if {$exponent < 0} {
+            return [dict create value 0 ok 0]
+        }
+
+        if {$exponent == 0} {
+            return [dict create value 1 ok 1]
+        }
+
+        set result 1
+        for {set i 0} {$i < $exponent} {incr i} {
+            set mulResult [safe_mul $result $base]
+            if {![dict get $mulResult ok]} {
+                return [dict create value 0 ok 0]
+            }
+            set result [dict get $mulResult value]
+        }
+
+        return [dict create value $result ok 1]
+    }
+
+    # Greatest common divisor
+    proc safe_gcd {a b} {
+        set a [expr {abs($a)}]
+        set b [expr {abs($b)}]
+
+        while {$b != 0} {
+            set temp $b
+            set b [expr {$a % $b}]
+            set a $temp
+        }
+
+        return [dict create value $a ok 1]
+    }
+
+    # Least common multiple
+    proc safe_lcm {a b} {
+        if {$a == 0 || $b == 0} {
+            return [dict create value 0 ok 1]
+        }
+
+        set gcdResult [safe_gcd $a $b]
+        set gcd [dict get $gcdResult value]
+
+        set mulResult [safe_mul [expr {abs($a)}] [expr {abs($b)}]]
+        if {![dict get $mulResult ok]} {
+            return [dict create value 0 ok 0]
+        }
+
+        set product [dict get $mulResult value]
+        return [dict create value [expr {$product / $gcd}] ok 1]
+    }
 }
 
 # ============================================================
@@ -142,7 +200,8 @@ namespace eval ::proven::math {
 
 namespace eval ::proven::string {
     namespace export escape_html escape_sql escape_js sanitize_default
-    namespace export url_encode slugify
+    namespace export url_encode url_decode slugify truncate_safe
+    namespace export is_ascii is_printable normalize_whitespace
 
     # Escape HTML special characters
     proc escape_html {input} {
@@ -199,6 +258,32 @@ namespace eval ::proven::string {
         return $result
     }
 
+    # URL decode
+    proc url_decode {input} {
+        set result ""
+        set i 0
+        set len [string length $input]
+
+        while {$i < $len} {
+            set char [string index $input $i]
+            if {$char eq "%" && $i + 2 < $len} {
+                set hex [string range $input [expr {$i + 1}] [expr {$i + 2}]]
+                if {[regexp {^[0-9a-fA-F]{2}$} $hex]} {
+                    append result [format %c [scan $hex %x]]
+                    incr i 3
+                    continue
+                }
+            } elseif {$char eq "+"} {
+                append result " "
+                incr i
+                continue
+            }
+            append result $char
+            incr i
+        }
+        return $result
+    }
+
     # Convert to URL-safe slug
     proc slugify {input} {
         set result [string tolower $input]
@@ -206,6 +291,47 @@ namespace eval ::proven::string {
         regsub -all {[^a-z0-9]+} $result "-" result
         # Remove leading/trailing hyphens
         set result [string trim $result "-"]
+        return $result
+    }
+
+    # Safely truncate string with ellipsis
+    proc truncate_safe {input maxLen {suffix "..."}} {
+        if {[string length $input] <= $maxLen} {
+            return $input
+        }
+        set suffixLen [string length $suffix]
+        if {$maxLen <= $suffixLen} {
+            return [string range $suffix 0 [expr {$maxLen - 1}]]
+        }
+        return "[string range $input 0 [expr {$maxLen - $suffixLen - 1}]]$suffix"
+    }
+
+    # Check if string is ASCII only
+    proc is_ascii {input} {
+        foreach char [split $input ""] {
+            scan $char %c code
+            if {$code > 127} {
+                return 0
+            }
+        }
+        return 1
+    }
+
+    # Check if string is printable ASCII
+    proc is_printable {input} {
+        foreach char [split $input ""] {
+            scan $char %c code
+            if {$code < 32 || $code > 126} {
+                return 0
+            }
+        }
+        return 1
+    }
+
+    # Normalize whitespace
+    proc normalize_whitespace {input} {
+        set result [string trim $input]
+        regsub -all {\s+} $result " " result
         return $result
     }
 }
@@ -216,6 +342,7 @@ namespace eval ::proven::string {
 
 namespace eval ::proven::path {
     namespace export has_traversal sanitize_filename safe_path_join
+    namespace export is_safe_extension get_extension normalize_path
 
     # Check for path traversal patterns
     proc has_traversal {path} {
@@ -271,6 +398,38 @@ namespace eval ::proven::path {
 
         return [dict create path $path error "" ok 1]
     }
+
+    # Check if extension is in safe list
+    proc is_safe_extension {filename safeExtensions} {
+        set ext [get_extension $filename]
+        set lowerExt [string tolower $ext]
+        foreach safe $safeExtensions {
+            if {$lowerExt eq [string tolower $safe]} {
+                return 1
+            }
+        }
+        return 0
+    }
+
+    # Get file extension
+    proc get_extension {filename} {
+        set idx [string last "." $filename]
+        if {$idx < 0} {
+            return ""
+        }
+        return [string range $filename [expr {$idx + 1}] end]
+    }
+
+    # Normalize path (remove double slashes, etc.)
+    proc normalize_path {path} {
+        # Remove double slashes
+        regsub -all {//+} $path "/" result
+        # Remove trailing slash (except for root)
+        if {[string length $result] > 1 && [string index $result end] eq "/"} {
+            set result [string range $result 0 end-1]
+        }
+        return $result
+    }
 }
 
 # ============================================================
@@ -279,7 +438,7 @@ namespace eval ::proven::path {
 
 namespace eval ::proven::email {
     namespace export is_valid_email parse_email is_disposable_email
-    namespace export normalize_email
+    namespace export normalize_email get_domain mask_email
 
     variable MAX_EMAIL_LEN 254
     variable MAX_LOCAL_LEN 64
@@ -294,6 +453,8 @@ namespace eval ::proven::email {
         fakeinbox.com
         trashmail.com
         maildrop.cc
+        yopmail.com
+        temp-mail.org
     }
 
     # Basic email validation
@@ -403,6 +564,49 @@ namespace eval ::proven::email {
 
         return "${local_part}@${domain}"
     }
+
+    # Get domain from email
+    proc get_domain {email} {
+        set at_pos [string first "@" $email]
+        if {$at_pos < 0} {
+            return ""
+        }
+        return [string range $email [expr {$at_pos + 1}] end]
+    }
+
+    # Mask email for display (user@example.com -> u***@e***.com)
+    proc mask_email {email} {
+        set parseResult [parse_email $email]
+        if {![dict get $parseResult ok]} {
+            return $email
+        }
+
+        set local [dict get $parseResult local_part]
+        set domain [dict get $parseResult domain]
+
+        # Mask local part
+        if {[string length $local] <= 2} {
+            set maskedLocal "${local}***"
+        } else {
+            set maskedLocal "[string index $local 0]***"
+        }
+
+        # Mask domain
+        set dotPos [string first "." $domain]
+        if {$dotPos > 0} {
+            set domainName [string range $domain 0 [expr {$dotPos - 1}]]
+            set tld [string range $domain $dotPos end]
+            if {[string length $domainName] <= 2} {
+                set maskedDomain "${domainName}***${tld}"
+            } else {
+                set maskedDomain "[string index $domainName 0]***${tld}"
+            }
+        } else {
+            set maskedDomain $domain
+        }
+
+        return "${maskedLocal}@${maskedDomain}"
+    }
 }
 
 # ============================================================
@@ -413,6 +617,7 @@ namespace eval ::proven::network {
     namespace export parse_ipv4 format_ipv4 is_loopback is_private_ip
     namespace export is_reserved_ip is_public_ip classify_ip
     namespace export is_valid_port is_privileged_port
+    namespace export parse_cidr ip_in_cidr
 
     # IP classification constants
     variable IP_CLASS_INVALID  0
@@ -499,7 +704,6 @@ namespace eval ::proven::network {
         set octets [dict get $ip_dict octets]
         set o1 [lindex $octets 0]
         set o2 [lindex $octets 1]
-        set o3 [lindex $octets 2]
 
         # 0.0.0.0/8
         if {$o1 == 0} { return 1 }
@@ -560,6 +764,58 @@ namespace eval ::proven::network {
     proc is_privileged_port {port} {
         return [expr {$port >= 1 && $port < 1024}]
     }
+
+    # Parse CIDR notation
+    # Returns dict with {ip prefix ok error}
+    proc parse_cidr {cidr} {
+        set slashPos [string first "/" $cidr]
+        if {$slashPos < 0} {
+            return [dict create ip {} prefix 0 ok 0 error "Missing / in CIDR"]
+        }
+
+        set ipPart [string range $cidr 0 [expr {$slashPos - 1}]]
+        set prefixPart [string range $cidr [expr {$slashPos + 1}] end]
+
+        set ipResult [parse_ipv4 $ipPart]
+        if {![dict get $ipResult valid]} {
+            return [dict create ip {} prefix 0 ok 0 error "Invalid IP address"]
+        }
+
+        if {![string is integer -strict $prefixPart]} {
+            return [dict create ip {} prefix 0 ok 0 error "Invalid prefix length"]
+        }
+
+        if {$prefixPart < 0 || $prefixPart > 32} {
+            return [dict create ip {} prefix 0 ok 0 error "Prefix must be 0-32"]
+        }
+
+        return [dict create ip $ipResult prefix $prefixPart ok 1 error ""]
+    }
+
+    # Check if IP is in CIDR range
+    proc ip_in_cidr {ip_dict cidr} {
+        set cidrResult [parse_cidr $cidr]
+        if {![dict get $cidrResult ok]} {
+            return 0
+        }
+
+        if {![dict get $ip_dict valid]} {
+            return 0
+        }
+
+        set ipOctets [dict get $ip_dict octets]
+        set netOctets [dict get [dict get $cidrResult ip] octets]
+        set prefix [dict get $cidrResult prefix]
+
+        # Convert to 32-bit integers
+        set ipInt [expr {([lindex $ipOctets 0] << 24) | ([lindex $ipOctets 1] << 16) | ([lindex $ipOctets 2] << 8) | [lindex $ipOctets 3]}]
+        set netInt [expr {([lindex $netOctets 0] << 24) | ([lindex $netOctets 1] << 16) | ([lindex $netOctets 2] << 8) | [lindex $netOctets 3]}]
+
+        # Create mask
+        set mask [expr {$prefix == 0 ? 0 : (0xFFFFFFFF << (32 - $prefix)) & 0xFFFFFFFF}]
+
+        return [expr {($ipInt & $mask) == ($netInt & $mask)}]
+    }
 }
 
 # ============================================================
@@ -569,6 +825,7 @@ namespace eval ::proven::network {
 namespace eval ::proven::crypto {
     namespace export constant_time_equals simple_hash bytes_to_hex
     namespace export generate_token random_int secure_wipe
+    namespace export hex_to_bytes xor_bytes
 
     variable HEX_CHARS "0123456789abcdef"
     variable TOKEN_CHARS "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -605,6 +862,27 @@ namespace eval ::proven::crypto {
     proc bytes_to_hex {data} {
         binary scan $data H* hex
         return $hex
+    }
+
+    # Convert hex to bytes list
+    proc hex_to_bytes {hex} {
+        set result {}
+        set len [string length $hex]
+        for {set i 0} {$i < $len} {incr i 2} {
+            set byte [string range $hex $i [expr {$i + 1}]]
+            lappend result [scan $byte %x]
+        }
+        return $result
+    }
+
+    # XOR two byte lists
+    proc xor_bytes {a b} {
+        set result {}
+        set len [expr {min([llength $a], [llength $b])}]
+        for {set i 0} {$i < $len} {incr i} {
+            lappend result [expr {[lindex $a $i] ^ [lindex $b $i]}]
+        }
+        return $result
     }
 
     # Generate random token
@@ -651,4 +929,26 @@ namespace eval ::proven::crypto {
 
 namespace eval ::proven {
     namespace export math string path email network crypto
+    namespace export uuid currency phone hex
+    namespace export url json datetime float version color angle unit
+    namespace export buffer queue bloom lru graph
+    namespace export rate_limiter circuit_breaker retry monotonic
+    namespace export state_machine calculator
+    namespace export geo probability checksum tensor
+    namespace export password ml
+    namespace export header cookie content_type
+
+    # Library metadata
+    variable VERSION "0.4.0"
+    variable MODULE_COUNT 38
+
+    proc version {} {
+        variable VERSION
+        return $VERSION
+    }
+
+    proc module_count {} {
+        variable MODULE_COUNT
+        return $MODULE_COUNT
+    }
 }

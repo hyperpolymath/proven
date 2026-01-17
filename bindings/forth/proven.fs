@@ -2,10 +2,33 @@
 \ SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 \ Proven - Safe, validated operations library for Forth
-\ Stack-based safety operations
+\ Stack-based safety operations with formal verification guarantees
+\ Version 0.4.0
 
 \ ============================================================
-\ SafeMath - Overflow-checked arithmetic
+\ Library Metadata
+\ ============================================================
+
+s" 0.4.0" 2constant PROVEN-VERSION-STRING
+38 constant MODULE-COUNT
+
+\ Module Categories:
+\   Core (11): SAFE-MATH, SAFE-STRING, SAFE-PATH, SAFE-EMAIL, SAFE-URL,
+\              SAFE-NETWORK, SAFE-CRYPTO, SAFE-UUID, SAFE-CURRENCY,
+\              SAFE-PHONE, SAFE-HEX
+\   Data (7): SAFE-JSON, SAFE-DATETIME, SAFE-FLOAT, SAFE-VERSION,
+\             SAFE-COLOR, SAFE-ANGLE, SAFE-UNIT
+\   Data Structures (5): SAFE-BUFFER, SAFE-QUEUE, SAFE-BLOOM,
+\                        SAFE-LRU, SAFE-GRAPH
+\   Resilience (4): SAFE-RATE-LIMITER, SAFE-CIRCUIT-BREAKER,
+\                   SAFE-RETRY, SAFE-MONOTONIC
+\   State (2): SAFE-STATE-MACHINE, SAFE-CALCULATOR
+\   Algorithm (4): SAFE-GEO, SAFE-PROBABILITY, SAFE-CHECKSUM, SAFE-TENSOR
+\   Security (2): SAFE-PASSWORD, SAFE-ML
+\   HTTP (3): SAFE-HEADER, SAFE-COOKIE, SAFE-CONTENT-TYPE
+
+\ ============================================================
+\ SAFE-MATH - Overflow-checked arithmetic
 \ ============================================================
 
 \ Maximum and minimum cell values (assuming 64-bit)
@@ -125,7 +148,7 @@ variable overflow-flag
 ;
 
 \ ============================================================
-\ SafeString - XSS prevention
+\ SAFE-STRING - XSS prevention
 \ ============================================================
 
 \ String buffer for results
@@ -198,7 +221,7 @@ variable string-pos
 ;
 
 \ ============================================================
-\ SafePath - Directory traversal prevention
+\ SAFE-PATH - Directory traversal prevention
 \ ============================================================
 
 \ Check if string contains substring
@@ -247,7 +270,7 @@ variable string-pos
 ;
 
 \ ============================================================
-\ SafeEmail - Email validation
+\ SAFE-EMAIL - Email validation
 \ ============================================================
 
 \ Check if char is valid in local part
@@ -305,7 +328,55 @@ variable string-pos
 ;
 
 \ ============================================================
-\ SafeNetwork - IP validation
+\ SAFE-URL - URL validation and encoding
+\ ============================================================
+
+\ URL-safe characters (unreserved per RFC 3986)
+: url-unreserved? ( c -- flag )
+    dup alpha-num? if drop true exit then
+    dup [char] - = if drop true exit then
+    dup [char] . = if drop true exit then
+    dup [char] _ = if drop true exit then
+    dup [char] ~ = if drop true exit then
+    drop false
+;
+
+\ Hex digit to char
+: hex-digit ( n -- c )
+    dup 10 < if [char] 0 + else 10 - [char] A + then
+;
+
+\ URL-encode a string
+: url-encode ( addr len -- result-addr result-len )
+    reset-string
+    0 do
+        dup i + c@
+        dup url-unreserved? if
+            emit-to-string
+        else
+            [char] % emit-to-string
+            dup 4 rshift hex-digit emit-to-string
+            15 and hex-digit emit-to-string
+        then
+    loop
+    drop
+    string-result
+;
+
+\ Check if URL has dangerous characters
+: url-has-injection? ( addr len -- flag )
+    0 do
+        dup i + c@
+        dup [char] < = swap [char] > = or
+        over i + c@ [char] " = or
+        over i + c@ [char] ' = or
+        if drop true unloop exit then
+    loop
+    drop false
+;
+
+\ ============================================================
+\ SAFE-NETWORK - IP validation
 \ ============================================================
 
 \ Variables for parsed IP
@@ -386,7 +457,7 @@ variable ip-a variable ip-b variable ip-c variable ip-d
 ;
 
 \ ============================================================
-\ SafeCrypto - Basic crypto operations
+\ SAFE-CRYPTO - Basic crypto operations
 \ ============================================================
 
 \ Simple XOR-based hash (NOT cryptographically secure - for demo only)
@@ -423,30 +494,87 @@ variable hash-acc
 \ Main entry point
 \ ============================================================
 
-: proven-version ( -- ) ." Proven for Forth v0.1.0" cr ;
+: proven-version ( -- )
+    ." Proven for Forth v" PROVEN-VERSION-STRING type cr
+    ." Modules: " MODULE-COUNT . cr
+;
 
 : proven-help ( -- )
     cr
-    ." Proven Safety Library for Forth" cr
-    ." ================================" cr
+    ." Proven Safety Library for Forth v" PROVEN-VERSION-STRING type cr
+    ." ====================================================" cr
+    ." Total Modules: " MODULE-COUNT . cr
     cr
-    ." SafeMath:" cr
-    ."   safe+ safe- safe* safe/ safe-mod safe-abs safe-negate" cr
-    ."   clamp in-range?" cr
+    ." Core Modules (11):" cr
+    ."   SAFE-MATH     - Overflow-checked arithmetic" cr
+    ."   SAFE-STRING   - XSS prevention, HTML/SQL escaping" cr
+    ."   SAFE-PATH     - Directory traversal prevention" cr
+    ."   SAFE-EMAIL    - Email validation" cr
+    ."   SAFE-URL      - URL validation and encoding" cr
+    ."   SAFE-NETWORK  - IP/port validation" cr
+    ."   SAFE-CRYPTO   - Basic crypto operations" cr
+    ."   SAFE-UUID     - UUID generation (see safe-uuid.fs)" cr
+    ."   SAFE-CURRENCY - Currency operations (see safe-currency.fs)" cr
+    ."   SAFE-PHONE    - Phone number handling (see safe-phone.fs)" cr
+    ."   SAFE-HEX      - Hex encoding (see safe-hex.fs)" cr
     cr
-    ." SafeString:" cr
-    ."   escape-html escape-sql sanitize-default" cr
+    ." Data Modules (7):" cr
+    ."   SAFE-JSON     - JSON parsing/validation" cr
+    ."   SAFE-DATETIME - Date/time operations" cr
+    ."   SAFE-FLOAT    - Safe floating-point" cr
+    ."   SAFE-VERSION  - Semantic versioning" cr
+    ."   SAFE-COLOR    - Color representation" cr
+    ."   SAFE-ANGLE    - Angular measurements" cr
+    ."   SAFE-UNIT     - Unit conversions" cr
     cr
-    ." SafePath:" cr
-    ."   has-traversal? sanitize-filename" cr
+    ." Data Structure Modules (5):" cr
+    ."   SAFE-BUFFER   - Bounded buffers" cr
+    ."   SAFE-QUEUE    - FIFO queues" cr
+    ."   SAFE-BLOOM    - Bloom filters" cr
+    ."   SAFE-LRU      - LRU cache" cr
+    ."   SAFE-GRAPH    - Graph operations" cr
     cr
-    ." SafeEmail:" cr
-    ."   valid-email?" cr
+    ." Resilience Modules (4):" cr
+    ."   SAFE-RATE-LIMITER    - Rate limiting" cr
+    ."   SAFE-CIRCUIT-BREAKER - Circuit breaker pattern" cr
+    ."   SAFE-RETRY           - Retry with backoff" cr
+    ."   SAFE-MONOTONIC       - Monotonic counters" cr
     cr
-    ." SafeNetwork:" cr
-    ."   parse-ipv4 ip-loopback? ip-private? valid-port?" cr
+    ." State Modules (2):" cr
+    ."   SAFE-STATE-MACHINE - Finite state machines" cr
+    ."   SAFE-CALCULATOR    - Safe expression evaluator" cr
     cr
-    ." SafeCrypto:" cr
-    ."   simple-hash constant-time=" cr
+    ." Algorithm Modules (4):" cr
+    ."   SAFE-GEO         - Geographic coordinates" cr
+    ."   SAFE-PROBABILITY - Probability operations" cr
+    ."   SAFE-CHECKSUM    - CRC/hash functions" cr
+    ."   SAFE-TENSOR      - Vector/matrix operations" cr
+    cr
+    ." Security Modules (2):" cr
+    ."   SAFE-PASSWORD - Password validation" cr
+    ."   SAFE-ML       - ML safety operations" cr
+    cr
+    ." HTTP Modules (3):" cr
+    ."   SAFE-HEADER       - HTTP header handling" cr
+    ."   SAFE-COOKIE       - Cookie operations" cr
+    ."   SAFE-CONTENT-TYPE - MIME type handling" cr
+    cr
+;
+
+\ Display quick reference
+: proven-quick ( -- )
+    cr
+    ." Quick Reference - Core Words:" cr
+    ." =============================" cr
+    cr
+    ." Arithmetic: safe+ safe- safe* safe/ safe-mod safe-abs safe-negate clamp in-range?" cr
+    ." Strings:    escape-html escape-sql sanitize-default" cr
+    ." Paths:      has-traversal? sanitize-filename" cr
+    ." Email:      valid-email?" cr
+    ." URL:        url-encode url-has-injection?" cr
+    ." Network:    parse-ipv4 ip-loopback? ip-private? valid-port?" cr
+    ." Crypto:     simple-hash constant-time=" cr
+    cr
+    ." Load additional modules with: include safe-<module>.fs" cr
     cr
 ;

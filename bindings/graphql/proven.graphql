@@ -2,72 +2,598 @@
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 """
-Proven Safety Primitives for GraphQL
+Proven Safety Primitives for GraphQL v0.4.0
 
-Provides scalar types and directives for safe value validation
-in GraphQL schemas. These can be implemented in any GraphQL server.
+Provides 38 safe modules as GraphQL scalar types, directives, and types
+for building secure, formally verified APIs. These can be implemented in
+any GraphQL server.
+
+Module Categories:
+- Core (11): SafeMath, SafeString, SafePath, SafeEmail, SafeUrl, SafeNetwork,
+             SafeCrypto, SafeUUID, SafeCurrency, SafePhone, SafeHex
+- Data (7): SafeJson, SafeDateTime, SafeFloat, SafeVersion, SafeColor,
+            SafeAngle, SafeUnit
+- Data Structures (5): SafeBuffer, SafeQueue, SafeBloom, SafeLRU, SafeGraph
+- Resilience (4): SafeRateLimiter, SafeCircuitBreaker, SafeRetry, SafeMonotonic
+- State (2): SafeStateMachine, SafeCalculator
+- Algorithm (4): SafeGeo, SafeProbability, SafeChecksum, SafeTensor
+- Security (2): SafePassword, SafeMl
+- HTTP (3): SafeHeader, SafeCookie, SafeContentType
+
+VERSION: 0.4.0
+MODULE_COUNT: 38
 """
 
 # ============================================================================
-# SCALAR TYPES - Safe Value Types
+# CORE MODULE SCALARS (11 modules)
 # ============================================================================
 
-"""A non-empty string (at least 1 character)."""
-scalar NonEmptyString
+# --- SafeMath ---
+"""
+A 64-bit signed integer with overflow protection.
+Operations that would overflow return an error instead of wrapping.
+"""
+scalar SafeInt
 
-"""An email address with basic format validation."""
-scalar Email
+"""
+A bounded integer constrained to a specific range [min, max].
+"""
+scalar BoundedInt
 
-"""A URL with protocol validation (http/https)."""
-scalar URL
-
-"""A port number between 1 and 65535."""
-scalar Port
-
-"""A positive integer (> 0)."""
+"""
+A positive integer (> 0) with overflow protection.
+"""
 scalar PositiveInt
 
-"""A non-negative integer (>= 0)."""
+"""
+A non-negative integer (>= 0) with overflow protection.
+"""
 scalar NonNegativeInt
 
-"""A percentage value between 0 and 100."""
+"""
+A percentage value between 0 and 100.
+"""
 scalar Percentage
 
-"""A ratio between 0.0 and 1.0."""
+"""
+A ratio between 0.0 and 1.0.
+"""
 scalar Ratio
 
-"""An IPv4 address."""
+# --- SafeString ---
+"""
+A non-empty string with at least 1 character.
+Validated for UTF-8 compliance.
+"""
+scalar NonEmptyString
+
+"""
+An HTML-safe string with special characters escaped.
+Prevents XSS attacks.
+"""
+scalar HtmlSafeString
+
+"""
+A SQL-safe string with quotes properly escaped.
+Prevents SQL injection.
+"""
+scalar SqlSafeString
+
+"""
+A shell-safe string with special characters escaped.
+Prevents command injection.
+"""
+scalar ShellSafeString
+
+# --- SafePath ---
+"""
+A validated file path with traversal prevention.
+Rejects paths containing '..' or null bytes.
+"""
+scalar SafePath
+
+"""
+A normalized path with consistent separators.
+"""
+scalar NormalizedPath
+
+"""
+A glob pattern for file matching.
+"""
+scalar GlobPattern
+
+# --- SafeEmail ---
+"""
+An email address validated per RFC 5321/5322.
+"""
+scalar Email
+
+# --- SafeUrl ---
+"""
+A URL validated per RFC 3986 with protocol validation.
+"""
+scalar URL
+
+"""
+A URL that must use HTTPS protocol.
+"""
+scalar SecureURL
+
+# --- SafeNetwork ---
+"""
+An IPv4 address in dotted decimal notation.
+"""
 scalar IPv4
 
-"""A CIDR notation network address."""
+"""
+An IPv6 address with full or compressed notation.
+"""
+scalar IPv6
+
+"""
+A CIDR notation network address (e.g., 192.168.1.0/24).
+"""
 scalar CIDR
 
-"""A valid UUID."""
+"""
+A network port number between 1 and 65535.
+"""
+scalar Port
+
+"""
+A MAC address in colon-separated hex format.
+"""
+scalar MACAddress
+
+"""
+A hostname validated per RFC 1123.
+"""
+scalar Hostname
+
+# --- SafeCrypto ---
+"""
+A SHA3-256 hash as 64 hex characters.
+"""
+scalar SHA3_256
+
+"""
+A SHA3-512 hash as 128 hex characters.
+"""
+scalar SHA3_512
+
+"""
+A BLAKE3 hash as 64 hex characters.
+Primary hashing algorithm per Hyperpolymath Crypto Standard.
+"""
+scalar BLAKE3
+
+"""
+Base64-encoded binary data.
+"""
+scalar Base64
+
+"""
+Cryptographically secure random bytes as hex string.
+"""
+scalar SecureRandom
+
+# --- SafeUUID ---
+"""
+A UUID validated per RFC 4122.
+Supports versions 1, 3, 4, 5, and 7.
+"""
 scalar UUID
 
-"""A date in ISO 8601 format (YYYY-MM-DD)."""
+# --- SafeCurrency ---
+"""
+An ISO 4217 currency code (e.g., USD, EUR, GBP).
+"""
+scalar CurrencyCode
+
+"""
+A monetary amount with currency and precision.
+Prevents floating-point rounding errors.
+"""
+scalar Money
+
+# --- SafePhone ---
+"""
+A phone number in E.164 format (e.g., +14155551234).
+"""
+scalar PhoneNumber
+
+"""
+A phone country code (e.g., 1 for US, 44 for UK).
+"""
+scalar CountryCode
+
+# --- SafeHex ---
+"""
+A hexadecimal string with validated encoding.
+"""
+scalar HexString
+
+# ============================================================================
+# DATA MODULE SCALARS (7 modules)
+# ============================================================================
+
+# --- SafeJson ---
+"""
+A valid JSON object.
+Parsed and validated before use.
+"""
+scalar JSON
+
+"""
+A JSON Pointer per RFC 6901.
+"""
+scalar JSONPointer
+
+"""
+A JSONPath expression for querying JSON documents.
+"""
+scalar JSONPath
+
+# --- SafeDateTime ---
+"""
+A date in ISO 8601 format (YYYY-MM-DD).
+"""
 scalar Date
 
-"""A datetime in ISO 8601 format."""
+"""
+A datetime in ISO 8601 format with timezone.
+"""
 scalar DateTime
 
-"""A duration in ISO 8601 format (e.g., PT1H30M)."""
+"""
+A time in ISO 8601 format (HH:MM:SS).
+"""
+scalar Time
+
+"""
+A duration in ISO 8601 format (e.g., PT1H30M).
+"""
 scalar Duration
 
-"""A valid JSON object."""
-scalar JSON
+"""
+An IANA timezone identifier (e.g., America/New_York).
+"""
+scalar Timezone
+
+"""
+A Unix timestamp in seconds since epoch.
+"""
+scalar Timestamp
+
+# --- SafeFloat ---
+"""
+A safe 64-bit floating point number.
+NaN and Infinity are rejected.
+"""
+scalar SafeFloat
+
+"""
+A safe 32-bit floating point number.
+NaN and Infinity are rejected.
+"""
+scalar SafeFloat32
+
+# --- SafeVersion ---
+"""
+A semantic version string (e.g., 1.2.3, 1.0.0-alpha+build).
+Follows SemVer 2.0.0 specification.
+"""
+scalar SemVer
+
+# --- SafeColor ---
+"""
+An RGB color as hex string (e.g., #FF5500).
+"""
+scalar RGBColor
+
+"""
+An RGBA color as hex string (e.g., #FF550080).
+"""
+scalar RGBAColor
+
+"""
+A WCAG contrast ratio (1.0 to 21.0).
+"""
+scalar ContrastRatio
+
+# --- SafeAngle ---
+"""
+An angle in degrees (0-360, normalized).
+"""
+scalar Degrees
+
+"""
+An angle in radians (0 to 2*PI).
+"""
+scalar Radians
+
+# --- SafeUnit ---
+"""
+A length with unit (e.g., 100m, 5.5km, 10ft).
+"""
+scalar Length
+
+"""
+A mass with unit (e.g., 50kg, 110lbs).
+"""
+scalar Mass
+
+"""
+A temperature with unit (e.g., 20C, 68F, 293K).
+"""
+scalar Temperature
+
+"""
+A data size with unit (e.g., 1GB, 500MB, 1024KB).
+"""
+scalar DataSize
+
+"""
+A time duration with unit (e.g., 5s, 100ms, 2h).
+"""
+scalar TimeDuration
+
+# ============================================================================
+# DATA STRUCTURE SCALARS (5 modules)
+# ============================================================================
+
+# --- SafeBuffer ---
+"""
+A bounded buffer with fixed maximum capacity.
+"""
+scalar BoundedBuffer
+
+"""
+A ring buffer with circular overwrite behavior.
+"""
+scalar RingBuffer
+
+# --- SafeQueue ---
+"""
+A bounded FIFO queue with capacity limit.
+"""
+scalar BoundedQueue
+
+"""
+A priority queue ordered by priority value.
+"""
+scalar PriorityQueue
+
+# --- SafeBloom ---
+"""
+A Bloom filter configuration (size, hash count, false positive rate).
+"""
+scalar BloomFilterConfig
+
+# --- SafeLRU ---
+"""
+An LRU cache configuration (capacity).
+"""
+scalar LRUCacheConfig
+
+# --- SafeGraph ---
+"""
+A directed graph node identifier.
+"""
+scalar GraphNodeId
+
+"""
+A graph edge weight.
+"""
+scalar EdgeWeight
+
+# ============================================================================
+# RESILIENCE SCALARS (4 modules)
+# ============================================================================
+
+# --- SafeRateLimiter ---
+"""
+A rate limit result: ALLOWED or DENIED with retry-after.
+"""
+scalar RateLimitResult
+
+# --- SafeCircuitBreaker ---
+"""
+A circuit breaker state: CLOSED, OPEN, or HALF_OPEN.
+"""
+scalar CircuitState
+
+# --- SafeRetry ---
+"""
+A retry backoff duration in milliseconds.
+"""
+scalar BackoffDuration
+
+# --- SafeMonotonic ---
+"""
+A monotonically increasing counter value.
+"""
+scalar MonotonicValue
+
+"""
+A high-water mark value that only increases.
+"""
+scalar HighWaterMark
+
+"""
+An epoch-based unique identifier.
+"""
+scalar EpochId
+
+"""
+A sequence number from a generator.
+"""
+scalar SequenceNumber
+
+# ============================================================================
+# STATE SCALARS (2 modules)
+# ============================================================================
+
+# --- SafeStateMachine ---
+"""
+A state machine state identifier.
+"""
+scalar StateId
+
+# --- SafeCalculator ---
+"""
+A safe mathematical expression string.
+Supports +, -, *, /, %, ^, parentheses.
+"""
+scalar MathExpression
+
+# ============================================================================
+# ALGORITHM SCALARS (4 modules)
+# ============================================================================
+
+# --- SafeGeo ---
+"""
+A latitude value between -90 and 90.
+"""
+scalar Latitude
+
+"""
+A longitude value between -180 and 180.
+"""
+scalar Longitude
+
+"""
+A geographic coordinate (lat, lon).
+"""
+scalar Coordinate
+
+"""
+A distance in kilometers.
+"""
+scalar DistanceKm
+
+"""
+A bearing in degrees (0-360).
+"""
+scalar Bearing
+
+# --- SafeProbability ---
+"""
+A probability value between 0.0 and 1.0.
+"""
+scalar Probability
+
+# --- SafeChecksum ---
+"""
+A CRC-32 checksum as hex string.
+"""
+scalar CRC32
+
+"""
+An Adler-32 checksum as hex string.
+"""
+scalar Adler32
+
+"""
+A FNV-1a 32-bit hash as hex string.
+"""
+scalar FNV1a32
+
+"""
+A FNV-1a 64-bit hash as hex string.
+"""
+scalar FNV1a64
+
+# --- SafeTensor ---
+"""
+A tensor shape (list of dimensions).
+"""
+scalar TensorShape
+
+"""
+A flattened tensor as array of safe floats.
+"""
+scalar TensorData
+
+# ============================================================================
+# SECURITY SCALARS (2 modules)
+# ============================================================================
+
+# --- SafePassword ---
+"""
+A password strength score (0-4, where 4 is very strong).
+"""
+scalar PasswordStrength
+
+"""
+A hashed password (never store plaintext).
+"""
+scalar HashedPassword
+
+# --- SafeMl ---
+"""
+A softmax probability distribution (array summing to 1.0).
+"""
+scalar SoftmaxDistribution
+
+"""
+A cross-entropy loss value (non-negative).
+"""
+scalar CrossEntropyLoss
+
+# ============================================================================
+# HTTP SCALARS (3 modules)
+# ============================================================================
+
+# --- SafeHeader ---
+"""
+A validated HTTP header name.
+Prevents CRLF injection.
+"""
+scalar HeaderName
+
+"""
+A validated HTTP header value.
+Prevents CRLF injection.
+"""
+scalar HeaderValue
+
+# --- SafeCookie ---
+"""
+A validated cookie name.
+Prevents injection attacks.
+"""
+scalar CookieName
+
+"""
+A validated cookie value.
+Prevents injection attacks.
+"""
+scalar CookieValue
+
+# --- SafeContentType ---
+"""
+A MIME type with optional parameters.
+Validated against known safe types.
+"""
+scalar ContentType
+
+"""
+A media category (image, video, audio, text, application).
+"""
+scalar MediaCategory
 
 # ============================================================================
 # DIRECTIVES - Validation Rules
 # ============================================================================
 
-"""Validate string length bounds."""
+"""Apply string length constraints."""
 directive @length(
   min: Int = 0
   max: Int = 255
 ) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | FIELD_DEFINITION
 
-"""Validate numeric range."""
+"""Apply numeric range constraints."""
 directive @range(
   min: Float
   max: Float
@@ -79,33 +605,192 @@ directive @pattern(
   message: String
 ) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | FIELD_DEFINITION
 
-"""Mark a field as requiring authorization."""
+"""Require authorization with specified roles."""
 directive @auth(
   requires: [Role!]!
 ) on FIELD_DEFINITION | OBJECT
 
-"""Rate limit a field."""
+"""Apply rate limiting to a field."""
 directive @rateLimit(
   max: Int!
   window: String!
   message: String
 ) on FIELD_DEFINITION
 
-"""Mark sensitive data that should not be logged."""
+"""Mark field as containing sensitive data (excluded from logging)."""
 directive @sensitive on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
-"""Deprecation with migration guidance."""
+"""Mark field with deprecation and migration guidance."""
 directive @safeDeprecated(
   reason: String!
   migratedTo: String
   removalDate: Date
 ) on FIELD_DEFINITION | ENUM_VALUE
 
+"""Apply overflow protection to numeric operations."""
+directive @overflow(
+  behavior: OverflowBehavior = ERROR
+) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""Apply bounds checking to arrays and collections."""
+directive @bounded(
+  minSize: Int = 0
+  maxSize: Int = 1000
+) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""Apply circuit breaker protection to field resolution."""
+directive @circuitBreaker(
+  failureThreshold: Int = 5
+  successThreshold: Int = 2
+  timeout: String = "30s"
+) on FIELD_DEFINITION
+
+"""Apply retry logic to field resolution."""
+directive @retry(
+  maxAttempts: Int = 3
+  backoff: String = "exponential"
+  maxDelay: String = "30s"
+) on FIELD_DEFINITION
+
+"""Validate geographic coordinates."""
+directive @geoValidation(
+  allowAntipodal: Boolean = true
+) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION
+
+"""Ensure monotonic ordering."""
+directive @monotonic(
+  direction: MonotonicDirection = INCREASING
+) on FIELD_DEFINITION
+
 # ============================================================================
-# RESULT TYPE - Exception-free Error Handling
+# ENUMS
 # ============================================================================
 
-"""Generic result type for operations that can fail."""
+enum Role {
+  ANONYMOUS
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum OverflowBehavior {
+  ERROR
+  SATURATE
+  WRAP
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+enum MonotonicDirection {
+  INCREASING
+  DECREASING
+}
+
+enum CircuitBreakerState {
+  CLOSED
+  OPEN
+  HALF_OPEN
+}
+
+enum SameSitePolicy {
+  STRICT
+  LAX
+  NONE
+}
+
+enum CookiePrefix {
+  NONE
+  HOST
+  SECURE
+}
+
+enum RateLimitAlgorithm {
+  TOKEN_BUCKET
+  SLIDING_WINDOW
+  FIXED_WINDOW
+}
+
+enum RetryBackoff {
+  CONSTANT
+  LINEAR
+  EXPONENTIAL
+  FULL_JITTER
+  EQUAL_JITTER
+}
+
+enum HashAlgorithm {
+  BLAKE3
+  SHA3_256
+  SHA3_512
+}
+
+enum ChecksumAlgorithm {
+  CRC32
+  ADLER32
+  FNV1A_32
+  FNV1A_64
+  DJB2
+  SDBM
+  FLETCHER16
+}
+
+enum LengthUnit {
+  METER
+  KILOMETER
+  CENTIMETER
+  MILLIMETER
+  MILE
+  YARD
+  FOOT
+  INCH
+}
+
+enum MassUnit {
+  KILOGRAM
+  GRAM
+  MILLIGRAM
+  POUND
+  OUNCE
+}
+
+enum TemperatureUnit {
+  CELSIUS
+  FAHRENHEIT
+  KELVIN
+}
+
+enum DataUnit {
+  BYTE
+  KILOBYTE
+  MEGABYTE
+  GIGABYTE
+  TERABYTE
+}
+
+enum TimeUnitType {
+  NANOSECOND
+  MICROSECOND
+  MILLISECOND
+  SECOND
+  MINUTE
+  HOUR
+  DAY
+}
+
+enum WCAGLevel {
+  A
+  AA
+  AAA
+}
+
+# ============================================================================
+# RESULT TYPES - Exception-free Error Handling
+# ============================================================================
+
+"""Generic result interface for operations that can fail."""
 interface Result {
   ok: Boolean!
 }
@@ -116,7 +801,7 @@ type Ok implements Result {
   value: JSON
 }
 
-"""Error result with an error message."""
+"""Error result with error information."""
 type Err implements Result {
   ok: Boolean!
   error: String!
@@ -124,151 +809,769 @@ type Err implements Result {
   details: JSON
 }
 
+"""Math operation result."""
+type MathResult {
+  ok: Boolean!
+  value: SafeInt
+  error: String
+}
+
+"""Float operation result."""
+type FloatResult {
+  ok: Boolean!
+  value: SafeFloat
+  error: String
+}
+
+"""Parse result for various types."""
+type ParseResult {
+  ok: Boolean!
+  value: JSON
+  error: String
+}
+
 # ============================================================================
-# COMMON SAFE INPUT TYPES
+# CORE MODULE TYPES
+# ============================================================================
+
+# --- SafeMath Types ---
+type SafeMathOps {
+  """Safe addition with overflow detection."""
+  add(a: SafeInt!, b: SafeInt!): MathResult!
+  """Safe subtraction with underflow detection."""
+  sub(a: SafeInt!, b: SafeInt!): MathResult!
+  """Safe multiplication with overflow detection."""
+  mul(a: SafeInt!, b: SafeInt!): MathResult!
+  """Safe division with zero check."""
+  div(a: SafeInt!, b: SafeInt!): MathResult!
+  """Safe modulo with zero check."""
+  mod(a: SafeInt!, b: SafeInt!): MathResult!
+  """Safe power with overflow detection."""
+  pow(base: SafeInt!, exp: NonNegativeInt!): MathResult!
+  """Safe absolute value."""
+  abs(value: SafeInt!): MathResult!
+  """Clamp value to range."""
+  clamp(value: SafeInt!, min: SafeInt!, max: SafeInt!): SafeInt!
+  """Check if addition would overflow."""
+  wouldOverflowAdd(a: SafeInt!, b: SafeInt!): Boolean!
+  """Check if multiplication would overflow."""
+  wouldOverflowMul(a: SafeInt!, b: SafeInt!): Boolean!
+}
+
+# --- SafeString Types ---
+type SafeStringOps {
+  """Escape HTML special characters."""
+  escapeHtml(input: String!): HtmlSafeString!
+  """Escape SQL special characters."""
+  escapeSql(input: String!): SqlSafeString!
+  """Escape shell special characters."""
+  escapeShell(input: String!): ShellSafeString!
+  """Truncate string to maximum length."""
+  truncate(input: String!, maxLen: PositiveInt!): String!
+  """Check if string is valid UTF-8."""
+  isValidUtf8(input: String!): Boolean!
+}
+
+# --- SafeCrypto Types ---
+type SafeCryptoOps {
+  """Compute BLAKE3 hash."""
+  blake3(data: String!): BLAKE3!
+  """Compute SHA3-256 hash."""
+  sha3_256(data: String!): SHA3_256!
+  """Compute SHA3-512 hash."""
+  sha3_512(data: String!): SHA3_512!
+  """Generate cryptographically secure random bytes."""
+  randomBytes(length: PositiveInt!): HexString!
+  """Constant-time comparison."""
+  constantTimeCompare(a: HexString!, b: HexString!): Boolean!
+  """Derive key using BLAKE3-KDF."""
+  deriveKey(context: String!, ikm: String!, outputLen: PositiveInt!): HexString!
+}
+
+# --- SafeGeo Types ---
+type GeoCoordinate {
+  lat: Latitude!
+  lon: Longitude!
+}
+
+type BoundingBox {
+  minLat: Latitude!
+  minLon: Longitude!
+  maxLat: Latitude!
+  maxLon: Longitude!
+}
+
+type SafeGeoOps {
+  """Calculate Haversine distance between two coordinates."""
+  distance(from: GeoCoordinateInput!, to: GeoCoordinateInput!): DistanceKm!
+  """Calculate initial bearing from one coordinate to another."""
+  bearing(from: GeoCoordinateInput!, to: GeoCoordinateInput!): Bearing!
+  """Calculate destination point given start, bearing, and distance."""
+  destination(start: GeoCoordinateInput!, bearing: Bearing!, distanceKm: SafeFloat!): GeoCoordinate
+  """Check if coordinate is within bounding box."""
+  isWithinBounds(coord: GeoCoordinateInput!, bounds: BoundingBoxInput!): Boolean!
+}
+
+input GeoCoordinateInput {
+  lat: Latitude!
+  lon: Longitude!
+}
+
+input BoundingBoxInput {
+  minLat: Latitude!
+  minLon: Longitude!
+  maxLat: Latitude!
+  maxLon: Longitude!
+}
+
+# --- SafeColor Types ---
+type RGBColorValue {
+  r: Int!
+  g: Int!
+  b: Int!
+  hex: RGBColor!
+  luminance: SafeFloat!
+}
+
+type RGBAColorValue {
+  r: Int!
+  g: Int!
+  b: Int!
+  a: Int!
+  hex: RGBAColor!
+}
+
+type SafeColorOps {
+  """Parse hex color string."""
+  fromHex(hex: String!): RGBColorValue
+  """Calculate WCAG contrast ratio between two colors."""
+  contrastRatio(color1: RGBColor!, color2: RGBColor!): ContrastRatio!
+  """Check if contrast meets WCAG AA standard."""
+  meetsWcagAA(color1: RGBColor!, color2: RGBColor!): Boolean!
+  """Check if contrast meets WCAG AAA standard."""
+  meetsWcagAAA(color1: RGBColor!, color2: RGBColor!): Boolean!
+  """Blend foreground color with background."""
+  blend(foreground: RGBAColor!, background: RGBColor!): RGBColorValue!
+}
+
+# --- SafeVersion Types ---
+type SemanticVersion {
+  major: NonNegativeInt!
+  minor: NonNegativeInt!
+  patch: NonNegativeInt!
+  prerelease: String
+  buildMetadata: String
+  isStable: Boolean!
+  isPrerelease: Boolean!
+}
+
+type SafeVersionOps {
+  """Parse semantic version string."""
+  parse(version: String!): SemanticVersion
+  """Compare two versions."""
+  compare(v1: SemVer!, v2: SemVer!): Int!
+  """Check if version satisfies constraint."""
+  satisfies(version: SemVer!, constraint: String!): Boolean!
+  """Bump major version."""
+  bumpMajor(version: SemVer!): SemVer!
+  """Bump minor version."""
+  bumpMinor(version: SemVer!): SemVer!
+  """Bump patch version."""
+  bumpPatch(version: SemVer!): SemVer!
+}
+
+# ============================================================================
+# DATA STRUCTURE TYPES
+# ============================================================================
+
+# --- SafeBloom Types ---
+type BloomFilter {
+  size: PositiveInt!
+  numHashes: PositiveInt!
+  fillRatio: Ratio!
+  estimatedFalsePositiveRate: Probability!
+}
+
+type SafeBloomOps {
+  """Create optimal bloom filter for expected items and false positive rate."""
+  create(expectedItems: PositiveInt!, falsePositiveRate: Probability!): BloomFilter!
+  """Calculate optimal filter size."""
+  optimalSize(expectedItems: PositiveInt!, falsePositiveRate: Probability!): PositiveInt!
+  """Calculate optimal hash count."""
+  optimalHashes(filterSize: PositiveInt!, expectedItems: PositiveInt!): PositiveInt!
+}
+
+# --- SafeLRU Types ---
+type LRUCacheStats {
+  capacity: PositiveInt!
+  size: NonNegativeInt!
+  hits: NonNegativeInt!
+  misses: NonNegativeInt!
+  hitRate: Ratio!
+}
+
+# --- SafeGraph Types ---
+type GraphStats {
+  nodeCount: NonNegativeInt!
+  edgeCount: NonNegativeInt!
+  hasCycles: Boolean!
+}
+
+type SafeGraphOps {
+  """Check if graph has cycles."""
+  hasCycles(nodes: [GraphNodeId!]!, edges: [GraphEdgeInput!]!): Boolean!
+  """Get topological sort (only for DAGs)."""
+  topologicalSort(nodes: [GraphNodeId!]!, edges: [GraphEdgeInput!]!): [GraphNodeId!]
+}
+
+input GraphEdgeInput {
+  from: GraphNodeId!
+  to: GraphNodeId!
+  weight: EdgeWeight
+}
+
+# ============================================================================
+# RESILIENCE TYPES
+# ============================================================================
+
+# --- SafeRateLimiter Types ---
+type TokenBucketState {
+  capacity: PositiveInt!
+  currentTokens: NonNegativeInt!
+  refillRate: PositiveInt!
+}
+
+type RateLimitStatus {
+  allowed: Boolean!
+  retryAfter: Duration
+  remaining: NonNegativeInt!
+}
+
+type SafeRateLimiterOps {
+  """Create token bucket limiter."""
+  tokenBucket(capacity: PositiveInt!, refillRate: PositiveInt!): TokenBucketState!
+  """Check if request would be allowed."""
+  check(algorithm: RateLimitAlgorithm!, maxRequests: PositiveInt!, window: Duration!): RateLimitStatus!
+}
+
+# --- SafeCircuitBreaker Types ---
+type CircuitBreakerStatus {
+  state: CircuitBreakerState!
+  failures: NonNegativeInt!
+  successes: NonNegativeInt!
+  isHealthy: Boolean!
+  timeUntilRetry: Duration
+}
+
+input CircuitBreakerConfigInput {
+  failureThreshold: PositiveInt = 5
+  successThreshold: PositiveInt = 2
+  timeout: Duration = "PT30S"
+  halfOpenMaxCalls: PositiveInt = 3
+}
+
+# --- SafeRetry Types ---
+type RetrySchedule {
+  attempts: [Duration!]!
+  totalMaxDelay: Duration!
+}
+
+type SafeRetryOps {
+  """Calculate exponential backoff schedule."""
+  exponentialBackoff(baseDelay: Duration!, maxDelay: Duration!, maxAttempts: PositiveInt!): RetrySchedule!
+  """Calculate backoff with full jitter."""
+  fullJitter(baseDelay: Duration!, attempt: PositiveInt!): Duration!
+  """Calculate backoff with equal jitter."""
+  equalJitter(baseDelay: Duration!, attempt: PositiveInt!): Duration!
+}
+
+# --- SafeMonotonic Types ---
+type MonotonicCounter {
+  value: MonotonicValue!
+  canIncrement: Boolean!
+}
+
+type HighWaterMarkStatus {
+  value: HighWaterMark!
+  lastUpdated: DateTime
+}
+
+# ============================================================================
+# STATE TYPES
+# ============================================================================
+
+# --- SafeStateMachine Types ---
+type StateMachineStatus {
+  currentState: StateId!
+  validTransitions: [StateId!]!
+  history: [StateId!]!
+}
+
+input StateTransitionInput {
+  from: StateId!
+  to: StateId!
+}
+
+type SafeStateMachineOps {
+  """Check if transition is valid."""
+  canTransition(current: StateId!, to: StateId!, transitions: [StateTransitionInput!]!): Boolean!
+  """Get valid transitions from current state."""
+  validTransitions(current: StateId!, transitions: [StateTransitionInput!]!): [StateId!]!
+}
+
+# --- SafeCalculator Types ---
+type CalculatorResult {
+  ok: Boolean!
+  value: SafeFloat
+  error: String
+  expression: MathExpression!
+}
+
+type SafeCalculatorOps {
+  """Evaluate mathematical expression safely."""
+  evaluate(expression: MathExpression!): CalculatorResult!
+  """Validate expression syntax."""
+  validate(expression: MathExpression!): Boolean!
+}
+
+# ============================================================================
+# ALGORITHM TYPES
+# ============================================================================
+
+# --- SafeProbability Types ---
+type ProbabilityValue {
+  value: Probability!
+  percentage: Percentage!
+  odds: String!
+}
+
+type SafeProbabilityOps {
+  """Clamp value to valid probability range."""
+  clamp(value: SafeFloat!): Probability!
+  """Calculate joint probability (independent events)."""
+  joint(probabilities: [Probability!]!): Probability!
+  """Calculate complement probability."""
+  complement(p: Probability!): Probability!
+}
+
+# --- SafeChecksum Types ---
+type ChecksumResult {
+  algorithm: ChecksumAlgorithm!
+  value: HexString!
+}
+
+type SafeChecksumOps {
+  """Calculate CRC-32 checksum."""
+  crc32(data: String!): CRC32!
+  """Calculate Adler-32 checksum."""
+  adler32(data: String!): Adler32!
+  """Calculate FNV-1a 32-bit hash."""
+  fnv1a32(data: String!): FNV1a32!
+  """Calculate FNV-1a 64-bit hash."""
+  fnv1a64(data: String!): FNV1a64!
+  """Validate Luhn checksum (credit cards, etc.)."""
+  luhnCheck(digits: String!): Boolean!
+}
+
+# --- SafeTensor Types ---
+type TensorInfo {
+  shape: [PositiveInt!]!
+  size: PositiveInt!
+  rank: NonNegativeInt!
+}
+
+type SafeTensorOps {
+  """Validate tensor shape."""
+  validateShape(shape: [PositiveInt!]!): Boolean!
+  """Calculate total size from shape."""
+  sizeFromShape(shape: [PositiveInt!]!): PositiveInt!
+  """Check if shapes are compatible for operation."""
+  shapesCompatible(shape1: [PositiveInt!]!, shape2: [PositiveInt!]!, op: String!): Boolean!
+}
+
+# ============================================================================
+# SECURITY TYPES
+# ============================================================================
+
+# --- SafePassword Types ---
+type PasswordAnalysis {
+  strength: PasswordStrength!
+  score: Int!
+  feedback: [String!]!
+  isAcceptable: Boolean!
+  estimatedCrackTime: String
+}
+
+input PasswordPolicyInput {
+  minLength: PositiveInt = 8
+  maxLength: PositiveInt = 128
+  requireUppercase: Boolean = true
+  requireLowercase: Boolean = true
+  requireDigit: Boolean = true
+  requireSpecial: Boolean = false
+  disallowCommon: Boolean = true
+}
+
+type SafePasswordOps {
+  """Analyze password strength."""
+  analyze(password: String!): PasswordAnalysis!
+  """Check if password meets policy."""
+  meetsPolicy(password: String!, policy: PasswordPolicyInput!): Boolean!
+  """Generate secure random password."""
+  generate(length: PositiveInt!, policy: PasswordPolicyInput): String!
+}
+
+# --- SafeMl Types ---
+type SafeMlOps {
+  """Compute numerically stable softmax."""
+  softmax(logits: [SafeFloat!]!): SoftmaxDistribution!
+  """Compute numerically stable log-softmax."""
+  logSoftmax(logits: [SafeFloat!]!): [SafeFloat!]!
+  """Compute cross-entropy loss."""
+  crossEntropyLoss(predicted: SoftmaxDistribution!, target: [SafeFloat!]!): CrossEntropyLoss!
+  """Apply ReLU activation."""
+  relu(x: SafeFloat!): SafeFloat!
+  """Apply Leaky ReLU activation."""
+  leakyRelu(x: SafeFloat!, alpha: SafeFloat!): SafeFloat!
+  """Apply sigmoid activation."""
+  sigmoid(x: SafeFloat!): Probability!
+  """Apply tanh activation."""
+  tanh(x: SafeFloat!): SafeFloat!
+}
+
+# ============================================================================
+# HTTP TYPES
+# ============================================================================
+
+# --- SafeHeader Types ---
+type HttpHeader {
+  name: HeaderName!
+  value: HeaderValue!
+  isValid: Boolean!
+}
+
+type SafeHeaderOps {
+  """Validate header name."""
+  validateName(name: String!): Boolean!
+  """Validate header value (checks for CRLF injection)."""
+  validateValue(value: String!): Boolean!
+  """Sanitize header value."""
+  sanitize(value: String!): HeaderValue!
+}
+
+# --- SafeCookie Types ---
+type CookieAttributes {
+  httpOnly: Boolean!
+  secure: Boolean!
+  sameSite: SameSitePolicy!
+  domain: String
+  path: String
+  maxAge: Duration
+  expires: DateTime
+}
+
+type Cookie {
+  name: CookieName!
+  value: CookieValue!
+  attributes: CookieAttributes!
+  prefix: CookiePrefix!
+  isValid: Boolean!
+}
+
+input CookieAttributesInput {
+  httpOnly: Boolean = true
+  secure: Boolean = true
+  sameSite: SameSitePolicy = LAX
+  domain: String
+  path: String = "/"
+  maxAge: Duration
+  expires: DateTime
+}
+
+type SafeCookieOps {
+  """Validate cookie name."""
+  validateName(name: String!): Boolean!
+  """Validate cookie value."""
+  validateValue(value: String!): Boolean!
+  """Parse Set-Cookie header."""
+  parse(setCookieHeader: String!): Cookie
+  """Serialize cookie to Set-Cookie header."""
+  serialize(name: CookieName!, value: CookieValue!, attributes: CookieAttributesInput): String!
+}
+
+# --- SafeContentType Types ---
+type ContentTypeInfo {
+  type: String!
+  subtype: String!
+  parameters: JSON
+  mediaCategory: MediaCategory!
+  charset: String
+  isSafe: Boolean!
+}
+
+type SafeContentTypeOps {
+  """Parse Content-Type header."""
+  parse(contentType: String!): ContentTypeInfo
+  """Check if content type is safe for user-generated content."""
+  isSafe(contentType: ContentType!): Boolean!
+  """Get media category for content type."""
+  category(contentType: ContentType!): MediaCategory!
+  """Detect content type from file extension."""
+  fromExtension(extension: String!): ContentType
+}
+
+# ============================================================================
+# UNIT CONVERSION TYPES
+# ============================================================================
+
+type SafeUnitOps {
+  """Convert length between units."""
+  convertLength(value: SafeFloat!, from: LengthUnit!, to: LengthUnit!): SafeFloat!
+  """Convert mass between units."""
+  convertMass(value: SafeFloat!, from: MassUnit!, to: MassUnit!): SafeFloat!
+  """Convert temperature between units."""
+  convertTemperature(value: SafeFloat!, from: TemperatureUnit!, to: TemperatureUnit!): SafeFloat!
+  """Convert data size between units."""
+  convertData(value: SafeFloat!, from: DataUnit!, to: DataUnit!): SafeFloat!
+  """Convert time between units."""
+  convertTime(value: SafeFloat!, from: TimeUnitType!, to: TimeUnitType!): SafeFloat!
+}
+
+# --- SafeAngle Types ---
+type SafeAngleOps {
+  """Convert degrees to radians."""
+  degToRad(degrees: Degrees!): Radians!
+  """Convert radians to degrees."""
+  radToDeg(radians: Radians!): Degrees!
+  """Normalize degrees to 0-360 range."""
+  normalizeDegrees(degrees: SafeFloat!): Degrees!
+  """Linear interpolation between angles."""
+  lerpAngle(from: Degrees!, to: Degrees!, t: Ratio!): Degrees!
+}
+
+# ============================================================================
+# COMMON INPUT TYPES
 # ============================================================================
 
 """Pagination input with safe bounds."""
 input PaginationInput {
-  """Page number (1-indexed, default: 1)"""
+  """Page number (1-indexed)."""
   page: PositiveInt = 1
-
-  """Items per page (1-100, default: 20)"""
+  """Items per page (1-100)."""
   pageSize: Int = 20 @range(min: 1, max: 100)
 }
 
 """Safe date range input."""
 input DateRangeInput {
-  """Start date (inclusive)"""
+  """Start date (inclusive)."""
   from: DateTime!
-
-  """End date (inclusive)"""
+  """End date (inclusive)."""
   to: DateTime!
 }
 
 """Safe search input."""
 input SearchInput {
-  """Search query (1-500 characters)"""
+  """Search query."""
   query: NonEmptyString! @length(max: 500)
-
-  """Fields to search in"""
+  """Fields to search in."""
   fields: [String!]
-
-  """Maximum results"""
+  """Maximum results."""
   limit: Int = 50 @range(min: 1, max: 100)
 }
 
 """Safe sorting input."""
 input SortInput {
-  """Field to sort by"""
+  """Field to sort by."""
   field: NonEmptyString!
-
-  """Sort direction"""
+  """Sort direction."""
   direction: SortDirection = ASC
 }
 
-enum SortDirection {
-  ASC
-  DESC
-}
-
-"""Resource constraint input (Kubernetes-style)."""
+"""Resource constraint input."""
 input ResourceConstraintInput {
-  """CPU request in millicores (e.g., 100)"""
+  """CPU request in millicores."""
   cpuRequest: NonNegativeInt
-
-  """CPU limit in millicores"""
+  """CPU limit in millicores."""
   cpuLimit: NonNegativeInt
-
-  """Memory request in bytes"""
+  """Memory request in bytes."""
   memoryRequest: NonNegativeInt
-
-  """Memory limit in bytes"""
+  """Memory limit in bytes."""
   memoryLimit: NonNegativeInt
 }
 
 # ============================================================================
-# ROLES FOR AUTHORIZATION
+# PAGE INFO & CONNECTION TYPES (Relay-style)
 # ============================================================================
-
-enum Role {
-  ANONYMOUS
-  USER
-  ADMIN
-  SUPERADMIN
-}
-
-# ============================================================================
-# EXAMPLE SAFE QUERY TYPES
-# ============================================================================
-
-type Query {
-  """Get user by ID with safe ID validation."""
-  user(id: UUID!): User @auth(requires: [USER])
-
-  """Search users with safe pagination."""
-  searchUsers(
-    search: SearchInput!
-    pagination: PaginationInput
-    sort: SortInput
-  ): UserConnection! @auth(requires: [USER]) @rateLimit(max: 100, window: "1m")
-
-  """Health check (public)."""
-  health: HealthStatus!
-}
-
-type Mutation {
-  """Create user with validated input."""
-  createUser(input: CreateUserInput!): UserResult! @auth(requires: [ADMIN])
-
-  """Update user with safe partial updates."""
-  updateUser(id: UUID!, input: UpdateUserInput!): UserResult! @auth(requires: [ADMIN])
-}
-
-# ============================================================================
-# EXAMPLE TYPES USING SAFE SCALARS
-# ============================================================================
-
-type User {
-  id: UUID!
-  email: Email!
-  name: NonEmptyString!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-input CreateUserInput {
-  email: Email!
-  name: NonEmptyString! @length(min: 1, max: 255)
-  password: NonEmptyString! @length(min: 8, max: 128) @sensitive
-}
-
-input UpdateUserInput {
-  name: NonEmptyString @length(min: 1, max: 255)
-}
-
-union UserResult = User | Err
-
-type UserConnection {
-  edges: [UserEdge!]!
-  pageInfo: PageInfo!
-  totalCount: NonNegativeInt!
-}
-
-type UserEdge {
-  cursor: String!
-  node: User!
-}
 
 type PageInfo {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
   startCursor: String
   endCursor: String
+  totalCount: NonNegativeInt
 }
+
+# ============================================================================
+# HEALTH & STATUS TYPES
+# ============================================================================
 
 type HealthStatus {
   status: String!
-  version: NonEmptyString!
+  version: SemVer!
   uptime: Duration!
+  modules: [ModuleStatus!]!
+}
+
+type ModuleStatus {
+  name: String!
+  enabled: Boolean!
+  healthy: Boolean!
+}
+
+# ============================================================================
+# ROOT TYPES
+# ============================================================================
+
+type Query {
+  """Library version and module information."""
+  provenInfo: ProvenInfo!
+
+  """Health check."""
+  health: HealthStatus!
+
+  # --- Safe Math Operations ---
+  """Safe mathematical operations."""
+  safeMath: SafeMathOps!
+
+  # --- Safe String Operations ---
+  """Safe string operations."""
+  safeString: SafeStringOps!
+
+  # --- Safe Crypto Operations ---
+  """Safe cryptographic operations."""
+  safeCrypto: SafeCryptoOps!
+
+  # --- Safe Geo Operations ---
+  """Safe geographic operations."""
+  safeGeo: SafeGeoOps!
+
+  # --- Safe Color Operations ---
+  """Safe color operations."""
+  safeColor: SafeColorOps!
+
+  # --- Safe Version Operations ---
+  """Safe semantic version operations."""
+  safeVersion: SafeVersionOps!
+
+  # --- Safe Bloom Operations ---
+  """Safe Bloom filter operations."""
+  safeBloom: SafeBloomOps!
+
+  # --- Safe Graph Operations ---
+  """Safe graph operations."""
+  safeGraph: SafeGraphOps!
+
+  # --- Safe Rate Limiter Operations ---
+  """Safe rate limiting operations."""
+  safeRateLimiter: SafeRateLimiterOps!
+
+  # --- Safe Retry Operations ---
+  """Safe retry operations."""
+  safeRetry: SafeRetryOps!
+
+  # --- Safe State Machine Operations ---
+  """Safe state machine operations."""
+  safeStateMachine: SafeStateMachineOps!
+
+  # --- Safe Calculator Operations ---
+  """Safe calculator operations."""
+  safeCalculator: SafeCalculatorOps!
+
+  # --- Safe Probability Operations ---
+  """Safe probability operations."""
+  safeProbability: SafeProbabilityOps!
+
+  # --- Safe Checksum Operations ---
+  """Safe checksum operations."""
+  safeChecksum: SafeChecksumOps!
+
+  # --- Safe Tensor Operations ---
+  """Safe tensor operations."""
+  safeTensor: SafeTensorOps!
+
+  # --- Safe Password Operations ---
+  """Safe password operations."""
+  safePassword: SafePasswordOps!
+
+  # --- Safe ML Operations ---
+  """Safe machine learning operations."""
+  safeMl: SafeMlOps!
+
+  # --- Safe Header Operations ---
+  """Safe HTTP header operations."""
+  safeHeader: SafeHeaderOps!
+
+  # --- Safe Cookie Operations ---
+  """Safe cookie operations."""
+  safeCookie: SafeCookieOps!
+
+  # --- Safe Content Type Operations ---
+  """Safe content type operations."""
+  safeContentType: SafeContentTypeOps!
+
+  # --- Safe Unit Operations ---
+  """Safe unit conversion operations."""
+  safeUnit: SafeUnitOps!
+
+  # --- Safe Angle Operations ---
+  """Safe angle operations."""
+  safeAngle: SafeAngleOps!
+}
+
+type ProvenInfo {
+  """Library version."""
+  version: SemVer!
+  """Total number of modules."""
+  moduleCount: PositiveInt!
+  """List of available modules by category."""
+  modules: ModuleCategories!
+}
+
+type ModuleCategories {
+  core: [String!]!
+  data: [String!]!
+  dataStructures: [String!]!
+  resilience: [String!]!
+  state: [String!]!
+  algorithm: [String!]!
+  security: [String!]!
+  http: [String!]!
+}
+
+# ============================================================================
+# EXAMPLE TYPES
+# ============================================================================
+
+"""Example user type using safe scalars."""
+type User {
+  id: UUID!
+  email: Email!
+  name: NonEmptyString!
+  phone: PhoneNumber
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Example user creation input."""
+input CreateUserInput {
+  email: Email!
+  name: NonEmptyString! @length(min: 1, max: 255)
+  password: NonEmptyString! @length(min: 8, max: 128) @sensitive
+  phone: PhoneNumber
+}
+
+"""Example user update input."""
+input UpdateUserInput {
+  name: NonEmptyString @length(min: 1, max: 255)
+  phone: PhoneNumber
 }

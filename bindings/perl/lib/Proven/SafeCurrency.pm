@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: PMPL-1.0
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 package Proven::SafeCurrency;
@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our $VERSION = '0.3.0';
+our $VERSION = '0.4.0';
 our @EXPORT_OK = qw(
     is_valid_code get_currency_info get_decimals get_symbol
     parse_amount format_amount money add subtract multiply
@@ -467,6 +467,6 @@ Hyperpolymath
 
 =head1 LICENSE
 
-AGPL-3.0-or-later
+PMPL-1.0
 
 =cut

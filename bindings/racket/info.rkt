@@ -4,7 +4,8 @@
 ;; SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 (define collection "proven")
-(define version "0.1.0")
+(define version "0.4.0")
+(define module-count 38)
 (define deps '("base"))
 (define build-deps '("scribble-lib" "racket-doc"))
 (define pkg-desc "Safe, validated operations library for Racket")

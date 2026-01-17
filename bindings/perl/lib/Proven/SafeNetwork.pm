@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our $VERSION = '0.3.0';
+our $VERSION = '0.4.0';
 our @EXPORT_OK = qw(
     parse_ipv4 is_valid_ipv4 is_private is_loopback
     is_public is_reserved format_ipv4 is_valid_ip

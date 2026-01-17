@@ -1,319 +1,164 @@
 -- SPDX-License-Identifier: Palimpsest-MPL-1.0
-||| SafeLRU - Verified LRU cache operations
+||| SafeLRU - Safe Least Recently Used cache
 |||
-||| Type-safe Least Recently Used (LRU) cache with bounded capacity.
-||| Guarantees cache size never exceeds capacity.
+||| This module provides a bounded LRU cache with safe operations
+||| that cannot overflow or corrupt cache state.
 module Proven.SafeLRU
 
-import Proven.Core
-import Data.So
-import Data.List
+import public Proven.Core
 
 %default total
 
--- ============================================================================
--- LRU CACHE
--- ============================================================================
+--------------------------------------------------------------------------------
+-- LRU Cache Type
+--------------------------------------------------------------------------------
 
-||| An LRU cache entry
+||| Entry in the cache with key, value, and access order
 public export
 record CacheEntry k v where
   constructor MkEntry
   key : k
-  value : v
-  accessTime : Nat  -- Logical timestamp
+  val : v
+  accessOrder : Nat
 
 ||| LRU cache with bounded capacity
 public export
-record LRUCache (cap : Nat) k v where
-  constructor MkLRUCache
+record LRUCache k v where
+  constructor MkLRU
+  capacity : Nat
   entries : List (CacheEntry k v)
-  clock : Nat  -- Logical clock for access times
-  0 sizeInvariant : So (length entries <= cap)
+  accessCounter : Nat
 
-||| Create empty LRU cache
-export
-empty : (cap : Nat) -> LRUCache cap k v
-empty cap = believe_me (MkLRUCache [] 0)
+--------------------------------------------------------------------------------
+-- Construction
+--------------------------------------------------------------------------------
 
-||| Get current size
-export
-size : LRUCache cap k v -> Nat
+||| Create an empty LRU cache
+public export
+empty : (capacity : Nat) -> LRUCache k v
+empty cap = MkLRU cap [] 0
+
+||| Get the current size of the cache
+public export
+size : LRUCache k v -> Nat
 size cache = length cache.entries
 
 ||| Check if cache is empty
-export
-isEmpty : LRUCache cap k v -> Bool
-isEmpty cache = null cache.entries
+public export
+isEmpty : LRUCache k v -> Bool
+isEmpty cache = isNil cache.entries
 
 ||| Check if cache is full
-export
-isFull : LRUCache cap k v -> Bool
-isFull cache = length cache.entries >= cap
+public export
+isFull : LRUCache k v -> Bool
+isFull cache = size cache >= cache.capacity
 
--- ============================================================================
--- CACHE OPERATIONS
--- ============================================================================
+||| Get remaining capacity
+public export
+remaining : LRUCache k v -> Nat
+remaining cache = minus cache.capacity (size cache)
 
-||| Find entry by key
-findEntry : Eq k => k -> List (CacheEntry k v) -> Maybe (CacheEntry k v)
-findEntry key [] = Nothing
-findEntry key (e :: es) = if e.key == key then Just e else findEntry key es
+--------------------------------------------------------------------------------
+-- Cache Operations
+--------------------------------------------------------------------------------
 
-||| Remove entry by key
-removeEntry : Eq k => k -> List (CacheEntry k v) -> List (CacheEntry k v)
-removeEntry key = filter (\e => e.key /= key)
-
-||| Find and remove least recently used entry
-removeLRU : List (CacheEntry k v) -> (Maybe (CacheEntry k v), List (CacheEntry k v))
-removeLRU [] = (Nothing, [])
-removeLRU entries =
-  let lru = foldl (\oldest, e =>
-        case oldest of
-          Nothing => Just e
-          Just o => if e.accessTime < o.accessTime then Just e else oldest) Nothing entries
-  in case lru of
-       Nothing => (Nothing, entries)
-       Just e => (Just e, filter (\x => x.accessTime /= e.accessTime) entries)
-
-||| Get value from cache (updates access time)
-export
-get : Eq k => k -> LRUCache cap k v -> (Maybe v, LRUCache cap k v)
+||| Get a value from the cache (updates access order)
+public export
+get : Eq k => k -> LRUCache k v -> Maybe (v, LRUCache k v)
 get key cache =
-  case findEntry key cache.entries of
-    Nothing => (Nothing, cache)
+  case find (\e => e.key == key) cache.entries of
+    Nothing => Nothing
     Just entry =>
-      let newClock = S cache.clock
-          updated = MkEntry key entry.value newClock
-          others = removeEntry key cache.entries
-      in (Just entry.value, believe_me (MkLRUCache (updated :: others) newClock))
+      let newCounter = S cache.accessCounter
+          updatedEntry = MkEntry entry.key entry.val newCounter
+          otherEntries = filter (\e => e.key /= key) cache.entries
+          newEntries = updatedEntry :: otherEntries
+      in Just (entry.val, MkLRU cache.capacity newEntries newCounter)
 
-||| Peek value without updating access time
-export
-peek : Eq k => k -> LRUCache cap k v -> Maybe v
-peek key cache = map value (findEntry key cache.entries)
+||| Peek at a value without updating access order
+public export
+peek : Eq k => k -> LRUCache k v -> Maybe v
+peek key cache = map val (find (\e => e.key == key) cache.entries)
 
-||| Check if key exists
-export
-contains : Eq k => k -> LRUCache cap k v -> Bool
-contains key cache = isJust (findEntry key cache.entries)
+||| Check if a key exists in the cache
+public export
+contains : Eq k => k -> LRUCache k v -> Bool
+contains key cache = any (\e => e.key == key) cache.entries
 
-||| Put value into cache (evicts LRU if full)
-export
-put : Eq k => k -> v -> LRUCache cap k v -> LRUCache cap k v
+||| Find the least recently used entry
+findLRU : List (CacheEntry k v) -> Maybe (CacheEntry k v)
+findLRU [] = Nothing
+findLRU entries = Just (foldl1 (\a, b => if a.accessOrder < b.accessOrder then a else b) entries)
+  where
+    foldl1 : (a -> a -> a) -> List a -> a
+    foldl1 f [x] = x
+    foldl1 f (x :: xs) = foldl f x xs
+    foldl1 f [] = believe_me ()  -- unreachable
+
+||| Put a value in the cache (evicts LRU if full)
+public export
+put : Eq k => k -> v -> LRUCache k v -> LRUCache k v
 put key val cache =
-  let newClock = S cache.clock
-      newEntry = MkEntry key val newClock
-      withoutKey = removeEntry key cache.entries
-  in if length withoutKey >= cap
-     then -- Need to evict LRU
-          let (_, afterEvict) = removeLRU withoutKey
-          in believe_me (MkLRUCache (newEntry :: afterEvict) newClock)
-     else believe_me (MkLRUCache (newEntry :: withoutKey) newClock)
+  let newCounter = S cache.accessCounter
+      newEntry = MkEntry key val newCounter
+      -- Remove existing entry for this key
+      withoutKey = filter (\e => e.key /= key) cache.entries
+      -- Check if we need to evict
+      entriesAfterEvict =
+        if length withoutKey >= cache.capacity
+          then case findLRU withoutKey of
+                 Nothing => withoutKey
+                 Just lru => filter (\e => e.key /= lru.key) withoutKey
+          else withoutKey
+  in MkLRU cache.capacity (newEntry :: entriesAfterEvict) newCounter
 
-||| Remove key from cache
-export
-remove : Eq k => k -> LRUCache cap k v -> LRUCache cap k v
+||| Remove a key from the cache
+public export
+remove : Eq k => k -> LRUCache k v -> LRUCache k v
 remove key cache =
-  let newEntries = removeEntry key cache.entries
-  in believe_me (MkLRUCache newEntries cache.clock)
+  MkLRU cache.capacity (filter (\e => e.key /= key) cache.entries) cache.accessCounter
 
-||| Clear the cache
-export
-clear : LRUCache cap k v -> LRUCache cap k v
-clear cache = believe_me (MkLRUCache [] cache.clock)
-
--- ============================================================================
--- CACHE RESULT
--- ============================================================================
-
-||| Result of a cache get operation
+||| Clear all entries from the cache
 public export
-data CacheResult v : Type where
-  ||| Cache hit
-  Hit : v -> CacheResult v
-  ||| Cache miss
-  Miss : CacheResult v
+clear : LRUCache k v -> LRUCache k v
+clear cache = MkLRU cache.capacity [] 0
 
-||| Check if result is a hit
-export
-isHit : CacheResult v -> Bool
-isHit (Hit _) = True
-isHit Miss = False
+--------------------------------------------------------------------------------
+-- Bulk Operations
+--------------------------------------------------------------------------------
 
-||| Get value or default
-export
-getOrDefault : v -> CacheResult v -> v
-getOrDefault _ (Hit v) = v
-getOrDefault def Miss = def
-
--- ============================================================================
--- CACHE WITH EXPIRY
--- ============================================================================
-
-||| Cache entry with TTL
+||| Get all keys in the cache (most to least recently used)
 public export
-record TimedEntry k v where
-  constructor MkTimedEntry
-  key : k
-  value : v
-  accessTime : Nat
-  expiresAt : Integer  -- Absolute expiry timestamp
+keys : LRUCache k v -> List k
+keys cache = map key (sortBy (\a, b => compare b.accessOrder a.accessOrder) cache.entries)
 
-||| LRU cache with TTL support
+||| Get all values in the cache (most to least recently used)
 public export
-record TimedLRUCache (cap : Nat) k v where
-  constructor MkTimedLRU
-  entries : List (TimedEntry k v)
-  clock : Nat
-  defaultTTL : Integer  -- Default TTL in milliseconds
+values : LRUCache k v -> List v
+values cache = map val (sortBy (\a, b => compare b.accessOrder a.accessOrder) cache.entries)
 
-||| Create timed LRU cache
-export
-emptyTimed : (cap : Nat) -> (defaultTTL : Integer) -> TimedLRUCache cap k v
-emptyTimed cap ttl = MkTimedLRU [] 0 ttl
-
-||| Check if entry is expired
-isExpired : Integer -> TimedEntry k v -> Bool
-isExpired now entry = now >= entry.expiresAt
-
-||| Remove expired entries
-removeExpired : Integer -> List (TimedEntry k v) -> List (TimedEntry k v)
-removeExpired now = filter (not . isExpired now)
-
-||| Get from timed cache (respects expiry)
-export
-getTimed : Eq k => k -> Integer -> TimedLRUCache cap k v -> (Maybe v, TimedLRUCache cap k v)
-getTimed key now cache =
-  let cleaned = removeExpired now cache.entries
-  in case find (\e => e.key == key) cleaned of
-       Nothing => (Nothing, believe_me (MkTimedLRU cleaned cache.clock cache.defaultTTL))
-       Just entry =>
-         let newClock = S cache.clock
-             updated = { accessTime := newClock } entry
-             others = filter (\e => e.key /= key) cleaned
-         in (Just entry.value, believe_me (MkTimedLRU (updated :: others) newClock cache.defaultTTL))
-
-||| Put with custom TTL
-export
-putTimed : Eq k => k -> v -> Integer -> Integer -> TimedLRUCache cap k v -> TimedLRUCache cap k v
-putTimed key val now ttl cache =
-  let cleaned = removeExpired now cache.entries
-      newClock = S cache.clock
-      newEntry = MkTimedEntry key val newClock (now + ttl)
-      withoutKey = filter (\e => e.key /= key) cleaned
-  in if length withoutKey >= cap
-     then let sorted = sortBy (\a, b => compare a.accessTime b.accessTime) withoutKey
-          in believe_me (MkTimedLRU (newEntry :: drop 1 sorted) newClock cache.defaultTTL)
-     else believe_me (MkTimedLRU (newEntry :: withoutKey) newClock cache.defaultTTL)
-
--- ============================================================================
--- CACHE STATISTICS
--- ============================================================================
-
-||| Cache statistics
+||| Convert cache to list of key-value pairs
 public export
-record CacheStats where
-  constructor MkCacheStats
-  hits : Nat
-  misses : Nat
-  evictions : Nat
-  expirations : Nat
+toList : LRUCache k v -> List (k, v)
+toList cache = map (\e => (e.key, e.val)) cache.entries
 
-||| Create empty stats
-export
-emptyStats : CacheStats
-emptyStats = MkCacheStats 0 0 0 0
-
-||| Record a hit
-export
-recordHit : CacheStats -> CacheStats
-recordHit = { hits $= S }
-
-||| Record a miss
-export
-recordMiss : CacheStats -> CacheStats
-recordMiss = { misses $= S }
-
-||| Record an eviction
-export
-recordEviction : CacheStats -> CacheStats
-recordEviction = { evictions $= S }
-
-||| Record an expiration
-export
-recordExpiration : CacheStats -> CacheStats
-recordExpiration = { expirations $= S }
-
-||| Calculate hit rate
-export
-hitRate : CacheStats -> Double
-hitRate stats =
-  let total = stats.hits + stats.misses
-  in if total == 0 then 0.0 else cast stats.hits / cast total
-
-||| Calculate miss rate
-export
-missRate : CacheStats -> Double
-missRate stats = 1.0 - hitRate stats
-
--- ============================================================================
--- LRU CACHE WITH STATS
--- ============================================================================
-
-||| LRU cache with built-in statistics
+||| Create cache from list of key-value pairs
 public export
-record StatsLRUCache (cap : Nat) k v where
-  constructor MkStatsLRU
-  cache : LRUCache cap k v
-  stats : CacheStats
+fromList : Eq k => (capacity : Nat) -> List (k, v) -> LRUCache k v
+fromList cap pairs = foldl (\c, (k, v) => put k v c) (empty cap) pairs
 
-||| Create stats-tracking LRU cache
-export
-emptyWithStats : (cap : Nat) -> StatsLRUCache cap k v
-emptyWithStats cap = MkStatsLRU (empty cap) emptyStats
+--------------------------------------------------------------------------------
+-- Cache Statistics
+--------------------------------------------------------------------------------
 
-||| Get with stats tracking
-export
-getWithStats : Eq k => k -> StatsLRUCache cap k v -> (Maybe v, StatsLRUCache cap k v)
-getWithStats key sc =
-  let (result, newCache) = get key sc.cache
-      newStats = case result of
-                   Just _ => recordHit sc.stats
-                   Nothing => recordMiss sc.stats
-  in (result, MkStatsLRU newCache newStats)
+||| Get fill ratio
+public export
+fillRatio : LRUCache k v -> Double
+fillRatio cache =
+  if cache.capacity == 0 then 0.0
+  else cast (size cache) / cast cache.capacity
 
-||| Put with stats tracking
-export
-putWithStats : Eq k => k -> v -> StatsLRUCache cap k v -> StatsLRUCache cap k v
-putWithStats key val sc =
-  let wasFull = isFull sc.cache
-      newCache = put key val sc.cache
-      newStats = if wasFull && not (contains key sc.cache)
-                 then recordEviction sc.stats
-                 else sc.stats
-  in MkStatsLRU newCache newStats
-
--- ============================================================================
--- UTILITY
--- ============================================================================
-
-||| Get all keys in cache (most recent first)
-export
-keys : LRUCache cap k v -> List k
-keys cache = map key (sortBy (\a, b => compare b.accessTime a.accessTime) cache.entries)
-
-||| Get all values in cache (most recent first)
-export
-values : LRUCache cap k v -> List v
-values cache = map value (sortBy (\a, b => compare b.accessTime a.accessTime) cache.entries)
-
-||| Get all key-value pairs
-export
-toList : LRUCache cap k v -> List (k, v)
-toList cache = map (\e => (e.key, e.value)) cache.entries
-
-||| Available capacity
-export
-available : LRUCache cap k v -> Nat
-available {cap} cache = cap `minus` length cache.entries
+public export
+Show k => Show v => Show (LRUCache k v) where
+  show cache = "LRUCache(capacity=" ++ show cache.capacity ++
+               ", size=" ++ show (size cache) ++ ")"

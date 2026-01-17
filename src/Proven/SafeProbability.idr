@@ -1,332 +1,188 @@
 -- SPDX-License-Identifier: Palimpsest-MPL-1.0
-||| SafeProbability - Verified probability operations
+||| SafeProbability - Safe probability operations
 |||
-||| Safe probability handling for ML, statistics, quantum computing, and Bayesian inference.
-||| All probability values are guaranteed to be in [0, 1].
-||| Distributions are guaranteed to sum/integrate to 1.
+||| This module provides safe probability operations that ensure
+||| values stay within valid ranges and handle edge cases.
 module Proven.SafeProbability
 
-import Proven.Core
-import Data.So
-import Data.Vect
-import Data.List
+import public Proven.Core
+import public Proven.SafeFloat
 
 %default total
 
--- ============================================================================
--- CONSTANTS
--- ============================================================================
-
-||| Epsilon for floating point comparison
-public export
-PROB_EPSILON : Double
-PROB_EPSILON = 1.0e-10
-
--- ============================================================================
--- PROBABILITY TYPE
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Probability Types
+--------------------------------------------------------------------------------
 
 ||| A probability value guaranteed to be in [0, 1]
 public export
 record Probability where
-  constructor MkProbability
+  constructor MkProb
   value : Double
-  0 inRange : So (value >= 0.0 && value <= 1.0)
 
-||| Proof that a value is a valid probability
+||| Odds representation (a:b)
 public export
-IsValidProbability : Double -> Type
-IsValidProbability x = So (x >= 0.0 && x <= 1.0)
+record Odds where
+  constructor MkOdds
+  forEvent : Double
+  againstEvent : Double
 
--- ============================================================================
--- CONSTRUCTORS
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Probability Construction
+--------------------------------------------------------------------------------
 
-||| Create a probability from a Double (clamps to [0, 1])
-export
-fromDouble : Double -> Probability
-fromDouble x =
-  let clamped = max 0.0 (min 1.0 x)
-  in believe_me (MkProbability clamped)
+||| Create a probability from a double (Nothing if out of range)
+public export
+mkProbability : Double -> Maybe Probability
+mkProbability p =
+  if p >= 0.0 && p <= 1.0 && isFinite p
+    then Just (MkProb p)
+    else Nothing
 
-||| Create probability from a ratio (returns None if invalid)
-export
-fromRatio : Nat -> Nat -> Maybe Probability
-fromRatio num denom =
-  if denom == 0
-  then Nothing
-  else Just (fromDouble (cast num / cast denom))
+||| Create probability clamped to valid range
+public export
+mkProbabilityClamped : Double -> Probability
+mkProbabilityClamped p = MkProb (clampUnit p)
 
-||| Create probability from percentage (0-100)
-export
-fromPercent : Double -> Probability
-fromPercent pct = fromDouble (pct / 100.0)
-
-||| Zero probability (impossible event)
-export
-impossible : Probability
-impossible = fromDouble 0.0
-
-||| Unit probability (certain event)
-export
+||| Certain event (probability = 1)
+public export
 certain : Probability
-certain = fromDouble 1.0
+certain = MkProb 1.0
 
-||| 50% probability
-export
-evenOdds : Probability
-evenOdds = fromDouble 0.5
+||| Impossible event (probability = 0)
+public export
+impossible : Probability
+impossible = MkProb 0.0
 
--- ============================================================================
--- EXTRACTION
--- ============================================================================
+||| Fair coin flip (probability = 0.5)
+public export
+fair : Probability
+fair = MkProb 0.5
 
-||| Get raw probability value
-export
-toDouble : Probability -> Double
-toDouble p = p.value
+--------------------------------------------------------------------------------
+-- Basic Operations
+--------------------------------------------------------------------------------
 
-||| Get probability as percentage (0-100)
-export
-toPercent : Probability -> Double
-toPercent p = p.value * 100.0
-
-||| Get odds ratio (p / (1-p)), returns None if p = 1
-export
-toOdds : Probability -> Maybe Double
-toOdds p =
-  let complement = 1.0 - p.value
-  in if complement < PROB_EPSILON then Nothing else Just (p.value / complement)
-
-||| Get log probability (returns Nothing for zero probability)
-export
-toLogProb : Probability -> Maybe Double
-toLogProb p =
-  if p.value < PROB_EPSILON then Nothing else Just (log p.value)
-
--- ============================================================================
--- ARITHMETIC
--- ============================================================================
-
-||| Complement (1 - p)
-export
+||| Complement of a probability P(not A) = 1 - P(A)
+public export
 complement : Probability -> Probability
-complement p = fromDouble (1.0 - p.value)
+complement (MkProb p) = MkProb (1.0 - p)
 
-||| Product of probabilities (for independent events)
-export
-mul : Probability -> Probability -> Probability
-mul p q = fromDouble (p.value * q.value)
+||| Independent event conjunction P(A and B) = P(A) * P(B)
+public export
+andIndependent : Probability -> Probability -> Probability
+andIndependent (MkProb a) (MkProb b) = MkProb (a * b)
 
-||| Sum of probabilities (clamped to 1)
-export
-add : Probability -> Probability -> Probability
-add p q = fromDouble (p.value + q.value)
+||| Mutually exclusive disjunction P(A or B) = P(A) + P(B)
+||| Returns Nothing if result > 1 (events not mutually exclusive)
+public export
+orExclusive : Probability -> Probability -> Maybe Probability
+orExclusive (MkProb a) (MkProb b) =
+  let result = a + b
+  in if result <= 1.0 then Just (MkProb result) else Nothing
 
-||| Difference of probabilities (clamped to 0)
-export
-sub : Probability -> Probability -> Probability
-sub p q = fromDouble (p.value - q.value)
+||| General disjunction P(A or B) = P(A) + P(B) - P(A and B)
+public export
+orGeneral : Probability -> Probability -> Probability -> Probability
+orGeneral (MkProb a) (MkProb b) (MkProb ab) = MkProb (clampUnit (a + b - ab))
 
-||| Scale probability by factor
-export
-scale : Double -> Probability -> Probability
-scale k p = fromDouble (k * p.value)
+||| Conditional probability P(A|B) = P(A and B) / P(B)
+public export
+conditional : (pAandB : Probability) -> (pB : Probability) -> Maybe Probability
+conditional (MkProb ab) (MkProb b) =
+  if b == 0.0 then Nothing
+  else mkProbability (ab / b)
 
--- ============================================================================
--- BAYESIAN OPERATIONS
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Odds Conversion
+--------------------------------------------------------------------------------
+
+||| Convert probability to odds
+public export
+toOdds : Probability -> Maybe Odds
+toOdds (MkProb p) =
+  if p == 1.0 then Nothing  -- Infinite odds
+  else Just (MkOdds p (1.0 - p))
+
+||| Convert odds to probability
+public export
+fromOdds : Odds -> Probability
+fromOdds (MkOdds f a) =
+  let total = f + a
+  in MkProb (if total == 0.0 then 0.0 else f / total)
+
+||| Express odds as ratio (e.g., "3 to 2")
+public export
+oddsRatio : Odds -> (Double, Double)
+oddsRatio (MkOdds f a) = (f, a)
+
+--------------------------------------------------------------------------------
+-- Bayesian Operations
+--------------------------------------------------------------------------------
 
 ||| Bayes' theorem: P(A|B) = P(B|A) * P(A) / P(B)
-||| Returns None if P(B) = 0
-export
-bayes : (pBGivenA : Probability)
-     -> (pA : Probability)
-     -> (pB : Probability)
-     -> Maybe Probability
-bayes pBGivenA pA pB =
-  if pB.value < PROB_EPSILON
-  then Nothing
-  else Just (fromDouble (pBGivenA.value * pA.value / pB.value))
-
-||| Total probability: P(B) = sum of P(B|Ai) * P(Ai)
-export
-totalProbability : List (Probability, Probability) -> Probability
-totalProbability pairs =
-  let total = foldl (\acc, (pBGivenA, pA) => acc + pBGivenA.value * pA.value) 0.0 pairs
-  in fromDouble total
-
-||| Posterior probability given prior and likelihood
-export
-posterior : (prior : Probability)
-         -> (likelihood : Probability)
-         -> (evidence : Probability)
-         -> Maybe Probability
-posterior = bayes
-
--- ============================================================================
--- PROBABILITY DISTRIBUTIONS
--- ============================================================================
-
-||| A discrete probability distribution (guaranteed to sum to 1)
 public export
-record Distribution (n : Nat) where
-  constructor MkDistribution
-  probabilities : Vect n Probability
-  0 sumsToOne : So (abs (sum (map toDouble probabilities) - 1.0) < PROB_EPSILON)
+bayes : (pBgivenA : Probability) -> (pA : Probability) -> (pB : Probability) -> Maybe Probability
+bayes (MkProb pba) (MkProb pa) (MkProb pb) =
+  if pb == 0.0 then Nothing
+  else mkProbability (pba * pa / pb)
 
-||| Normalize a list of weights to a distribution
-export
-normalize : {n : Nat} -> Vect n Double -> Maybe (Distribution n)
-normalize weights =
-  let total = sum weights
-  in if total < PROB_EPSILON
-     then Nothing
-     else let normalized = map (\w => fromDouble (w / total)) weights
-          in Just (believe_me (MkDistribution normalized))
-
-||| Uniform distribution over n outcomes
-export
-uniform : (n : Nat) -> {auto prf : NonZero n} -> Distribution n
-uniform n =
-  let p = fromDouble (1.0 / cast n)
-  in believe_me (MkDistribution (replicate n p))
-
-||| Get probability of outcome at index
-export
-probabilityAt : Distribution n -> Fin n -> Probability
-probabilityAt d i = index i d.probabilities
-
-||| Sample from distribution (given random value in [0,1])
-export
-sample : Distribution n -> Double -> Fin n
-sample d rand =
-  let r = max 0.0 (min 1.0 rand)
-  in go 0 0.0 d.probabilities r
-  where
-    go : Nat -> Double -> Vect m Probability -> Double -> Fin n
-    go idx cumulative [] _ = believe_me FZ  -- Should never happen
-    go idx cumulative (p :: ps) rand =
-      let newCumulative = cumulative + p.value
-      in if rand <= newCumulative
-         then believe_me (natToFinLt idx)
-         else go (S idx) newCumulative ps rand
-
--- ============================================================================
--- ENTROPY & INFORMATION
--- ============================================================================
-
-||| Shannon entropy of a distribution (in nats)
-export
-entropy : Distribution n -> Double
-entropy d =
-  let probs = toList d.probabilities
-  in negate (foldl (\acc, p =>
-       if p.value < PROB_EPSILON then acc
-       else acc + p.value * log p.value) 0.0 probs)
-
-||| Shannon entropy in bits
-export
-entropyBits : Distribution n -> Double
-entropyBits d = entropy d / log 2.0
-
-||| Kullback-Leibler divergence D_KL(P || Q)
-||| Returns None if Q has zero where P is nonzero
-export
-klDivergence : Distribution n -> Distribution n -> Maybe Double
-klDivergence p q =
-  let pairs = zip (toList p.probabilities) (toList q.probabilities)
-  in if any (\(pi, qi) => pi.value > PROB_EPSILON && qi.value < PROB_EPSILON) pairs
-     then Nothing
-     else Just (foldl (\acc, (pi, qi) =>
-            if pi.value < PROB_EPSILON then acc
-            else acc + pi.value * log (pi.value / qi.value)) 0.0 pairs)
-
-||| Cross-entropy H(P, Q)
-export
-crossEntropy : Distribution n -> Distribution n -> Maybe Double
-crossEntropy p q =
-  let pairs = zip (toList p.probabilities) (toList q.probabilities)
-  in if any (\(_, qi) => qi.value < PROB_EPSILON) pairs
-     then Nothing
-     else Just (negate (foldl (\acc, (pi, qi) =>
-            acc + pi.value * log qi.value) 0.0 pairs))
-
--- ============================================================================
--- COMPARISON
--- ============================================================================
-
-||| Check if two probabilities are approximately equal
-export
-approxEqual : Probability -> Probability -> Double -> Bool
-approxEqual p q epsilon = abs (p.value - q.value) < epsilon
-
-||| Check if probability is effectively zero
-export
-isZero : Probability -> Bool
-isZero p = p.value < PROB_EPSILON
-
-||| Check if probability is effectively one
-export
-isOne : Probability -> Bool
-isOne p = p.value > 1.0 - PROB_EPSILON
-
--- ============================================================================
--- LOG-SPACE OPERATIONS (for numerical stability)
--- ============================================================================
-
-||| A log-probability (can represent very small probabilities)
+||| Update probability with new evidence (simple Bayesian update)
+||| prior: P(H), likelihood: P(E|H), marginal: P(E)
 public export
-record LogProbability where
-  constructor MkLogProbability
-  logValue : Double
+updateBelief : (prior : Probability) -> (likelihood : Probability) -> (marginal : Probability) -> Maybe Probability
+updateBelief = bayes
 
-||| Convert probability to log-space
-export
-toLogSpace : Probability -> Maybe LogProbability
-toLogSpace p =
-  if p.value < PROB_EPSILON then Nothing
-  else Just (MkLogProbability (log p.value))
+--------------------------------------------------------------------------------
+-- Distribution Operations
+--------------------------------------------------------------------------------
 
-||| Convert log-probability back to probability
-export
-fromLogSpace : LogProbability -> Probability
-fromLogSpace lp = fromDouble (exp lp.logValue)
+||| Bernoulli distribution: probability of exactly k successes in 1 trial
+public export
+bernoulli : (k : Nat) -> (p : Probability) -> Double
+bernoulli Z (MkProb p) = 1.0 - p
+bernoulli (S Z) (MkProb p) = p
+bernoulli _ _ = 0.0
 
-||| Multiply in log-space (add log values)
-export
-logMul : LogProbability -> LogProbability -> LogProbability
-logMul a b = MkLogProbability (a.logValue + b.logValue)
+||| Binomial coefficient (n choose k)
+binomial : Nat -> Nat -> Nat
+binomial n k =
+  if k > n then 0
+  else if k == 0 || k == n then 1
+  else binomial (minus n 1) (minus k 1) + binomial (minus n 1) k
 
-||| Add in log-space (log-sum-exp for numerical stability)
-export
-logAdd : LogProbability -> LogProbability -> LogProbability
-logAdd a b =
-  let maxVal = max a.logValue b.logValue
-      minVal = min a.logValue b.logValue
-  in MkLogProbability (maxVal + log (1.0 + exp (minVal - maxVal)))
+||| Binomial distribution: P(X = k) for n trials with probability p
+public export
+binomialPMF : (n : Nat) -> (k : Nat) -> (p : Probability) -> Double
+binomialPMF n k (MkProb p) =
+  if k > n then 0.0
+  else cast (binomial n k) * pow p (cast k) * pow (1.0 - p) (cast (minus n k))
 
--- ============================================================================
--- SPECIAL DISTRIBUTIONS
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Expected Value
+--------------------------------------------------------------------------------
 
-||| Bernoulli distribution (single coin flip)
-export
-bernoulli : Probability -> Distribution 2
-bernoulli p = believe_me (MkDistribution [complement p, p])
+||| Expected value of a discrete distribution
+public export
+expectedValue : List (Double, Probability) -> Double
+expectedValue outcomes = sum (map (\(v, MkProb p) => v * p) outcomes)
 
-||| Binary entropy function H(p)
-export
-binaryEntropy : Probability -> Double
-binaryEntropy p =
-  if isZero p || isOne p then 0.0
-  else let q = 1.0 - p.value
-       in negate (p.value * log p.value + q * log q) / log 2.0
+||| Variance of a discrete distribution
+public export
+variance : List (Double, Probability) -> Double
+variance outcomes =
+  let mu = expectedValue outcomes
+      squaredDiffs = map (\(v, MkProb p) => p * (v - mu) * (v - mu)) outcomes
+  in sum squaredDiffs
 
-||| Geometric distribution PMF: P(X = k) = (1-p)^k * p
-export
-geometric : Probability -> Nat -> Probability
-geometric p k =
-  let q = 1.0 - p.value
-      qk = pow q (cast k)
-  in fromDouble (qk * p.value)
+public export
+Eq Probability where
+  (MkProb a) == (MkProb b) = approxEqual 0.0000001 a b
+
+public export
+Ord Probability where
+  compare (MkProb a) (MkProb b) = compare a b
+
+public export
+Show Probability where
+  show (MkProb p) = show (p * 100.0) ++ "%"

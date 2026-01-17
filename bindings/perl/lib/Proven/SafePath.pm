@@ -9,7 +9,7 @@ use File::Basename;
 use Cwd qw(abs_path);
 use Exporter 'import';
 
-our $VERSION = '0.3.0';
+our $VERSION = '0.4.0';
 our @EXPORT_OK = qw(
     has_traversal is_safe sanitize_filename
     safe_join resolve_within safe_basename

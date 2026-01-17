@@ -1,7 +1,6 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0
 
-package com.hyperpolymath.proven
+package proven
 
 import java.nio.charset.StandardCharsets
 import scala.util.Try

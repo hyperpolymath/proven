@@ -8,7 +8,7 @@
      (version . "1.0.0")
      (schema-version . "1.0")
      (created . "2025-01-10")
-     (updated . "2026-01-17T02:30:00Z")
+     (updated . "2026-01-17T14:00:00Z")
      (project . "proven")
      (repo . "github.com/hyperpolymath/proven"))
 
@@ -908,7 +908,79 @@
         "  - 89 binding targets (90 dirs - _educational)"
         "  - Coverage varies: 7-20 modules per target"
         "  - Bindings are work-in-progress across all targets"
-        "Updated STATE.scm with all 74 modules in components list")))))
+        "Updated STATE.scm with all 74 modules in components list")))
+
+     ((date . "2026-01-17")
+      (session . "bidirectional-mapping-and-tui-reintegration")
+      (accomplishments
+       ("Fixed Zig bindings module exports (critical bidirectional mapping gap):"
+        "  - bindings/zig/src/proven.zig was only exporting 10 of 30 modules"
+        "  - Updated to export all 30 modules organized by category:"
+        "    - Core: safe_math, safe_string, safe_path, safe_email, safe_network"
+        "    - Core: safe_crypto, safe_uuid, safe_currency, safe_phone, safe_hex"
+        "    - Extended: safe_float, safe_buffer, safe_color, safe_version"
+        "    - Extended: safe_checksum, safe_geo, safe_angle, safe_probability, safe_unit"
+        "    - Data structures: safe_queue, safe_bloom, safe_lru"
+        "    - Resilience: safe_rate_limiter, safe_circuit_breaker, safe_retry"
+        "    - State: safe_monotonic, safe_state_machine, safe_graph"
+        "Reintegrated SafeCalculator from proven-tui into proven Rust bindings:"
+        "  - Created bindings/rust/src/safe_calculator.rs"
+        "  - Expression evaluator demonstrating SafeMath primitives"
+        "  - Features: +, -, *, /, %, ans reference, overflow demo, divzero demo"
+        "  - History tracking with bounded capacity"
+        "  - Updated lib.rs with module declaration and re-export"
+        "Clarified bidirectional mapping architecture:"
+        "  - Native implementations in each language follow verified logic patterns"
+        "  - FFI layer at ffi/zig/src/main.zig provides C ABI for interop"
+        "  - Idris 2 → Zig FFI → Target language bindings"
+        "  - Alternative: Direct native implementations matching verified spec")))
+
+     ((date . "2026-01-17")
+      (session . "module-expansion-87-and-zig-016-fixes")
+      (accomplishments
+       ("Expanded Zig FFI from 38 to 87 modules at v0.5.0:"
+        "  - Core (18): SafeMath, SafeString, SafePath, SafeEmail, SafeNetwork,"
+        "    SafeCrypto, SafeUUID, SafeCurrency, SafePhone, SafeHex, SafeJson,"
+        "    SafeUrl, SafePassword, SafeDateTime, SafeRegex, SafeHtml, SafeCommand, SafeVersion"
+        "  - Encoding (5): SafeBase64, SafeHex (shared), SafeChecksum, SafeColor, SafeCsv"
+        "  - Data Format (11): SafeXml, SafeYaml, SafeToml, SafeMarkdown, SafeBibtex,"
+        "    SafeArchive, SafeSchema, SafeI18n, SafeLog, SafeTemplate, SafeDns"
+        "  - Numeric (5): SafeFloat, SafeDecimal, SafeRational, SafeComplex, SafeFiniteField"
+        "  - Data Structure (10): SafeQueue, SafeBloom, SafeLru, SafeHeap, SafeTree,"
+        "    SafeSet, SafeBitset, SafeMatrix, SafeInterval, SafeUnionFind"
+        "  - Resilience (6): SafeRateLimiter, SafeCircuitBreaker, SafeRetry,"
+        "    SafeSemaphore, SafeTransaction, SafeConsensus"
+        "  - State (3): SafeMonotonic, SafeStateMachine, SafeGraph"
+        "  - Algorithm (5): SafeOrdering, SafePolicy, SafeProvenance, SafeResource, SafeCapability"
+        "  - Security (9): SafeJwt, SafeSql, SafeOauth, SafeCert, SafeSsh,"
+        "    SafeWebhook, SafeHttp, SafeMcp, SafeDocker"
+        "  - Infrastructure (8): SafeEnv, SafeArgs, SafeFile, SafeGit, SafeCron,"
+        "    SafeBuffer, SafeGeo, SafeAngle"
+        "  - HTTP/Web (5): SafeHeader, SafeCookie, SafeContentType, SafeUnit, SafeProbability"
+        "  - Protocol (2): SafeCommand (shared), SafeGit (shared)"
+        "Expanded ReScript bindings to 87 modules at v0.5.0:"
+        "  - Created all missing modules matching Zig structure"
+        "  - Updated Proven.res aggregator with all 87 module exports"
+        "Fixed Zig 0.16.0-dev API breaking changes in build.zig:"
+        "  - Changed addStaticLibrary → addLibrary with createModule"
+        "  - Updated test configuration for new API"
+        "Fixed 13 Zig compilation errors:"
+        "  - safe_http.zig: const code → const status_code (shadowing)"
+        "  - safe_jwt.zig: var output → const output"
+        "  - safe_matrix.zig: var sum → var acc (3 places, shadowing)"
+        "  - safe_regex.zig: removed unused variable discard"
+        "  - safe_resource.zig: comptime T: type → comptime _: type"
+        "  - safe_template.zig: wrapped struct literals in parentheses"
+        "  - safe_tree.zig: removed pointless discards"
+        "  - safe_union_find.zig: count → num_elements (shadowing)"
+        "  - safe_webhook.zig: var hex_output → const hex_output (3 places)"
+        "Documented Zig 0.16 test issues (79 API changes):"
+        "  - ArrayList.init(allocator) changed"
+        "  - std.time.timestamp() moved/renamed"
+        "  - std.crypto.utils moved"
+        "  - std.ComptimeStringMap renamed"
+        "  - Requires full stdlib port for tests"
+        "Updated README.adoc module count badge: 74 → 87")))))
 
 ;; Helper functions
 (define (get-completion-percentage state)

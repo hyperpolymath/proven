@@ -1,357 +1,231 @@
 -- SPDX-License-Identifier: Palimpsest-MPL-1.0
-||| SafeMonotonic - Verified monotonic values
+||| SafeMonotonic - Safe monotonic counters and timestamps
 |||
-||| Type-safe monotonic counters, clocks, and sequences.
-||| Guarantees values never decrease (or never increase for decreasing).
-|||
-||| Used in distributed systems, event sourcing, and time tracking.
+||| This module provides monotonically increasing values that
+||| can never decrease, useful for ordering and causality.
 module Proven.SafeMonotonic
 
-import Proven.Core
-import Data.So
+import public Proven.Core
 
 %default total
 
--- ============================================================================
--- MONOTONIC COUNTER (INCREASING)
--- ============================================================================
+--------------------------------------------------------------------------------
+-- Monotonic Counter
+--------------------------------------------------------------------------------
 
 ||| A monotonically increasing counter
-||| The value is guaranteed to never decrease over time
+||| Once incremented, it can never decrease
 public export
 record MonotonicCounter where
-  constructor MkMonotonicCounter
+  constructor MkMonotonic
   value : Nat
-  -- Conceptually, we track that value >= previous value
-  -- This is enforced by only allowing increment operations
 
-||| Create a new counter starting at zero
-export
-newCounter : MonotonicCounter
-newCounter = MkMonotonicCounter 0
+||| Create a new monotonic counter starting at 0
+public export
+zero : MonotonicCounter
+zero = MkMonotonic 0
 
-||| Create a counter with initial value
-export
-counterFrom : Nat -> MonotonicCounter
-counterFrom n = MkMonotonicCounter n
+||| Create a monotonic counter with initial value
+public export
+fromNat : Nat -> MonotonicCounter
+fromNat n = MkMonotonic n
 
 ||| Get the current value
-export
-counterValue : MonotonicCounter -> Nat
-counterValue c = c.value
+public export
+getValue : MonotonicCounter -> Nat
+getValue = value
 
-||| Increment by one
-export
+||| Increment the counter by 1
+public export
 increment : MonotonicCounter -> MonotonicCounter
-increment c = MkMonotonicCounter (S c.value)
+increment (MkMonotonic n) = MkMonotonic (S n)
 
-||| Increment by n
-export
+||| Increment the counter by a given amount
+public export
 incrementBy : Nat -> MonotonicCounter -> MonotonicCounter
-incrementBy n c = MkMonotonicCounter (c.value + n)
+incrementBy k (MkMonotonic n) = MkMonotonic (n + k)
 
-||| Compare two counters (useful for detecting if counter advanced)
-export
-counterCompare : MonotonicCounter -> MonotonicCounter -> Ordering
-counterCompare a b = compare a.value b.value
-
-||| Check if counter a happened-before counter b
-export
-happenedBefore : MonotonicCounter -> MonotonicCounter -> Bool
-happenedBefore a b = a.value < b.value
-
--- ============================================================================
--- MONOTONIC TIMESTAMP
--- ============================================================================
-
-||| A monotonically increasing timestamp (nanoseconds since epoch)
+||| Advance counter to at least the given value
+||| If current value is higher, keeps current value
 public export
-record MonotonicTimestamp where
-  constructor MkTimestamp
-  nanos : Integer
-  0 nonNegative : So (nanos >= 0)
+advanceTo : Nat -> MonotonicCounter -> MonotonicCounter
+advanceTo target (MkMonotonic n) = MkMonotonic (max target n)
 
-||| Create a timestamp from nanoseconds
-export
-timestampFromNanos : Integer -> Maybe MonotonicTimestamp
-timestampFromNanos n =
-  if n >= 0 then Just (believe_me (MkTimestamp n))
-  else Nothing
-
-||| Create a timestamp from milliseconds
-export
-timestampFromMillis : Integer -> Maybe MonotonicTimestamp
-timestampFromMillis ms =
-  if ms >= 0 then Just (believe_me (MkTimestamp (ms * 1000000)))
-  else Nothing
-
-||| Create a timestamp from seconds
-export
-timestampFromSeconds : Integer -> Maybe MonotonicTimestamp
-timestampFromSeconds s =
-  if s >= 0 then Just (believe_me (MkTimestamp (s * 1000000000)))
-  else Nothing
-
-||| Get nanoseconds
-export
-toNanos : MonotonicTimestamp -> Integer
-toNanos t = t.nanos
-
-||| Get milliseconds
-export
-toMillis : MonotonicTimestamp -> Integer
-toMillis t = t.nanos `div` 1000000
-
-||| Get seconds
-export
-toSeconds : MonotonicTimestamp -> Integer
-toSeconds t = t.nanos `div` 1000000000
-
-||| Add duration (always increases)
-export
-addDuration : MonotonicTimestamp -> Integer -> MonotonicTimestamp
-addDuration t duration =
-  let newVal = t.nanos + max 0 duration
-  in believe_me (MkTimestamp newVal)
-
-||| Compare timestamps
-export
-timestampCompare : MonotonicTimestamp -> MonotonicTimestamp -> Ordering
-timestampCompare a b = compare a.nanos b.nanos
-
-||| Duration between two timestamps (always non-negative)
-export
-durationBetween : MonotonicTimestamp -> MonotonicTimestamp -> Integer
-durationBetween a b = abs (a.nanos - b.nanos)
-
--- ============================================================================
--- SEQUENCE NUMBER
--- ============================================================================
-
-||| A monotonically increasing sequence number
-||| Used for ordering events, messages, or transactions
+||| Compare two counters
 public export
-record SequenceNumber where
-  constructor MkSeqNum
-  value : Nat
+Eq MonotonicCounter where
+  (MkMonotonic a) == (MkMonotonic b) = a == b
 
-||| Initial sequence number
-export
-initialSeq : SequenceNumber
-initialSeq = MkSeqNum 0
+public export
+Ord MonotonicCounter where
+  compare (MkMonotonic a) (MkMonotonic b) = compare a b
 
-||| Create sequence from value
-export
-seqFrom : Nat -> SequenceNumber
-seqFrom = MkSeqNum
+--------------------------------------------------------------------------------
+-- Logical Timestamp (Lamport Clock)
+--------------------------------------------------------------------------------
 
-||| Get sequence value
-export
-seqValue : SequenceNumber -> Nat
-seqValue s = s.value
-
-||| Get next sequence number
-export
-nextSeq : SequenceNumber -> SequenceNumber
-nextSeq s = MkSeqNum (S s.value)
-
-||| Skip to a higher sequence (must be greater)
-export
-skipTo : SequenceNumber -> Nat -> Maybe SequenceNumber
-skipTo s n = if n > s.value then Just (MkSeqNum n) else Nothing
-
-||| Check if sequence a precedes sequence b
-export
-precedes : SequenceNumber -> SequenceNumber -> Bool
-precedes a b = a.value < b.value
-
-||| Gap between two sequences
-export
-seqGap : SequenceNumber -> SequenceNumber -> Nat
-seqGap a b = if a.value > b.value then a.value - b.value else b.value - a.value
-
--- ============================================================================
--- LAMPORT CLOCK
--- ============================================================================
-
-||| Lamport logical clock for distributed systems
-||| Implements the happens-before relation
+||| Lamport logical timestamp for distributed ordering
 public export
 record LamportClock where
   constructor MkLamport
-  time : Nat
+  timestamp : Nat
+  nodeId : Nat               -- Tie-breaker for concurrent events
 
 ||| Create a new Lamport clock
-export
-newLamportClock : LamportClock
-newLamportClock = MkLamport 0
-
-||| Get current time
-export
-lamportTime : LamportClock -> Nat
-lamportTime c = c.time
-
-||| Local event (increment)
-export
-localEvent : LamportClock -> LamportClock
-localEvent c = MkLamport (S c.time)
-
-||| Send event (increment and return timestamp to send)
-export
-sendEvent : LamportClock -> (LamportClock, Nat)
-sendEvent c = let c' = MkLamport (S c.time) in (c', c'.time)
-
-||| Receive event (merge with received timestamp)
-export
-receiveEvent : LamportClock -> Nat -> LamportClock
-receiveEvent c received = MkLamport (S (max c.time received))
-
-||| Merge two clocks (for synchronization)
-export
-mergeLamport : LamportClock -> LamportClock -> LamportClock
-mergeLamport a b = MkLamport (max a.time b.time)
-
--- ============================================================================
--- HYBRID LOGICAL CLOCK (HLC)
--- ============================================================================
-
-||| Hybrid Logical Clock combining physical and logical time
-||| Provides both causality tracking and bounded clock skew
 public export
-record HybridLogicalClock where
-  constructor MkHLC
-  physicalTime : Integer  -- Wall clock time (e.g., Unix millis)
-  logicalTime : Nat       -- Logical counter for same physical time
+newLamport : (nodeId : Nat) -> LamportClock
+newLamport nid = MkLamport 0 nid
 
-||| Create a new HLC
-export
-newHLC : Integer -> HybridLogicalClock
-newHLC pt = MkHLC (max 0 pt) 0
-
-||| Get physical time component
-export
-hlcPhysicalTime : HybridLogicalClock -> Integer
-hlcPhysicalTime c = c.physicalTime
-
-||| Get logical time component
-export
-hlcLogicalTime : HybridLogicalClock -> Nat
-hlcLogicalTime c = c.logicalTime
-
-||| Local event with current wall time
-export
-hlcLocalEvent : HybridLogicalClock -> Integer -> HybridLogicalClock
-hlcLocalEvent c wallTime =
-  if wallTime > c.physicalTime
-  then MkHLC wallTime 0
-  else MkHLC c.physicalTime (S c.logicalTime)
-
-||| Send event (returns updated clock and timestamp)
-export
-hlcSendEvent : HybridLogicalClock -> Integer -> (HybridLogicalClock, (Integer, Nat))
-hlcSendEvent c wallTime =
-  let c' = hlcLocalEvent c wallTime
-  in (c', (c'.physicalTime, c'.logicalTime))
-
-||| Receive event
-export
-hlcReceiveEvent : HybridLogicalClock -> Integer -> (Integer, Nat) -> HybridLogicalClock
-hlcReceiveEvent c wallTime (msgPT, msgLT) =
-  let maxPT = max wallTime (max c.physicalTime msgPT)
-  in if maxPT > c.physicalTime && maxPT > msgPT
-     then MkHLC maxPT 0
-     else if maxPT == c.physicalTime && maxPT == msgPT
-     then MkHLC maxPT (S (max c.logicalTime msgLT))
-     else if maxPT == c.physicalTime
-     then MkHLC maxPT (S c.logicalTime)
-     else MkHLC maxPT (S msgLT)
-
-||| Compare two HLC timestamps
-export
-hlcCompare : HybridLogicalClock -> HybridLogicalClock -> Ordering
-hlcCompare a b =
-  case compare a.physicalTime b.physicalTime of
-    EQ => compare a.logicalTime b.logicalTime
-    other => other
-
--- ============================================================================
--- VERSION VECTOR
--- ============================================================================
-
-||| Version vector for tracking causality across multiple nodes
+||| Local event: increment the clock
 public export
-record VersionVector (n : Nat) where
-  constructor MkVersionVector
-  versions : Vect n Nat
+tick : LamportClock -> LamportClock
+tick (MkLamport ts nid) = MkLamport (S ts) nid
 
-||| Create a new version vector (all zeros)
-export
-newVersionVector : (n : Nat) -> VersionVector n
-newVersionVector n = MkVersionVector (replicate n 0)
+||| Send event: increment and return timestamp
+public export
+send : LamportClock -> (Nat, LamportClock)
+send clock =
+  let newClock = tick clock
+  in (newClock.timestamp, newClock)
 
-||| Get version for node i
-export
-getVersion : VersionVector n -> Fin n -> Nat
-getVersion vv i = index i vv.versions
+||| Receive event: update clock based on received timestamp
+public export
+receive : Nat -> LamportClock -> LamportClock
+receive received (MkLamport local nid) =
+  MkLamport (S (max local received)) nid
 
-||| Increment version for node i
-export
-incrementVersion : VersionVector n -> Fin n -> VersionVector n
-incrementVersion vv i =
-  let vs = vv.versions
-      v = index i vs
-  in MkVersionVector (replaceAt i (S v) vs)
+||| Compare Lamport clocks (total ordering)
+public export
+Eq LamportClock where
+  a == b = a.timestamp == b.timestamp && a.nodeId == b.nodeId
 
-||| Merge two version vectors (pointwise max)
-export
-mergeVersionVectors : VersionVector n -> VersionVector n -> VersionVector n
-mergeVersionVectors a b =
-  MkVersionVector (zipWith max a.versions b.versions)
+public export
+Ord LamportClock where
+  compare a b =
+    case compare a.timestamp b.timestamp of
+      EQ => compare a.nodeId b.nodeId
+      x => x
 
-||| Check if a happened-before b (a ≤ b componentwise, and a ≠ b)
-export
-vvHappenedBefore : VersionVector n -> VersionVector n -> Bool
-vvHappenedBefore a b =
-  let leq = all id (zipWith (<=) (toList a.versions) (toList b.versions))
-      neq = any id (zipWith (/=) (toList a.versions) (toList b.versions))
-  in leq && neq
+||| Check if event a happened before event b
+public export
+happenedBefore : LamportClock -> LamportClock -> Bool
+happenedBefore a b = a.timestamp < b.timestamp
 
-||| Check if two version vectors are concurrent (neither happened-before the other)
-export
-vvConcurrent : VersionVector n -> VersionVector n -> Bool
-vvConcurrent a b = not (vvHappenedBefore a b) && not (vvHappenedBefore b a)
+--------------------------------------------------------------------------------
+-- Vector Clock
+--------------------------------------------------------------------------------
 
--- ============================================================================
--- HIGH WATER MARK
--- ============================================================================
+||| Vector clock for tracking causality in distributed systems
+public export
+record VectorClock where
+  constructor MkVector
+  clocks : List (Nat, Nat)   -- List of (nodeId, timestamp) pairs
+  selfId : Nat
 
-||| A high water mark that tracks the highest seen value
+||| Create a new vector clock
+public export
+newVector : (selfId : Nat) -> VectorClock
+newVector sid = MkVector [(sid, 0)] sid
+
+||| Get timestamp for a specific node
+getNodeTime : Nat -> List (Nat, Nat) -> Nat
+getNodeTime _ [] = 0
+getNodeTime nid ((n, t) :: rest) = if n == nid then t else getNodeTime nid rest
+
+||| Update timestamp for a specific node
+updateNodeTime : Nat -> Nat -> List (Nat, Nat) -> List (Nat, Nat)
+updateNodeTime nid newTime [] = [(nid, newTime)]
+updateNodeTime nid newTime ((n, t) :: rest) =
+  if n == nid then (n, newTime) :: rest
+  else (n, t) :: updateNodeTime nid newTime rest
+
+||| Local event: increment own timestamp
+public export
+tickVector : VectorClock -> VectorClock
+tickVector vc =
+  let current = getNodeTime vc.selfId vc.clocks
+      newClocks = updateNodeTime vc.selfId (S current) vc.clocks
+  in MkVector newClocks vc.selfId
+
+||| Merge two vector clocks (taking max of each component)
+public export
+merge : VectorClock -> List (Nat, Nat) -> VectorClock
+merge vc received =
+  let merged = mergeClocks vc.clocks received
+  in MkVector merged vc.selfId
+  where
+    mergeClocks : List (Nat, Nat) -> List (Nat, Nat) -> List (Nat, Nat)
+    mergeClocks local [] = local
+    mergeClocks local ((nid, rt) :: rest) =
+      let lt = getNodeTime nid local
+          newLocal = updateNodeTime nid (max lt rt) local
+      in mergeClocks newLocal rest
+
+||| Receive event with vector clock
+public export
+receiveVector : List (Nat, Nat) -> VectorClock -> VectorClock
+receiveVector received vc = tickVector (merge vc received)
+
+||| Check if vc1 happened before vc2
+public export
+vcHappenedBefore : VectorClock -> VectorClock -> Bool
+vcHappenedBefore vc1 vc2 =
+  all (checkComponent vc2.clocks) vc1.clocks && any (checkStrictLess vc2.clocks) vc1.clocks
+  where
+    checkComponent : List (Nat, Nat) -> (Nat, Nat) -> Bool
+    checkComponent vc2clocks (nid, t1) = t1 <= getNodeTime nid vc2clocks
+
+    checkStrictLess : List (Nat, Nat) -> (Nat, Nat) -> Bool
+    checkStrictLess vc2clocks (nid, t1) = t1 < getNodeTime nid vc2clocks
+
+||| Check if two vector clocks are concurrent (neither happened before)
+public export
+areConcurrent : VectorClock -> VectorClock -> Bool
+areConcurrent vc1 vc2 = not (vcHappenedBefore vc1 vc2) && not (vcHappenedBefore vc2 vc1)
+
+--------------------------------------------------------------------------------
+-- High-Water Mark
+--------------------------------------------------------------------------------
+
+||| High-water mark for tracking processed offsets
 public export
 record HighWaterMark where
   constructor MkHWM
-  value : Integer
+  mark : Nat
+  
+||| Create a new high-water mark
+public export
+newHWM : HighWaterMark
+newHWM = MkHWM 0
 
-||| Create a new high water mark
-export
-newHighWaterMark : HighWaterMark
-newHighWaterMark = MkHWM 0
+||| Update high-water mark if offset is higher
+public export
+updateHWM : Nat -> HighWaterMark -> HighWaterMark
+updateHWM offset (MkHWM current) = MkHWM (max current offset)
 
-||| Create with initial value
-export
-hwmFrom : Integer -> HighWaterMark
-hwmFrom = MkHWM
+||| Check if an offset has been processed
+public export
+isProcessed : Nat -> HighWaterMark -> Bool
+isProcessed offset (MkHWM mark) = offset <= mark
 
-||| Get current high water mark
-export
-hwmValue : HighWaterMark -> Integer
-hwmValue h = h.value
+||| Get the current high-water mark
+public export
+getHWM : HighWaterMark -> Nat
+getHWM = mark
 
-||| Update with a new value (only increases if greater)
-export
-hwmUpdate : HighWaterMark -> Integer -> HighWaterMark
-hwmUpdate h v = if v > h.value then MkHWM v else h
+--------------------------------------------------------------------------------
+-- Display
+--------------------------------------------------------------------------------
 
-||| Check if a value would advance the high water mark
-export
-hwmWouldAdvance : HighWaterMark -> Integer -> Bool
-hwmWouldAdvance h v = v > h.value
+public export
+Show MonotonicCounter where
+  show (MkMonotonic n) = "Counter(" ++ show n ++ ")"
+
+public export
+Show LamportClock where
+  show lc = "Lamport(" ++ show lc.timestamp ++ "@" ++ show lc.nodeId ++ ")"
+
+public export
+Show VectorClock where
+  show vc = "Vector" ++ show vc.clocks
+

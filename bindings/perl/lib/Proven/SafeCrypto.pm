@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our $VERSION = '0.3.0';
+our $VERSION = '0.4.0';
 our @EXPORT_OK = qw(
     constant_time_compare random_bytes random_int
     random_hex random_base64 secure_zero hmac verify_hmac

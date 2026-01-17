@@ -202,6 +202,56 @@ modules = Proven
         , Proven.SafeBibTeX
         -- SafeMCP (v1.0.0 - MCP handling with prompt injection detection)
         , Proven.SafeMCP
+        -- SafeFloat (v1.0.0 - floating-point with NaN/Infinity handling)
+        , Proven.SafeFloat
+        -- SafeColor (v1.0.0 - color handling with WCAG contrast)
+        , Proven.SafeColor
+        -- SafeVersion (v1.0.0 - semantic versioning)
+        , Proven.SafeVersion
+        -- SafeChecksum (v1.0.0 - checksums and validation algorithms)
+        , Proven.SafeChecksum
+        -- SafeGeo (v1.0.0 - geographic coordinates and distance)
+        , Proven.SafeGeo
+        -- SafeAngle (v1.0.0 - angle conversions and normalization)
+        , Proven.SafeAngle
+        -- SafeProbability (v1.0.0 - probability distributions)
+        , Proven.SafeProbability
+        -- SafeUnit (v1.0.0 - physical units with dimension checking)
+        , Proven.SafeUnit
+        -- SafeQueue (v1.0.0 - bounded FIFO queues)
+        , Proven.SafeQueue
+        -- SafeBloom (v1.0.0 - bloom filters)
+        , Proven.SafeBloom
+        -- SafeLRU (v1.0.0 - LRU cache)
+        , Proven.SafeLRU
+        -- SafeRateLimiter (v1.0.0 - rate limiting algorithms)
+        , Proven.SafeRateLimiter
+        -- SafeCircuitBreaker (v1.0.0 - circuit breaker pattern)
+        , Proven.SafeCircuitBreaker
+        -- SafeRetry (v1.0.0 - retry with backoff strategies)
+        , Proven.SafeRetry
+        -- SafeMonotonic (v1.0.0 - monotonic counters and clocks)
+        , Proven.SafeMonotonic
+        -- SafeGraph (v1.0.0 - graph data structures)
+        , Proven.SafeGraph
+        -- SafeResource (v1.0.0 - resource lifecycle management)
+        , Proven.SafeResource
+        -- SafeTransaction (v1.0.0 - ACID-like transactions)
+        , Proven.SafeTransaction
+        -- SafeCapability (v1.0.0 - capability-based security)
+        , Proven.SafeCapability
+        -- SafeConsensus (v1.0.0 - distributed consensus)
+        , Proven.SafeConsensus
+        -- SafeFiniteField (v1.0.0 - finite field arithmetic)
+        , Proven.SafeFiniteField
+        -- SafeML (v1.0.0 - machine learning primitives)
+        , Proven.SafeML
+        -- SafeOrdering (v1.0.0 - total and partial orderings)
+        , Proven.SafeOrdering
+        -- SafeSchema (v1.0.0 - schema validation)
+        , Proven.SafeSchema
+        -- SafeTensor (v1.0.0 - tensor operations)
+        , Proven.SafeTensor
         -- FFI (ECHIDNA integration) - temporarily excluded due to syntax issues
         -- , Proven.FFI.Echidna
 

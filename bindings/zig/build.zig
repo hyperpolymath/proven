@@ -7,12 +7,18 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Library
-    const lib = b.addStaticLibrary(.{
-        .name = "proven",
+    // Create module for library
+    const proven_mod = b.createModule(.{
         .root_source_file = b.path("src/proven.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    // Library (Zig 0.16+ API)
+    const lib = b.addLibrary(.{
+        .name = "proven",
+        .linkage = .static,
+        .root_module = proven_mod,
     });
 
     b.installArtifact(lib);
@@ -22,11 +28,15 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/proven.zig"),
     });
 
-    // Tests
-    const main_tests = b.addTest(.{
+    // Tests (Zig 0.16+ API - uses root_module)
+    const test_mod = b.createModule(.{
         .root_source_file = b.path("src/proven.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    const main_tests = b.addTest(.{
+        .root_module = test_mod,
     });
 
     const run_main_tests = b.addRunArtifact(main_tests);

@@ -1,225 +1,181 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
---
--- SafeStateMachine: Formally verified state machines with transition proofs
---
--- Provides:
--- - Type-safe state machines where invalid transitions are compile-time errors
--- - Reversible operations with invertibility proofs
--- - State history tracking for undo/redo
--- - Deterministic transition functions
-
+-- SPDX-License-Identifier: Palimpsest-MPL-1.0
+||| SafeStateMachine - Safe finite state machine implementation
+|||
+||| This module provides type-safe state machines with
+||| validated transitions and event handling.
 module Proven.SafeStateMachine
 
-import Data.List
-import Data.List.Elem
-import Data.Vect
-import Data.Maybe
-import Decidable.Equality
+import public Proven.Core
 
-%default covering
+%default total
 
-||| A proof that a transition from state `from` to state `to` is valid
+--------------------------------------------------------------------------------
+-- State Machine Types
+--------------------------------------------------------------------------------
+
+||| A transition from one state to another
 public export
-data ValidTransition : (states : List state) -> (from : state) -> (to : state) -> Type where
-  MkValidTransition : (fromElem : Elem from states) ->
-                      (toElem : Elem to states) ->
-                      ValidTransition states from to
+record Transition state event where
+  constructor MkTransition
+  fromState : state
+  trigger : event
+  toState : state
 
-||| A state machine with typed states and transitions
+||| A state machine definition
 public export
-record StateMachine (state : Type) where
-  constructor MkStateMachine
-  ||| All possible states
-  states : List state
-  ||| Current state
-  current : state
-  ||| Proof that current state is valid
-  currentValid : Elem current states
+record StateMachine state event where
+  constructor MkMachine
+  initialState : state
+  transitions : List (Transition state event)
+  finalStates : List state
 
-||| Create a new state machine with initial state
+||| Runtime state machine instance
 public export
-initMachine : DecEq state => (states : List state) -> (initial : state) ->
-              {auto prf : Elem initial states} -> StateMachine state
-initMachine states initial {prf} = MkStateMachine states initial prf
-
-||| Transition result - either success with new machine or failure with reason
-public export
-data TransitionResult : (state : Type) -> Type where
-  Success : StateMachine state -> TransitionResult state
-  InvalidTransition : String -> TransitionResult state
-
-||| Attempt to transition to a new state
-public export
-transition : DecEq state => Show state =>
-             StateMachine state -> (to : state) ->
-             (validator : state -> state -> Bool) ->
-             TransitionResult state
-transition machine to validator =
-  case isElem to (states machine) of
-    Yes prf =>
-      if validator (current machine) to
-        then Success (MkStateMachine (states machine) to prf)
-        else InvalidTransition ("Transition from " ++ show (current machine) ++
-                                " to " ++ show to ++ " not allowed")
-    No _ => InvalidTransition ("State " ++ show to ++ " not in state machine")
-
-||| A reversible operation with its inverse
-public export
-record ReversibleOp (state : Type) where
-  constructor MkReversibleOp
-  ||| The forward operation
-  forward : state -> state
-  ||| The inverse operation
-  inverse : state -> state
-  ||| Proof that inverse . forward = id (right inverse)
-  rightInverse : (s : state) -> inverse (forward s) = s
-  ||| Proof that forward . inverse = id (left inverse)
-  leftInverse : (s : state) -> forward (inverse s) = s
-
-||| Identity operation - always reversible
-public export
-idOp : ReversibleOp state
-idOp = MkReversibleOp id id (\s => Refl) (\s => Refl)
-
-||| Compose two reversible operations
-||| Note: Full proof requires dependent function extensionality
-public export
-composeOp : ReversibleOp state -> ReversibleOp state -> ReversibleOp state
-composeOp op1 op2 = MkReversibleOp
-  (forward op1 . forward op2)
-  (inverse op2 . inverse op1)
-  (\s => believe_me (Refl {x = s}))  -- Proof obligation: (inverse op2 . inverse op1) ((forward op1 . forward op2) s) = s
-  (\s => believe_me (Refl {x = s}))  -- Proof obligation: (forward op1 . forward op2) ((inverse op2 . inverse op1) s) = s
-
-||| State machine with history for undo/redo
-public export
-record HistoryMachine (state : Type) (n : Nat) where
-  constructor MkHistoryMachine
-  ||| Current state
+record MachineInstance state event where
+  constructor MkInstance
+  machine : StateMachine state event
   currentState : state
-  ||| Past states (most recent first)
-  history : Vect n state
-  ||| Future states (for redo, most recent first)
-  future : List state
+  history : List (state, event)  -- State history with triggering events
 
-||| Create a history machine with initial state
-public export
-initHistory : state -> HistoryMachine state 0
-initHistory initial = MkHistoryMachine initial [] []
+--------------------------------------------------------------------------------
+-- Construction
+--------------------------------------------------------------------------------
 
-||| Apply an operation and record in history
+||| Create a new state machine
 public export
-applyOp : {n : Nat} -> HistoryMachine state n -> (state -> state) ->
-          HistoryMachine state (S n)
-applyOp machine op =
-  MkHistoryMachine
-    (op (currentState machine))
-    (currentState machine :: history machine)
-    []  -- Clear future on new operation
+newMachine : (initial : state) -> StateMachine state event
+newMachine init = MkMachine init [] []
 
-||| Undo the last operation (if history exists)
+||| Add a transition to the machine
 public export
-undo : {n : Nat} -> HistoryMachine state (S n) -> HistoryMachine state n
-undo machine =
-  MkHistoryMachine
-    (head (history machine))
-    (tail (history machine))
-    (currentState machine :: future machine)
+addTransition : Eq state => Eq event =>
+                state -> event -> state -> 
+                StateMachine state event -> StateMachine state event
+addTransition from evt to machine =
+  MkMachine machine.initialState 
+            (MkTransition from evt to :: machine.transitions)
+            machine.finalStates
 
-||| Redo a previously undone operation
+||| Mark states as final/accepting
 public export
-redo : HistoryMachine state n -> Maybe (state, HistoryMachine state (S n))
-redo machine =
-  case future machine of
-    [] => Nothing
-    (s :: rest) => Just (s, MkHistoryMachine s (currentState machine :: history machine) rest)
+setFinalStates : List state -> StateMachine state event -> StateMachine state event
+setFinalStates finals machine =
+  MkMachine machine.initialState machine.transitions finals
 
-||| Proof that undo after apply returns to previous state
+||| Create a running instance of a state machine
 public export
-undoApplyIdentity : {n : Nat} -> (machine : HistoryMachine state n) -> (op : state -> state) ->
-                    currentState (undo (applyOp machine op)) = currentState machine
-undoApplyIdentity machine op = Refl
+start : StateMachine state event -> MachineInstance state event
+start machine = MkInstance machine machine.initialState []
 
-||| A deterministic finite automaton (DFA)
-public export
-record DFA (state : Type) (input : Type) where
-  constructor MkDFA
-  ||| All states
-  dfaStates : List state
-  ||| Initial state
-  dfaInitial : state
-  ||| Accepting states
-  dfaAccepting : List state
-  ||| Transition function
-  dfaTransition : state -> input -> Maybe state
-  ||| Proof initial is valid
-  dfaInitialValid : Elem dfaInitial dfaStates
+--------------------------------------------------------------------------------
+-- Transitions
+--------------------------------------------------------------------------------
 
-||| Run a DFA on input sequence
-public export
-runDFA : DecEq state => DFA state input -> List input -> (state, Bool)
-runDFA dfa inputs =
-  let trans = dfaTransition dfa
-      finalState = foldl (\s, i => fromMaybe s (trans s i)) (dfaInitial dfa) inputs
-      isAccepting = case isElem finalState (dfaAccepting dfa) of
-                      Yes _ => True
-                      No _ => False
-  in (finalState, isAccepting)
+||| Find valid transition for current state and event
+findTransition : Eq state => Eq event =>
+                 state -> event -> List (Transition state event) -> Maybe state
+findTransition _ _ [] = Nothing
+findTransition curr evt (t :: ts) =
+  if t.fromState == curr && t.trigger == evt
+    then Just t.toState
+    else findTransition curr evt ts
 
-||| Check if DFA accepts input
+||| Attempt to trigger an event
 public export
-accepts : DecEq state => DFA state input -> List input -> Bool
-accepts dfa inputs = snd (runDFA dfa inputs)
+trigger : Eq state => Eq event =>
+          event -> MachineInstance state event -> Maybe (MachineInstance state event)
+trigger evt inst =
+  case findTransition inst.currentState evt inst.machine.transitions of
+    Nothing => Nothing
+    Just next => Just (MkInstance inst.machine next ((inst.currentState, evt) :: inst.history))
 
-||| State transition with precondition
+||| Force transition to a state (unsafe - bypasses validation)
 public export
-record GuardedTransition (state : Type) (pre : state -> Type) (post : state -> Type) where
-  constructor MkGuardedTransition
-  ||| The transition function
-  transitionFn : (s : state) -> pre s -> (s' : state ** post s')
+forceState : state -> MachineInstance state event -> MachineInstance state event
+forceState newState inst = MkInstance inst.machine newState inst.history
 
-||| Execute a guarded transition
+||| Get the current state
 public export
-executeGuarded : GuardedTransition state pre post -> (s : state) -> pre s ->
-                 (s' : state ** post s')
-executeGuarded gt s prf = transitionFn gt s prf
+getState : MachineInstance state event -> state
+getState = currentState
 
-||| Linear state - can only be used once
+||| Check if in a final state
 public export
-data LinearState : (state : Type) -> (used : Bool) -> Type where
-  Fresh : state -> LinearState state False
-  Used : LinearState state True
+isInFinalState : Eq state => MachineInstance state event -> Bool
+isInFinalState inst = any (== inst.currentState) inst.machine.finalStates
 
-||| Consume a linear state (can only be called on Fresh)
-public export
-consumeLinear : LinearState state False -> (state, LinearState state True)
-consumeLinear (Fresh s) = (s, Used)
+--------------------------------------------------------------------------------
+-- Queries
+--------------------------------------------------------------------------------
 
-||| State machine with linear state tracking
+||| Get all possible events from current state
 public export
-record LinearMachine (state : Type) where
-  constructor MkLinearMachine
-  machineState : state
-  ||| Resources that must be released
-  resources : List String
+availableEvents : Eq state => MachineInstance state event -> List event
+availableEvents inst =
+  map trigger (filter (\t => t.fromState == inst.currentState) inst.machine.transitions)
 
-||| Acquire a resource
+||| Check if an event can be triggered
 public export
-acquireResource : LinearMachine state -> String -> LinearMachine state
-acquireResource machine name =
-  MkLinearMachine (machineState machine) (name :: resources machine)
+canTrigger : Eq state => Eq event => event -> MachineInstance state event -> Bool
+canTrigger evt inst =
+  case findTransition inst.currentState evt inst.machine.transitions of
+    Nothing => False
+    Just _ => True
 
-||| Release a resource (must be acquired)
+||| Get all states reachable from current state
 public export
-releaseResource : LinearMachine state -> String -> Maybe (LinearMachine state)
-releaseResource machine name =
-  if elem name (resources machine)
-    then Just (MkLinearMachine (machineState machine)
-                               (filter (/= name) (resources machine)))
-    else Nothing
+reachableStates : Eq state => MachineInstance state event -> List state
+reachableStates inst =
+  map toState (filter (\t => t.fromState == inst.currentState) inst.machine.transitions)
 
-||| Check if all resources are released
+||| Get the transition history
 public export
-allReleased : LinearMachine state -> Bool
-allReleased machine = null (resources machine)
+getHistory : MachineInstance state event -> List (state, event)
+getHistory = history
+
+||| Reset the machine to initial state
+public export
+reset : MachineInstance state event -> MachineInstance state event
+reset inst = MkInstance inst.machine inst.machine.initialState []
+
+--------------------------------------------------------------------------------
+-- Validation
+--------------------------------------------------------------------------------
+
+||| Check if machine is deterministic (no duplicate transitions)
+public export
+isDeterministic : Eq state => Eq event => StateMachine state event -> Bool
+isDeterministic machine = noDuplicates machine.transitions
+  where
+    conflicts : Transition state event -> Transition state event -> Bool
+    conflicts a b = a.fromState == b.fromState && a.trigger == b.trigger && a.toState /= b.toState
+    
+    noDuplicates : List (Transition state event) -> Bool
+    noDuplicates [] = True
+    noDuplicates (t :: ts) = not (any (conflicts t) ts) && noDuplicates ts
+
+||| Get all states mentioned in the machine
+public export
+allStates : Eq state => StateMachine state event -> List state
+allStates machine =
+  nub (machine.initialState :: machine.finalStates ++ 
+       concatMap (\t => [t.fromState, t.toState]) machine.transitions)
+  where
+    nub : Eq a => List a -> List a
+    nub [] = []
+    nub (x :: xs) = x :: nub (filter (/= x) xs)
+
+||| Count total number of transitions
+public export
+transitionCount : StateMachine state event -> Nat
+transitionCount machine = length machine.transitions
+
+--------------------------------------------------------------------------------
+-- Display
+--------------------------------------------------------------------------------
+
+public export
+Show state => Show (MachineInstance state event) where
+  show inst = "Machine(state=" ++ show inst.currentState ++ 
+              ", history=" ++ show (length inst.history) ++ " steps)"
+

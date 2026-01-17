@@ -172,7 +172,7 @@
   │                       proven (Idris 2)                          │
   │  SafeMath │ SafeString │ SafeJson │ SafeUrl │ SafeEmail │ ...  │
   │  SafeUUID │ SafeCurrency │ SafePhone │ SafeHex │ SafeHeader    │
-  │  SafeCookie │ SafeContentType │ 74 verified modules            │
+  │  SafeCookie │ SafeContentType │ 87 verified modules            │
   └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼

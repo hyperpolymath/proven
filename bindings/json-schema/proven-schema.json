@@ -2,244 +2,1639 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://proven.hyperpolymath.dev/schemas/proven-schema.json",
   "title": "Proven Safety Types Schema",
-  "description": "JSON Schema definitions for Proven safety types - formally verified type constraints",
-  "version": "0.9.0",
+  "description": "JSON Schema definitions for Proven safety types - formally verified type constraints across 38 modules",
+  "version": "0.4.0",
+  "moduleCount": 38,
 
   "$defs": {
-    "SafeInteger": {
-      "title": "Safe Integer",
-      "description": "64-bit signed integer within safe bounds",
-      "type": "integer",
-      "minimum": -9223372036854775808,
-      "maximum": 9223372036854775807
+    "_metadata": {
+      "title": "Schema Metadata",
+      "description": "Module organization metadata",
+      "type": "object",
+      "properties": {
+        "categories": {
+          "type": "object",
+          "properties": {
+            "core": {
+              "const": ["safe_math", "safe_string", "safe_path", "safe_email", "safe_url", "safe_network", "safe_crypto", "safe_uuid", "safe_currency", "safe_phone", "safe_hex"]
+            },
+            "data": {
+              "const": ["safe_json", "safe_datetime", "safe_float", "safe_version", "safe_color", "safe_angle", "safe_unit"]
+            },
+            "dataStructures": {
+              "const": ["safe_buffer", "safe_queue", "safe_bloom", "safe_lru", "safe_graph"]
+            },
+            "resilience": {
+              "const": ["safe_rate_limiter", "safe_circuit_breaker", "safe_retry", "safe_monotonic"]
+            },
+            "state": {
+              "const": ["safe_state_machine", "safe_calculator"]
+            },
+            "algorithm": {
+              "const": ["safe_geo", "safe_probability", "safe_checksum", "safe_tensor"]
+            },
+            "security": {
+              "const": ["safe_password", "safe_ml"]
+            },
+            "http": {
+              "const": ["safe_header", "safe_cookie", "safe_content_type"]
+            }
+          }
+        }
+      }
     },
 
-    "SafeInteger32": {
-      "title": "Safe 32-bit Integer",
-      "description": "32-bit signed integer within safe bounds",
-      "type": "integer",
-      "minimum": -2147483648,
-      "maximum": 2147483647
+    "SafeMath": {
+      "title": "Safe Math Module",
+      "description": "Mathematical operations with overflow detection and safe arithmetic",
+      "type": "object",
+      "properties": {
+        "SafeInteger": {
+          "title": "Safe Integer",
+          "description": "64-bit signed integer within safe bounds",
+          "type": "integer",
+          "minimum": -9223372036854775808,
+          "maximum": 9223372036854775807
+        },
+        "SafeInteger32": {
+          "title": "Safe 32-bit Integer",
+          "description": "32-bit signed integer within safe bounds",
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "PositiveInteger": {
+          "title": "Positive Integer",
+          "description": "Integer greater than zero",
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "NonNegativeInteger": {
+          "title": "Non-Negative Integer",
+          "description": "Integer greater than or equal to zero",
+          "type": "integer",
+          "minimum": 0
+        },
+        "Percentage": {
+          "title": "Percentage",
+          "description": "Value between 0 and 100 (inclusive)",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "Normalized": {
+          "title": "Normalized Value",
+          "description": "Value between 0.0 and 1.0 (inclusive)",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "BasisPoints": {
+          "title": "Basis Points",
+          "description": "Value in basis points (100 bps = 1%)",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "BoundedInteger": {
+          "title": "Bounded Integer",
+          "description": "Integer with configurable bounds",
+          "type": "object",
+          "properties": {
+            "value": { "type": "integer" },
+            "min": { "type": "integer" },
+            "max": { "type": "integer" }
+          },
+          "required": ["value", "min", "max"]
+        },
+        "Range": {
+          "title": "Range",
+          "description": "Numeric range with min and max",
+          "type": "object",
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" }
+          },
+          "required": ["min", "max"]
+        }
+      }
     },
 
-    "PositiveInteger": {
-      "title": "Positive Integer",
-      "description": "Integer greater than zero",
-      "type": "integer",
-      "exclusiveMinimum": 0
-    },
-
-    "NonNegativeInteger": {
-      "title": "Non-Negative Integer",
-      "description": "Integer greater than or equal to zero",
-      "type": "integer",
-      "minimum": 0
-    },
-
-    "Percentage": {
-      "title": "Percentage",
-      "description": "Value between 0 and 100 (inclusive)",
-      "type": "number",
-      "minimum": 0,
-      "maximum": 100
-    },
-
-    "Normalized": {
-      "title": "Normalized Value",
-      "description": "Value between 0.0 and 1.0 (inclusive)",
-      "type": "number",
-      "minimum": 0.0,
-      "maximum": 1.0
-    },
-
-    "BasisPoints": {
-      "title": "Basis Points",
-      "description": "Value in basis points (100 bps = 1%)",
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 10000
-    },
-
-    "Port": {
-      "title": "Network Port",
-      "description": "Valid TCP/UDP port number (1-65535)",
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 65535
-    },
-
-    "PrivilegedPort": {
-      "title": "Privileged Port",
-      "description": "Port requiring elevated privileges (1-1023)",
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 1023
-    },
-
-    "UnprivilegedPort": {
-      "title": "Unprivileged Port",
-      "description": "Port not requiring elevated privileges (1024-65535)",
-      "type": "integer",
-      "minimum": 1024,
-      "maximum": 65535
-    },
-
-    "DynamicPort": {
-      "title": "Dynamic/Ephemeral Port",
-      "description": "Dynamic port range (49152-65535)",
-      "type": "integer",
-      "minimum": 49152,
-      "maximum": 65535
-    },
-
-    "IPv4Address": {
-      "title": "IPv4 Address",
-      "description": "Valid IPv4 address in dotted decimal notation",
-      "type": "string",
-      "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-    },
-
-    "IPv6Address": {
-      "title": "IPv6 Address",
-      "description": "Valid IPv6 address",
-      "type": "string",
-      "pattern": "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,6}:([0-9a-fA-F]{1,4})?$"
-    },
-
-    "Email": {
-      "title": "Email Address",
-      "description": "Valid email address format",
-      "type": "string",
-      "format": "email",
-      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
-    },
-
-    "Hostname": {
-      "title": "Hostname",
-      "description": "Valid DNS hostname",
-      "type": "string",
-      "format": "hostname",
-      "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
-      "maxLength": 253
-    },
-
-    "UUID": {
-      "title": "UUID",
-      "description": "Valid UUID (any version)",
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-    },
-
-    "NonEmptyString": {
-      "title": "Non-Empty String",
-      "description": "String with at least one character",
-      "type": "string",
-      "minLength": 1
-    },
-
-    "Identifier": {
-      "title": "Identifier",
-      "description": "Valid identifier (alphanumeric with underscores, starts with letter)",
-      "type": "string",
-      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
-      "minLength": 1,
-      "maxLength": 255
+    "SafeString": {
+      "title": "Safe String Module",
+      "description": "String operations with length limits, encoding validation, and injection prevention",
+      "type": "object",
+      "properties": {
+        "NonEmptyString": {
+          "title": "Non-Empty String",
+          "description": "String with at least one character",
+          "type": "string",
+          "minLength": 1
+        },
+        "Identifier": {
+          "title": "Identifier",
+          "description": "Valid identifier (alphanumeric with underscores, starts with letter)",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "BoundedString": {
+          "title": "Bounded String",
+          "description": "String with configurable length bounds",
+          "type": "object",
+          "properties": {
+            "value": { "type": "string" },
+            "minLength": { "type": "integer", "minimum": 0 },
+            "maxLength": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["value"]
+        },
+        "AsciiString": {
+          "title": "ASCII String",
+          "description": "String containing only ASCII characters",
+          "type": "string",
+          "pattern": "^[\\x00-\\x7F]*$"
+        },
+        "Utf8String": {
+          "title": "UTF-8 String",
+          "description": "Valid UTF-8 encoded string",
+          "type": "string"
+        },
+        "TrimmedString": {
+          "title": "Trimmed String",
+          "description": "String with no leading or trailing whitespace",
+          "type": "string",
+          "pattern": "^(?!\\s).*(?<!\\s)$|^$"
+        }
+      }
     },
 
     "SafePath": {
-      "title": "Safe Path",
-      "description": "File path without traversal attacks (no ..)",
-      "type": "string",
-      "pattern": "^(?!.*\\.\\.).*$",
-      "minLength": 1
-    },
-
-    "UnixTimestamp": {
-      "title": "Unix Timestamp",
-      "description": "Unix timestamp in seconds since epoch",
-      "type": "integer",
-      "minimum": 0
-    },
-
-    "UnixTimestampMs": {
-      "title": "Unix Timestamp (Milliseconds)",
-      "description": "Unix timestamp in milliseconds since epoch",
-      "type": "integer",
-      "minimum": 0
-    },
-
-    "ISO8601DateTime": {
-      "title": "ISO 8601 DateTime",
-      "description": "Date and time in ISO 8601 format",
-      "type": "string",
-      "format": "date-time"
-    },
-
-    "ISO8601Date": {
-      "title": "ISO 8601 Date",
-      "description": "Date in ISO 8601 format (YYYY-MM-DD)",
-      "type": "string",
-      "format": "date"
-    },
-
-    "Duration": {
-      "title": "Duration",
-      "description": "Duration in ISO 8601 format",
-      "type": "string",
-      "format": "duration",
-      "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$"
-    },
-
-    "SemanticVersion": {
-      "title": "Semantic Version",
-      "description": "Version in SemVer 2.0 format",
-      "type": "string",
-      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
-    },
-
-    "HexColor": {
-      "title": "Hex Color",
-      "description": "Color in hexadecimal format (#RGB, #RGBA, #RRGGBB, #RRGGBBAA)",
-      "type": "string",
-      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-    },
-
-    "Base64": {
-      "title": "Base64 String",
-      "description": "Base64 encoded string",
-      "type": "string",
-      "contentEncoding": "base64"
-    },
-
-    "URL": {
-      "title": "URL",
-      "description": "Valid URL",
-      "type": "string",
-      "format": "uri"
-    },
-
-    "BoundedInteger": {
-      "title": "Bounded Integer",
-      "description": "Integer with configurable bounds",
+      "title": "Safe Path Module",
+      "description": "File path operations without traversal attacks",
       "type": "object",
       "properties": {
-        "value": { "type": "integer" },
-        "min": { "type": "integer" },
-        "max": { "type": "integer" }
-      },
-      "required": ["value", "min", "max"]
+        "SafePath": {
+          "title": "Safe Path",
+          "description": "File path without traversal attacks (no ..)",
+          "type": "string",
+          "pattern": "^(?!.*\\.\\.).*$",
+          "minLength": 1
+        },
+        "AbsolutePath": {
+          "title": "Absolute Path",
+          "description": "Path starting from root",
+          "type": "string",
+          "pattern": "^/.*$"
+        },
+        "RelativePath": {
+          "title": "Relative Path",
+          "description": "Path relative to current directory (no traversal)",
+          "type": "string",
+          "pattern": "^(?!/)(?!.*\\.\\.).*$"
+        },
+        "FileName": {
+          "title": "File Name",
+          "description": "Valid file name without path separators",
+          "type": "string",
+          "pattern": "^[^/\\\\:*?\"<>|]+$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "FileExtension": {
+          "title": "File Extension",
+          "description": "File extension without leading dot",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9]+$",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
     },
 
-    "Range": {
-      "title": "Range",
-      "description": "Numeric range with min and max",
+    "SafeEmail": {
+      "title": "Safe Email Module",
+      "description": "Email address validation and normalization",
       "type": "object",
       "properties": {
-        "min": { "type": "number" },
-        "max": { "type": "number" }
-      },
-      "required": ["min", "max"]
+        "Email": {
+          "title": "Email Address",
+          "description": "Valid email address format",
+          "type": "string",
+          "format": "email",
+          "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        },
+        "EmailLocalPart": {
+          "title": "Email Local Part",
+          "description": "Local part of email (before @)",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._%+-]+$",
+          "maxLength": 64
+        },
+        "EmailDomain": {
+          "title": "Email Domain",
+          "description": "Domain part of email (after @)",
+          "type": "string",
+          "format": "hostname",
+          "maxLength": 255
+        }
+      }
+    },
+
+    "SafeUrl": {
+      "title": "Safe URL Module",
+      "description": "URL parsing, validation, and construction with injection prevention",
+      "type": "object",
+      "properties": {
+        "URL": {
+          "title": "URL",
+          "description": "Valid URL",
+          "type": "string",
+          "format": "uri"
+        },
+        "HttpUrl": {
+          "title": "HTTP URL",
+          "description": "URL with http or https scheme",
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://.*$"
+        },
+        "SecureUrl": {
+          "title": "Secure URL",
+          "description": "URL with https scheme only",
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://.*$"
+        },
+        "DataUrl": {
+          "title": "Data URL",
+          "description": "Data URL (base64 encoded inline data)",
+          "type": "string",
+          "pattern": "^data:[a-zA-Z0-9/+.-]+;base64,[A-Za-z0-9+/=]+$"
+        },
+        "UrlPath": {
+          "title": "URL Path",
+          "description": "Path component of URL",
+          "type": "string",
+          "pattern": "^/[^?#]*$"
+        },
+        "QueryString": {
+          "title": "Query String",
+          "description": "URL query string (without leading ?)",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._~:/?#\\[\\]@!$&'()*+,;=%\\-]*$"
+        }
+      }
+    },
+
+    "SafeNetwork": {
+      "title": "Safe Network Module",
+      "description": "Network address and port validation",
+      "type": "object",
+      "properties": {
+        "IPv4Address": {
+          "title": "IPv4 Address",
+          "description": "Valid IPv4 address in dotted decimal notation",
+          "type": "string",
+          "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+        },
+        "IPv6Address": {
+          "title": "IPv6 Address",
+          "description": "Valid IPv6 address",
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,6}:([0-9a-fA-F]{1,4})?$"
+        },
+        "Port": {
+          "title": "Network Port",
+          "description": "Valid TCP/UDP port number (1-65535)",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "PrivilegedPort": {
+          "title": "Privileged Port",
+          "description": "Port requiring elevated privileges (1-1023)",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1023
+        },
+        "UnprivilegedPort": {
+          "title": "Unprivileged Port",
+          "description": "Port not requiring elevated privileges (1024-65535)",
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535
+        },
+        "DynamicPort": {
+          "title": "Dynamic/Ephemeral Port",
+          "description": "Dynamic port range (49152-65535)",
+          "type": "integer",
+          "minimum": 49152,
+          "maximum": 65535
+        },
+        "Hostname": {
+          "title": "Hostname",
+          "description": "Valid DNS hostname",
+          "type": "string",
+          "format": "hostname",
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+          "maxLength": 253
+        },
+        "MacAddress": {
+          "title": "MAC Address",
+          "description": "Hardware MAC address",
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
+        },
+        "CidrBlock": {
+          "title": "CIDR Block",
+          "description": "IPv4 CIDR notation",
+          "type": "string",
+          "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([0-9]|[12][0-9]|3[0-2])$"
+        }
+      }
+    },
+
+    "SafeCrypto": {
+      "title": "Safe Crypto Module",
+      "description": "Cryptographic operations with constant-time comparison and secure hashing",
+      "type": "object",
+      "properties": {
+        "Hash256": {
+          "title": "256-bit Hash",
+          "description": "32-byte hash value (SHA3-256, BLAKE3)",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "Hash512": {
+          "title": "512-bit Hash",
+          "description": "64-byte hash value (SHA3-512)",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{128}$"
+        },
+        "HmacTag": {
+          "title": "HMAC Tag",
+          "description": "HMAC authentication tag",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "CryptoKey32": {
+          "title": "32-byte Crypto Key",
+          "description": "256-bit cryptographic key (hex encoded)",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "Nonce": {
+          "title": "Nonce",
+          "description": "Cryptographic nonce (12-24 bytes hex)",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24,48}$"
+        },
+        "Salt": {
+          "title": "Salt",
+          "description": "Cryptographic salt (16-32 bytes hex)",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{32,64}$"
+        }
+      }
+    },
+
+    "SafeUuid": {
+      "title": "Safe UUID Module",
+      "description": "UUID generation and validation for all versions",
+      "type": "object",
+      "properties": {
+        "UUID": {
+          "title": "UUID",
+          "description": "Valid UUID (any version)",
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "UUIDv4": {
+          "title": "UUID v4",
+          "description": "Random UUID version 4",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        },
+        "UUIDv7": {
+          "title": "UUID v7",
+          "description": "Time-sorted UUID version 7",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        }
+      }
+    },
+
+    "SafeCurrency": {
+      "title": "Safe Currency Module",
+      "description": "Currency amounts with decimal precision and overflow protection",
+      "type": "object",
+      "properties": {
+        "CurrencyCode": {
+          "title": "Currency Code",
+          "description": "ISO 4217 currency code",
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "MonetaryAmount": {
+          "title": "Monetary Amount",
+          "description": "Currency amount with code and value",
+          "type": "object",
+          "properties": {
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+            "amount": { "type": "string", "pattern": "^-?[0-9]+(\\.[0-9]{1,8})?$" },
+            "minorUnits": { "type": "integer" }
+          },
+          "required": ["currency", "amount"]
+        },
+        "DecimalAmount": {
+          "title": "Decimal Amount",
+          "description": "Fixed-point decimal for financial calculations",
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+        },
+        "ExchangeRate": {
+          "title": "Exchange Rate",
+          "description": "Currency exchange rate (positive number)",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+
+    "SafePhone": {
+      "title": "Safe Phone Module",
+      "description": "Phone number validation and formatting (E.164)",
+      "type": "object",
+      "properties": {
+        "E164Phone": {
+          "title": "E.164 Phone Number",
+          "description": "International phone number format",
+          "type": "string",
+          "pattern": "^\\+[1-9][0-9]{6,14}$"
+        },
+        "CountryCode": {
+          "title": "Country Calling Code",
+          "description": "International dialing code",
+          "type": "string",
+          "pattern": "^\\+[1-9][0-9]{0,2}$"
+        },
+        "NationalNumber": {
+          "title": "National Number",
+          "description": "Phone number without country code",
+          "type": "string",
+          "pattern": "^[0-9]{4,14}$"
+        }
+      }
+    },
+
+    "SafeHex": {
+      "title": "Safe Hex Module",
+      "description": "Hexadecimal encoding and decoding with validation",
+      "type": "object",
+      "properties": {
+        "HexString": {
+          "title": "Hex String",
+          "description": "Even-length hexadecimal string",
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{2})*$"
+        },
+        "HexByte": {
+          "title": "Hex Byte",
+          "description": "Single byte in hex (00-FF)",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{2}$"
+        },
+        "Base64": {
+          "title": "Base64 String",
+          "description": "Base64 encoded string",
+          "type": "string",
+          "contentEncoding": "base64"
+        },
+        "Base64Url": {
+          "title": "Base64 URL-safe String",
+          "description": "URL-safe Base64 encoding",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+={0,2}$"
+        }
+      }
+    },
+
+    "SafeJson": {
+      "title": "Safe JSON Module",
+      "description": "JSON parsing and validation with depth limits",
+      "type": "object",
+      "properties": {
+        "JsonValue": {
+          "title": "JSON Value",
+          "description": "Any valid JSON value",
+          "oneOf": [
+            { "type": "null" },
+            { "type": "boolean" },
+            { "type": "number" },
+            { "type": "string" },
+            { "type": "array" },
+            { "type": "object" }
+          ]
+        },
+        "JsonObject": {
+          "title": "JSON Object",
+          "description": "JSON object (not array or primitive)",
+          "type": "object"
+        },
+        "JsonArray": {
+          "title": "JSON Array",
+          "description": "JSON array",
+          "type": "array"
+        },
+        "JsonPointer": {
+          "title": "JSON Pointer",
+          "description": "RFC 6901 JSON Pointer",
+          "type": "string",
+          "pattern": "^(/[^/~]*(~[01][^/~]*)*)*$"
+        }
+      }
+    },
+
+    "SafeDatetime": {
+      "title": "Safe Datetime Module",
+      "description": "Date and time operations with timezone handling",
+      "type": "object",
+      "properties": {
+        "UnixTimestamp": {
+          "title": "Unix Timestamp",
+          "description": "Unix timestamp in seconds since epoch",
+          "type": "integer",
+          "minimum": 0
+        },
+        "UnixTimestampMs": {
+          "title": "Unix Timestamp (Milliseconds)",
+          "description": "Unix timestamp in milliseconds since epoch",
+          "type": "integer",
+          "minimum": 0
+        },
+        "ISO8601DateTime": {
+          "title": "ISO 8601 DateTime",
+          "description": "Date and time in ISO 8601 format",
+          "type": "string",
+          "format": "date-time"
+        },
+        "ISO8601Date": {
+          "title": "ISO 8601 Date",
+          "description": "Date in ISO 8601 format (YYYY-MM-DD)",
+          "type": "string",
+          "format": "date"
+        },
+        "ISO8601Time": {
+          "title": "ISO 8601 Time",
+          "description": "Time in ISO 8601 format (HH:MM:SS)",
+          "type": "string",
+          "format": "time"
+        },
+        "Duration": {
+          "title": "Duration",
+          "description": "Duration in ISO 8601 format",
+          "type": "string",
+          "format": "duration",
+          "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$"
+        },
+        "Timezone": {
+          "title": "Timezone",
+          "description": "IANA timezone identifier",
+          "type": "string",
+          "pattern": "^[A-Za-z_]+/[A-Za-z_]+(/[A-Za-z_]+)?$"
+        },
+        "DayOfWeek": {
+          "title": "Day of Week",
+          "description": "Day of the week (1-7, Monday=1)",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        }
+      }
+    },
+
+    "SafeFloat": {
+      "title": "Safe Float Module",
+      "description": "Floating-point operations with NaN and infinity handling",
+      "type": "object",
+      "properties": {
+        "FiniteFloat": {
+          "title": "Finite Float",
+          "description": "Finite floating-point number (no NaN or infinity)",
+          "type": "number"
+        },
+        "PositiveFloat": {
+          "title": "Positive Float",
+          "description": "Positive floating-point number",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "NonNegativeFloat": {
+          "title": "Non-Negative Float",
+          "description": "Non-negative floating-point number",
+          "type": "number",
+          "minimum": 0
+        },
+        "UnitInterval": {
+          "title": "Unit Interval",
+          "description": "Float in [0, 1] range",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "SignedUnitInterval": {
+          "title": "Signed Unit Interval",
+          "description": "Float in [-1, 1] range",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      }
+    },
+
+    "SafeVersion": {
+      "title": "Safe Version Module",
+      "description": "Semantic versioning (SemVer 2.0) operations",
+      "type": "object",
+      "properties": {
+        "SemanticVersion": {
+          "title": "Semantic Version",
+          "description": "Version in SemVer 2.0 format",
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        },
+        "VersionConstraint": {
+          "title": "Version Constraint",
+          "description": "SemVer version constraint (^, ~, >=, etc.)",
+          "type": "string",
+          "pattern": "^[~^]?(0|[1-9]\\d*)(\\.((0|[1-9]\\d*)|\\*|x))?(\\.((0|[1-9]\\d*)|\\*|x))?$|^(>=?|<=?|=)(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*).*$"
+        },
+        "MajorVersion": {
+          "title": "Major Version",
+          "description": "Major version component",
+          "type": "integer",
+          "minimum": 0
+        },
+        "MinorVersion": {
+          "title": "Minor Version",
+          "description": "Minor version component",
+          "type": "integer",
+          "minimum": 0
+        },
+        "PatchVersion": {
+          "title": "Patch Version",
+          "description": "Patch version component",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+
+    "SafeColor": {
+      "title": "Safe Color Module",
+      "description": "Color representation and conversion",
+      "type": "object",
+      "properties": {
+        "HexColor": {
+          "title": "Hex Color",
+          "description": "Color in hexadecimal format (#RGB, #RGBA, #RRGGBB, #RRGGBBAA)",
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "RgbColor": {
+          "title": "RGB Color",
+          "description": "RGB color with components 0-255",
+          "type": "object",
+          "properties": {
+            "r": { "type": "integer", "minimum": 0, "maximum": 255 },
+            "g": { "type": "integer", "minimum": 0, "maximum": 255 },
+            "b": { "type": "integer", "minimum": 0, "maximum": 255 }
+          },
+          "required": ["r", "g", "b"]
+        },
+        "RgbaColor": {
+          "title": "RGBA Color",
+          "description": "RGBA color with alpha (0-1 range)",
+          "type": "object",
+          "properties": {
+            "r": { "type": "number", "minimum": 0, "maximum": 1 },
+            "g": { "type": "number", "minimum": 0, "maximum": 1 },
+            "b": { "type": "number", "minimum": 0, "maximum": 1 },
+            "a": { "type": "number", "minimum": 0, "maximum": 1, "default": 1.0 }
+          },
+          "required": ["r", "g", "b"]
+        },
+        "HslColor": {
+          "title": "HSL Color",
+          "description": "HSL color representation",
+          "type": "object",
+          "properties": {
+            "h": { "type": "number", "minimum": 0, "maximum": 360 },
+            "s": { "type": "number", "minimum": 0, "maximum": 100 },
+            "l": { "type": "number", "minimum": 0, "maximum": 100 }
+          },
+          "required": ["h", "s", "l"]
+        }
+      }
+    },
+
+    "SafeAngle": {
+      "title": "Safe Angle Module",
+      "description": "Angle representation and conversion (degrees, radians, turns)",
+      "type": "object",
+      "properties": {
+        "Degrees": {
+          "title": "Degrees",
+          "description": "Angle in degrees (0-360)",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "Radians": {
+          "title": "Radians",
+          "description": "Angle in radians (0-2pi)",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 6.283185307179586
+        },
+        "Turns": {
+          "title": "Turns",
+          "description": "Angle in turns (0-1)",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "SignedDegrees": {
+          "title": "Signed Degrees",
+          "description": "Angle in degrees (-180 to 180)",
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      }
+    },
+
+    "SafeUnit": {
+      "title": "Safe Unit Module",
+      "description": "Physical unit representation and conversion",
+      "type": "object",
+      "properties": {
+        "Quantity": {
+          "title": "Quantity with Unit",
+          "description": "Numeric value with associated unit",
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "unit": { "type": "string" }
+          },
+          "required": ["value", "unit"]
+        },
+        "Length": {
+          "title": "Length",
+          "description": "Length measurement in meters",
+          "type": "object",
+          "properties": {
+            "meters": { "type": "number", "minimum": 0 }
+          },
+          "required": ["meters"]
+        },
+        "Mass": {
+          "title": "Mass",
+          "description": "Mass measurement in kilograms",
+          "type": "object",
+          "properties": {
+            "kilograms": { "type": "number", "minimum": 0 }
+          },
+          "required": ["kilograms"]
+        },
+        "Temperature": {
+          "title": "Temperature",
+          "description": "Temperature in Kelvin",
+          "type": "object",
+          "properties": {
+            "kelvin": { "type": "number", "minimum": 0 }
+          },
+          "required": ["kelvin"]
+        },
+        "Duration": {
+          "title": "Duration",
+          "description": "Time duration in seconds",
+          "type": "object",
+          "properties": {
+            "seconds": { "type": "number", "minimum": 0 }
+          },
+          "required": ["seconds"]
+        }
+      }
+    },
+
+    "SafeBuffer": {
+      "title": "Safe Buffer Module",
+      "description": "Bounded buffer operations with overflow protection",
+      "type": "object",
+      "properties": {
+        "BoundedBuffer": {
+          "title": "Bounded Buffer",
+          "description": "Buffer with fixed capacity",
+          "type": "object",
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "length": { "type": "integer", "minimum": 0 },
+            "data": { "type": "array" }
+          },
+          "required": ["capacity", "length"]
+        },
+        "RingBuffer": {
+          "title": "Ring Buffer",
+          "description": "FIFO circular buffer",
+          "type": "object",
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "head": { "type": "integer", "minimum": 0 },
+            "tail": { "type": "integer", "minimum": 0 },
+            "length": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["capacity"]
+        }
+      }
+    },
+
+    "SafeQueue": {
+      "title": "Safe Queue Module",
+      "description": "Thread-safe queue operations with bounded capacity",
+      "type": "object",
+      "properties": {
+        "BoundedQueue": {
+          "title": "Bounded Queue",
+          "description": "FIFO queue with maximum capacity",
+          "type": "object",
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "length": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["capacity"]
+        },
+        "PriorityQueue": {
+          "title": "Priority Queue",
+          "description": "Queue with priority ordering",
+          "type": "object",
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "length": { "type": "integer", "minimum": 0 },
+            "ordering": { "type": "string", "enum": ["min", "max"] }
+          },
+          "required": ["capacity"]
+        }
+      }
+    },
+
+    "SafeBloom": {
+      "title": "Safe Bloom Module",
+      "description": "Probabilistic bloom filter with configurable false positive rate",
+      "type": "object",
+      "properties": {
+        "BloomFilter": {
+          "title": "Bloom Filter",
+          "description": "Probabilistic set membership filter",
+          "type": "object",
+          "properties": {
+            "size": { "type": "integer", "minimum": 1 },
+            "hashCount": { "type": "integer", "minimum": 1 },
+            "falsePositiveRate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "itemCount": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["size", "hashCount"]
+        },
+        "CountingBloomFilter": {
+          "title": "Counting Bloom Filter",
+          "description": "Bloom filter supporting deletions",
+          "type": "object",
+          "properties": {
+            "size": { "type": "integer", "minimum": 1 },
+            "hashCount": { "type": "integer", "minimum": 1 },
+            "counterBits": { "type": "integer", "minimum": 1, "maximum": 16 }
+          },
+          "required": ["size", "hashCount"]
+        }
+      }
+    },
+
+    "SafeLru": {
+      "title": "Safe LRU Module",
+      "description": "Least Recently Used cache with bounded capacity",
+      "type": "object",
+      "properties": {
+        "LruCache": {
+          "title": "LRU Cache",
+          "description": "Cache with LRU eviction policy",
+          "type": "object",
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "length": { "type": "integer", "minimum": 0 },
+            "hits": { "type": "integer", "minimum": 0 },
+            "misses": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["capacity"]
+        },
+        "TtlCache": {
+          "title": "TTL Cache",
+          "description": "Cache with time-to-live expiration",
+          "type": "object",
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "defaultTtl": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["capacity", "defaultTtl"]
+        }
+      }
+    },
+
+    "SafeGraph": {
+      "title": "Safe Graph Module",
+      "description": "Graph data structures with safe traversal",
+      "type": "object",
+      "properties": {
+        "Graph": {
+          "title": "Graph",
+          "description": "Generic graph structure",
+          "type": "object",
+          "properties": {
+            "directed": { "type": "boolean" },
+            "nodeCount": { "type": "integer", "minimum": 0 },
+            "edgeCount": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["directed"]
+        },
+        "Node": {
+          "title": "Graph Node",
+          "description": "Node in a graph",
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "data": {}
+          },
+          "required": ["id"]
+        },
+        "Edge": {
+          "title": "Graph Edge",
+          "description": "Edge connecting two nodes",
+          "type": "object",
+          "properties": {
+            "from": { "type": "string" },
+            "to": { "type": "string" },
+            "weight": { "type": "number" }
+          },
+          "required": ["from", "to"]
+        }
+      }
+    },
+
+    "SafeRateLimiter": {
+      "title": "Safe Rate Limiter Module",
+      "description": "Rate limiting algorithms (token bucket, sliding window, fixed window)",
+      "type": "object",
+      "properties": {
+        "RateLimitResult": {
+          "title": "Rate Limit Result",
+          "description": "Result of rate limit check",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "allowed": { "const": true }
+              },
+              "required": ["allowed"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "allowed": { "const": false },
+                "retryAfter": { "type": "integer", "minimum": 0 }
+              },
+              "required": ["allowed", "retryAfter"]
+            }
+          ]
+        },
+        "TokenBucket": {
+          "title": "Token Bucket",
+          "description": "Token bucket rate limiter configuration",
+          "type": "object",
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "tokens": { "type": "integer", "minimum": 0 },
+            "refillRate": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["capacity", "refillRate"]
+        },
+        "SlidingWindow": {
+          "title": "Sliding Window",
+          "description": "Sliding window rate limiter configuration",
+          "type": "object",
+          "properties": {
+            "maxRequests": { "type": "integer", "minimum": 1 },
+            "windowSize": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["maxRequests", "windowSize"]
+        },
+        "FixedWindow": {
+          "title": "Fixed Window",
+          "description": "Fixed window rate limiter configuration",
+          "type": "object",
+          "properties": {
+            "maxRequests": { "type": "integer", "minimum": 1 },
+            "windowSize": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["maxRequests", "windowSize"]
+        }
+      }
+    },
+
+    "SafeCircuitBreaker": {
+      "title": "Safe Circuit Breaker Module",
+      "description": "Circuit breaker pattern for fault tolerance",
+      "type": "object",
+      "properties": {
+        "CircuitState": {
+          "title": "Circuit State",
+          "description": "Current state of circuit breaker",
+          "type": "string",
+          "enum": ["closed", "open", "half_open"]
+        },
+        "CircuitConfig": {
+          "title": "Circuit Config",
+          "description": "Circuit breaker configuration",
+          "type": "object",
+          "properties": {
+            "failureThreshold": { "type": "integer", "minimum": 1 },
+            "successThreshold": { "type": "integer", "minimum": 1 },
+            "timeout": { "type": "integer", "minimum": 1 },
+            "halfOpenMaxCalls": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["failureThreshold", "successThreshold", "timeout"]
+        },
+        "CircuitBreaker": {
+          "title": "Circuit Breaker",
+          "description": "Circuit breaker state and configuration",
+          "type": "object",
+          "properties": {
+            "state": { "$ref": "#/$defs/SafeCircuitBreaker/properties/CircuitState" },
+            "failures": { "type": "integer", "minimum": 0 },
+            "successes": { "type": "integer", "minimum": 0 },
+            "lastFailureTime": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["state"]
+        }
+      }
+    },
+
+    "SafeRetry": {
+      "title": "Safe Retry Module",
+      "description": "Retry strategies with exponential backoff and jitter",
+      "type": "object",
+      "properties": {
+        "RetryPolicy": {
+          "title": "Retry Policy",
+          "description": "Configuration for retry behavior",
+          "type": "object",
+          "properties": {
+            "maxAttempts": { "type": "integer", "minimum": 1 },
+            "initialDelay": { "type": "integer", "minimum": 0 },
+            "maxDelay": { "type": "integer", "minimum": 0 },
+            "multiplier": { "type": "number", "minimum": 1 },
+            "jitter": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "required": ["maxAttempts"]
+        },
+        "BackoffStrategy": {
+          "title": "Backoff Strategy",
+          "description": "Type of backoff between retries",
+          "type": "string",
+          "enum": ["constant", "linear", "exponential", "decorrelated_jitter"]
+        },
+        "RetryState": {
+          "title": "Retry State",
+          "description": "Current retry attempt state",
+          "type": "object",
+          "properties": {
+            "attempt": { "type": "integer", "minimum": 0 },
+            "nextDelay": { "type": "integer", "minimum": 0 },
+            "exhausted": { "type": "boolean" }
+          },
+          "required": ["attempt", "exhausted"]
+        }
+      }
+    },
+
+    "SafeMonotonic": {
+      "title": "Safe Monotonic Module",
+      "description": "Monotonically increasing counters and timestamps",
+      "type": "object",
+      "properties": {
+        "MonotonicCounter": {
+          "title": "Monotonic Counter",
+          "description": "Counter that only increases",
+          "type": "object",
+          "properties": {
+            "value": { "type": "integer", "minimum": 0 },
+            "increment": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          "required": ["value"]
+        },
+        "MonotonicTimestamp": {
+          "title": "Monotonic Timestamp",
+          "description": "Timestamp guaranteed to increase",
+          "type": "object",
+          "properties": {
+            "value": { "type": "integer", "minimum": 0 },
+            "lastValue": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["value"]
+        },
+        "SequenceNumber": {
+          "title": "Sequence Number",
+          "description": "Ordered sequence number",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+
+    "SafeStateMachine": {
+      "title": "Safe State Machine Module",
+      "description": "Type-safe state machines with validated transitions",
+      "type": "object",
+      "properties": {
+        "StateMachine": {
+          "title": "State Machine",
+          "description": "State machine with transition rules",
+          "type": "object",
+          "properties": {
+            "currentState": { "type": "string" },
+            "states": { "type": "array", "items": { "type": "string" } },
+            "transitions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "history": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["currentState", "states"]
+        },
+        "Transition": {
+          "title": "State Transition",
+          "description": "Valid state transition",
+          "type": "object",
+          "properties": {
+            "from": { "type": "string" },
+            "to": { "type": "string" },
+            "guard": { "type": "string" }
+          },
+          "required": ["from", "to"]
+        }
+      }
+    },
+
+    "SafeCalculator": {
+      "title": "Safe Calculator Module",
+      "description": "Expression evaluation with safe arithmetic",
+      "type": "object",
+      "properties": {
+        "Expression": {
+          "title": "Expression",
+          "description": "Mathematical expression string",
+          "type": "string"
+        },
+        "CalculatorState": {
+          "title": "Calculator State",
+          "description": "Current calculator state",
+          "type": "object",
+          "properties": {
+            "accumulator": { "type": "number" },
+            "memory": { "type": "number" },
+            "lastOperation": { "type": "string" }
+          }
+        },
+        "EvaluationResult": {
+          "title": "Evaluation Result",
+          "description": "Result of expression evaluation",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "ok": { "const": true },
+                "value": { "type": "number" }
+              },
+              "required": ["ok", "value"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "ok": { "const": false },
+                "error": { "type": "string" }
+              },
+              "required": ["ok", "error"]
+            }
+          ]
+        }
+      }
+    },
+
+    "SafeGeo": {
+      "title": "Safe Geo Module",
+      "description": "Geographic coordinates and distance calculations",
+      "type": "object",
+      "properties": {
+        "Coordinate": {
+          "title": "Geographic Coordinate",
+          "description": "Latitude/longitude pair",
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+            "lon": { "type": "number", "minimum": -180, "maximum": 180 }
+          },
+          "required": ["lat", "lon"]
+        },
+        "BoundingBox": {
+          "title": "Bounding Box",
+          "description": "Geographic bounding box",
+          "type": "object",
+          "properties": {
+            "minLat": { "type": "number", "minimum": -90, "maximum": 90 },
+            "minLon": { "type": "number", "minimum": -180, "maximum": 180 },
+            "maxLat": { "type": "number", "minimum": -90, "maximum": 90 },
+            "maxLon": { "type": "number", "minimum": -180, "maximum": 180 }
+          },
+          "required": ["minLat", "minLon", "maxLat", "maxLon"]
+        },
+        "Distance": {
+          "title": "Geographic Distance",
+          "description": "Distance in kilometers",
+          "type": "object",
+          "properties": {
+            "kilometers": { "type": "number", "minimum": 0 },
+            "miles": { "type": "number", "minimum": 0 }
+          }
+        },
+        "Bearing": {
+          "title": "Bearing",
+          "description": "Compass bearing in degrees",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        }
+      }
+    },
+
+    "SafeProbability": {
+      "title": "Safe Probability Module",
+      "description": "Probability values clamped to [0, 1]",
+      "type": "object",
+      "properties": {
+        "Probability": {
+          "title": "Probability",
+          "description": "Value guaranteed to be in [0, 1]",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "Odds": {
+          "title": "Odds",
+          "description": "Odds ratio (probability / (1 - probability))",
+          "type": "number",
+          "minimum": 0
+        },
+        "WeightedDistribution": {
+          "title": "Weighted Distribution",
+          "description": "Distribution with weights summing to 1",
+          "type": "object",
+          "properties": {
+            "weights": {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          },
+          "required": ["weights"]
+        },
+        "BinomialParams": {
+          "title": "Binomial Parameters",
+          "description": "Parameters for binomial distribution",
+          "type": "object",
+          "properties": {
+            "n": { "type": "integer", "minimum": 0 },
+            "p": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "required": ["n", "p"]
+        }
+      }
+    },
+
+    "SafeChecksum": {
+      "title": "Safe Checksum Module",
+      "description": "Checksum algorithms (CRC32, Adler32, etc.)",
+      "type": "object",
+      "properties": {
+        "Crc32": {
+          "title": "CRC32",
+          "description": "32-bit CRC checksum",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "Adler32": {
+          "title": "Adler32",
+          "description": "Adler-32 checksum",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "Checksum": {
+          "title": "Checksum",
+          "description": "Generic checksum with algorithm identifier",
+          "type": "object",
+          "properties": {
+            "algorithm": { "type": "string", "enum": ["crc32", "crc32c", "adler32", "xxhash"] },
+            "value": { "type": "string", "pattern": "^[0-9a-fA-F]+$" }
+          },
+          "required": ["algorithm", "value"]
+        }
+      }
+    },
+
+    "SafeTensor": {
+      "title": "Safe Tensor Module",
+      "description": "Multi-dimensional array operations with shape validation",
+      "type": "object",
+      "properties": {
+        "TensorShape": {
+          "title": "Tensor Shape",
+          "description": "Shape of tensor dimensions",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 1
+        },
+        "Tensor": {
+          "title": "Tensor",
+          "description": "Multi-dimensional array",
+          "type": "object",
+          "properties": {
+            "shape": { "$ref": "#/$defs/SafeTensor/properties/TensorShape" },
+            "dtype": { "type": "string", "enum": ["float32", "float64", "int32", "int64", "bool"] },
+            "data": { "type": "array" }
+          },
+          "required": ["shape", "dtype"]
+        },
+        "Vector2": {
+          "title": "2D Vector",
+          "description": "Two-dimensional vector",
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          },
+          "required": ["x", "y"]
+        },
+        "Vector3": {
+          "title": "3D Vector",
+          "description": "Three-dimensional vector",
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "z": { "type": "number" }
+          },
+          "required": ["x", "y", "z"]
+        },
+        "Matrix": {
+          "title": "Matrix",
+          "description": "2D matrix with row-major storage",
+          "type": "object",
+          "properties": {
+            "rows": { "type": "integer", "minimum": 1 },
+            "cols": { "type": "integer", "minimum": 1 },
+            "data": { "type": "array", "items": { "type": "number" } }
+          },
+          "required": ["rows", "cols", "data"]
+        }
+      }
+    },
+
+    "SafePassword": {
+      "title": "Safe Password Module",
+      "description": "Password validation and strength checking",
+      "type": "object",
+      "properties": {
+        "PasswordStrength": {
+          "title": "Password Strength",
+          "description": "Strength level of password",
+          "type": "string",
+          "enum": ["very_weak", "weak", "fair", "strong", "very_strong"]
+        },
+        "PasswordPolicy": {
+          "title": "Password Policy",
+          "description": "Password requirements policy",
+          "type": "object",
+          "properties": {
+            "minLength": { "type": "integer", "minimum": 1 },
+            "maxLength": { "type": "integer", "minimum": 1 },
+            "requireUppercase": { "type": "boolean" },
+            "requireLowercase": { "type": "boolean" },
+            "requireDigit": { "type": "boolean" },
+            "requireSpecial": { "type": "boolean" }
+          },
+          "required": ["minLength", "maxLength"]
+        },
+        "PolicyPreset": {
+          "title": "Policy Preset",
+          "description": "Pre-defined password policy",
+          "type": "string",
+          "enum": ["nist", "pci_dss", "hipaa"]
+        }
+      }
+    },
+
+    "SafeMl": {
+      "title": "Safe ML Module",
+      "description": "Machine learning model validation and inference safety",
+      "type": "object",
+      "properties": {
+        "ModelMetadata": {
+          "title": "Model Metadata",
+          "description": "ML model metadata",
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "version": { "type": "string" },
+            "inputShape": { "$ref": "#/$defs/SafeTensor/properties/TensorShape" },
+            "outputShape": { "$ref": "#/$defs/SafeTensor/properties/TensorShape" },
+            "framework": { "type": "string" }
+          },
+          "required": ["name", "version"]
+        },
+        "Prediction": {
+          "title": "Prediction",
+          "description": "Model prediction with confidence",
+          "type": "object",
+          "properties": {
+            "label": { "type": "string" },
+            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+            "probabilities": {
+              "type": "object",
+              "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          },
+          "required": ["label", "confidence"]
+        },
+        "InferenceConfig": {
+          "title": "Inference Config",
+          "description": "Configuration for model inference",
+          "type": "object",
+          "properties": {
+            "batchSize": { "type": "integer", "minimum": 1 },
+            "timeout": { "type": "integer", "minimum": 0 },
+            "device": { "type": "string", "enum": ["cpu", "gpu", "tpu"] }
+          }
+        }
+      }
+    },
+
+    "SafeHeader": {
+      "title": "Safe Header Module",
+      "description": "HTTP header operations with CRLF injection prevention",
+      "type": "object",
+      "properties": {
+        "Header": {
+          "title": "HTTP Header",
+          "description": "Validated HTTP header name/value pair",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[!#$%&'*+\\-.^_`|~a-zA-Z0-9]+$",
+              "maxLength": 256
+            },
+            "value": {
+              "type": "string",
+              "pattern": "^[^\\r\\n]*$",
+              "maxLength": 8192
+            }
+          },
+          "required": ["name", "value"]
+        },
+        "HeaderName": {
+          "title": "Header Name",
+          "description": "Valid HTTP header token",
+          "type": "string",
+          "pattern": "^[!#$%&'*+\\-.^_`|~a-zA-Z0-9]+$",
+          "maxLength": 256
+        },
+        "HstsPolicy": {
+          "title": "HSTS Policy",
+          "description": "HTTP Strict Transport Security configuration",
+          "type": "object",
+          "properties": {
+            "maxAge": { "type": "integer", "minimum": 0 },
+            "includeSubdomains": { "type": "boolean" },
+            "preload": { "type": "boolean" }
+          },
+          "required": ["maxAge"]
+        },
+        "CspDirective": {
+          "title": "CSP Directive",
+          "description": "Content Security Policy directive",
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "sources": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["name", "sources"]
+        }
+      }
+    },
+
+    "SafeCookie": {
+      "title": "Safe Cookie Module",
+      "description": "HTTP cookie operations with security attributes",
+      "type": "object",
+      "properties": {
+        "Cookie": {
+          "title": "HTTP Cookie",
+          "description": "Cookie with security attributes",
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "pattern": "^[^=;\\s]+$" },
+            "value": { "type": "string", "pattern": "^[^;\\r\\n]*$" },
+            "domain": { "type": "string" },
+            "path": { "type": "string" },
+            "expires": { "type": "string", "format": "date-time" },
+            "maxAge": { "type": "integer" },
+            "secure": { "type": "boolean" },
+            "httpOnly": { "type": "boolean" },
+            "sameSite": { "type": "string", "enum": ["strict", "lax", "none"] }
+          },
+          "required": ["name", "value"]
+        },
+        "SameSite": {
+          "title": "SameSite Attribute",
+          "description": "Cookie SameSite policy",
+          "type": "string",
+          "enum": ["strict", "lax", "none"]
+        },
+        "SecureCookiePreset": {
+          "title": "Secure Cookie Preset",
+          "description": "Pre-configured secure cookie settings",
+          "type": "object",
+          "properties": {
+            "secure": { "const": true },
+            "httpOnly": { "const": true },
+            "sameSite": { "const": "strict" }
+          }
+        }
+      }
+    },
+
+    "SafeContentType": {
+      "title": "Safe Content Type Module",
+      "description": "MIME type validation and content type handling",
+      "type": "object",
+      "properties": {
+        "ContentType": {
+          "title": "Content Type",
+          "description": "MIME type with optional parameters",
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "subtype": { "type": "string" },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "required": ["type", "subtype"]
+        },
+        "MimeType": {
+          "title": "MIME Type",
+          "description": "Standard MIME type string",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9!#$&\\-^_.+]*\\/[a-zA-Z0-9][a-zA-Z0-9!#$&\\-^_.+]*(;\\s*[a-zA-Z0-9\\-_.]+=[^;]+)*$"
+        },
+        "MediaTypeCategory": {
+          "title": "Media Type Category",
+          "description": "Top-level MIME type category",
+          "type": "string",
+          "enum": ["application", "audio", "font", "image", "message", "model", "multipart", "text", "video"]
+        },
+        "CharsetEncoding": {
+          "title": "Charset Encoding",
+          "description": "Character set encoding",
+          "type": "string",
+          "enum": ["utf-8", "utf-16", "iso-8859-1", "ascii"]
+        }
+      }
     },
 
     "Result": {
@@ -284,42 +1679,6 @@
           "required": ["none"]
         }
       ]
-    },
-
-    "Vector2": {
-      "title": "2D Vector",
-      "description": "Two-dimensional vector",
-      "type": "object",
-      "properties": {
-        "x": { "type": "number" },
-        "y": { "type": "number" }
-      },
-      "required": ["x", "y"]
-    },
-
-    "Vector3": {
-      "title": "3D Vector",
-      "description": "Three-dimensional vector",
-      "type": "object",
-      "properties": {
-        "x": { "type": "number" },
-        "y": { "type": "number" },
-        "z": { "type": "number" }
-      },
-      "required": ["x", "y", "z"]
-    },
-
-    "Color": {
-      "title": "Color",
-      "description": "RGBA color (0-1 range)",
-      "type": "object",
-      "properties": {
-        "r": { "$ref": "#/$defs/Normalized" },
-        "g": { "$ref": "#/$defs/Normalized" },
-        "b": { "$ref": "#/$defs/Normalized" },
-        "a": { "$ref": "#/$defs/Normalized", "default": 1.0 }
-      },
-      "required": ["r", "g", "b"]
     }
   }
 }

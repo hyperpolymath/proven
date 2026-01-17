@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our $VERSION = '0.3.0';
+our $VERSION = '0.4.0';
 our @EXPORT_OK = qw(
     div div_or mod
     add_checked sub_checked mul_checked

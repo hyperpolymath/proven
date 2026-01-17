@@ -1,311 +1,254 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
---
--- SafeTree: Formally verified tree traversal and manipulation
---
--- Provides:
--- - Type-safe tree construction with depth tracking
--- - Traversal with coverage proofs
--- - Fold/map operations that preserve structure
--- - Path-to-node proofs for navigation
-
+-- SPDX-License-Identifier: Palimpsest-MPL-1.0
+||| SafeTree - Safe tree data structure operations
+|||
+||| This module provides various tree structures with safe
+||| traversal and manipulation operations.
 module Proven.SafeTree
 
-import Data.List
-import Data.Nat
-import Data.Vect
-import Data.Fin
-import Decidable.Equality
+import public Proven.Core
 
-%default covering
+%default total
 
-||| A rose tree with children stored in a list
+--------------------------------------------------------------------------------
+-- Binary Tree
+--------------------------------------------------------------------------------
+
+||| Binary tree data structure
 public export
-data Tree : Type -> Type where
-  Node : (value : a) -> (children : List (Tree a)) -> Tree a
+data BinaryTree : Type -> Type where
+  Leaf : BinaryTree a
+  Node : (value : a) -> (left : BinaryTree a) -> (right : BinaryTree a) -> BinaryTree a
 
-||| A tree with depth tracked at type level
+||| Create an empty tree
 public export
-data DepthTree : (maxDepth : Nat) -> (currentDepth : Nat) -> Type -> Type where
-  ||| A leaf at maximum depth
-  Leaf : {n : Nat} -> a -> DepthTree n n a
-  ||| A branch with children at next depth
-  Branch : {n, d : Nat} -> {auto prf : LT d n} ->
-           a -> List (DepthTree n (S d) a) -> DepthTree n d a
+emptyTree : BinaryTree a
+emptyTree = Leaf
 
-||| Get the value at the root
+||| Create a single-node tree
 public export
-rootValue : Tree a -> a
-rootValue (Node v _) = v
+singleton : a -> BinaryTree a
+singleton x = Node x Leaf Leaf
 
-||| Get children of a tree node
+||| Check if tree is empty
 public export
-children : Tree a -> List (Tree a)
-children (Node _ cs) = cs
+isEmptyTree : BinaryTree a -> Bool
+isEmptyTree Leaf = True
+isEmptyTree _ = False
 
-||| Check if tree is a leaf (no children)
+||| Get the root value
 public export
-isLeaf : Tree a -> Bool
-isLeaf (Node _ []) = True
-isLeaf _ = False
+root : BinaryTree a -> Maybe a
+root Leaf = Nothing
+root (Node v _ _) = Just v
 
-||| Count total nodes in tree
+||| Get left subtree
 public export
-nodeCount : Tree a -> Nat
-nodeCount (Node _ []) = 1
-nodeCount (Node _ cs) = 1 + sum (map nodeCount cs)
+leftChild : BinaryTree a -> BinaryTree a
+leftChild Leaf = Leaf
+leftChild (Node _ l _) = l
 
-||| Compute depth of tree (length of longest path to leaf)
+||| Get right subtree
 public export
-treeDepth : Tree a -> Nat
-treeDepth (Node _ []) = 0
-treeDepth (Node _ cs) = 1 + foldl max 0 (map treeDepth cs)
+rightChild : BinaryTree a -> BinaryTree a
+rightChild Leaf = Leaf
+rightChild (Node _ _ r) = r
 
-||| Proof that a tree has at least n nodes
-public export
-data HasNodes : Tree a -> (n : Nat) -> Type where
-  MkHasNodes : LTE n (nodeCount tree) -> HasNodes tree n
+--------------------------------------------------------------------------------
+-- Tree Metrics
+--------------------------------------------------------------------------------
 
-||| A path through the tree (list of child indices)
+||| Count nodes in tree
 public export
-Path : Type
-Path = List Nat
+size : BinaryTree a -> Nat
+size Leaf = 0
+size (Node _ l r) = S (size l + size r)
 
-||| Navigate to a node using a path, returning Nothing if path is invalid
+||| Calculate tree height
 public export
-navigate : Tree a -> Path -> Maybe (Tree a)
-navigate tree [] = Just tree
-navigate (Node _ []) (_ :: _) = Nothing
-navigate (Node _ cs) (i :: rest) =
-  case getAt i cs of
-    Nothing => Nothing
-    Just child => navigate child rest
+height : BinaryTree a -> Nat
+height Leaf = 0
+height (Node _ l r) = S (max (height l) (height r))
+
+||| Count leaf nodes
+public export
+leafCount : BinaryTree a -> Nat
+leafCount Leaf = 1
+leafCount (Node _ l r) = leafCount l + leafCount r
+
+||| Check if tree is balanced (heights differ by at most 1)
+public export
+isBalanced : BinaryTree a -> Bool
+isBalanced Leaf = True
+isBalanced (Node _ l r) =
+  let lh = height l
+      rh = height r
+      diff = if lh >= rh then minus lh rh else minus rh lh
+  in diff <= 1 && isBalanced l && isBalanced r
+
+--------------------------------------------------------------------------------
+-- Traversals
+--------------------------------------------------------------------------------
+
+||| Pre-order traversal (root, left, right)
+public export
+preorder : BinaryTree a -> List a
+preorder Leaf = []
+preorder (Node v l r) = v :: preorder l ++ preorder r
+
+||| In-order traversal (left, root, right)
+public export
+inorder : BinaryTree a -> List a
+inorder Leaf = []
+inorder (Node v l r) = inorder l ++ [v] ++ inorder r
+
+||| Post-order traversal (left, right, root)
+public export
+postorder : BinaryTree a -> List a
+postorder Leaf = []
+postorder (Node v l r) = postorder l ++ postorder r ++ [v]
+
+||| Level-order (breadth-first) traversal
+public export
+levelorder : BinaryTree a -> List a
+levelorder tree = bfs [tree]
   where
-    getAt : Nat -> List b -> Maybe b
-    getAt Z (x :: _) = Just x
-    getAt (S n) (_ :: xs) = getAt n xs
-    getAt _ [] = Nothing
-
-||| Proof that a path leads to a valid node
-public export
-data ValidPath : Tree a -> Path -> Type where
-  MkValidPath : navigate tree path = Just _ -> ValidPath tree path
-
-||| Map a function over all values in tree
-public export
-mapTree : (a -> b) -> Tree a -> Tree b
-mapTree f (Node v cs) = Node (f v) (map (mapTree f) cs)
-
-||| Fold tree from leaves to root (bottom-up)
-public export
-foldTree : (a -> List b -> b) -> Tree a -> b
-foldTree f (Node v cs) = f v (map (foldTree f) cs)
-
-||| Fold tree from root to leaves (top-down) with accumulator
-public export
-foldTreeDown : (acc -> a -> (acc, b)) -> acc -> Tree a -> Tree b
-foldTreeDown f acc (Node v cs) =
-  let (newAcc, newVal) = f acc v
-  in Node newVal (map (foldTreeDown f newAcc) cs)
-
-||| Filter tree nodes, keeping subtrees where predicate holds
-public export
-filterTree : (a -> Bool) -> Tree a -> Maybe (Tree a)
-filterTree p (Node v cs) =
-  if p v
-    then Just (Node v (mapMaybe (filterTree p) cs))
-    else Nothing
-
-||| Flatten tree to list (pre-order traversal)
-public export
-preOrder : Tree a -> List a
-preOrder (Node v cs) = v :: concatMap preOrder cs
-
-||| Flatten tree to list (post-order traversal)
-public export
-postOrder : Tree a -> List a
-postOrder (Node v cs) = concatMap postOrder cs ++ [v]
-
-||| Flatten tree to list (level-order/BFS traversal)
-public export
-levelOrder : Tree a -> List a
-levelOrder tree = bfs [tree]
-  where
-    bfs : List (Tree a) -> List a
+    bfs : List (BinaryTree a) -> List a
     bfs [] = []
-    bfs trees = map rootValue trees ++ bfs (concatMap children trees)
+    bfs (Leaf :: rest) = bfs rest
+    bfs (Node v l r :: rest) = v :: bfs (rest ++ [l, r])
 
-||| Proof that preOrder visits all nodes
-public export
-preOrderComplete : (tree : Tree a) -> length (preOrder tree) = nodeCount tree
-preOrderComplete tree = ?preOrderCompleteProof
+--------------------------------------------------------------------------------
+-- Binary Search Tree Operations
+--------------------------------------------------------------------------------
 
-||| Find first node matching predicate
+||| Insert into BST
 public export
-findNode : (a -> Bool) -> Tree a -> Maybe a
-findNode p (Node v cs) =
+bstInsert : Ord a => a -> BinaryTree a -> BinaryTree a
+bstInsert x Leaf = singleton x
+bstInsert x (Node v l r) =
+  case compare x v of
+    LT => Node v (bstInsert x l) r
+    EQ => Node v l r  -- No duplicates
+    GT => Node v l (bstInsert x r)
+
+||| Search in BST
+public export
+bstContains : Ord a => a -> BinaryTree a -> Bool
+bstContains _ Leaf = False
+bstContains x (Node v l r) =
+  case compare x v of
+    LT => bstContains x l
+    EQ => True
+    GT => bstContains x r
+
+||| Find minimum in BST
+public export
+bstMin : BinaryTree a -> Maybe a
+bstMin Leaf = Nothing
+bstMin (Node v Leaf _) = Just v
+bstMin (Node _ l _) = bstMin l
+
+||| Find maximum in BST
+public export
+bstMax : BinaryTree a -> Maybe a
+bstMax Leaf = Nothing
+bstMax (Node v _ Leaf) = Just v
+bstMax (Node _ _ r) = bstMax r
+
+||| Check if tree is a valid BST
+public export
+isBST : Ord a => BinaryTree a -> Bool
+isBST tree = isSorted (inorder tree)
+  where
+    isSorted : Ord b => List b -> Bool
+    isSorted [] = True
+    isSorted [_] = True
+    isSorted (x :: y :: xs) = x <= y && isSorted (y :: xs)
+
+||| Build BST from list
+public export
+fromList : Ord a => List a -> BinaryTree a
+fromList = foldl (flip bstInsert) Leaf
+
+--------------------------------------------------------------------------------
+-- Tree Transformations
+--------------------------------------------------------------------------------
+
+||| Map a function over tree values
+public export
+mapTree : (a -> b) -> BinaryTree a -> BinaryTree b
+mapTree _ Leaf = Leaf
+mapTree f (Node v l r) = Node (f v) (mapTree f l) (mapTree f r)
+
+||| Fold tree (pre-order)
+public export
+foldTree : (a -> b -> b -> b) -> b -> BinaryTree a -> b
+foldTree _ z Leaf = z
+foldTree f z (Node v l r) = f v (foldTree f z l) (foldTree f z r)
+
+||| Filter tree (keeps structure, replaces filtered nodes with Leaf)
+public export
+filterTree : (a -> Bool) -> BinaryTree a -> BinaryTree a
+filterTree _ Leaf = Leaf
+filterTree p (Node v l r) =
   if p v
-    then Just v
-    else foldl (\acc, c => case acc of Just x => Just x; Nothing => findNode p c)
-               Nothing cs
+    then Node v (filterTree p l) (filterTree p r)
+    else Leaf  -- Remove node and its subtrees
 
-||| Find path to first node matching predicate
+||| Mirror a tree (swap left and right children)
 public export
-findPath : (a -> Bool) -> Tree a -> Maybe (Path, a)
-findPath p tree = findPathHelper p tree []
+mirror : BinaryTree a -> BinaryTree a
+mirror Leaf = Leaf
+mirror (Node v l r) = Node v (mirror r) (mirror l)
+
+--------------------------------------------------------------------------------
+-- N-ary Tree
+--------------------------------------------------------------------------------
+
+||| N-ary tree (rose tree)
+public export
+data NTree : Type -> Type where
+  NNode : (value : a) -> (children : List (NTree a)) -> NTree a
+
+||| Create a leaf node (no children)
+public export
+nleaf : a -> NTree a
+nleaf x = NNode x []
+
+||| Get value from n-ary tree node
+public export
+nvalue : NTree a -> a
+nvalue (NNode v _) = v
+
+||| Get children of n-ary tree node
+public export
+nchildren : NTree a -> List (NTree a)
+nchildren (NNode _ cs) = cs
+
+||| Size of n-ary tree
+public export
+nsize : NTree a -> Nat
+nsize (NNode _ cs) = S (sum (map nsize cs))
   where
-    mutual
-      findInChildren : (a -> Bool) -> List (Tree a) -> Path -> Nat -> Maybe (Path, a)
-      findInChildren _ [] _ _ = Nothing
-      findInChildren pred (c :: rest) path idx =
-        case findPathHelper pred c (idx :: path) of
-          Just result => Just result
-          Nothing => findInChildren pred rest path (S idx)
+    sum : List Nat -> Nat
+    sum [] = 0
+    sum (x :: xs) = x + sum xs
 
-      findPathHelper : (a -> Bool) -> Tree a -> Path -> Maybe (Path, a)
-      findPathHelper pred (Node v cs) path =
-        if pred v
-          then Just (reverse path, v)
-          else findInChildren pred cs path 0
-
-||| Insert a subtree at a given path
+||| Flatten n-ary tree to list (pre-order)
 public export
-insertAt : Tree a -> Path -> Tree a -> Maybe (Tree a)
-insertAt subtree [] (Node v cs) = Just (Node v (subtree :: cs))
-insertAt subtree (i :: rest) (Node v cs) =
-  case updateAt i (\c => insertAt subtree rest c) cs of
-    Nothing => Nothing
-    Just newCs => Just (Node v (catMaybes newCs))
-  where
-    updateAt : Nat -> (Tree a -> Maybe (Tree a)) -> List (Tree a) -> Maybe (List (Maybe (Tree a)))
-    updateAt Z f (x :: xs) = Just (f x :: map Just xs)
-    updateAt (S n) f (x :: xs) = map (Just x ::) (updateAt n f xs)
-    updateAt _ _ [] = Nothing
+nflatten : NTree a -> List a
+nflatten (NNode v cs) = v :: concatMap nflatten cs
 
-    catMaybes : List (Maybe (Tree a)) -> List (Tree a)
-    catMaybes [] = []
-    catMaybes (Nothing :: xs) = catMaybes xs
-    catMaybes (Just x :: xs) = x :: catMaybes xs
+--------------------------------------------------------------------------------
+-- Display
+--------------------------------------------------------------------------------
 
-||| Remove node at path (and all its children)
 public export
-removeAt : Tree a -> Path -> Maybe (Tree a)
-removeAt _ [] = Nothing  -- Can't remove root
-removeAt (Node v cs) [i] =
-  Just (Node v (deleteAt i cs))
-  where
-    deleteAt : Nat -> List b -> List b
-    deleteAt Z (_ :: xs) = xs
-    deleteAt (S n) (x :: xs) = x :: deleteAt n xs
-    deleteAt _ [] = []
-removeAt (Node v cs) (i :: rest) =
-  case updateAtPath i (\c => removeAt c rest) cs of
-    Nothing => Nothing
-    Just newCs => Just (Node v newCs)
-  where
-    updateAtPath : Nat -> (Tree a -> Maybe (Tree a)) -> List (Tree a) -> Maybe (List (Tree a))
-    updateAtPath Z f (x :: xs) = map (:: xs) (f x)
-    updateAtPath (S n) f (x :: xs) = map (x ::) (updateAtPath n f xs)
-    updateAtPath _ _ [] = Nothing
+Show a => Show (BinaryTree a) where
+  show Leaf = "Leaf"
+  show (Node v l r) = "Node(" ++ show v ++ ")"
 
-||| Zip two trees together (stops at smaller tree's structure)
 public export
-zipTrees : Tree a -> Tree b -> Tree (a, b)
-zipTrees (Node v1 cs1) (Node v2 cs2) =
-  Node (v1, v2) (zipWith zipTrees cs1 cs2)
-
-||| Tree with parent references (for navigation)
-public export
-data TreeWithParent : Type -> Type where
-  Root : a -> List (TreeWithParent a) -> TreeWithParent a
-  Child : a -> List (TreeWithParent a) -> TreeWithParent a -> TreeWithParent a
-
-||| Convert regular tree to tree with parent references
-public export
-addParents : Tree a -> TreeWithParent a
-addParents (Node v cs) = Root v (map (addParentsChild (Root v [])) cs)
-  where
-    addParentsChild : TreeWithParent a -> Tree a -> TreeWithParent a
-    addParentsChild parent (Node val children) =
-      let node = Child val [] parent
-      in Child val (map (addParentsChild node) children) parent
-
-||| Get parent of a node (Nothing for root)
-public export
-parent : TreeWithParent a -> Maybe (TreeWithParent a)
-parent (Root _ _) = Nothing
-parent (Child _ _ p) = Just p
-
-||| Tree zipper for efficient navigation
-public export
-record TreeZipper a where
-  constructor MkZipper
-  focus : Tree a
-  lefts : List (Tree a)   -- Siblings to the left
-  rights : List (Tree a)  -- Siblings to the right
-  parents : List (a, List (Tree a), List (Tree a))  -- Parent context
-
-||| Create zipper focused on root
-public export
-toZipper : Tree a -> TreeZipper a
-toZipper tree = MkZipper tree [] [] []
-
-||| Reconstruct tree from zipper
-public export
-fromZipper : TreeZipper a -> Tree a
-fromZipper (MkZipper focus _ _ []) = focus
-fromZipper (MkZipper focus ls rs ((pv, pls, prs) :: ps)) =
-  fromZipper (MkZipper (Node pv (reverse ls ++ [focus] ++ rs)) pls prs ps)
-
-||| Move focus to first child (if any)
-public export
-goDown : TreeZipper a -> Maybe (TreeZipper a)
-goDown (MkZipper (Node v []) _ _ _) = Nothing
-goDown (MkZipper (Node v (c :: cs)) ls rs ps) =
-  Just (MkZipper c [] cs ((v, ls, rs) :: ps))
-
-||| Move focus to parent
-public export
-goUp : TreeZipper a -> Maybe (TreeZipper a)
-goUp (MkZipper _ _ _ []) = Nothing
-goUp (MkZipper focus ls rs ((pv, pls, prs) :: ps)) =
-  Just (MkZipper (Node pv (reverse ls ++ [focus] ++ rs)) pls prs ps)
-
-||| Move focus to right sibling
-public export
-goRight : TreeZipper a -> Maybe (TreeZipper a)
-goRight (MkZipper _ _ [] _) = Nothing
-goRight (MkZipper focus ls (r :: rs) ps) =
-  Just (MkZipper r (focus :: ls) rs ps)
-
-||| Move focus to left sibling
-public export
-goLeft : TreeZipper a -> Maybe (TreeZipper a)
-goLeft (MkZipper _ [] _ _) = Nothing
-goLeft (MkZipper focus (l :: ls) rs ps) =
-  Just (MkZipper l ls (focus :: rs) ps)
-
-||| Modify value at focus
-public export
-modifyFocus : (a -> a) -> TreeZipper a -> TreeZipper a
-modifyFocus f (MkZipper (Node v cs) ls rs ps) =
-  MkZipper (Node (f v) cs) ls rs ps
-
-||| Insert child at focus
-public export
-insertChild : Tree a -> TreeZipper a -> TreeZipper a
-insertChild child (MkZipper (Node v cs) ls rs ps) =
-  MkZipper (Node v (child :: cs)) ls rs ps
-
-||| Proof that tree structure is preserved by map
-public export
-mapPreservesStructure : (f : a -> b) -> (tree : Tree a) ->
-                        nodeCount (mapTree f tree) = nodeCount tree
-mapPreservesStructure f tree = ?mapPreservesStructureProof
-
-||| Proof that zipper round-trip preserves tree
-public export
-zipperRoundTrip : (tree : Tree a) -> fromZipper (toZipper tree) = tree
-zipperRoundTrip (Node v cs) = Refl
-
+Show a => Show (NTree a) where
+  show (NNode v cs) = "NTree(" ++ show v ++ ", " ++ show (length cs) ++ " children)"
 

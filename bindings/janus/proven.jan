@@ -1,12 +1,34 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: PMPL-1.0
 // Proven - Safety primitives for Janus (Reversible Computing)
+//
+// Version: 0.4.0
+// Module Count: 38
 //
 // In reversible computing, every operation is bijective (invertible).
 // This enables energy-efficient computation approaching Landauer's limit.
 // Based on Janus programming language semantics.
 
 // ============================================================================
-// REVERSIBLE RESULT TYPE
+// LIBRARY METADATA
+// ============================================================================
+
+// VERSION = "0.4.0"
+// MODULE_COUNT = 38
+
+// Categories:
+// - Core (11): safe_math, safe_string, safe_path, safe_email, safe_url,
+//              safe_network, safe_crypto, safe_uuid, safe_currency, safe_phone, safe_hex
+// - Data (7): safe_json, safe_datetime, safe_float, safe_version, safe_color,
+//             safe_angle, safe_unit
+// - Data Structures (5): safe_buffer, safe_queue, safe_bloom, safe_lru, safe_graph
+// - Resilience (4): safe_rate_limiter, safe_circuit_breaker, safe_retry, safe_monotonic
+// - State (2): safe_state_machine, safe_calculator
+// - Algorithm (4): safe_geo, safe_probability, safe_checksum, safe_tensor
+// - Security (2): safe_password, safe_ml
+// - HTTP (3): safe_header, safe_cookie, safe_content_type
+
+// ============================================================================
+// CORE TYPES - REVERSIBLE RESULT AND OPTION
 // ============================================================================
 
 // Errors must preserve original value for reversal
@@ -18,10 +40,7 @@ procedure result_ok(T v | Result<T> r)
 procedure result_err(Int code, String msg, T orig | Result<T> r)
     r += Err code msg orig
 
-// ============================================================================
-// REVERSIBLE OPTION TYPE
-// ============================================================================
-
+// Reversible option type
 data Option<T> = Some T | None
 
 procedure option_some(T v | Option<T> o)
@@ -31,9 +50,10 @@ procedure option_none(| Option<T> o)
     o += None
 
 // ============================================================================
-// BOUNDED INTEGER (with overflow tracking for reversibility)
+// MODULE 1: SAFE_MATH - Reversible Arithmetic Operations
 // ============================================================================
 
+// Bounded integer with overflow tracking for reversibility
 data BoundedInt = BoundedInt Int Int Int Int  // value, min, max, overflow_count
 
 procedure bounded_create(Int v, Int min_v, Int max_v | BoundedInt b)
@@ -86,10 +106,6 @@ procedure bounded_add(BoundedInt a, Int delta | BoundedInt result)
                             else v + delta fi fi)
     until a = BoundedInt _ min_v max_v _
 
-// ============================================================================
-// SAFE REVERSIBLE ARITHMETIC
-// ============================================================================
-
 // Add with overflow tracking (reversible)
 procedure safe_add(Int a, Int b, Int max_v | Int result, Int overflow)
     result += a + b
@@ -118,10 +134,7 @@ procedure safe_div(Int a, Int b | Int quotient, Int remainder)
     quotient += a / b
     remainder += a % b
 
-// ============================================================================
-// PERCENTAGE (0-100, reversible)
-// ============================================================================
-
+// Percentage (0-100, reversible)
 data Percentage = Percentage Int Int  // value, overflow_track
 
 procedure percentage_create(Int v | Percentage p)
@@ -138,6 +151,1535 @@ procedure percentage_create(Int v | Percentage p)
 
 procedure percentage_get(Percentage p | Int v)
     from p = Percentage val _ do v += val until p = Percentage v _
+
+// Reversible absolute value (tracks sign)
+procedure abs_with_sign(Int x | Int result, Bool was_neg)
+    if x < 0 then
+        was_neg ^= True
+        x += -2 * x
+    fi x >= 0
+    result += x
+
+// Reversible min/max
+procedure rev_min(Int a, Int b | Int result, Int other, Bool a_smaller)
+    if a <= b then
+        a_smaller ^= True
+        result += a
+        other += b
+    else
+        result += b
+        other += a
+    fi a_smaller = (a <= b)
+
+// ============================================================================
+// MODULE 2: SAFE_STRING - Reversible String Operations
+// ============================================================================
+
+// String with length bounds for reversibility
+data BoundedString = BoundedString String Int Int  // content, min_len, max_len
+
+procedure bounded_string_create(String s, Int min_l, Int max_l | BoundedString bs)
+    local Int len = strlen(s)
+    local String result = s
+    local Bool truncated = False
+
+    if len > max_l then
+        result = substr(s, 0, max_l)
+        truncated ^= True
+    fi strlen(result) <= max_l
+
+    bs += BoundedString result min_l max_l
+
+    delocal Bool truncated = (strlen(s) > max_l)
+    delocal String result = (if strlen(s) > max_l then substr(s, 0, max_l) else s fi)
+    delocal Int len = strlen(s)
+
+procedure bounded_string_get(BoundedString bs | String s)
+    from bs = BoundedString content _ _ do s += content
+    until bs = BoundedString s _ _
+
+// Reversible string concatenation (preserves original lengths)
+procedure string_concat(String a, String b | String result, Int orig_a_len, Int orig_b_len)
+    orig_a_len += strlen(a)
+    orig_b_len += strlen(b)
+    result += a ++ b
+
+// Reversible string split (can rejoin)
+procedure string_split_at(String s, Int pos | String left, String right, Int orig_pos)
+    orig_pos += pos
+    left += substr(s, 0, pos)
+    right += substr(s, pos, strlen(s) - pos)
+
+// Non-empty string validation
+data NonEmptyString = NonEmptyString String
+
+procedure nonempty_create(String s | Result<NonEmptyString> r)
+    if strlen(s) > 0 then
+        r += Ok (NonEmptyString s)
+    else
+        r += Err 1 "String must not be empty" (NonEmptyString "")
+    fi (strlen(s) > 0) = (r = Ok _)
+
+// ============================================================================
+// MODULE 3: SAFE_PATH - Reversible Path Operations
+// ============================================================================
+
+data PathComponent = PathComponent String
+data SafePath = SafePath [PathComponent] Bool  // components, is_absolute
+
+procedure path_create(String s, Bool absolute | SafePath p)
+    // Simplified: store path as string wrapped in component
+    p += SafePath [PathComponent s] absolute
+
+procedure path_join(SafePath base, PathComponent comp | SafePath result, SafePath orig_base)
+    from base = SafePath comps abs do
+        orig_base += SafePath comps abs
+        result += SafePath (comps ++ [comp]) abs
+    until base = SafePath _ abs
+
+procedure path_parent(SafePath p | SafePath parent, PathComponent removed, Bool had_parent)
+    from p = SafePath comps abs do
+        if length(comps) > 1 then
+            had_parent ^= True
+            parent += SafePath (init comps) abs
+            removed += last comps
+        else
+            parent += SafePath comps abs
+            removed += PathComponent ""
+        fi had_parent = (length(comps) > 1)
+    until p = SafePath _ _
+
+// ============================================================================
+// MODULE 4: SAFE_EMAIL - Reversible Email Validation
+// ============================================================================
+
+data Email = Email String String  // local_part, domain
+
+procedure email_create(String local_part, String domain | Email e)
+    e += Email local_part domain
+
+procedure email_to_string(Email e | String s)
+    from e = Email local domain do
+        s += local ++ "@" ++ domain
+    until e = Email _ _
+
+procedure email_validate(String s | Result<Email> r, Int at_pos)
+    // Find @ position for reversibility
+    local Int pos = find_char(s, '@')
+    at_pos += pos
+
+    if pos > 0 && pos < strlen(s) - 1 then
+        local String local_part = substr(s, 0, pos)
+        local String domain = substr(s, pos + 1, strlen(s) - pos - 1)
+        r += Ok (Email local_part domain)
+        delocal String domain = substr(s, pos + 1, strlen(s) - pos - 1)
+        delocal String local_part = substr(s, 0, pos)
+    else
+        r += Err 1 "Invalid email format" (Email "" "")
+    fi (pos > 0 && pos < strlen(s) - 1) = (r = Ok _)
+
+    delocal Int pos = at_pos
+
+// ============================================================================
+// MODULE 5: SAFE_URL - Reversible URL Handling
+// ============================================================================
+
+data Url = Url String String String Int String  // scheme, host, path, port, query
+
+procedure url_create(String scheme, String host, String path, Int port, String query | Url u)
+    u += Url scheme host path port query
+
+procedure url_get_scheme(Url u | String scheme)
+    from u = Url s _ _ _ _ do scheme += s until u = Url scheme _ _ _ _
+
+procedure url_get_host(Url u | String host)
+    from u = Url _ h _ _ _ do host += h until u = Url _ host _ _ _
+
+procedure url_get_port(Url u | Int port)
+    from u = Url _ _ _ p _ do port += p until u = Url _ _ _ port _
+
+procedure url_with_path(Url u, String new_path | Url result, String old_path)
+    from u = Url scheme host path port query do
+        old_path += path
+        result += Url scheme host new_path port query
+    until u = Url _ _ _ _ _
+
+// ============================================================================
+// MODULE 6: SAFE_NETWORK - Reversible Network Types
+// ============================================================================
+
+// IPv4 address (4 octets)
+data IPv4 = IPv4 Int Int Int Int  // a.b.c.d
+
+procedure ipv4_create(Int a, Int b, Int c, Int d | Result<IPv4> r)
+    if a >= 0 && a <= 255 && b >= 0 && b <= 255 &&
+       c >= 0 && c <= 255 && d >= 0 && d <= 255 then
+        r += Ok (IPv4 a b c d)
+    else
+        r += Err 1 "Invalid IPv4 octet" (IPv4 0 0 0 0)
+    fi (a >= 0 && a <= 255 && b >= 0 && b <= 255 &&
+        c >= 0 && c <= 255 && d >= 0 && d <= 255) = (r = Ok _)
+
+procedure ipv4_to_int(IPv4 ip | Int result)
+    from ip = IPv4 a b c d do
+        result += a * 16777216 + b * 65536 + c * 256 + d
+    until ip = IPv4 _ _ _ _
+
+procedure int_to_ipv4(Int n | IPv4 ip, Int orig_n)
+    orig_n += n
+    local Int a = n / 16777216
+    local Int rem1 = n % 16777216
+    local Int b = rem1 / 65536
+    local Int rem2 = rem1 % 65536
+    local Int c = rem2 / 256
+    local Int d = rem2 % 256
+    ip += IPv4 a b c d
+    delocal Int d = orig_n % 256
+    delocal Int c = (orig_n / 256) % 256
+    delocal Int rem2 = orig_n % 65536
+    delocal Int b = (orig_n / 65536) % 256
+    delocal Int rem1 = orig_n % 16777216
+    delocal Int a = orig_n / 16777216
+
+// Port number (0-65535)
+data Port = Port Int Int  // value, overflow_track
+
+procedure port_create(Int v | Port p)
+    local Int clamped = v
+    local Int overflow = 0
+    if clamped < 0 then overflow -= clamped; clamped += -clamped fi clamped = 0
+    if clamped > 65535 then overflow += clamped - 65535; clamped -= clamped - 65535 fi clamped = 65535
+    p += Port clamped overflow
+    delocal Int overflow = (if v < 0 then -v else if v > 65535 then v - 65535 else 0 fi fi)
+    delocal Int clamped = (if v < 0 then 0 else if v > 65535 then 65535 else v fi fi)
+
+// ============================================================================
+// MODULE 7: SAFE_CRYPTO - Reversible Cryptographic Primitives
+// ============================================================================
+
+// Hash with input preserved for reversibility
+data HashResult = HashResult [Int] [Int]  // hash_bytes, original_input_bytes
+
+procedure hash_with_original(List<Int> input | HashResult h)
+    // In reversible computing, we preserve the input
+    local List<Int> hash = compute_hash(input)  // External hash function
+    h += HashResult hash input
+    delocal List<Int> hash = compute_hash(input)
+
+// Constant-time comparison result
+data CompareResult = CompareResult Bool Int Int  // equal, iterations, xor_accumulator
+
+procedure constant_time_compare(List<Int> a, List<Int> b | CompareResult r)
+    local Int xor_acc = 0
+    local Int i = 0
+    local Int len = min(length(a), length(b))
+
+    from i = 0 do
+        if i < len then
+            xor_acc ^= (nth(a, i) ^ nth(b, i))
+        fi i < len
+        i += 1
+    until i = len
+
+    local Bool equal = (xor_acc = 0 && length(a) = length(b))
+    r += CompareResult equal len xor_acc
+
+    delocal Bool equal = (xor_acc = 0 && length(a) = length(b))
+    delocal Int len = min(length(a), length(b))
+    delocal Int i = len
+    delocal Int xor_acc = 0  // After loop
+
+// HMAC computation with key tracking
+data HmacResult = HmacResult List<Int> List<Int> List<Int>  // mac, key, message
+
+procedure hmac_compute(List<Int> key, List<Int> message | HmacResult h)
+    local List<Int> mac = compute_hmac(key, message)  // External HMAC
+    h += HmacResult mac key message
+    delocal List<Int> mac = compute_hmac(key, message)
+
+// ============================================================================
+// MODULE 8: SAFE_UUID - Reversible UUID Operations
+// ============================================================================
+
+// UUID as 16 integers (bytes)
+data Uuid = Uuid Int Int Int Int Int Int Int Int Int Int Int Int Int Int Int Int
+
+procedure uuid_nil(| Uuid u)
+    u += Uuid 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+procedure uuid_from_parts(Int time_low, Int time_mid, Int time_hi, Int clock_seq,
+                          Int n0, Int n1, Int n2, Int n3, Int n4, Int n5 | Uuid u)
+    // Simplified: direct storage
+    u += Uuid (time_low / 16777216) ((time_low / 65536) % 256) ((time_low / 256) % 256) (time_low % 256)
+             (time_mid / 256) (time_mid % 256)
+             (time_hi / 256) (time_hi % 256)
+             (clock_seq / 256) (clock_seq % 256)
+             n0 n1 n2 n3 n4 n5
+
+procedure uuid_version(Uuid u | Int version)
+    from u = Uuid _ _ _ _ _ _ v _ _ _ _ _ _ _ _ _ do
+        version += (v / 16) % 16
+    until u = Uuid _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+// ============================================================================
+// MODULE 9: SAFE_CURRENCY - Reversible Currency Handling
+// ============================================================================
+
+// Currency amount in smallest unit (e.g., cents) for precision
+data Currency = Currency Int String Int  // amount_cents, currency_code, decimal_places
+
+procedure currency_create(Int amount_cents, String code, Int decimals | Currency c)
+    c += Currency amount_cents code decimals
+
+procedure currency_add(Currency a, Currency b | Currency result, Currency orig_a, Currency orig_b, Bool same_currency)
+    from a = Currency amt_a code_a dec_a, b = Currency amt_b code_b dec_b do
+        orig_a += a
+        orig_b += b
+        if code_a = code_b then
+            same_currency ^= True
+            result += Currency (amt_a + amt_b) code_a dec_a
+        else
+            result += a  // Return first on currency mismatch
+        fi same_currency = (code_a = code_b)
+    until a = Currency _ _ _, b = Currency _ _ _
+
+procedure currency_convert(Currency c, Int rate_numerator, Int rate_denominator |
+                           Currency result, Currency orig, Int orig_rate_num, Int orig_rate_denom)
+    from c = Currency amt code dec do
+        orig += c
+        orig_rate_num += rate_numerator
+        orig_rate_denom += rate_denominator
+        local Int new_amt = (amt * rate_numerator) / rate_denominator
+        result += Currency new_amt code dec
+        delocal Int new_amt = (amt * rate_numerator) / rate_denominator
+    until c = Currency _ _ _
+
+// ============================================================================
+// MODULE 10: SAFE_PHONE - Reversible Phone Number
+// ============================================================================
+
+data PhoneNumber = PhoneNumber Int Int  // country_code, number
+
+procedure phone_create(Int country, Int number | PhoneNumber p)
+    p += PhoneNumber country number
+
+procedure phone_get_country(PhoneNumber p | Int country)
+    from p = PhoneNumber c _ do country += c until p = PhoneNumber country _
+
+procedure phone_normalize(PhoneNumber p | PhoneNumber result, PhoneNumber orig)
+    from p = PhoneNumber country number do
+        orig += p
+        // Remove leading zeros (simplified)
+        local Int normalized = number
+        from normalized > 0 && (normalized / 1000000000) = 0 do
+            // Already normalized
+        until True
+        result += PhoneNumber country normalized
+        delocal Int normalized = number
+    until p = PhoneNumber _ _
+
+// ============================================================================
+// MODULE 11: SAFE_HEX - Reversible Hex Encoding
+// ============================================================================
+
+data HexString = HexString String List<Int>  // hex_string, original_bytes
+
+procedure bytes_to_hex(List<Int> bytes | HexString h)
+    local String hex = encode_hex(bytes)  // External function
+    h += HexString hex bytes
+    delocal String hex = encode_hex(bytes)
+
+procedure hex_to_bytes(HexString h | List<Int> bytes)
+    from h = HexString _ original do bytes += original
+    until h = HexString _ bytes
+
+procedure hex_validate(String s | Result<HexString> r)
+    if is_valid_hex(s) then
+        local List<Int> bytes = decode_hex(s)
+        r += Ok (HexString s bytes)
+        delocal List<Int> bytes = decode_hex(s)
+    else
+        r += Err 1 "Invalid hex string" (HexString "" [])
+    fi is_valid_hex(s) = (r = Ok _)
+
+// ============================================================================
+// MODULE 12: SAFE_JSON - Reversible JSON Value
+// ============================================================================
+
+data JsonValue = JsonNull
+               | JsonBool Bool
+               | JsonInt Int
+               | JsonString String
+               | JsonArray List<JsonValue>
+               | JsonObject List<(String, JsonValue)>
+
+procedure json_null(| JsonValue v)
+    v += JsonNull
+
+procedure json_bool(Bool b | JsonValue v)
+    v += JsonBool b
+
+procedure json_int(Int n | JsonValue v)
+    v += JsonInt n
+
+procedure json_string(String s | JsonValue v)
+    v += JsonString s
+
+procedure json_array(List<JsonValue> items | JsonValue v)
+    v += JsonArray items
+
+procedure json_get_type(JsonValue v | Int type_tag)
+    // 0=null, 1=bool, 2=int, 3=string, 4=array, 5=object
+    from v = JsonNull do type_tag += 0 until True
+    from v = JsonBool _ do type_tag += 1 until True
+    from v = JsonInt _ do type_tag += 2 until True
+    from v = JsonString _ do type_tag += 3 until True
+    from v = JsonArray _ do type_tag += 4 until True
+    from v = JsonObject _ do type_tag += 5 until True
+
+// ============================================================================
+// MODULE 13: SAFE_DATETIME - Reversible Date/Time
+// ============================================================================
+
+data DateTime = DateTime Int Int Int Int Int Int  // year, month, day, hour, minute, second
+
+procedure datetime_create(Int y, Int mo, Int d, Int h, Int mi, Int s | DateTime dt)
+    dt += DateTime y mo d h mi s
+
+procedure datetime_add_seconds(DateTime dt, Int seconds | DateTime result, DateTime orig, Int orig_secs)
+    from dt = DateTime y mo d h mi s do
+        orig += dt
+        orig_secs += seconds
+        // Simplified: add to seconds field with overflow
+        local Int total_s = s + seconds
+        local Int new_s = total_s % 60
+        local Int carry_m = total_s / 60
+        local Int total_m = mi + carry_m
+        local Int new_m = total_m % 60
+        local Int carry_h = total_m / 60
+        local Int new_h = (h + carry_h) % 24
+        result += DateTime y mo d new_h new_m new_s
+        delocal Int new_h = (h + carry_h) % 24
+        delocal Int carry_h = total_m / 60
+        delocal Int new_m = total_m % 60
+        delocal Int total_m = mi + carry_m
+        delocal Int carry_m = total_s / 60
+        delocal Int new_s = total_s % 60
+        delocal Int total_s = s + seconds
+    until dt = DateTime _ _ _ _ _ _
+
+procedure datetime_to_epoch(DateTime dt | Int epoch, DateTime orig)
+    from dt = DateTime y mo d h mi s do
+        orig += dt
+        // Simplified epoch calculation (days since 1970 * 86400 + time)
+        local Int days = (y - 1970) * 365 + mo * 30 + d
+        epoch += days * 86400 + h * 3600 + mi * 60 + s
+        delocal Int days = (y - 1970) * 365 + mo * 30 + d
+    until dt = DateTime _ _ _ _ _ _
+
+// ============================================================================
+// MODULE 14: SAFE_FLOAT - Reversible Fixed-Point Arithmetic
+// ============================================================================
+
+// Fixed-point number: value = mantissa / 10^scale
+data FixedPoint = FixedPoint Int Int  // mantissa, scale
+
+procedure fixed_create(Int mantissa, Int scale | FixedPoint f)
+    f += FixedPoint mantissa scale
+
+procedure fixed_add(FixedPoint a, FixedPoint b | FixedPoint result, FixedPoint orig_a, FixedPoint orig_b)
+    from a = FixedPoint ma sa, b = FixedPoint mb sb do
+        orig_a += a
+        orig_b += b
+        if sa = sb then
+            result += FixedPoint (ma + mb) sa
+        else if sa > sb then
+            local Int scale_factor = pow10(sa - sb)
+            result += FixedPoint (ma + mb * scale_factor) sa
+            delocal Int scale_factor = pow10(sa - sb)
+        else
+            local Int scale_factor = pow10(sb - sa)
+            result += FixedPoint (ma * scale_factor + mb) sb
+            delocal Int scale_factor = pow10(sb - sa)
+        fi sa > sb fi sa = sb
+    until a = FixedPoint _ _, b = FixedPoint _ _
+
+procedure fixed_mul(FixedPoint a, FixedPoint b | FixedPoint result, FixedPoint orig_a, FixedPoint orig_b)
+    from a = FixedPoint ma sa, b = FixedPoint mb sb do
+        orig_a += a
+        orig_b += b
+        result += FixedPoint (ma * mb) (sa + sb)
+    until a = FixedPoint _ _, b = FixedPoint _ _
+
+// ============================================================================
+// MODULE 15: SAFE_VERSION - Reversible Semantic Version
+// ============================================================================
+
+data SemVer = SemVer Int Int Int String  // major, minor, patch, prerelease
+
+procedure semver_create(Int major, Int minor, Int patch, String pre | SemVer v)
+    v += SemVer major minor patch pre
+
+procedure semver_bump_major(SemVer v | SemVer result, SemVer orig)
+    from v = SemVer major minor patch pre do
+        orig += v
+        result += SemVer (major + 1) 0 0 ""
+    until v = SemVer _ _ _ _
+
+procedure semver_bump_minor(SemVer v | SemVer result, SemVer orig)
+    from v = SemVer major minor patch pre do
+        orig += v
+        result += SemVer major (minor + 1) 0 ""
+    until v = SemVer _ _ _ _
+
+procedure semver_bump_patch(SemVer v | SemVer result, SemVer orig)
+    from v = SemVer major minor patch pre do
+        orig += v
+        result += SemVer major minor (patch + 1) ""
+    until v = SemVer _ _ _ _
+
+procedure semver_compare(SemVer a, SemVer b | Int cmp)
+    from a = SemVer maj_a min_a pat_a _, b = SemVer maj_b min_b pat_b _ do
+        if maj_a > maj_b then cmp += 1
+        else if maj_a < maj_b then cmp -= 1
+        else if min_a > min_b then cmp += 1
+        else if min_a < min_b then cmp -= 1
+        else if pat_a > pat_b then cmp += 1
+        else if pat_a < pat_b then cmp -= 1
+        else cmp += 0
+        fi fi fi fi fi fi
+    until a = SemVer _ _ _ _, b = SemVer _ _ _ _
+
+// ============================================================================
+// MODULE 16: SAFE_COLOR - Reversible Color Operations
+// ============================================================================
+
+data Color = ColorRGB Int Int Int | ColorRGBA Int Int Int Int  // r, g, b[, a]
+
+procedure color_rgb(Int r, Int g, Int b | Color c)
+    c += ColorRGB r g b
+
+procedure color_rgba(Int r, Int g, Int b, Int a | Color c)
+    c += ColorRGBA r g b a
+
+procedure color_to_hex(Color c | Int hex, Color orig)
+    from c = ColorRGB r g b do
+        orig += c
+        hex += r * 65536 + g * 256 + b
+    until c = ColorRGB _ _ _
+    from c = ColorRGBA r g b a do
+        orig += c
+        hex += r * 16777216 + g * 65536 + b * 256 + a
+    until c = ColorRGBA _ _ _ _
+
+procedure color_blend(Color a, Color b, Int factor | Color result, Color orig_a, Color orig_b, Int orig_factor)
+    // factor: 0-100 (0 = all a, 100 = all b)
+    from a = ColorRGB ra ga ba, b = ColorRGB rb gb bb do
+        orig_a += a
+        orig_b += b
+        orig_factor += factor
+        local Int new_r = (ra * (100 - factor) + rb * factor) / 100
+        local Int new_g = (ga * (100 - factor) + gb * factor) / 100
+        local Int new_b = (ba * (100 - factor) + bb * factor) / 100
+        result += ColorRGB new_r new_g new_b
+        delocal Int new_b = (ba * (100 - factor) + bb * factor) / 100
+        delocal Int new_g = (ga * (100 - factor) + gb * factor) / 100
+        delocal Int new_r = (ra * (100 - factor) + rb * factor) / 100
+    until a = ColorRGB _ _ _, b = ColorRGB _ _ _
+
+// ============================================================================
+// MODULE 17: SAFE_ANGLE - Reversible Angle Operations
+// ============================================================================
+
+data Angle = AngleDeg Int Int | AngleRad Int Int  // value_scaled, scale_factor
+
+procedure angle_degrees(Int deg | Angle a)
+    a += AngleDeg deg 1
+
+procedure angle_radians_scaled(Int rad_scaled, Int scale | Angle a)
+    a += AngleRad rad_scaled scale
+
+procedure angle_normalize(Angle a | Angle result, Angle orig, Int rotations)
+    from a = AngleDeg deg scale do
+        orig += a
+        local Int normalized = deg % 360
+        rotations += deg / 360
+        if normalized < 0 then
+            normalized += 360
+            rotations -= 1
+        fi normalized >= 0
+        result += AngleDeg normalized scale
+        delocal Int normalized = (if deg % 360 < 0 then (deg % 360) + 360 else deg % 360 fi)
+    until a = AngleDeg _ _
+
+procedure angle_add(Angle a, Angle b | Angle result, Angle orig_a, Angle orig_b)
+    from a = AngleDeg da sa, b = AngleDeg db sb do
+        orig_a += a
+        orig_b += b
+        result += AngleDeg (da + db) sa
+    until a = AngleDeg _ _, b = AngleDeg _ _
+
+// ============================================================================
+// MODULE 18: SAFE_UNIT - Reversible Unit Conversions
+// ============================================================================
+
+data Unit = Unit Int String Int String  // value, from_unit, converted_value, to_unit
+
+procedure unit_create(Int value, String unit_name | Unit u)
+    u += Unit value unit_name value unit_name
+
+procedure unit_convert(Unit u, String target_unit, Int factor_num, Int factor_denom |
+                       Unit result, Unit orig, Int orig_factor_num, Int orig_factor_denom)
+    from u = Unit val from_u _ _ do
+        orig += u
+        orig_factor_num += factor_num
+        orig_factor_denom += factor_denom
+        local Int converted = (val * factor_num) / factor_denom
+        result += Unit val from_u converted target_unit
+        delocal Int converted = (val * factor_num) / factor_denom
+    until u = Unit _ _ _ _
+
+// Common conversions with fixed factors
+procedure meters_to_feet(Unit u | Unit result, Unit orig)
+    // 1 meter = 3.28084 feet (scaled: 328084 / 100000)
+    call unit_convert(u, "ft", 328084, 100000 | result, orig, _, _)
+
+procedure celsius_to_fahrenheit(Int celsius | Int fahrenheit, Int orig)
+    orig += celsius
+    fahrenheit += (celsius * 9) / 5 + 32
+
+// ============================================================================
+// MODULE 19: SAFE_BUFFER - Reversible Ring Buffer
+// ============================================================================
+
+data RingBuffer = RingBuffer List<Int> Int Int Int  // data, capacity, head, tail
+
+procedure buffer_create(Int capacity | RingBuffer rb)
+    local List<Int> data = replicate(capacity, 0)
+    rb += RingBuffer data capacity 0 0
+    delocal List<Int> data = replicate(capacity, 0)
+
+procedure buffer_push(RingBuffer rb, Int value | RingBuffer result, Option<Int> evicted)
+    from rb = RingBuffer data cap head tail do
+        local Int new_tail = (tail + 1) % cap
+        local Bool was_full = (new_tail = head)
+
+        if was_full then
+            // Buffer full, evict oldest
+            local Int evicted_val = nth(data, head)
+            evicted += Some evicted_val
+            local Int new_head = (head + 1) % cap
+            local List<Int> new_data = set_nth(data, tail, value)
+            result += RingBuffer new_data cap new_head new_tail
+            delocal List<Int> new_data = set_nth(data, tail, value)
+            delocal Int new_head = (head + 1) % cap
+            delocal Int evicted_val = nth(data, head)
+        else
+            evicted += None
+            local List<Int> new_data = set_nth(data, tail, value)
+            result += RingBuffer new_data cap head new_tail
+            delocal List<Int> new_data = set_nth(data, tail, value)
+        fi was_full
+
+        delocal Bool was_full = (new_tail = head)
+        delocal Int new_tail = (tail + 1) % cap
+    until rb = RingBuffer _ _ _ _
+
+procedure buffer_pop(RingBuffer rb | RingBuffer result, Option<Int> value)
+    from rb = RingBuffer data cap head tail do
+        if head = tail then
+            value += None
+            result += rb
+        else
+            local Int popped = nth(data, head)
+            value += Some popped
+            local Int new_head = (head + 1) % cap
+            result += RingBuffer data cap new_head tail
+            delocal Int new_head = (head + 1) % cap
+            delocal Int popped = nth(data, head)
+        fi head = tail
+    until rb = RingBuffer _ _ _ _
+
+// ============================================================================
+// MODULE 20: SAFE_QUEUE - Reversible Priority Queue
+// ============================================================================
+
+data PriorityQueue = PriorityQueue List<(Int, Int)> Int  // [(priority, value)], size
+
+procedure pqueue_create(| PriorityQueue pq)
+    pq += PriorityQueue [] 0
+
+procedure pqueue_push(PriorityQueue pq, Int priority, Int value | PriorityQueue result, PriorityQueue orig)
+    from pq = PriorityQueue items size do
+        orig += pq
+        local List<(Int, Int)> new_items = insert_sorted(items, (priority, value))
+        result += PriorityQueue new_items (size + 1)
+        delocal List<(Int, Int)> new_items = insert_sorted(items, (priority, value))
+    until pq = PriorityQueue _ _
+
+procedure pqueue_pop(PriorityQueue pq | PriorityQueue result, Option<(Int, Int)> item)
+    from pq = PriorityQueue items size do
+        if size = 0 then
+            item += None
+            result += pq
+        else
+            local (Int, Int) head = first(items)
+            item += Some head
+            local List<(Int, Int)> rest = tail(items)
+            result += PriorityQueue rest (size - 1)
+            delocal List<(Int, Int)> rest = tail(items)
+            delocal (Int, Int) head = first(items)
+        fi size = 0
+    until pq = PriorityQueue _ _
+
+// ============================================================================
+// MODULE 21: SAFE_BLOOM - Reversible Bloom Filter
+// ============================================================================
+
+data BloomFilter = BloomFilter List<Bool> Int Int List<Int>  // bits, size, num_hashes, inserted_hashes
+
+procedure bloom_create(Int size, Int num_hashes | BloomFilter bf)
+    local List<Bool> bits = replicate(size, False)
+    bf += BloomFilter bits size num_hashes []
+    delocal List<Bool> bits = replicate(size, False)
+
+procedure bloom_insert(BloomFilter bf, Int item | BloomFilter result, BloomFilter orig)
+    from bf = BloomFilter bits size num_hashes history do
+        orig += bf
+        local List<Int> positions = compute_hash_positions(item, size, num_hashes)
+        local List<Bool> new_bits = set_positions(bits, positions, True)
+        result += BloomFilter new_bits size num_hashes (history ++ [item])
+        delocal List<Bool> new_bits = set_positions(bits, positions, True)
+        delocal List<Int> positions = compute_hash_positions(item, size, num_hashes)
+    until bf = BloomFilter _ _ _ _
+
+procedure bloom_contains(BloomFilter bf, Int item | Bool maybe_present)
+    from bf = BloomFilter bits size num_hashes _ do
+        local List<Int> positions = compute_hash_positions(item, size, num_hashes)
+        maybe_present ^= all_true(bits, positions)
+        delocal List<Int> positions = compute_hash_positions(item, size, num_hashes)
+    until bf = BloomFilter _ _ _ _
+
+// ============================================================================
+// MODULE 22: SAFE_LRU - Reversible LRU Cache
+// ============================================================================
+
+data LruCache = LruCache List<(Int, Int)> Int List<(Int, Int)>  // entries, capacity, eviction_history
+
+procedure lru_create(Int capacity | LruCache lru)
+    lru += LruCache [] capacity []
+
+procedure lru_get(LruCache lru, Int key | LruCache result, Option<Int> value, LruCache orig)
+    from lru = LruCache entries cap history do
+        orig += lru
+        local Option<Int> found = lookup(entries, key)
+        value += found
+        // Move to front if found
+        local List<(Int, Int)> new_entries = move_to_front(entries, key)
+        result += LruCache new_entries cap history
+        delocal List<(Int, Int)> new_entries = move_to_front(entries, key)
+        delocal Option<Int> found = lookup(entries, key)
+    until lru = LruCache _ _ _
+
+procedure lru_put(LruCache lru, Int key, Int value | LruCache result, Option<(Int, Int)> evicted, LruCache orig)
+    from lru = LruCache entries cap history do
+        orig += lru
+        local Int len = length(entries)
+
+        if len >= cap then
+            // Evict LRU (last element)
+            local (Int, Int) lru_item = last(entries)
+            evicted += Some lru_item
+            local List<(Int, Int)> trimmed = init(entries)
+            local List<(Int, Int)> new_entries = [(key, value)] ++ trimmed
+            result += LruCache new_entries cap (history ++ [lru_item])
+            delocal List<(Int, Int)> new_entries = [(key, value)] ++ trimmed
+            delocal List<(Int, Int)> trimmed = init(entries)
+            delocal (Int, Int) lru_item = last(entries)
+        else
+            evicted += None
+            local List<(Int, Int)> new_entries = [(key, value)] ++ entries
+            result += LruCache new_entries cap history
+            delocal List<(Int, Int)> new_entries = [(key, value)] ++ entries
+        fi len >= cap
+
+        delocal Int len = length(entries)
+    until lru = LruCache _ _ _
+
+// ============================================================================
+// MODULE 23: SAFE_GRAPH - Reversible Directed Graph
+// ============================================================================
+
+data Graph = Graph List<Int> List<(Int, Int)>  // nodes, edges
+
+procedure graph_create(| Graph g)
+    g += Graph [] []
+
+procedure graph_add_node(Graph g, Int node | Graph result, Graph orig)
+    from g = Graph nodes edges do
+        orig += g
+        if not(elem(node, nodes)) then
+            result += Graph (nodes ++ [node]) edges
+        else
+            result += g
+        fi not(elem(node, nodes)) = (result != g)
+    until g = Graph _ _
+
+procedure graph_add_edge(Graph g, Int from_node, Int to_node | Graph result, Graph orig)
+    from g = Graph nodes edges do
+        orig += g
+        local Bool has_from = elem(from_node, nodes)
+        local Bool has_to = elem(to_node, nodes)
+        local List<Int> new_nodes = (if has_from && has_to then nodes
+                                     else if has_from then nodes ++ [to_node]
+                                     else if has_to then nodes ++ [from_node]
+                                     else nodes ++ [from_node, to_node] fi fi fi)
+        result += Graph new_nodes (edges ++ [(from_node, to_node)])
+        delocal List<Int> new_nodes = new_nodes
+        delocal Bool has_to = elem(to_node, nodes)
+        delocal Bool has_from = elem(from_node, nodes)
+    until g = Graph _ _
+
+procedure graph_has_edge(Graph g, Int from_node, Int to_node | Bool has_edge)
+    from g = Graph _ edges do
+        has_edge ^= elem((from_node, to_node), edges)
+    until g = Graph _ _
+
+procedure graph_neighbors(Graph g, Int node | List<Int> neighbors)
+    from g = Graph _ edges do
+        neighbors += filter_edges_from(edges, node)
+    until g = Graph _ _
+
+// ============================================================================
+// MODULE 24: SAFE_RATE_LIMITER - Reversible Token Bucket
+// ============================================================================
+
+data RateLimiter = RateLimiter Int Int Int Int List<Int>
+    // tokens, max_tokens, refill_rate, last_refill_time, request_history
+
+procedure rate_limiter_create(Int max_tokens, Int refill_rate | RateLimiter rl)
+    rl += RateLimiter max_tokens max_tokens refill_rate 0 []
+
+procedure rate_limiter_try_acquire(RateLimiter rl, Int current_time |
+                                   RateLimiter result, Bool allowed, RateLimiter orig)
+    from rl = RateLimiter tokens max_t rate last_t history do
+        orig += rl
+        // Refill tokens
+        local Int time_passed = current_time - last_t
+        local Int refill = time_passed * rate
+        local Int new_tokens = min(tokens + refill, max_t)
+
+        if new_tokens > 0 then
+            allowed ^= True
+            result += RateLimiter (new_tokens - 1) max_t rate current_time (history ++ [current_time])
+        else
+            allowed ^= False
+            result += RateLimiter new_tokens max_t rate current_time history
+        fi allowed = (new_tokens > 0)
+
+        delocal Int new_tokens = min(tokens + refill, max_t)
+        delocal Int refill = time_passed * rate
+        delocal Int time_passed = current_time - last_t
+    until rl = RateLimiter _ _ _ _ _
+
+// ============================================================================
+// MODULE 25: SAFE_CIRCUIT_BREAKER - Reversible Circuit Breaker
+// ============================================================================
+
+data CircuitState = Closed | Open | HalfOpen
+
+data CircuitBreaker = CircuitBreaker CircuitState Int Int Int Int Int List<Bool>
+    // state, failures, successes, failure_threshold, success_threshold, last_failure_time, history
+
+procedure circuit_breaker_create(Int fail_threshold, Int success_threshold | CircuitBreaker cb)
+    cb += CircuitBreaker Closed 0 0 fail_threshold success_threshold 0 []
+
+procedure circuit_breaker_can_execute(CircuitBreaker cb, Int current_time | Bool can_exec)
+    from cb = CircuitBreaker state _ _ _ _ last_fail _ do
+        from state = Closed do can_exec ^= True until state = Closed
+        from state = Open do
+            can_exec ^= (current_time - last_fail > 30)  // 30 time units timeout
+        until state = Open
+        from state = HalfOpen do can_exec ^= True until state = HalfOpen
+    until cb = CircuitBreaker _ _ _ _ _ _ _
+
+procedure circuit_breaker_record(CircuitBreaker cb, Bool success, Int current_time |
+                                 CircuitBreaker result, CircuitBreaker orig)
+    from cb = CircuitBreaker state fails succs fail_th succ_th last_t hist do
+        orig += cb
+        local List<Bool> new_hist = hist ++ [success]
+
+        if success then
+            from state = Closed do
+                result += CircuitBreaker Closed 0 succs fail_th succ_th last_t new_hist
+            until state = Closed
+            from state = HalfOpen do
+                if succs + 1 >= succ_th then
+                    result += CircuitBreaker Closed 0 0 fail_th succ_th last_t new_hist
+                else
+                    result += CircuitBreaker HalfOpen fails (succs + 1) fail_th succ_th last_t new_hist
+                fi succs + 1 >= succ_th
+            until state = HalfOpen
+            from state = Open do
+                result += CircuitBreaker Open fails succs fail_th succ_th last_t new_hist
+            until state = Open
+        else
+            from state = Closed do
+                if fails + 1 >= fail_th then
+                    result += CircuitBreaker Open (fails + 1) 0 fail_th succ_th current_time new_hist
+                else
+                    result += CircuitBreaker Closed (fails + 1) succs fail_th succ_th current_time new_hist
+                fi fails + 1 >= fail_th
+            until state = Closed
+            from state = HalfOpen do
+                result += CircuitBreaker Open (fails + 1) 0 fail_th succ_th current_time new_hist
+            until state = HalfOpen
+            from state = Open do
+                result += CircuitBreaker Open (fails + 1) succs fail_th succ_th current_time new_hist
+            until state = Open
+        fi success
+
+        delocal List<Bool> new_hist = hist ++ [success]
+    until cb = CircuitBreaker _ _ _ _ _ _ _
+
+// ============================================================================
+// MODULE 26: SAFE_RETRY - Reversible Retry with Backoff
+// ============================================================================
+
+data RetryPolicy = RetryPolicy Int Int Int  // max_attempts, base_delay, max_delay
+
+data RetryState = RetryState Int Int List<Int>  // attempts, current_delay, delay_history
+
+procedure retry_create(Int max_attempts, Int base_delay, Int max_delay | RetryPolicy rp)
+    rp += RetryPolicy max_attempts base_delay max_delay
+
+procedure retry_state_init(| RetryState rs)
+    rs += RetryState 0 0 []
+
+procedure retry_next(RetryPolicy policy, RetryState state |
+                     RetryState result, Option<Int> delay, RetryState orig_state)
+    from policy = RetryPolicy max_att base_d max_d, state = RetryState att curr_d hist do
+        orig_state += state
+
+        if att >= max_att then
+            delay += None
+            result += state
+        else
+            // Exponential backoff: base_delay * 2^attempts, capped at max_delay
+            local Int exp_factor = pow2(att)
+            local Int new_delay = min(base_d * exp_factor, max_d)
+            delay += Some new_delay
+            result += RetryState (att + 1) new_delay (hist ++ [new_delay])
+            delocal Int new_delay = min(base_d * exp_factor, max_d)
+            delocal Int exp_factor = pow2(att)
+        fi att >= max_att
+    until policy = RetryPolicy _ _ _, state = RetryState _ _ _
+
+// ============================================================================
+// MODULE 27: SAFE_MONOTONIC - Reversible Monotonic Counter
+// ============================================================================
+
+data MonotonicCounter = MonotonicCounter Int List<Int>  // value, history
+
+procedure monotonic_create(Int initial | MonotonicCounter mc)
+    mc += MonotonicCounter initial [initial]
+
+procedure monotonic_increment(MonotonicCounter mc, Int delta |
+                              MonotonicCounter result, MonotonicCounter orig)
+    from mc = MonotonicCounter val hist do
+        orig += mc
+        if delta > 0 then
+            result += MonotonicCounter (val + delta) (hist ++ [val + delta])
+        else
+            result += mc  // Monotonic: cannot decrease
+        fi delta > 0
+    until mc = MonotonicCounter _ _
+
+procedure monotonic_get(MonotonicCounter mc | Int value)
+    from mc = MonotonicCounter val _ do value += val until mc = MonotonicCounter value _
+
+procedure monotonic_set_if_greater(MonotonicCounter mc, Int new_val |
+                                    MonotonicCounter result, MonotonicCounter orig, Bool was_set)
+    from mc = MonotonicCounter val hist do
+        orig += mc
+        if new_val > val then
+            was_set ^= True
+            result += MonotonicCounter new_val (hist ++ [new_val])
+        else
+            was_set ^= False
+            result += mc
+        fi was_set = (new_val > val)
+    until mc = MonotonicCounter _ _
+
+// ============================================================================
+// MODULE 28: SAFE_STATE_MACHINE - Reversible State Machine
+// ============================================================================
+
+data StateMachine = StateMachine Int List<(Int, Int)> List<Int>
+    // current_state, transitions, history
+
+procedure state_machine_create(Int initial, List<(Int, Int)> transitions | StateMachine sm)
+    sm += StateMachine initial transitions [initial]
+
+procedure state_machine_can_transition(StateMachine sm, Int target | Bool can_trans)
+    from sm = StateMachine current trans _ do
+        can_trans ^= elem((current, target), trans)
+    until sm = StateMachine _ _ _
+
+procedure state_machine_transition(StateMachine sm, Int target |
+                                   StateMachine result, Result<Int> outcome, StateMachine orig)
+    from sm = StateMachine current trans hist do
+        orig += sm
+        if elem((current, target), trans) then
+            outcome += Ok target
+            result += StateMachine target trans (hist ++ [target])
+        else
+            outcome += Err 1 "Invalid transition" current
+            result += sm
+        fi elem((current, target), trans) = (outcome = Ok _)
+    until sm = StateMachine _ _ _
+
+procedure state_machine_rollback(StateMachine sm | StateMachine result, Option<Int> prev_state, StateMachine orig)
+    from sm = StateMachine current trans hist do
+        orig += sm
+        if length(hist) > 1 then
+            local Int prev = nth(hist, length(hist) - 2)
+            prev_state += Some prev
+            result += StateMachine prev trans (init hist)
+            delocal Int prev = nth(hist, length(hist) - 2)
+        else
+            prev_state += None
+            result += sm
+        fi length(hist) > 1
+    until sm = StateMachine _ _ _
+
+// ============================================================================
+// MODULE 29: SAFE_CALCULATOR - Reversible Calculator with History
+// ============================================================================
+
+data CalcOp = CalcAdd Int | CalcSub Int | CalcMul Int | CalcDiv Int Int  // divisor, remainder
+
+data Calculator = Calculator Int List<CalcOp>  // accumulator, operation_history
+
+procedure calc_create(Int initial | Calculator c)
+    c += Calculator initial []
+
+procedure calc_add(Calculator c, Int n | Calculator result, Calculator orig)
+    from c = Calculator acc hist do
+        orig += c
+        result += Calculator (acc + n) (hist ++ [CalcAdd n])
+    until c = Calculator _ _
+
+procedure calc_sub(Calculator c, Int n | Calculator result, Calculator orig)
+    from c = Calculator acc hist do
+        orig += c
+        result += Calculator (acc - n) (hist ++ [CalcSub n])
+    until c = Calculator _ _
+
+procedure calc_mul(Calculator c, Int n | Calculator result, Calculator orig)
+    from c = Calculator acc hist do
+        orig += c
+        result += Calculator (acc * n) (hist ++ [CalcMul n])
+    until c = Calculator _ _
+
+procedure calc_div(Calculator c, Int n | Calculator result, Calculator orig)
+    from c = Calculator acc hist do
+        orig += c
+        if n != 0 then
+            local Int quotient = acc / n
+            local Int remainder = acc % n
+            result += Calculator quotient (hist ++ [CalcDiv n remainder])
+            delocal Int remainder = acc % n
+            delocal Int quotient = acc / n
+        else
+            result += c  // Division by zero: no change
+        fi n != 0
+    until c = Calculator _ _
+
+procedure calc_undo(Calculator c | Calculator result, Option<CalcOp> undone, Calculator orig)
+    from c = Calculator acc hist do
+        orig += c
+        if length(hist) > 0 then
+            local CalcOp last_op = last(hist)
+            undone += Some last_op
+            local List<CalcOp> new_hist = init(hist)
+            // Reverse the operation
+            from last_op = CalcAdd n do
+                result += Calculator (acc - n) new_hist
+            until last_op = CalcAdd _
+            from last_op = CalcSub n do
+                result += Calculator (acc + n) new_hist
+            until last_op = CalcSub _
+            from last_op = CalcMul n do
+                result += Calculator (acc / n) new_hist
+            until last_op = CalcMul _
+            from last_op = CalcDiv n rem do
+                result += Calculator (acc * n + rem) new_hist
+            until last_op = CalcDiv _ _
+            delocal List<CalcOp> new_hist = init(hist)
+            delocal CalcOp last_op = last(hist)
+        else
+            undone += None
+            result += c
+        fi length(hist) > 0
+    until c = Calculator _ _
+
+// ============================================================================
+// MODULE 30: SAFE_GEO - Reversible Geographic Operations
+// ============================================================================
+
+// Coordinate with validation bounds
+data Coordinate = Coordinate Int Int Int Int  // lat_scaled, lon_scaled, scale, original_scale
+
+procedure coord_create(Int lat_scaled, Int lon_scaled, Int scale | Result<Coordinate> r)
+    // lat: -90 to 90, lon: -180 to 180 (scaled)
+    local Int max_lat = 90 * scale
+    local Int max_lon = 180 * scale
+
+    if lat_scaled >= -max_lat && lat_scaled <= max_lat &&
+       lon_scaled >= -max_lon && lon_scaled <= max_lon then
+        r += Ok (Coordinate lat_scaled lon_scaled scale scale)
+    else
+        r += Err 1 "Coordinates out of range" (Coordinate 0 0 scale scale)
+    fi (lat_scaled >= -max_lat && lat_scaled <= max_lat &&
+        lon_scaled >= -max_lon && lon_scaled <= max_lon) = (r = Ok _)
+
+    delocal Int max_lon = 180 * scale
+    delocal Int max_lat = 90 * scale
+
+// Haversine distance (scaled integer arithmetic)
+procedure coord_distance_scaled(Coordinate a, Coordinate b | Int distance, Coordinate orig_a, Coordinate orig_b)
+    from a = Coordinate lat_a lon_a scale_a _, b = Coordinate lat_b lon_b scale_b _ do
+        orig_a += a
+        orig_b += b
+        // Simplified: Manhattan distance scaled (actual haversine needs trig)
+        local Int dlat = abs(lat_a - lat_b)
+        local Int dlon = abs(lon_a - lon_b)
+        distance += dlat + dlon  // Placeholder for actual great circle
+        delocal Int dlon = abs(lon_a - lon_b)
+        delocal Int dlat = abs(lat_a - lat_b)
+    until a = Coordinate _ _ _ _, b = Coordinate _ _ _ _
+
+data BoundingBox = BoundingBox Int Int Int Int Int  // min_lat, min_lon, max_lat, max_lon, scale
+
+procedure bbox_contains(BoundingBox bb, Coordinate c | Bool contains)
+    from bb = BoundingBox min_lat min_lon max_lat max_lon scale,
+         c = Coordinate lat lon c_scale _ do
+        contains ^= (lat >= min_lat && lat <= max_lat &&
+                     lon >= min_lon && lon <= max_lon)
+    until bb = BoundingBox _ _ _ _ _, c = Coordinate _ _ _ _
+
+// ============================================================================
+// MODULE 31: SAFE_PROBABILITY - Reversible Probability Operations
+// ============================================================================
+
+// Probability as fraction (numerator, denominator) for precision
+data Probability = Probability Int Int  // num, denom (0 <= num <= denom)
+
+procedure prob_create(Int num, Int denom | Result<Probability> r)
+    if num >= 0 && num <= denom && denom > 0 then
+        r += Ok (Probability num denom)
+    else
+        r += Err 1 "Invalid probability" (Probability 0 1)
+    fi (num >= 0 && num <= denom && denom > 0) = (r = Ok _)
+
+procedure prob_complement(Probability p | Probability result, Probability orig)
+    from p = Probability num denom do
+        orig += p
+        result += Probability (denom - num) denom
+    until p = Probability _ _
+
+procedure prob_and(Probability a, Probability b | Probability result, Probability orig_a, Probability orig_b)
+    // P(A and B) = P(A) * P(B) for independent events
+    from a = Probability na da, b = Probability nb db do
+        orig_a += a
+        orig_b += b
+        result += Probability (na * nb) (da * db)
+    until a = Probability _ _, b = Probability _ _
+
+procedure prob_or(Probability a, Probability b | Probability result, Probability orig_a, Probability orig_b)
+    // P(A or B) = P(A) + P(B) - P(A and B) for independent events
+    from a = Probability na da, b = Probability nb db do
+        orig_a += a
+        orig_b += b
+        local Int common_denom = da * db
+        local Int sum_num = na * db + nb * da - na * nb
+        result += Probability sum_num common_denom
+        delocal Int sum_num = na * db + nb * da - na * nb
+        delocal Int common_denom = da * db
+    until a = Probability _ _, b = Probability _ _
+
+// ============================================================================
+// MODULE 32: SAFE_CHECKSUM - Reversible Checksum Operations
+// ============================================================================
+
+data Checksum = Checksum Int List<Int>  // checksum_value, original_data
+
+procedure checksum_crc8(List<Int> data | Checksum cs)
+    // Simplified CRC-8
+    local Int crc = 0
+    local Int i = 0
+    from i = 0 do
+        if i < length(data) then
+            crc ^= nth(data, i)
+            // Simplified: just XOR all bytes
+        fi i < length(data)
+        i += 1
+    until i = length(data)
+    cs += Checksum crc data
+    delocal Int i = length(data)
+    delocal Int crc = fold_xor(data)  // Must reconstruct
+
+procedure checksum_verify(Checksum cs | Bool valid)
+    from cs = Checksum stored_crc data do
+        local Int computed = fold_xor(data)
+        valid ^= (computed = stored_crc)
+        delocal Int computed = fold_xor(data)
+    until cs = Checksum _ _
+
+procedure checksum_luhn(List<Int> digits | Int check_digit, List<Int> orig_digits)
+    orig_digits += digits
+    // Luhn algorithm for credit card validation
+    local Int sum = 0
+    local Int i = 0
+    from i = 0 do
+        if i < length(digits) then
+            local Int d = nth(digits, length(digits) - 1 - i)
+            if i % 2 = 1 then
+                local Int doubled = d * 2
+                sum += (if doubled > 9 then doubled - 9 else doubled fi)
+                delocal Int doubled = d * 2
+            else
+                sum += d
+            fi i % 2 = 1
+            delocal Int d = nth(digits, length(digits) - 1 - i)
+        fi i < length(digits)
+        i += 1
+    until i = length(digits)
+    check_digit += (10 - (sum % 10)) % 10
+    delocal Int i = length(digits)
+    delocal Int sum = 0  // Reconstructed through algorithm
+
+// ============================================================================
+// MODULE 33: SAFE_TENSOR - Reversible Tensor Operations
+// ============================================================================
+
+data Tensor1D = Tensor1D List<Int> Int  // data, length
+data Tensor2D = Tensor2D List<Int> Int Int  // data (row-major), rows, cols
+
+procedure tensor1d_create(List<Int> data | Tensor1D t)
+    t += Tensor1D data (length data)
+
+procedure tensor1d_add(Tensor1D a, Tensor1D b | Tensor1D result, Tensor1D orig_a, Tensor1D orig_b)
+    from a = Tensor1D da la, b = Tensor1D db lb do
+        orig_a += a
+        orig_b += b
+        if la = lb then
+            local List<Int> sum = zipWith_add(da, db)
+            result += Tensor1D sum la
+            delocal List<Int> sum = zipWith_add(da, db)
+        else
+            result += a  // Size mismatch: return first
+        fi la = lb
+    until a = Tensor1D _ _, b = Tensor1D _ _
+
+procedure tensor1d_dot(Tensor1D a, Tensor1D b | Int dot_product, Tensor1D orig_a, Tensor1D orig_b)
+    from a = Tensor1D da la, b = Tensor1D db lb do
+        orig_a += a
+        orig_b += b
+        if la = lb then
+            local List<Int> products = zipWith_mul(da, db)
+            dot_product += fold_sum(products)
+            delocal List<Int> products = zipWith_mul(da, db)
+        else
+            dot_product += 0
+        fi la = lb
+    until a = Tensor1D _ _, b = Tensor1D _ _
+
+procedure tensor2d_create(List<Int> data, Int rows, Int cols | Tensor2D t)
+    t += Tensor2D data rows cols
+
+procedure tensor2d_transpose(Tensor2D t | Tensor2D result, Tensor2D orig)
+    from t = Tensor2D data rows cols do
+        orig += t
+        local List<Int> transposed = transpose_data(data, rows, cols)
+        result += Tensor2D transposed cols rows
+        delocal List<Int> transposed = transpose_data(data, rows, cols)
+    until t = Tensor2D _ _ _
+
+// ============================================================================
+// MODULE 34: SAFE_PASSWORD - Reversible Password Strength
+// ============================================================================
+
+data PasswordStrength = Weak | Medium | Strong | VeryStrong
+
+data PasswordAnalysis = PasswordAnalysis Int Int Int Int Int PasswordStrength
+    // length, lowercase, uppercase, digits, special, strength
+
+procedure password_analyze(String password | PasswordAnalysis analysis, String orig_password)
+    orig_password += password
+    local Int len = strlen(password)
+    local Int lower = count_lowercase(password)
+    local Int upper = count_uppercase(password)
+    local Int digits = count_digits(password)
+    local Int special = count_special(password)
+
+    local Int score = 0
+    if len >= 8 then score += 1 fi len >= 8
+    if len >= 12 then score += 1 fi len >= 12
+    if lower > 0 && upper > 0 then score += 1 fi lower > 0 && upper > 0
+    if digits > 0 then score += 1 fi digits > 0
+    if special > 0 then score += 1 fi special > 0
+
+    local PasswordStrength strength = (
+        if score >= 5 then VeryStrong
+        else if score >= 4 then Strong
+        else if score >= 2 then Medium
+        else Weak fi fi fi)
+
+    analysis += PasswordAnalysis len lower upper digits special strength
+
+    delocal PasswordStrength strength = strength
+    delocal Int score = score
+    delocal Int special = count_special(password)
+    delocal Int digits = count_digits(password)
+    delocal Int upper = count_uppercase(password)
+    delocal Int lower = count_lowercase(password)
+    delocal Int len = strlen(password)
+
+// Entropy calculation (bits)
+procedure password_entropy(String password | Int entropy_bits, String orig)
+    orig += password
+    local Int len = strlen(password)
+    local Int charset_size = 0
+
+    if count_lowercase(password) > 0 then charset_size += 26 fi count_lowercase(password) > 0
+    if count_uppercase(password) > 0 then charset_size += 26 fi count_uppercase(password) > 0
+    if count_digits(password) > 0 then charset_size += 10 fi count_digits(password) > 0
+    if count_special(password) > 0 then charset_size += 32 fi count_special(password) > 0
+
+    // entropy = len * log2(charset_size), approximated
+    entropy_bits += len * approx_log2(charset_size)
+
+    delocal Int charset_size = charset_size
+    delocal Int len = strlen(password)
+
+// ============================================================================
+// MODULE 35: SAFE_ML - Reversible ML Primitives
+// ============================================================================
+
+// Normalized value [0, 1] as fraction
+data Normalized = Normalized Int Int  // value * denominator, denominator
+
+procedure normalize_value(Int value, Int min_val, Int max_val | Normalized n, Int orig_val)
+    orig_val += value
+    local Int range = max_val - min_val
+    if range > 0 then
+        local Int scaled = value - min_val
+        n += Normalized scaled range
+        delocal Int scaled = value - min_val
+    else
+        n += Normalized 0 1
+    fi range > 0
+    delocal Int range = max_val - min_val
+
+procedure denormalize_value(Normalized n, Int min_val, Int max_val | Int value)
+    from n = Normalized scaled range do
+        value += min_val + (scaled * (max_val - min_val)) / range
+    until n = Normalized _ _
+
+// Simple linear regression: y = mx + b
+data LinearModel = LinearModel Int Int Int  // slope_num, slope_denom, intercept
+
+procedure linear_predict(LinearModel model, Int x | Int y, LinearModel orig_model, Int orig_x)
+    from model = LinearModel m_num m_denom b do
+        orig_model += model
+        orig_x += x
+        y += (m_num * x) / m_denom + b
+    until model = LinearModel _ _ _
+
+// Softmax approximation (for small values)
+procedure softmax_approx(List<Int> logits, Int scale | List<Int> probs, List<Int> orig_logits)
+    orig_logits += logits
+    // Simplified: normalize by sum
+    local Int sum = fold_sum(logits)
+    if sum > 0 then
+        probs += map_scale(logits, scale, sum)
+    else
+        probs += replicate(length(logits), scale / length(logits))
+    fi sum > 0
+    delocal Int sum = fold_sum(logits)
+
+// ============================================================================
+// MODULE 36: SAFE_HEADER - Reversible HTTP Header
+// ============================================================================
+
+data HttpHeader = HttpHeader String String  // name, value
+
+procedure header_create(String name, String value | HttpHeader h)
+    h += HttpHeader name value
+
+procedure header_get_name(HttpHeader h | String name)
+    from h = HttpHeader n _ do name += n until h = HttpHeader name _
+
+procedure header_get_value(HttpHeader h | String value)
+    from h = HttpHeader _ v do value += v until h = HttpHeader _ value
+
+procedure header_set_value(HttpHeader h, String new_value | HttpHeader result, HttpHeader orig)
+    from h = HttpHeader name value do
+        orig += h
+        result += HttpHeader name new_value
+    until h = HttpHeader _ _
+
+data HeaderList = HeaderList List<HttpHeader>
+
+procedure headers_add(HeaderList hl, HttpHeader h | HeaderList result, HeaderList orig)
+    from hl = HeaderList headers do
+        orig += hl
+        result += HeaderList (headers ++ [h])
+    until hl = HeaderList _
+
+procedure headers_get(HeaderList hl, String name | Option<String> value)
+    from hl = HeaderList headers do
+        value += find_header_value(headers, name)
+    until hl = HeaderList _
+
+// ============================================================================
+// MODULE 37: SAFE_COOKIE - Reversible HTTP Cookie
+// ============================================================================
+
+data Cookie = Cookie String String Int Bool Bool String
+    // name, value, max_age, secure, http_only, same_site
+
+procedure cookie_create(String name, String value | Cookie c)
+    c += Cookie name value 0 False False "Lax"
+
+procedure cookie_with_max_age(Cookie c, Int max_age | Cookie result, Cookie orig)
+    from c = Cookie name value _ secure http_only same_site do
+        orig += c
+        result += Cookie name value max_age secure http_only same_site
+    until c = Cookie _ _ _ _ _ _
+
+procedure cookie_with_secure(Cookie c, Bool secure | Cookie result, Cookie orig)
+    from c = Cookie name value max_age _ http_only same_site do
+        orig += c
+        result += Cookie name value max_age secure http_only same_site
+    until c = Cookie _ _ _ _ _ _
+
+procedure cookie_with_http_only(Cookie c, Bool http_only | Cookie result, Cookie orig)
+    from c = Cookie name value max_age secure _ same_site do
+        orig += c
+        result += Cookie name value max_age secure http_only same_site
+    until c = Cookie _ _ _ _ _ _
+
+procedure cookie_get_name(Cookie c | String name)
+    from c = Cookie n _ _ _ _ _ do name += n until c = Cookie name _ _ _ _ _
+
+procedure cookie_get_value(Cookie c | String value)
+    from c = Cookie _ v _ _ _ _ do value += v until c = Cookie _ value _ _ _ _
+
+// ============================================================================
+// MODULE 38: SAFE_CONTENT_TYPE - Reversible MIME Type
+// ============================================================================
+
+data ContentType = ContentType String String List<(String, String)>
+    // type, subtype, parameters
+
+procedure content_type_create(String type_str, String subtype | ContentType ct)
+    ct += ContentType type_str subtype []
+
+procedure content_type_with_charset(ContentType ct, String charset | ContentType result, ContentType orig)
+    from ct = ContentType type_str subtype params do
+        orig += ct
+        result += ContentType type_str subtype (params ++ [("charset", charset)])
+    until ct = ContentType _ _ _
+
+procedure content_type_is_text(ContentType ct | Bool is_text)
+    from ct = ContentType type_str _ _ do
+        is_text ^= (type_str = "text")
+    until ct = ContentType _ _ _
+
+procedure content_type_is_json(ContentType ct | Bool is_json)
+    from ct = ContentType type_str subtype _ do
+        is_json ^= (type_str = "application" && subtype = "json")
+    until ct = ContentType _ _ _
+
+procedure content_type_to_string(ContentType ct | String s)
+    from ct = ContentType type_str subtype params do
+        s += type_str ++ "/" ++ subtype ++ format_params(params)
+    until ct = ContentType _ _ _
+
+// Common content types
+procedure content_type_json(| ContentType ct)
+    ct += ContentType "application" "json" [("charset", "utf-8")]
+
+procedure content_type_html(| ContentType ct)
+    ct += ContentType "text" "html" [("charset", "utf-8")]
+
+procedure content_type_plain(| ContentType ct)
+    ct += ContentType "text" "plain" [("charset", "utf-8")]
+
+// ============================================================================
+// FUNDAMENTAL REVERSIBLE OPERATIONS
+// ============================================================================
+
+// Swap (using XOR)
+procedure swap(Int a | Int b)
+    a ^= b
+    b ^= a
+    a ^= b
+
+// Controlled increment
+procedure cinc(Bool ctrl, Int target |)
+    if ctrl then target += 1 fi ctrl
+
+// Controlled decrement
+procedure cdec(Bool ctrl, Int target |)
+    if ctrl then target -= 1 fi ctrl
+
+// Controlled XOR
+procedure cxor(Bool ctrl, Int a, Int b |)
+    if ctrl then a ^= b fi ctrl
+
+// ============================================================================
+// LANDAUER LIMIT TRACKING
+// ============================================================================
+
+// Track irreversible operations for energy analysis
+// Each irreversible bit erasure costs kT ln(2) energy
+data LandauerTracker = LandauerTracker Int
+
+procedure landauer_create(| LandauerTracker lt)
+    lt += LandauerTracker 0
+
+procedure landauer_record(LandauerTracker lt, Int bits | LandauerTracker result)
+    from lt = LandauerTracker count do
+        result += LandauerTracker (count + bits)
+    until lt = LandauerTracker _
+
+// At 300K: ~2.87e-21 J per bit erased
+
+// ============================================================================
+// VECTOR2 (reversible integer vectors)
+// ============================================================================
+
+data Vector2 = Vector2 Int Int
+
+procedure vec2_create(Int x, Int y | Vector2 v)
+    v += Vector2 x y
+
+procedure vec2_add(Vector2 a, Vector2 b | Vector2 result)
+    from a = Vector2 ax ay, b = Vector2 bx by do
+        result += Vector2 (ax + bx) (ay + by)
+    until a = Vector2 _ _, b = Vector2 _ _
+
+procedure vec2_sub(Vector2 a, Vector2 b | Vector2 result)
+    from a = Vector2 ax ay, b = Vector2 bx by do
+        result += Vector2 (ax - bx) (ay - by)
+    until a = Vector2 _ _, b = Vector2 _ _
+
+procedure vec2_neg(Vector2 v | Vector2 result)
+    from v = Vector2 x y do result += Vector2 (-x) (-y) until v = Vector2 _ _
 
 // ============================================================================
 // RESOURCE BAR (reversible)
@@ -181,86 +1723,5 @@ procedure resource_add(ResourceBar rb, Int amount | ResourceBar result)
     until rb = ResourceBar _ max_v _
 
 // ============================================================================
-// VECTOR2 (reversible integer vectors)
+// END OF PROVEN JANUS BINDINGS v0.4.0
 // ============================================================================
-
-data Vector2 = Vector2 Int Int
-
-procedure vec2_create(Int x, Int y | Vector2 v)
-    v += Vector2 x y
-
-procedure vec2_add(Vector2 a, Vector2 b | Vector2 result)
-    from a = Vector2 ax ay, b = Vector2 bx by do
-        result += Vector2 (ax + bx) (ay + by)
-    until a = Vector2 _ _, b = Vector2 _ _
-
-procedure vec2_sub(Vector2 a, Vector2 b | Vector2 result)
-    from a = Vector2 ax ay, b = Vector2 bx by do
-        result += Vector2 (ax - bx) (ay - by)
-    until a = Vector2 _ _, b = Vector2 _ _
-
-procedure vec2_neg(Vector2 v | Vector2 result)
-    from v = Vector2 x y do result += Vector2 (-x) (-y) until v = Vector2 _ _
-
-// ============================================================================
-// FUNDAMENTAL REVERSIBLE OPERATIONS
-// ============================================================================
-
-// Swap (using XOR)
-procedure swap(Int a | Int b)
-    a ^= b
-    b ^= a
-    a ^= b
-
-// Controlled increment
-procedure cinc(Bool ctrl, Int target |)
-    if ctrl then target += 1 fi ctrl
-
-// Controlled decrement
-procedure cdec(Bool ctrl, Int target |)
-    if ctrl then target -= 1 fi ctrl
-
-// Controlled XOR
-procedure cxor(Bool ctrl, Int a, Int b |)
-    if ctrl then a ^= b fi ctrl
-
-// ============================================================================
-// LANDAUER LIMIT TRACKING
-// ============================================================================
-
-// Track irreversible operations for energy analysis
-// Each irreversible bit erasure costs kT ln(2) energy
-data LandauerTracker = LandauerTracker Int
-
-procedure landauer_create(| LandauerTracker lt)
-    lt += LandauerTracker 0
-
-procedure landauer_record(LandauerTracker lt, Int bits | LandauerTracker result)
-    from lt = LandauerTracker count do
-        result += LandauerTracker (count + bits)
-    until lt = LandauerTracker _
-
-// At 300K: ~2.87e-21 J per bit erased
-
-// ============================================================================
-// UTILITY
-// ============================================================================
-
-// Reversible absolute value (tracks sign)
-procedure abs_with_sign(Int x | Int result, Bool was_neg)
-    if x < 0 then
-        was_neg ^= True
-        x += -2 * x
-    fi x >= 0
-    result += x
-
-// Reversible min/max
-procedure rev_min(Int a, Int b | Int result, Int other, Bool a_smaller)
-    if a <= b then
-        a_smaller ^= True
-        result += a
-        other += b
-    else
-        result += b
-        other += a
-    fi a_smaller = (a <= b)
