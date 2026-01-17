@@ -152,7 +152,7 @@
                                 │
                                 ▼
   ┌─────────────────────────────────────────────────────────────────┐
-  │                   Language Bindings (40 languages)              │
+  │                   Language Bindings (89 targets)                │
   │  High-level: Rust, Python, Go, JavaScript, TypeScript, Deno    │
   │  System: C, C++, Zig, Nim, D, Crystal, Fortran, COBOL, Ada     │
   │  JVM/CLR: Kotlin, Scala, F#, Clojure                           │
@@ -172,7 +172,7 @@
   │                       proven (Idris 2)                          │
   │  SafeMath │ SafeString │ SafeJson │ SafeUrl │ SafeEmail │ ...  │
   │  SafeUUID │ SafeCurrency │ SafePhone │ SafeHex │ SafeHeader    │
-  │  SafeCookie │ SafeContentType │ 25+ verified modules           │
+  │  SafeCookie │ SafeContentType │ 74 verified modules            │
   └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
