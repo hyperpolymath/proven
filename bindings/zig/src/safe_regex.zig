@@ -76,7 +76,7 @@ pub const SafePattern = struct {
 pub fn analyzePattern(allocator: Allocator, pattern: []const u8) RegexError!PatternAnalysis {
     if (pattern.len > MAX_PATTERN_LENGTH) return error.PatternTooLong;
 
-    var warnings = std.ArrayList(PatternAnalysis.Warning).init(allocator);
+    var warnings = std.array_list.Managed(PatternAnalysis.Warning).init(allocator);
     errdefer warnings.deinit();
 
     var complexity: u32 = 0;
@@ -109,7 +109,8 @@ pub fn analyzePattern(allocator: Allocator, pattern: []const u8) RegexError!Patt
                     if (current_depth == 0) return error.UnbalancedParentheses;
                     current_depth -= 1;
                 }
-                prev_was_quantifier = false;
+                // Don't reset prev_was_quantifier - a quantified group followed by
+                // a quantifier is a nested quantifier (e.g., "(a+)+")
             },
             '[' => {
                 if (!in_bracket) {
@@ -204,6 +205,8 @@ pub fn validatePattern(allocator: Allocator, pattern: []const u8) RegexError!Saf
     const analysis = try analyzePattern(allocator, pattern);
 
     if (!analysis.is_safe) {
+        // Free warnings before returning error to prevent memory leak
+        allocator.free(analysis.warnings);
         if (analysis.has_nested_quantifiers) {
             return error.NestedQuantifiers;
         }
@@ -226,7 +229,7 @@ pub fn isMetaChar(c: u8) bool {
 
 /// Escape a string for literal matching in regex.
 pub fn escape(allocator: Allocator, input: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (input) |c| {

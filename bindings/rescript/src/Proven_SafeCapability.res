@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeCapability - Capability-based security tokens that cannot crash.
  *
@@ -107,38 +109,38 @@ let permissionIntersect = (a: permission, b: permission): permission => {
 let permissionToByte = (p: permission): int => {
   let result = ref(0)
   if p.read {
-    result := result.contents lor 1
+    result := lor(result.contents, 1)
   }
   if p.write {
-    result := result.contents lor 2
+    result := lor(result.contents, 2)
   }
   if p.execute {
-    result := result.contents lor 4
+    result := lor(result.contents, 4)
   }
   if p.delete {
-    result := result.contents lor 8
+    result := lor(result.contents, 8)
   }
   if p.admin {
-    result := result.contents lor 16
+    result := lor(result.contents, 16)
   }
   if p.delegate {
-    result := result.contents lor 32
+    result := lor(result.contents, 32)
   }
   if p.revoke {
-    result := result.contents lor 64
+    result := lor(result.contents, 64)
   }
   result.contents
 }
 
 /** Create permission from byte representation */
 let permissionFromByte = (byte: int): permission => {
-  read: byte land 1 != 0,
-  write: byte land 2 != 0,
-  execute: byte land 4 != 0,
-  delete: byte land 8 != 0,
-  admin: byte land 16 != 0,
-  delegate: byte land 32 != 0,
-  revoke: byte land 64 != 0,
+  read: land(byte, 1) != 0,
+  write: land(byte, 2) != 0,
+  execute: land(byte, 4) != 0,
+  delete: land(byte, 8) != 0,
+  admin: land(byte, 16) != 0,
+  delegate: land(byte, 32) != 0,
+  revoke: land(byte, 64) != 0,
 }
 
 /** Check if any permission is set */

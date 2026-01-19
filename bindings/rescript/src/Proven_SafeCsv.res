@@ -9,6 +9,11 @@
  * Supports custom delimiters, quoting, and escape characters.
  */
 
+/** Escape special regex characters in a string */
+let escapeRegex = (str: string): string => {
+  Js.String2.replaceByRe(str, %re("/[.*+?^${}()|[\\]\\\\]/g"), "\\$&")
+}
+
 /** CSV error types */
 type csvError =
   | UnterminatedQuote
@@ -93,7 +98,7 @@ let escapeField = (field: string, ~options: writeOptions=defaultWriteOptions, ()
     // Double the quote characters
     let escaped = Js.String2.replaceByRe(
       field,
-      Js.Re.fromStringWithFlags(Js.Re.escape(options.quote), ~flags="g"),
+      Js.Re.fromStringWithFlags(escapeRegex(options.quote), ~flags="g"),
       options.quote ++ options.quote,
     )
     options.quote ++ escaped ++ options.quote
@@ -115,7 +120,7 @@ let writeRow = (fields: array<string>, ~options: writeOptions=defaultWriteOption
     if needsQuoting(field, ~options, ()) {
       let escaped = Js.String2.replaceByRe(
         field,
-        Js.Re.fromStringWithFlags(Js.Re.escape(options.quote), ~flags="g"),
+        Js.Re.fromStringWithFlags(escapeRegex(options.quote), ~flags="g"),
         options.quote ++ options.quote,
       )
       options.quote ++ escaped ++ options.quote

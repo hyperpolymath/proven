@@ -209,10 +209,10 @@ getValue = value
 ||| Resource lifecycle event
 public export
 data LifecycleEvent : Type where
-  Created : (timestamp : Nat) -> LifecycleEvent
-  Acquired : (timestamp : Nat) -> (by : String) -> LifecycleEvent
-  Released : (timestamp : Nat) -> (by : String) -> LifecycleEvent
-  Destroyed : (timestamp : Nat) -> LifecycleEvent
+  EvtCreated : (timestamp : Nat) -> LifecycleEvent
+  EvtAcquired : (timestamp : Nat) -> (by : String) -> LifecycleEvent
+  EvtReleased : (timestamp : Nat) -> (by : String) -> LifecycleEvent
+  EvtDestroyed : (timestamp : Nat) -> LifecycleEvent
 
 ||| Resource with lifecycle tracking
 public export
@@ -225,17 +225,17 @@ record TrackedResource id a where
 ||| Create a tracked resource
 public export
 createTracked : id -> a -> (timestamp : Nat) -> TrackedResource id a
-createTracked rid val ts = MkTracked rid val [Created ts]
+createTracked rid val ts = MkTracked rid val [EvtCreated ts]
 
 ||| Record acquisition
 public export
 recordAcquisition : (timestamp : Nat) -> (owner : String) -> TrackedResource id a -> TrackedResource id a
-recordAcquisition ts owner tr = MkTracked tr.resourceId tr.value (Acquired ts owner :: tr.events)
+recordAcquisition ts owner tr = MkTracked tr.resourceId tr.value (EvtAcquired ts owner :: tr.events)
 
 ||| Record release
 public export
 recordRelease : (timestamp : Nat) -> (owner : String) -> TrackedResource id a -> TrackedResource id a
-recordRelease ts owner tr = MkTracked tr.resourceId tr.value (Released ts owner :: tr.events)
+recordRelease ts owner tr = MkTracked tr.resourceId tr.value (EvtReleased ts owner :: tr.events)
 
 --------------------------------------------------------------------------------
 -- Display

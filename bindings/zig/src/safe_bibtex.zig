@@ -280,7 +280,7 @@ pub fn parseEntry(allocator: Allocator, input: []const u8) BibTeXError!Entry {
     }
 
     // Parse fields
-    var fields_list = std.ArrayList(Field).init(allocator);
+    var fields_list = std.array_list.Managed(Field).init(allocator);
     errdefer {
         for (fields_list.items) |field| {
             allocator.free(field.key);
@@ -418,29 +418,36 @@ pub fn isValidEntry(input: []const u8) bool {
 
 /// Format an entry to canonical BibTeX string.
 pub fn formatEntry(allocator: Allocator, entry: *const Entry) BibTeXError![]u8 {
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.array_list.Managed(u8).init(allocator);
     errdefer buffer.deinit();
 
-    const writer = buffer.writer();
-
-    writer.print("@{s}{{{s},\n", .{ entry.entry_type.toString(), entry.cite_key }) catch return error.OutOfMemory;
+    // Format entry header
+    buffer.appendSlice("@") catch return error.OutOfMemory;
+    buffer.appendSlice(entry.entry_type.toString()) catch return error.OutOfMemory;
+    buffer.appendSlice("{") catch return error.OutOfMemory;
+    buffer.appendSlice(entry.cite_key) catch return error.OutOfMemory;
+    buffer.appendSlice(",\n") catch return error.OutOfMemory;
 
     for (entry.fields, 0..) |field, index| {
-        writer.print("  {s} = {{{s}}}", .{ field.key, field.value }) catch return error.OutOfMemory;
+        buffer.appendSlice("  ") catch return error.OutOfMemory;
+        buffer.appendSlice(field.key) catch return error.OutOfMemory;
+        buffer.appendSlice(" = {") catch return error.OutOfMemory;
+        buffer.appendSlice(field.value) catch return error.OutOfMemory;
+        buffer.appendSlice("}") catch return error.OutOfMemory;
         if (index < entry.fields.len - 1) {
-            writer.writeByte(',') catch return error.OutOfMemory;
+            buffer.append(',') catch return error.OutOfMemory;
         }
-        writer.writeByte('\n') catch return error.OutOfMemory;
+        buffer.append('\n') catch return error.OutOfMemory;
     }
 
-    writer.writeAll("}\n") catch return error.OutOfMemory;
+    buffer.appendSlice("}\n") catch return error.OutOfMemory;
 
     return buffer.toOwnedSlice() catch return error.OutOfMemory;
 }
 
 /// Escape special BibTeX characters in a string.
 pub fn escapeString(allocator: Allocator, input: []const u8) BibTeXError![]u8 {
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.array_list.Managed(u8).init(allocator);
     errdefer buffer.deinit();
 
     for (input) |char| {

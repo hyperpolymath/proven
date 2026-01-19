@@ -174,9 +174,10 @@ pub fn optimalClusterSize(desired_fault_tolerance: u64) ConsensusError!u64 {
 pub fn superMajority(cluster_size: u64) ConsensusError!u64 {
     if (cluster_size == 0) return error.InvalidClusterSize;
 
+    // Calculate ceil(2n/3) using integer arithmetic: (2n + 2) / 3
     const doubled = std.math.mul(u64, cluster_size, 2) catch return error.Overflow;
-    const two_thirds = doubled / 3;
-    return std.math.add(u64, two_thirds, 1) catch error.Overflow;
+    const adjusted = std.math.add(u64, doubled, 2) catch return error.Overflow;
+    return adjusted / 3;
 }
 
 /// Check if quorum is still achievable given current state.

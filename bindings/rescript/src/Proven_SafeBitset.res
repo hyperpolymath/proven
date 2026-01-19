@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeBitset - Fixed-size bitset operations with bounds checking that cannot crash.
  *

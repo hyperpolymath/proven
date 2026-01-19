@@ -12,6 +12,7 @@
 module Proven.SafeSchema
 
 import Data.List
+import Data.List.Elem
 import Data.Nat
 import Data.Maybe
 import Data.Vect
@@ -179,9 +180,9 @@ applyChange (AddColumn tblName col) schema =
                            then { columns := col :: columns t } t
                            else t)
                   (tables schema) } schema
-applyChange (DropColumn tblName colName) schema =
+applyChange (DropColumn tblName cName) schema =
   { tables := map (\t => if tableName t == tblName
-                           then { columns := filter (\c => colName c /= colName) (columns t) } t
+                           then { columns := filter (\c => colName c /= cName) (columns t) } t
                            else t)
                   (tables schema) } schema
 applyChange _ schema = schema  -- Other changes don't affect our simple model
@@ -356,8 +357,9 @@ generateSQL (RenameTable old new) = "ALTER TABLE " ++ old ++ " RENAME TO " ++ ne
 generateSQL _ = "-- complex change"
 
 ||| Generate up/down SQL for migration
+||| Returns (upSQL, downSQL)
 public export
-generateMigrationSQL : Migration -> (up : List String, down : List String)
+generateMigrationSQL : Migration -> (List String, List String)
 generateMigrationSQL mig =
   (map generateSQL (upChanges mig), map generateSQL (downChanges mig))
 

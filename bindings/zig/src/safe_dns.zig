@@ -43,7 +43,7 @@ pub const RecordType = enum(u16) {
 
     /// Get record type from string.
     pub fn fromString(str: []const u8) ?RecordType {
-        const types = std.ComptimeStringMap(RecordType, .{
+        const types = std.StaticStringMap(RecordType).initComptime(.{
             .{ "A", .A },
             .{ "NS", .NS },
             .{ "CNAME", .CNAME },
@@ -90,7 +90,7 @@ pub const RecordClass = enum(u16) {
     HS = 4, // Hesiod
 
     pub fn fromString(str: []const u8) ?RecordClass {
-        const classes = std.ComptimeStringMap(RecordClass, .{
+        const classes = std.StaticStringMap(RecordClass).initComptime(.{
             .{ "IN", .IN },
             .{ "CS", .CS },
             .{ "CH", .CH },
@@ -249,7 +249,7 @@ pub fn parseDomainName(allocator: Allocator, domain: []const u8) DnsError!Domain
     else
         domain;
 
-    var labels = std.ArrayList([]const u8).init(allocator);
+    var labels = std.array_list.Managed([]const u8).init(allocator);
     errdefer labels.deinit();
 
     var it = std.mem.splitScalar(u8, name, '.');

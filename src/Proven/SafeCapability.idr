@@ -12,6 +12,7 @@
 module Proven.SafeCapability
 
 import Data.List
+import Data.List.Elem
 import Data.Nat
 import Data.Maybe
 import Decidable.Equality
@@ -245,19 +246,21 @@ implies : CapabilityHierarchy -> Permission -> Permission -> Bool
 implies (MkHierarchy parent children) p1 p2 =
   p1 == p2 || (p1 == parent && elem p2 children)
 
+||| Remove duplicates from a list (local, uses assert_total due to filter)
+nubLocal : Eq a => List a -> List a
+nubLocal [] = []
+nubLocal (x :: xs) = x :: assert_total (nubLocal (filter (/= x) xs))
+
 ||| Expand permissions via hierarchy
 public export
 expandPermissions : CapabilityHierarchy -> List Permission -> List Permission
 expandPermissions hier perms =
-  nub (perms ++ concatMap expand perms)
+  nubLocal (perms ++ concatMap expand perms)
   where
     expand : Permission -> List Permission
     expand p = case hier of
       MkHierarchy parent children =>
         if p == parent then children else []
-    nub : Eq a => List a -> List a
-    nub [] = []
-    nub (x :: xs) = x :: nub (filter (/= x) xs)
 
 ||| Confinement - a capability cannot be leaked outside its domain
 public export

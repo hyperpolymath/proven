@@ -9,6 +9,9 @@
  * designed to prevent XML injection attacks and produce well-formed output.
  */
 
+/** External parseInt for radix-based parsing */
+@val external parseInt: (string, int) => float = "parseInt"
+
 /** XML escape mode type */
 type escapeMode =
   | Text
@@ -255,6 +258,7 @@ let isWellFormed = (input: string): bool => {
             }
           } else if nextChar == "?" || nextChar == "!" {
             // Declaration, comment, or CDATA - skip
+            ()
           } else {
             // Opening tag - check for self-closing
             let tagEnd = Js.String2.indexOfFrom(trimmed, ">", index.contents)
@@ -310,16 +314,16 @@ let parseNumericEntity = (entity: string): option<string> => {
       Js.String2.sliceToEnd(entity, ~from=1)
     }
     let radix = if isHex { 16 } else { 10 }
-
-    switch Js.Float.fromStringWithRadix(numericPart, ~radix) {
-    | value if !Js.Float.isNaN(value) =>
+    let value = parseInt(numericPart, radix)
+    if !Js.Float.isNaN(value) {
       let codePoint = Belt.Float.toInt(value)
       if isValidXmlCharCode(codePoint) {
         Some(Js.String2.fromCodePoint(codePoint))
       } else {
         None
       }
-    | _ => None
+    } else {
+      None
     }
   }
 }

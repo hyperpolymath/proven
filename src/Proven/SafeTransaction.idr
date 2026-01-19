@@ -42,7 +42,7 @@ Show TxStatus where
 
 ||| A single operation in a transaction
 public export
-data TxOp state : Type where
+data TxOp : (state : Type) -> Type where
   ||| Set a new state value
   SetState : state -> TxOp state
   ||| Modify state with a function
@@ -166,15 +166,15 @@ rollback tx =
 public export
 record Savepoint state where
   constructor MkSavepoint
-  name : String
-  state : state
-  opCount : Nat
+  spName : String
+  spState : state
+  spOpCount : Nat
 
 ||| Create a savepoint
 public export
 savepoint : String -> Transaction state -> (Savepoint state, Transaction state)
 savepoint name tx =
-  let sp = MkSavepoint name tx.currentState (length tx.operations)
+  let sp = MkSavepoint name (currentState tx) (length (operations tx))
   in (sp, tx)
 
 ||| Rollback to a savepoint
@@ -182,7 +182,7 @@ public export
 rollbackTo : Savepoint state -> Transaction state -> Transaction state
 rollbackTo sp tx =
   if isActive tx
-    then MkTx tx.txId tx.initialState sp.state (drop (minus (length tx.operations) sp.opCount) tx.operations) tx.log Pending
+    then MkTx (txId tx) (initialState tx) (spState sp) (drop (minus (length (operations tx)) (spOpCount sp)) (operations tx)) (log tx) Pending
     else tx
 
 --------------------------------------------------------------------------------

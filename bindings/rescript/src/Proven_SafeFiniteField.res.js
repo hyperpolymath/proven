@@ -2,6 +2,7 @@
 
 import * as Caml_int32 from "rescript/lib/es6/caml_int32.js";
 import * as PervasivesU from "rescript/lib/es6/pervasivesU.js";
+import * as Proven_Bitwise from "./Proven_Bitwise.res.js";
 
 function positiveMod(a, m) {
   var result = Caml_int32.mod_(a, m);
@@ -256,8 +257,8 @@ function modPow(base, exponent, modulus) {
       if (exp <= 0) {
         return result;
       }
-      var newResult = (exp & 1) === 1 ? positiveMod(Math.imul(result, b), modulus) : result;
-      _exp = (exp >>> 1);
+      var newResult = Proven_Bitwise.land(exp, 1) === 1 ? positiveMod(Math.imul(result, b), modulus) : result;
+      _exp = Proven_Bitwise.lsr(exp, 1);
       _b = positiveMod(Math.imul(b, b), modulus);
       _result = newResult;
       continue ;

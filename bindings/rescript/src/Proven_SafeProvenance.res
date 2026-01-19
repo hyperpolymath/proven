@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeProvenance - Data provenance tracking that cannot crash.
  *
@@ -178,7 +180,7 @@ let computeHash = (entry: provenanceEntry): string => {
   }
 
   // Simple string hash (djb2)
-  let str = Js.Array2.join(parts, "|")
+  let str = Js.Array2.joinWith(parts, "|")
   let hash = ref(5381)
   for i in 0 to Js.String2.length(str) - 1 {
     let c = Js.String2.charCodeAt(str, i)->Belt.Float.toInt

@@ -140,7 +140,7 @@ pub fn getFloatOrDefault(comptime T: type, name: []const u8, default: T) T {
 pub fn getSplit(allocator: Allocator, name: []const u8, delimiter: u8) EnvError![][]const u8 {
     const value = get(name) orelse return error.NotFound;
 
-    var list = std.ArrayList([]const u8).init(allocator);
+    var list = std.array_list.Managed([]const u8).init(allocator);
     errdefer list.deinit();
 
     var iter = std.mem.splitScalar(u8, value, delimiter);
@@ -154,7 +154,7 @@ pub fn getSplit(allocator: Allocator, name: []const u8, delimiter: u8) EnvError!
 /// Sanitize an environment variable value by removing control characters.
 /// Returns a newly allocated string that must be freed by the caller.
 pub fn sanitizeValue(allocator: Allocator, value: []const u8) EnvError![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |char| {

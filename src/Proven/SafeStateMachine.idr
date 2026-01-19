@@ -154,16 +154,17 @@ isDeterministic machine = noDuplicates machine.transitions
     noDuplicates [] = True
     noDuplicates (t :: ts) = not (any (conflicts t) ts) && noDuplicates ts
 
+||| Remove duplicates (local, uses assert_total)
+nubSM : Eq a => List a -> List a
+nubSM [] = []
+nubSM (x :: xs) = x :: assert_total (nubSM (filter (/= x) xs))
+
 ||| Get all states mentioned in the machine
 public export
 allStates : Eq state => StateMachine state event -> List state
 allStates machine =
-  nub (machine.initialState :: machine.finalStates ++ 
-       concatMap (\t => [t.fromState, t.toState]) machine.transitions)
-  where
-    nub : Eq a => List a -> List a
-    nub [] = []
-    nub (x :: xs) = x :: nub (filter (/= x) xs)
+  nubSM (machine.initialState :: machine.finalStates ++
+         concatMap (\t => [t.fromState, t.toState]) machine.transitions)
 
 ||| Count total number of transitions
 public export

@@ -63,17 +63,17 @@ let defaultConfig: retryConfig = {
 
 /** Create a fixed delay backoff strategy */
 let fixedBackoff = (delay: float): backoffStrategy => {
-  Fixed({delay})
+  Fixed({delay: delay})
 }
 
 /** Create a linear backoff strategy */
 let linearBackoff = (~initial: float, ~increment: float): backoffStrategy => {
-  Linear({initial, increment})
+  Linear({initial: initial, increment: increment})
 }
 
 /** Create an exponential backoff strategy */
 let exponentialBackoff = (~initial: float, ~multiplier: float): backoffStrategy => {
-  Exponential({initial, multiplier})
+  Exponential({initial: initial, multiplier: multiplier})
 }
 
 /** Create a jittered exponential backoff strategy */

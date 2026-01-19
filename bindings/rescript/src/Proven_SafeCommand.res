@@ -178,8 +178,11 @@ let validateAbsoluteCommand = (path: string): result<unit, commandError> => {
   }
 }
 
+/** Command split result */
+type splitResult = {command: string, args: array<string>}
+
 /** Split a command string into command and arguments (simple split by spaces) */
-let splitCommand = (commandLine: string): result<{command: string, args: array<string>}, commandError> => {
+let splitCommand = (commandLine: string): result<splitResult, commandError> => {
   let trimmed = Js.String2.trim(commandLine)
   if Js.String2.length(trimmed) == 0 {
     Error(EmptyCommand)

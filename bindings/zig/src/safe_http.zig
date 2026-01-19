@@ -340,7 +340,13 @@ pub fn isValidMethod(str: []const u8) bool {
 
 /// Parse an HTTP status code from integer.
 pub fn parseStatusCode(code: u16) ?StatusCode {
-    return std.meta.intToEnum(StatusCode, code) catch null;
+    // Check if the code is a valid StatusCode enum value
+    inline for (@typeInfo(StatusCode).@"enum".fields) |field| {
+        if (field.value == code) {
+            return @enumFromInt(code);
+        }
+    }
+    return null;
 }
 
 /// Check if an integer is a valid HTTP status code.

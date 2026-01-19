@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeBase64 - Base64 encoding and decoding operations that cannot crash.
  *
@@ -226,7 +228,7 @@ let decodeToBytes = (input: string, variant: variant): result<array<int>, base64
         paddingCount := paddingCount.contents + 1
         effectiveLen := effectiveLen.contents - 1
         if paddingCount.contents > 2 {
-          // Can exit early
+          () // Can exit early
         }
       }
 

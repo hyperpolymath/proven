@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeTemplate - Template string interpolation with automatic escaping that cannot crash.
  *
@@ -261,7 +263,7 @@ let renderWithLookup = (
   let templateLen = Js.String2.length(template)
   let error = ref(None)
 
-  while pos.contents < templateLen && Option.isNone(error.contents) {
+  while pos.contents < templateLen && Belt.Option.isNone(error.contents) {
     // Find next opening delimiter
     switch Js.String2.indexOfFrom(template, config.openDelim, pos.contents) {
     | -1 =>

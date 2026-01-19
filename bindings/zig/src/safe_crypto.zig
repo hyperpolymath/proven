@@ -8,7 +8,12 @@ const std = @import("std");
 /// Compare two byte slices in constant time to prevent timing attacks.
 /// Uses Zig's standard library constant-time comparison.
 pub fn constantTimeCompare(a: []const u8, b: []const u8) bool {
-    return std.crypto.utils.timingSafeEql(a, b);
+    if (a.len != b.len) return false;
+    var acc: u8 = 0;
+    for (a, b) |x, y| {
+        acc |= x ^ y;
+    }
+    return acc == 0;
 }
 
 /// Compare two slices where lengths may differ.
@@ -19,20 +24,26 @@ pub fn constantTimeCompareVariable(a: []const u8, b: []const u8) bool {
 }
 
 /// Securely zero out a byte slice to prevent data leakage.
-/// Uses Zig's standard library secure zeroing.
+/// Uses volatile write to prevent compiler from optimizing away the zeroing.
 pub fn secureZero(data: []u8) void {
-    std.crypto.utils.secureZero(u8, data);
+    const volatile_ptr: [*]volatile u8 = @ptrCast(data.ptr);
+    for (0..data.len) |i| {
+        volatile_ptr[i] = 0;
+    }
 }
 
 /// Securely zero out a typed slice.
 pub fn secureZeroTyped(comptime T: type, data: []T) void {
-    std.crypto.utils.secureZero(T, data);
+    const bytes: []u8 = @as([*]u8, @ptrCast(data.ptr))[0 .. data.len * @sizeOf(T)];
+    secureZero(bytes);
 }
 
 /// Constant-time conditional select.
 /// Returns `a` if `choice` is true, `b` otherwise.
 pub fn constantTimeSelect(comptime T: type, choice: bool, a: T, b: T) T {
-    return std.crypto.utils.select(T, choice, a, b);
+    // Use bitwise operations for constant-time selection
+    const mask = @as(T, 0) -% @as(T, @intFromBool(choice));
+    return (a & mask) | (b & ~mask);
 }
 
 /// Generate cryptographically secure random bytes.

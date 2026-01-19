@@ -5,6 +5,12 @@
 
 const std = @import("std");
 
+/// Get current Unix timestamp in seconds.
+fn getTimestamp() i64 {
+    const ts = std.posix.clock_gettime(.REALTIME) catch return 0;
+    return ts.sec;
+}
+
 /// Error types for cookie operations.
 pub const CookieError = error{
     InvalidName,
@@ -52,7 +58,7 @@ pub const Cookie = struct {
             if (ma <= 0) return true;
         }
         if (self.expires) |exp| {
-            const now = std.time.timestamp();
+            const now = getTimestamp();
             if (exp <= now) return true;
         }
         return false;
@@ -86,7 +92,7 @@ pub const Cookie = struct {
 
     /// Format as Set-Cookie header value
     pub fn toSetCookie(self: Cookie, allocator: std.mem.Allocator) ![]u8 {
-        var list = std.ArrayList(u8).init(allocator);
+        var list = std.array_list.Managed(u8).init(allocator);
         errdefer list.deinit();
 
         // Name=Value
@@ -108,7 +114,9 @@ pub const Cookie = struct {
 
         // Max-Age
         if (self.max_age) |ma| {
-            try list.writer().print("; Max-Age={}", .{ma});
+            var buf: [32]u8 = undefined;
+            const formatted = std.fmt.bufPrint(&buf, "; Max-Age={}", .{ma}) catch return error.OutOfMemory;
+            try list.appendSlice(formatted);
         }
 
         // Secure
@@ -161,7 +169,7 @@ pub fn isValidValue(value: []const u8) bool {
 
 /// Parse a Cookie header (client-side format: name=value; name2=value2)
 pub fn parseCookieHeader(allocator: std.mem.Allocator, header: []const u8) ![]Cookie {
-    var cookies = std.ArrayList(Cookie).init(allocator);
+    var cookies = std.array_list.Managed(Cookie).init(allocator);
     errdefer cookies.deinit();
 
     var it = std.mem.splitSequence(u8, header, "; ");

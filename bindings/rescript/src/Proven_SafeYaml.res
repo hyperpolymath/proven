@@ -10,6 +10,9 @@
  * suitable for configuration files.
  */
 
+/** External parseInt for radix-based parsing */
+@val external parseInt: (string, int) => float = "parseInt"
+
 /** YAML error types */
 type yamlError =
   | ParseError
@@ -99,16 +102,12 @@ let isIntegerValue = (input: string): bool => {
       // Try hex prefix
       if Js.String2.startsWith(trimmed, "0x") || Js.String2.startsWith(trimmed, "0X") {
         let hexPart = Js.String2.sliceToEnd(trimmed, ~from=2)
-        switch Js.Float.fromStringWithRadix(hexPart, ~radix=16) {
-        | value if !Js.Float.isNaN(value) => true
-        | _ => false
-        }
+        let value = parseInt(hexPart, 16)
+        !Js.Float.isNaN(value)
       } else if Js.String2.startsWith(trimmed, "0o") {
         let octPart = Js.String2.sliceToEnd(trimmed, ~from=2)
-        switch Js.Float.fromStringWithRadix(octPart, ~radix=8) {
-        | value if !Js.Float.isNaN(value) => true
-        | _ => false
-        }
+        let value = parseInt(octPart, 8)
+        !Js.Float.isNaN(value)
       } else {
         false
       }
@@ -127,15 +126,19 @@ let parseInteger = (input: string): option<int> => {
     | None =>
       if Js.String2.startsWith(trimmed, "0x") || Js.String2.startsWith(trimmed, "0X") {
         let hexPart = Js.String2.sliceToEnd(trimmed, ~from=2)
-        switch Js.Float.fromStringWithRadix(hexPart, ~radix=16) {
-        | value if !Js.Float.isNaN(value) => Some(Belt.Float.toInt(value))
-        | _ => None
+        let value = parseInt(hexPart, 16)
+        if !Js.Float.isNaN(value) {
+          Some(Belt.Float.toInt(value))
+        } else {
+          None
         }
       } else if Js.String2.startsWith(trimmed, "0o") {
         let octPart = Js.String2.sliceToEnd(trimmed, ~from=2)
-        switch Js.Float.fromStringWithRadix(octPart, ~radix=8) {
-        | value if !Js.Float.isNaN(value) => Some(Belt.Float.toInt(value))
-        | _ => None
+        let value = parseInt(octPart, 8)
+        if !Js.Float.isNaN(value) {
+          Some(Belt.Float.toInt(value))
+        } else {
+          None
         }
       } else {
         None
@@ -326,11 +329,14 @@ let validateIndentation = (input: string): result<unit, yamlError> => {
       if spaceCount.contents > lineLength {
         spaceCount := {
           let count = ref(0)
-          for index in 0 to lineLength - 1 {
-            if Js.String2.charAt(line, index) == " " {
+          let done = ref(false)
+          let index = ref(0)
+          while index.contents < lineLength && !done.contents {
+            if Js.String2.charAt(line, index.contents) == " " {
               count := count.contents + 1
+              index := index.contents + 1
             } else {
-              index + lineLength // Break
+              done := true
             }
           }
           count.contents

@@ -25,7 +25,7 @@ pub fn isSafe(path: []const u8) bool {
 
 /// Sanitize a filename by removing dangerous characters.
 pub fn sanitizeFilename(allocator: Allocator, filename: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     var i: usize = 0;
@@ -56,7 +56,7 @@ pub fn safeJoin(allocator: Allocator, base: []const u8, parts: []const []const u
         }
     }
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     result.appendSlice(base) catch return error.OutOfMemory;

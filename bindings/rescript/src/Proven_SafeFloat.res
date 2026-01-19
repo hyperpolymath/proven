@@ -105,13 +105,13 @@ let roundTo = (decimals: int, value: float): float => {
 /** Floor to a specific number of decimal places */
 let floorTo = (decimals: int, value: float): float => {
   let factor = Js.Math.pow_float(~base=10.0, ~exp=Belt.Int.toFloat(decimals))
-  Js.Math.floor(value *. factor) /. factor
+  Js.Math.floor_float(value *. factor) /. factor
 }
 
 /** Ceiling to a specific number of decimal places */
 let ceilTo = (decimals: int, value: float): float => {
   let factor = Js.Math.pow_float(~base=10.0, ~exp=Belt.Int.toFloat(decimals))
-  Js.Math.ceil(value *. factor) /. factor
+  Js.Math.ceil_float(value *. factor) /. factor
 }
 
 /** Parse a float from string safely */

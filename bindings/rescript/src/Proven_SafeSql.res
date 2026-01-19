@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeSql - SQL query sanitization and parameterization that cannot crash.
  *
@@ -309,15 +311,17 @@ let stripComments = (query: string): string => {
       i.contents + 1 < length && c == "/" && Js.String2.charAt(query, i.contents + 1) == "*"
     ) {
       i := i.contents + 2
-      while i.contents + 1 < length {
+      let foundClose = ref(false)
+      while i.contents + 1 < length && !foundClose.contents {
         if (
           Js.String2.charAt(query, i.contents) == "*" &&
             Js.String2.charAt(query, i.contents + 1) == "/"
         ) {
           i := i.contents + 2
-          break
+          foundClose := true
+        } else {
+          i := i.contents + 1
         }
-        i := i.contents + 1
       }
     } else {
       result := result.contents ++ c

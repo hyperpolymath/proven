@@ -26,7 +26,7 @@ type complex = {
 let pi = 3.14159265358979323846
 
 /** Check if a float is NaN */
-let isNaN = (value: float): bool => {
+let floatIsNaN = (value: float): bool => {
   value != value
 }
 
@@ -37,12 +37,12 @@ let isInf = (value: float): bool => {
 
 /** Check if a float is finite (not NaN and not infinite) */
 let isFinite = (value: float): bool => {
-  !isNaN(value) && !isInf(value)
+  !floatIsNaN(value) && !isInf(value)
 }
 
 /** Validate that a complex number is finite */
 let validateFinite = (z: complex): result<unit, complexError> => {
-  if isNaN(z.real) || isNaN(z.imag) {
+  if floatIsNaN(z.real) || floatIsNaN(z.imag) {
     Error(NaN)
   } else if isInf(z.real) || isInf(z.imag) {
     Error(Infinity)
@@ -53,7 +53,7 @@ let validateFinite = (z: complex): result<unit, complexError> => {
 
 /** Create a complex number from real and imaginary parts with validation */
 let make = (real: float, imag: float): result<complex, complexError> => {
-  if isNaN(real) || isNaN(imag) {
+  if floatIsNaN(real) || floatIsNaN(imag) {
     Error(NaN)
   } else if isInf(real) || isInf(imag) {
     Error(Infinity)
@@ -74,7 +74,7 @@ let fromImag = (imag: float): result<complex, complexError> => {
 
 /** Create from polar coordinates (r, theta) */
 let fromPolar = (r: float, theta: float): result<complex, complexError> => {
-  if isNaN(r) || isNaN(theta) {
+  if floatIsNaN(r) || floatIsNaN(theta) {
     Error(NaN)
   } else if r < 0.0 {
     Error(InvalidInput)
@@ -178,7 +178,7 @@ let div = (a: complex, b: complex): result<complex, complexError> => {
 /** Compute the magnitude (absolute value) of a complex number */
 let magnitude = (z: complex): result<float, complexError> => {
   let result = Js.Math.sqrt(z.real *. z.real +. z.imag *. z.imag)
-  if isNaN(result) {
+  if floatIsNaN(result) {
     Error(NaN)
   } else if isInf(result) {
     Error(Overflow)
@@ -190,7 +190,7 @@ let magnitude = (z: complex): result<float, complexError> => {
 /** Compute the squared magnitude (avoids sqrt for comparisons) */
 let magnitudeSquared = (z: complex): result<float, complexError> => {
   let result = z.real *. z.real +. z.imag *. z.imag
-  if isNaN(result) {
+  if floatIsNaN(result) {
     Error(NaN)
   } else if isInf(result) {
     Error(Overflow)
@@ -201,8 +201,8 @@ let magnitudeSquared = (z: complex): result<float, complexError> => {
 
 /** Compute the phase angle (argument) in radians */
 let phase = (z: complex): result<float, complexError> => {
-  let result = Js.Math.atan2(~y=z.imag, ~x=z.real)
-  if isNaN(result) {
+  let result = Js.Math.atan2(~y=z.imag, ~x=z.real, ())
+  if floatIsNaN(result) {
     Error(NaN)
   } else {
     Ok(result)
@@ -211,7 +211,7 @@ let phase = (z: complex): result<float, complexError> => {
 
 /** Safely scale a complex number by a real scalar */
 let scale = (z: complex, scalar: float): result<complex, complexError> => {
-  if isNaN(scalar) {
+  if floatIsNaN(scalar) {
     Error(NaN)
   } else if isInf(scalar) {
     Error(Infinity)

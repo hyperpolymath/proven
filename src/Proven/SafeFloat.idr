@@ -55,6 +55,11 @@ public export
 isFinite : Double -> Bool
 isFinite x = not (isNaN x) && not (isInfinite x)
 
+||| Sanitize a Double by replacing NaN/Inf with a default value
+public export
+sanitize : Double -> Double -> Double
+sanitize def x = if isFinite x then x else def
+
 ||| Safe division that returns Nothing for NaN/Infinite results
 public export
 safeDiv : Double -> Double -> Maybe Double
@@ -88,10 +93,59 @@ public export
 clampDouble : (lo : Double) -> (hi : Double) -> Double -> Double
 clampDouble lo hi x = if x < lo then lo else if x > hi then hi else x
 
+||| Alias for clampDouble
+public export
+clamp : (lo : Double) -> (hi : Double) -> Double -> Double
+clamp = clampDouble
+
 ||| Clamp to unit interval [0, 1]
 public export
 clampUnit : Double -> Double
 clampUnit = clampDouble 0.0 1.0
+
+||| Mean of a list of Doubles
+public export
+mean : List Double -> Maybe Double
+mean [] = Nothing
+mean xs = Just (sum xs / cast (length xs))
+
+||| Variance of a list of Doubles
+public export
+variance : List Double -> Maybe Double
+variance [] = Nothing
+variance xs = do
+  m <- mean xs
+  let diffs = map (\x => (x - m) * (x - m)) xs
+  mean diffs
+
+||| Standard deviation of a list of Doubles
+public export
+stdDev : List Double -> Maybe Double
+stdDev xs = do
+  v <- variance xs
+  Just (sqrt v)
+
+||| Small epsilon for numerical stability
+public export
+epsilon : Double
+epsilon = 1.0e-15
+
+||| Safe square root that handles negative numbers
+public export
+sqrt : Double -> Maybe Double
+sqrt x = if x < 0.0 then Nothing else Just (Prelude.sqrt x)
+
+||| Safe power function
+public export
+pow : Double -> Double -> Maybe Double
+pow base exp =
+  let result = Prelude.pow base exp
+  in if isFinite result then Just result else Nothing
+
+||| Safe division
+public export
+div : Double -> Double -> Maybe Double
+div x y = if y == 0.0 then Nothing else Just (x / y)
 
 --------------------------------------------------------------------------------
 -- Rounding Operations

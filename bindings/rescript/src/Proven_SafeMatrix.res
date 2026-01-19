@@ -509,9 +509,13 @@ let approxEqual = (a: matrix, b: matrix, epsilon: float): bool => {
   if !hasSameShape(a, b) {
     false
   } else {
-    Belt.Array.everyWithIndex(a.data, (i, v) => {
-      Js.Math.abs_float(v -. Belt.Array.getUnsafe(b.data, i)) <= epsilon
+    let result = ref(true)
+    Belt.Array.forEachWithIndex(a.data, (i, v) => {
+      if result.contents && Js.Math.abs_float(v -. Belt.Array.getUnsafe(b.data, i)) > epsilon {
+        result := false
+      }
     })
+    result.contents
   }
 }
 

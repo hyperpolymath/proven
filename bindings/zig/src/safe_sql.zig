@@ -79,7 +79,7 @@ const dangerous_keywords = [_][]const u8{
 /// Escape a string for safe SQL string literal insertion.
 /// Doubles single quotes and handles special characters.
 pub fn escapeStringLiteral(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.append('\'');
@@ -103,7 +103,7 @@ pub fn escapeStringLiteral(allocator: Allocator, value: []const u8) ![]u8 {
 
 /// Escape a blob/binary value as hex literal.
 pub fn escapeBlobLiteral(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.appendSlice("X'");
@@ -136,7 +136,7 @@ pub fn escapeIdentifier(allocator: Allocator, identifier: []const u8) SqlError![
         }
     }
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.append('"');
@@ -170,8 +170,8 @@ pub fn containsDangerousKeyword(query: []const u8) bool {
 /// Builder for parameterized SQL queries.
 pub const QueryBuilder = struct {
     allocator: Allocator,
-    query_parts: std.ArrayList([]const u8),
-    parameters: std.ArrayList(Value),
+    query_parts: std.array_list.Managed([]const u8),
+    parameters: std.array_list.Managed(Value),
     placeholder_style: PlaceholderStyle,
 
     /// Placeholder style for different database systems.
@@ -186,8 +186,8 @@ pub const QueryBuilder = struct {
     pub fn init(allocator: Allocator, style: PlaceholderStyle) QueryBuilder {
         return QueryBuilder{
             .allocator = allocator,
-            .query_parts = std.ArrayList([]const u8).init(allocator),
-            .parameters = std.ArrayList(Value).init(allocator),
+            .query_parts = std.array_list.Managed([]const u8).init(allocator),
+            .parameters = std.array_list.Managed(Value).init(allocator),
             .placeholder_style = style,
         };
     }
@@ -214,7 +214,7 @@ pub const QueryBuilder = struct {
 
     /// Build the final query string with placeholders.
     pub fn build(self: *QueryBuilder) ![]u8 {
-        var result = std.ArrayList(u8).init(self.allocator);
+        var result = std.array_list.Managed(u8).init(self.allocator);
         errdefer result.deinit();
 
         var param_index: usize = 1;
@@ -222,11 +222,21 @@ pub const QueryBuilder = struct {
         for (self.query_parts.items) |part| {
             if (part.len == 1 and part[0] == '\x00') {
                 // Replace marker with placeholder
+                var buf: [16]u8 = undefined;
                 switch (self.placeholder_style) {
                     .question_mark => try result.append('?'),
-                    .dollar_number => try result.writer().print("${d}", .{param_index}),
-                    .at_name => try result.writer().print("@p{d}", .{param_index}),
-                    .colon_number => try result.writer().print(":{d}", .{param_index}),
+                    .dollar_number => {
+                        const formatted = std.fmt.bufPrint(&buf, "${d}", .{param_index}) catch continue;
+                        try result.appendSlice(formatted);
+                    },
+                    .at_name => {
+                        const formatted = std.fmt.bufPrint(&buf, "@p{d}", .{param_index}) catch continue;
+                        try result.appendSlice(formatted);
+                    },
+                    .colon_number => {
+                        const formatted = std.fmt.bufPrint(&buf, ":{d}", .{param_index}) catch continue;
+                        try result.appendSlice(formatted);
+                    },
                 }
                 param_index += 1;
             } else {
@@ -246,7 +256,7 @@ pub const QueryBuilder = struct {
 /// Sanitize a value for use in a LIKE pattern.
 /// Escapes %, _, and \ characters.
 pub fn escapeLikePattern(allocator: Allocator, pattern: []const u8, escape_char: u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (pattern) |c| {
@@ -283,7 +293,7 @@ pub fn hasBalancedQuotes(query: []const u8) bool {
 
 /// Strip SQL comments from a query (both -- and /* */ style).
 pub fn stripComments(allocator: Allocator, query: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     var i: usize = 0;
@@ -348,7 +358,7 @@ pub fn validateQuery(query: []const u8) SqlError!void {
 
 /// Create a simple SELECT query with safe identifiers.
 pub fn selectQuery(allocator: Allocator, table: []const u8, columns: []const []const u8, where_clause: ?[]const u8) SqlError![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.appendSlice("SELECT ");

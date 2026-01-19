@@ -312,7 +312,7 @@ let parseImageReference = (input: string): result<imageReference, dockerError> =
     }
 
     // Check for tag (:tag) - only if no digest found
-    if Option.isNone(digest.contents) {
+    if Belt.Option.isNone(digest.contents) {
       switch Js.String2.lastIndexOf(remaining.contents, ":") {
       | -1 => ()
       | colonPos =>
@@ -434,32 +434,32 @@ let isValidImageReference = (input: string): bool => {
 }
 
 /** Get the full image name without tag or digest */
-let getFullName = (ref: imageReference): string => {
+let getFullName = (imgRef: imageReference): string => {
   let parts = ref([])
 
-  switch ref.registry {
+  switch imgRef.registry {
   | Some(reg) => parts := Belt.Array.concat(parts.contents, [reg])
   | None => ()
   }
 
-  switch ref.namespace {
+  switch imgRef.namespace {
   | Some(ns) => parts := Belt.Array.concat(parts.contents, [ns])
   | None => ()
   }
 
-  parts := Belt.Array.concat(parts.contents, [ref.repository])
+  parts := Belt.Array.concat(parts.contents, [imgRef.repository])
 
   Js.Array2.joinWith(parts.contents, "/")
 }
 
 /** Get the full reference including tag or digest */
-let getFullReference = (ref: imageReference): string => {
-  let name = getFullName(ref)
+let getFullReference = (imgRef: imageReference): string => {
+  let name = getFullName(imgRef)
 
-  switch ref.digest {
+  switch imgRef.digest {
   | Some(dig) => name ++ "@" ++ dig
   | None =>
-    switch ref.tag {
+    switch imgRef.tag {
     | Some(t) => name ++ ":" ++ t
     | None => name
     }
@@ -467,11 +467,11 @@ let getFullReference = (ref: imageReference): string => {
 }
 
 /** Check if this is an official Docker Hub image (library/) */
-let isOfficial = (ref: imageReference): bool => {
-  switch ref.registry {
+let isOfficial = (imgRef: imageReference): bool => {
+  switch imgRef.registry {
   | Some(reg) if reg != "docker.io" && reg != "index.docker.io" => false
   | _ =>
-    switch ref.namespace {
+    switch imgRef.namespace {
     | None => true
     | Some(ns) => ns == "library"
     }
@@ -479,21 +479,21 @@ let isOfficial = (ref: imageReference): bool => {
 }
 
 /** Check if the image has a specific tag */
-let hasTag = (ref: imageReference): bool => {
-  Option.isSome(ref.tag)
+let hasTag = (imgRef: imageReference): bool => {
+  Belt.Option.isSome(imgRef.tag)
 }
 
 /** Check if the image is pinned by digest */
-let isPinned = (ref: imageReference): bool => {
-  Option.isSome(ref.digest)
+let isPinned = (imgRef: imageReference): bool => {
+  Belt.Option.isSome(imgRef.digest)
 }
 
 /** Check if using latest tag (explicit or implicit) */
-let isLatest = (ref: imageReference): bool => {
-  if Option.isSome(ref.digest) {
+let isLatest = (imgRef: imageReference): bool => {
+  if Belt.Option.isSome(imgRef.digest) {
     false
   } else {
-    switch ref.tag {
+    switch imgRef.tag {
     | Some(t) => t == "latest"
     | None => true // No tag = implicit latest
     }

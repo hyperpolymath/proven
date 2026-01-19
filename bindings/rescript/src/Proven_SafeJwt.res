@@ -167,6 +167,9 @@ let isValidFormat = (tokenString: string): bool => {
 @module("./proven_ffi.js")
 external base64UrlDecode: string => Js.Nullable.t<string> = "base64UrlDecode"
 
+/** External atob for base64 decoding */
+@val external atob: string => string = "atob"
+
 /** Fallback base64url decode using atob */
 let decodeBase64Url = (input: string): option<string> => {
   // Convert base64url to base64
@@ -183,7 +186,7 @@ let decodeBase64Url = (input: string): option<string> => {
   }
 
   try {
-    Some(Js.Global.atob(padded))
+    Some(atob(padded))
   } catch {
   | _ => Js.Nullable.toOption(base64UrlDecode(input))
   }

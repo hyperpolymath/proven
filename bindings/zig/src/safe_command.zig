@@ -93,7 +93,7 @@ pub fn validateArgument(arg: []const u8) CommandError!void {
 pub fn sanitizeForShell(allocator: Allocator, input: []const u8) CommandError![]u8 {
     if (containsNullByte(input)) return error.NullByteDetected;
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (input) |c| {
@@ -117,7 +117,7 @@ pub fn sanitizeForShell(allocator: Allocator, input: []const u8) CommandError![]
 pub fn quoteForShell(allocator: Allocator, input: []const u8) CommandError![]u8 {
     if (containsNullByte(input)) return error.NullByteDetected;
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     result.append('\'') catch return error.OutOfMemory;
@@ -148,7 +148,7 @@ pub fn buildSafeCommand(allocator: Allocator, command: []const u8, args: []const
     try validateCommandName(command);
     try validateArguments(args);
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     // Add the command
@@ -185,7 +185,7 @@ pub fn splitCommand(allocator: Allocator, command_line: []const u8) CommandError
     if (command_line.len == 0) return error.EmptyCommand;
     if (containsNullByte(command_line)) return error.NullByteDetected;
 
-    var parts = std.ArrayList([]const u8).init(allocator);
+    var parts = std.array_list.Managed([]const u8).init(allocator);
     errdefer parts.deinit();
 
     var iter = std.mem.splitScalar(u8, command_line, ' ');

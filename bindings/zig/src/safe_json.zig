@@ -124,12 +124,11 @@ pub fn parse(allocator: std.mem.Allocator, input: []const u8, options: ParseOpti
 
 /// Safely stringify a JSON value
 pub fn stringify(allocator: std.mem.Allocator, value: Value) JsonError![]u8 {
-    var list = std.ArrayList(u8).init(allocator);
+    var list = std.array_list.Managed(u8).init(allocator);
     errdefer list.deinit();
 
-    std.json.stringify(value, .{}, list.writer()) catch return error.InvalidValue;
-
-    return list.toOwnedSlice() catch return error.OutOfMemory;
+    const str = std.json.stringifyAlloc(allocator, value, .{}) catch return error.InvalidValue;
+    return str;
 }
 
 /// Check if a string is valid JSON
@@ -169,7 +168,7 @@ pub fn getPath(value: Value, path: []const u8) ?Value {
 
 /// Safely escape a string for JSON
 pub fn escapeString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
-    var list = std.ArrayList(u8).init(allocator);
+    var list = std.array_list.Managed(u8).init(allocator);
     errdefer list.deinit();
 
     for (input) |c| {
@@ -181,7 +180,9 @@ pub fn escapeString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
             '\t' => try list.appendSlice("\\t"),
             else => {
                 if (c < 0x20) {
-                    try list.writer().print("\\u{x:0>4}", .{c});
+                    var buf: [6]u8 = undefined;
+                    const formatted = std.fmt.bufPrint(&buf, "\\u{x:0>4}", .{c}) catch continue;
+                    try list.appendSlice(formatted);
                 } else {
                     try list.append(c);
                 }

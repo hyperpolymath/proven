@@ -26,9 +26,13 @@ let maxNameLength = 255
 /** Maximum allowed length for environment variable values */
 let maxValueLength = 32767
 
-/** External binding to get environment variable (Node.js) */
-@val @scope(("process", "env"))
-external getEnvUnsafe: string => Js.Nullable.t<string> = ""
+/** External binding to get environment object (Node.js) */
+@val @scope("process")
+external getEnvDict: Js.Dict.t<string> = "env"
+
+let getEnvUnsafe = (name: string): Js.Nullable.t<string> => {
+  Js.Dict.get(getEnvDict, name)->Js.Nullable.fromOption
+}
 
 /** Get all environment variables (Node.js) */
 @val @scope("process")

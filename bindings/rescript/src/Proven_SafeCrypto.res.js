@@ -5,13 +5,14 @@ import * as JsSha3 from "js-sha3";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Caml_int32 from "rescript/lib/es6/caml_int32.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
+import * as Proven_Bitwise from "./Proven_Bitwise.res.js";
 
 function toHex(bytes) {
   var hexChars = "0123456789abcdef";
   var result = "";
   for(var i = 0 ,i_finish = bytes.length; i < i_finish; ++i){
     var $$byte = bytes[i];
-    result = result + hexChars.charAt(($$byte >>> 4)) + hexChars.charAt($$byte & 15);
+    result = result + hexChars.charAt(Proven_Bitwise.lsr($$byte, 4)) + hexChars.charAt(Proven_Bitwise.land($$byte, 15));
   }
   return result;
 }
@@ -75,7 +76,7 @@ function fromHex(hex) {
       var match = hexCharToInt(high);
       var match$1 = hexCharToInt(low);
       if (match !== undefined && match$1 !== undefined) {
-        bytes[i] = (match << 4) | match$1;
+        bytes[i] = Proven_Bitwise.lor(Proven_Bitwise.lsl(match, 4), match$1);
       } else {
         valid = false;
       }
@@ -208,7 +209,7 @@ function constantTimeEq(a, b) {
   };
   Belt_Array.forEachWithIndex(a, (function (i, aVal) {
           var bVal = b[i];
-          diff.contents = diff.contents | aVal ^ bVal;
+          diff.contents = Proven_Bitwise.lor(diff.contents, Proven_Bitwise.lxor(aVal, bVal));
         }));
   return diff.contents === 0;
 }
@@ -279,7 +280,7 @@ function randomInt(max) {
     return ;
   }
   var bytes$1 = Caml_option.valFromOption(bytes);
-  var value = bytes$1[0] | (bytes$1[1] << 8) | (bytes$1[2] << 16) | ((bytes$1[3] & 127) << 24);
+  var value = Proven_Bitwise.lor(Proven_Bitwise.lor(Proven_Bitwise.lor(bytes$1[0], Proven_Bitwise.lsl(bytes$1[1], 8)), Proven_Bitwise.lsl(bytes$1[2], 16)), Proven_Bitwise.lsl(Proven_Bitwise.land(bytes$1[3], 127), 24));
   return Caml_int32.mod_(value, max);
 }
 

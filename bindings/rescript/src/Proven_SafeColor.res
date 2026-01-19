@@ -29,6 +29,9 @@ type hsl = {
   l: float, // 0-1
 }
 
+/** External parseInt for hex parsing */
+@val external parseInt: (string, int) => float = "parseInt"
+
 /** HSLA color */
 type hsla = {
   h: float,
@@ -78,7 +81,7 @@ let fromHex = (hex: string): option<rgba> => {
   }
 
   let parseHexByte = (s: string): option<int> => {
-    let parsed = Js.parseInt(s, ~radix=16)
+    let parsed = parseInt(s, 16)
     if Js.Float.isNaN(parsed) {
       None
     } else {

@@ -219,5 +219,8 @@ test "v4 generation" {
 
 test "invalid UUID" {
     try std.testing.expectError(error.InvalidLength, parse("not-a-uuid"));
-    try std.testing.expectError(error.InvalidFormat, parse("550e8400e29b-41d4-a716-446655440000"));
+    // This string is 35 chars (missing hyphen), so InvalidLength is correct
+    try std.testing.expectError(error.InvalidLength, parse("550e8400e29b-41d4-a716-446655440000"));
+    // This string has 'g' which is not a valid hex character
+    try std.testing.expectError(error.InvalidCharacter, parse("550e8400-e29b-41d4-a716-4466554400g0"));
 }

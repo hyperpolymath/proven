@@ -9,6 +9,23 @@
 
 const std = @import("std");
 
+/// Get current Unix timestamp in seconds.
+fn getTimestamp() i64 {
+    const ts = std.posix.clock_gettime(.REALTIME) catch return 0;
+    return ts.sec;
+}
+
+/// Constant-time comparison for fixed-size arrays.
+fn timingSafeEql(comptime T: type, a: T, b: T) bool {
+    const bytes_a = std.mem.asBytes(&a);
+    const bytes_b = std.mem.asBytes(&b);
+    var acc: u8 = 0;
+    for (bytes_a, bytes_b) |x, y| {
+        acc |= x ^ y;
+    }
+    return acc == 0;
+}
+
 /// Error types for webhook operations.
 pub const WebhookError = error{
     /// Invalid URL format.
@@ -239,7 +256,7 @@ pub fn verifyHmacSha256(
     }
 
     // Constant-time comparison
-    return std.crypto.utils.timingSafeEql([32]u8, computed_mac, decoded_signature);
+    return timingSafeEql([32]u8, computed_mac, decoded_signature);
 }
 
 /// Verify an HMAC-SHA1 signature (used by Twilio).
@@ -258,7 +275,7 @@ pub fn verifyHmacSha1(
         // Base64 encoded (28 chars = 20 bytes)
         var decoded_signature: [20]u8 = undefined;
         _ = std.base64.standard.Decoder.decode(&decoded_signature, signature) catch return error.InvalidSignature;
-        return std.crypto.utils.timingSafeEql([20]u8, computed_mac, decoded_signature);
+        return timingSafeEql([20]u8, computed_mac, decoded_signature);
     } else if (signature.len == 40) {
         // Hex encoded
         var decoded_signature: [20]u8 = undefined;
@@ -266,7 +283,7 @@ pub fn verifyHmacSha1(
             const hex_pair = signature[byte_index * 2 .. byte_index * 2 + 2];
             decoded_signature[byte_index] = std.fmt.parseInt(u8, hex_pair, 16) catch return error.InvalidSignature;
         }
-        return std.crypto.utils.timingSafeEql([20]u8, computed_mac, decoded_signature);
+        return timingSafeEql([20]u8, computed_mac, decoded_signature);
     }
 
     return error.InvalidSignature;
@@ -302,7 +319,7 @@ pub fn verifyStripe(
 
     // Validate timestamp
     const timestamp = std.fmt.parseInt(i64, timestamp_string, 10) catch return error.InvalidPayload;
-    const current_time = std.time.timestamp();
+    const current_time = getTimestamp();
 
     if (@abs(current_time - timestamp) > tolerance_seconds) {
         return error.TimestampOutOfRange;
@@ -325,7 +342,7 @@ pub fn verifySlack(
 ) WebhookError!bool {
     // Validate timestamp
     const timestamp = std.fmt.parseInt(i64, timestamp_header, 10) catch return error.InvalidPayload;
-    const current_time = std.time.timestamp();
+    const current_time = getTimestamp();
 
     if (@abs(current_time - timestamp) > tolerance_seconds) {
         return error.TimestampOutOfRange;
@@ -353,7 +370,7 @@ pub fn generateSignature(
             hmac_context.final(&mac);
 
             const hex_output = try allocator.alloc(u8, 64);
-            _ = std.fmt.bufPrint(hex_output, "{}", .{std.fmt.fmtSliceHexLower(&mac)}) catch unreachable;
+            _ = std.fmt.bufPrint(hex_output, "{x}", .{mac}) catch unreachable;
             return hex_output;
         },
         .hmac_sha1 => {
@@ -363,7 +380,7 @@ pub fn generateSignature(
             hmac_context.final(&mac);
 
             const hex_output = try allocator.alloc(u8, 40);
-            _ = std.fmt.bufPrint(hex_output, "{}", .{std.fmt.fmtSliceHexLower(&mac)}) catch unreachable;
+            _ = std.fmt.bufPrint(hex_output, "{x}", .{mac}) catch unreachable;
             return hex_output;
         },
         .hmac_sha512 => {
@@ -373,7 +390,7 @@ pub fn generateSignature(
             hmac_context.final(&mac);
 
             const hex_output = try allocator.alloc(u8, 128);
-            _ = std.fmt.bufPrint(hex_output, "{}", .{std.fmt.fmtSliceHexLower(&mac)}) catch unreachable;
+            _ = std.fmt.bufPrint(hex_output, "{x}", .{mac}) catch unreachable;
             return hex_output;
         },
     }

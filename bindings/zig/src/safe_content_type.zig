@@ -84,7 +84,7 @@ pub const ContentType = struct {
 
     /// Format as Content-Type header value
     pub fn format(self: ContentType, allocator: std.mem.Allocator) ![]u8 {
-        var list = std.ArrayList(u8).init(allocator);
+        var list = std.array_list.Managed(u8).init(allocator);
         errdefer list.deinit();
 
         try list.appendSlice(self.type_);
@@ -186,7 +186,7 @@ pub fn parse(header: []const u8) ContentTypeError!ContentType {
 
 /// Get MIME type for a file extension
 pub fn fromExtension(ext: []const u8) []const u8 {
-    const extensions = std.ComptimeStringMap([]const u8, .{
+    const extensions = std.StaticStringMap([]const u8).initComptime(.{
         // Text
         .{ "txt", MimeTypes.TEXT_PLAIN },
         .{ "html", MimeTypes.TEXT_HTML },
@@ -225,7 +225,7 @@ pub fn fromExtension(ext: []const u8) []const u8 {
 
 /// Get file extension for a MIME type
 pub fn toExtension(mime: []const u8) ?[]const u8 {
-    const mimes = std.ComptimeStringMap([]const u8, .{
+    const mimes = std.StaticStringMap([]const u8).initComptime(.{
         .{ MimeTypes.TEXT_PLAIN, "txt" },
         .{ MimeTypes.TEXT_HTML, "html" },
         .{ MimeTypes.TEXT_CSS, "css" },

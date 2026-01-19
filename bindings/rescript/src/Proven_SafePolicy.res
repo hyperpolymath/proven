@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafePolicy - Policy expression evaluation that cannot crash.
  *
@@ -290,9 +292,9 @@ let wednesday = 8
 let thursday = 16
 let friday = 32
 let saturday = 64
-let weekdays = monday lor tuesday lor wednesday lor thursday lor friday
-let weekend = saturday lor sunday
-let allDays = weekdays lor weekend
+let weekdays = lor(lor(lor(lor(monday, tuesday), wednesday), thursday), friday)
+let weekend = lor(saturday, sunday)
+let allDays = lor(weekdays, weekend)
 
 /** Check if current time (hour 0-23, day 0-6 Sunday=0) is within policy */
 let isTimeActiveAt = (policy: timePolicy, hour: int, dayOfWeek: int): bool => {
@@ -301,8 +303,8 @@ let isTimeActiveAt = (policy: timePolicy, hour: int, dayOfWeek: int): bool => {
   } else if dayOfWeek < 0 || dayOfWeek > 6 {
     false
   } else {
-    let dayMask = 1 lsl dayOfWeek
-    if policy.days land dayMask == 0 {
+    let dayMask = lsl(1, dayOfWeek)
+    if land(policy.days, dayMask) == 0 {
       false
     } else if policy.startHour <= policy.endHour {
       hour >= policy.startHour && hour < policy.endHour

@@ -339,5 +339,8 @@ test "isValid" {
 
 test "strength" {
     try std.testing.expectEqual(Strength.very_weak, strength("pass"));
-    try std.testing.expectEqual(Strength.weak, strength("password"));
+    // "password" is in common passwords list, so it's very_weak
+    try std.testing.expectEqual(Strength.very_weak, strength("password"));
+    // A password with length and mixed chars is weak
+    try std.testing.expectEqual(Strength.weak, strength("Simple99"));
 }

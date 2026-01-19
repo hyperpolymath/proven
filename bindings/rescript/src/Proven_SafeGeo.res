@@ -84,7 +84,7 @@ let distanceMeters = (coord1: coordinate, coord2: coordinate): float => {
     Js.Math.sin(deltaLon /. 2.0) *.
     Js.Math.sin(deltaLon /. 2.0)
 
-  let c = 2.0 *. Js.Math.atan2(~y=Js.Math.sqrt(a), ~x=Js.Math.sqrt(1.0 -. a))
+  let c = 2.0 *. Js.Math.atan2(~y=Js.Math.sqrt(a), ~x=Js.Math.sqrt(1.0 -. a), ())
 
   earthRadiusMeters *. c
 }
@@ -110,7 +110,7 @@ let bearingTo = (coord1: coordinate, coord2: coordinate): float => {
     Js.Math.cos(lat1) *. Js.Math.sin(lat2) -.
     Js.Math.sin(lat1) *. Js.Math.cos(lat2) *. Js.Math.cos(deltaLon)
 
-  let bearing = toDegrees(Js.Math.atan2(~y, ~x))
+  let bearing = toDegrees(Js.Math.atan2(~y, ~x, ()))
   mod_float(bearing +. 360.0, 360.0)
 }
 
@@ -144,6 +144,7 @@ let destination = (
     Js.Math.atan2(
       ~y=Js.Math.sin(brng) *. Js.Math.sin(angularDistance) *. Js.Math.cos(lat1),
       ~x=Js.Math.cos(angularDistance) -. Js.Math.sin(lat1) *. Js.Math.sin(lat2),
+      (),
     )
 
   // Normalize longitude to -180 to 180

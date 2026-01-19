@@ -88,15 +88,15 @@ sigmoidVec : List Double -> List Double
 sigmoidVec = map sigmoid
 
 ||| Hyperbolic tangent (safe, using sigmoid identity)
-||| tanh(x) = 2*sigmoid(2x) - 1
+||| safeTanh(x) = 2*sigmoid(2x) - 1
 public export
-tanh : Double -> Double
-tanh x = 2.0 * sigmoid (2.0 * x) - 1.0
+safeTanh : Double -> Double
+safeTanh x = 2.0 * sigmoid (2.0 * x) - 1.0
 
 ||| Tanh on a vector
 public export
 tanhVec : List Double -> List Double
-tanhVec = map tanh
+tanhVec = map safeTanh
 
 ||| GELU (Gaussian Error Linear Unit) approximation
 ||| GELU(x) ≈ 0.5 * x * (1 + tanh(sqrt(2/π) * (x + 0.044715 * x³)))
@@ -106,7 +106,7 @@ gelu x =
   let sqrt2OverPi = 0.7978845608028654  -- sqrt(2/π)
       coeff = 0.044715
       inner = sqrt2OverPi * (x + coeff * x * x * x)
-  in 0.5 * x * (1.0 + tanh inner)
+  in 0.5 * x * (1.0 + safeTanh inner)
 
 ||| GELU on a vector
 public export
@@ -462,9 +462,10 @@ accuracy predictions targets =
 public export
 topKCorrect : (k : Nat) -> List Double -> Nat -> Bool
 topKCorrect k probs trueLabel =
-  let indexed = zip [0..length probs] probs
+  let indexed : List (Nat, Double) = zip [0..length probs] probs
       -- Sort by probability descending (simple selection sort for small k)
-      topKIndices = take k (map fst (sortBy (\(_, p1), (_, p2) => compare p2 p1) indexed))
+      sorted : List (Nat, Double) = sortBy (\x, y => compare (snd y) (snd x)) indexed
+      topKIndices : List Nat = take k (map fst sorted)
   in elem trueLabel topKIndices
 
 --------------------------------------------------------------------------------
@@ -474,17 +475,17 @@ topKCorrect k probs trueLabel =
 ||| Check if all values in a list are finite
 public export
 allFinite : List Double -> Bool
-allFinite = all SafeFloat.isFinite
+allFinite xs = all isFinite xs
 
 ||| Check for NaN values in a list
 public export
 hasNaN : List Double -> Bool
-hasNaN = any SafeFloat.isNaN
+hasNaN xs = any isNaN xs
 
-||| Sanitize a vector by replacing NaN/Inf with a default
+||| Sanitize a vector by replacing NaN/Inf with a default value
 public export
-sanitizeVec : (default : Double) -> List Double -> List Double
-sanitizeVec def = map (SafeFloat.sanitize def)
+sanitizeVec : (defVal : Double) -> List Double -> List Double
+sanitizeVec defVal xs = map (sanitize defVal) xs
 
 ||| Check if gradients have exploded (norm exceeds threshold)
 public export

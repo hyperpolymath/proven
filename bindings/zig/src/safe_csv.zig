@@ -109,7 +109,7 @@ pub const Reader = struct {
     pub fn next(self: *Reader) CsvError!?Row {
         if (self.position >= self.input.len) return null;
 
-        var fields = std.ArrayList([]const u8).init(self.allocator);
+        var fields = std.array_list.Managed([]const u8).init(self.allocator);
         errdefer {
             for (fields.items) |field| {
                 self.allocator.free(field);
@@ -166,7 +166,7 @@ pub const Reader = struct {
     }
 
     fn parseField(self: *Reader) CsvError![]const u8 {
-        var result = std.ArrayList(u8).init(self.allocator);
+        var result = std.array_list.Managed(u8).init(self.allocator);
         errdefer result.deinit();
 
         const in_quotes = self.position < self.input.len and self.input[self.position] == self.options.quote;
@@ -238,7 +238,7 @@ pub const Reader = struct {
 pub fn parseAll(allocator: Allocator, input: []const u8, options: ParseOptions) CsvError![]Row {
     if (input.len == 0) return error.EmptyInput;
 
-    var rows = std.ArrayList(Row).init(allocator);
+    var rows = std.array_list.Managed(Row).init(allocator);
     errdefer {
         for (rows.items) |row| {
             row.deinit();
@@ -282,7 +282,7 @@ pub fn escapeField(allocator: Allocator, field: []const u8, options: WriteOption
         return allocator.dupe(u8, field);
     }
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.append(options.quote);
@@ -302,7 +302,7 @@ pub fn escapeField(allocator: Allocator, field: []const u8, options: WriteOption
 
 /// Write a single row to CSV format
 pub fn writeRow(allocator: Allocator, fields: []const []const u8, options: WriteOptions) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (fields, 0..) |field, field_index| {
@@ -335,13 +335,13 @@ pub fn writeRow(allocator: Allocator, fields: []const []const u8, options: Write
 
 /// CSV Writer for building CSV output incrementally
 pub const Writer = struct {
-    buffer: std.ArrayList(u8),
+    buffer: std.array_list.Managed(u8),
     options: WriteOptions,
     row_count: usize,
 
     pub fn init(allocator: Allocator, options: WriteOptions) Writer {
         return Writer{
-            .buffer = std.ArrayList(u8).init(allocator),
+            .buffer = std.array_list.Managed(u8).init(allocator),
             .options = options,
             .row_count = 0,
         };

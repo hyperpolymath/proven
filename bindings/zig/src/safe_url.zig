@@ -116,7 +116,7 @@ pub const Url = struct {
 
 /// Get the default port for a scheme
 pub fn getDefaultPort(scheme: []const u8) ?u16 {
-    const ports = std.ComptimeStringMap(u16, .{
+    const ports = std.StaticStringMap(u16).initComptime(.{
         .{ "http", 80 },
         .{ "https", 443 },
         .{ "ftp", 21 },
@@ -246,14 +246,16 @@ pub fn isValid(input: []const u8) bool {
 
 /// URL-encode a string
 pub fn encode(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
-    var list = std.ArrayList(u8).init(allocator);
+    var list = std.array_list.Managed(u8).init(allocator);
     errdefer list.deinit();
 
     for (input) |c| {
         if (std.ascii.isAlphanumeric(c) or c == '-' or c == '_' or c == '.' or c == '~') {
             try list.append(c);
         } else {
-            try list.writer().print("%{X:0>2}", .{c});
+            var buf: [3]u8 = undefined;
+            const formatted = std.fmt.bufPrint(&buf, "%{X:0>2}", .{c}) catch continue;
+            try list.appendSlice(formatted);
         }
     }
 
@@ -262,7 +264,7 @@ pub fn encode(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
 
 /// URL-decode a string
 pub fn decode(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
-    var list = std.ArrayList(u8).init(allocator);
+    var list = std.array_list.Managed(u8).init(allocator);
     errdefer list.deinit();
 
     var i: usize = 0;

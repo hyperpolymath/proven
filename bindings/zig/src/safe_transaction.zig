@@ -9,6 +9,12 @@
 
 const std = @import("std");
 
+/// Get current Unix timestamp in seconds.
+fn getTimestamp() i64 {
+    const ts = std.posix.clock_gettime(.REALTIME) catch return 0;
+    return ts.sec;
+}
+
 /// Error types for transaction operations.
 pub const TransactionError = error{
     NotInTransaction,
@@ -121,7 +127,7 @@ pub fn TransactionManager(comptime max_ops: usize) type {
             self.isolation_level = level;
             self.operation_count = 0;
             self.savepoint_count = 0;
-            self.started_at = std.time.timestamp();
+            self.started_at = getTimestamp();
             self.transaction_id = self.next_id;
             self.next_id += 1;
 
@@ -160,7 +166,7 @@ pub fn TransactionManager(comptime max_ops: usize) type {
             self.savepoints[self.savepoint_count] = .{
                 .name = name,
                 .operation_index = self.operation_count,
-                .created_at = std.time.timestamp(),
+                .created_at = getTimestamp(),
             };
             self.savepoint_count += 1;
         }
@@ -232,7 +238,7 @@ pub fn TransactionManager(comptime max_ops: usize) type {
                 .key = key,
                 .old_value = old_value,
                 .new_value = new_value,
-                .timestamp = std.time.timestamp(),
+                .timestamp = getTimestamp(),
             };
             self.operation_count += 1;
         }

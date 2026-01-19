@@ -175,7 +175,7 @@ pub const Token = struct {
 
     /// Get the signing input (header.payload).
     pub fn getSigningInput(self: Token, allocator: Allocator) ![]u8 {
-        var result = std.ArrayList(u8).init(allocator);
+        var result = std.array_list.Managed(u8).init(allocator);
         errdefer result.deinit();
 
         try result.appendSlice(self.raw_header);

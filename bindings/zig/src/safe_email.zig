@@ -71,7 +71,7 @@ pub fn getLocalPart(email: []const u8) EmailError![]const u8 {
 pub fn normalize(allocator: Allocator, email: []const u8) EmailError![]u8 {
     const parts = try split(email);
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     result.appendSlice(parts.local_part) catch return error.OutOfMemory;

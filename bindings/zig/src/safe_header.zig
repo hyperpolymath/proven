@@ -37,13 +37,13 @@ pub const Header = struct {
 
 /// HTTP header collection
 pub const Headers = struct {
-    items: std.ArrayList(Header),
+    items: std.array_list.Managed(Header),
     allocator: std.mem.Allocator,
 
     /// Create new headers collection
     pub fn init(allocator: std.mem.Allocator) Headers {
         return Headers{
-            .items = std.ArrayList(Header).init(allocator),
+            .items = std.array_list.Managed(Header).init(allocator),
             .allocator = allocator,
         };
     }
@@ -71,7 +71,7 @@ pub const Headers = struct {
 
     /// Get all header values by name
     pub fn getAll(self: Headers, allocator: std.mem.Allocator, name: []const u8) ![]const []const u8 {
-        var result = std.ArrayList([]const u8).init(allocator);
+        var result = std.array_list.Managed([]const u8).init(allocator);
         errdefer result.deinit();
 
         for (self.items.items) |h| {

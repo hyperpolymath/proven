@@ -8,7 +8,7 @@ const Allocator = std.mem.Allocator;
 
 /// Escape a string for safe HTML insertion.
 pub fn escapeHtml(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
@@ -28,7 +28,7 @@ pub fn escapeHtml(allocator: Allocator, value: []const u8) ![]u8 {
 /// Escape a string for safe SQL interpolation.
 /// Note: Prefer parameterized queries over string interpolation.
 pub fn escapeSql(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
@@ -44,7 +44,7 @@ pub fn escapeSql(allocator: Allocator, value: []const u8) ![]u8 {
 
 /// Escape a string for safe JavaScript string literal insertion.
 pub fn escapeJs(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
@@ -72,7 +72,7 @@ pub fn truncateSafe(allocator: Allocator, value: []const u8, max_length: usize, 
         return try allocator.dupe(u8, value[0..max_length]);
     }
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.appendSlice(value[0 .. max_length - suffix.len]);

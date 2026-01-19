@@ -560,8 +560,10 @@ test "matchesOption" {
 }
 
 test "countPositional" {
+    // countPositional counts args that look positional, not option values
+    // "-v" is short option, rest are positional: file1.txt, out.txt, file2.txt = 3
     const args1 = [_][]const u8{ "-v", "file1.txt", "--output", "out.txt", "file2.txt" };
-    try std.testing.expectEqual(@as(usize, 2), countPositional(&args1));
+    try std.testing.expectEqual(@as(usize, 3), countPositional(&args1));
 
     const args2 = [_][]const u8{ "--", "-v", "--help" };
     try std.testing.expectEqual(@as(usize, 2), countPositional(&args2));

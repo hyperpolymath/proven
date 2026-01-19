@@ -37,6 +37,12 @@ pub const EscapeMode = enum {
     cdata,
 };
 
+/// An XML attribute name-value pair.
+pub const Attribute = struct {
+    name: []const u8,
+    value: []const u8,
+};
+
 /// Escape a string for safe inclusion in XML text content.
 /// Escapes: < > & ' "
 pub fn escapeText(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
@@ -51,7 +57,7 @@ pub fn escapeAttribute(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
 
 /// Escape a string with the specified mode.
 pub fn escapeWithMode(allocator: std.mem.Allocator, input: []const u8, escape_mode: EscapeMode) ![]u8 {
-    var output_list = std.ArrayList(u8).init(allocator);
+    var output_list = std.array_list.Managed(u8).init(allocator);
     errdefer output_list.deinit();
 
     for (input) |character| {
@@ -64,7 +70,9 @@ pub fn escapeWithMode(allocator: std.mem.Allocator, input: []const u8, escape_mo
             else => {
                 if (escape_mode == .attribute and character < 0x20 and character != '\t' and character != '\n' and character != '\r') {
                     // Escape control characters in attributes as numeric entities
-                    try output_list.writer().print("&#x{X:0>2};", .{character});
+                    var buf: [10]u8 = undefined;
+                    const formatted = std.fmt.bufPrint(&buf, "&#x{X:0>2};", .{character}) catch continue;
+                    try output_list.appendSlice(formatted);
                 } else if (escape_mode == .cdata and character == ']') {
                     // Check for CDATA end sequence
                     try output_list.append(character);
@@ -80,7 +88,7 @@ pub fn escapeWithMode(allocator: std.mem.Allocator, input: []const u8, escape_mo
 
 /// Unescape XML entities in a string.
 pub fn unescape(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
-    var output_list = std.ArrayList(u8).init(allocator);
+    var output_list = std.array_list.Managed(u8).init(allocator);
     errdefer output_list.deinit();
 
     var read_index: usize = 0;
@@ -220,7 +228,7 @@ pub fn isValidContent(content: []const u8) bool {
 
 /// Remove invalid XML characters from a string.
 pub fn sanitizeContent(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
-    var output_list = std.ArrayList(u8).init(allocator);
+    var output_list = std.array_list.Managed(u8).init(allocator);
     errdefer output_list.deinit();
 
     var iterator = std.unicode.Utf8Iterator{ .bytes = input, .i = 0 };
@@ -242,11 +250,11 @@ pub fn createElement(
     allocator: std.mem.Allocator,
     tag_name: []const u8,
     content: ?[]const u8,
-    attributes: ?[]const struct { name: []const u8, value: []const u8 },
+    attributes: ?[]const Attribute,
 ) ![]u8 {
     if (!isValidName(tag_name)) return error.InvalidName;
 
-    var output_list = std.ArrayList(u8).init(allocator);
+    var output_list = std.array_list.Managed(u8).init(allocator);
     errdefer output_list.deinit();
 
     // Opening tag
@@ -290,7 +298,7 @@ pub fn createCDATA(allocator: std.mem.Allocator, content: []const u8) ![]u8 {
         return error.InvalidCharacter;
     }
 
-    var output_list = std.ArrayList(u8).init(allocator);
+    var output_list = std.array_list.Managed(u8).init(allocator);
     errdefer output_list.deinit();
 
     try output_list.appendSlice("<![CDATA[");
@@ -310,7 +318,7 @@ pub fn createComment(allocator: std.mem.Allocator, content: []const u8) ![]u8 {
         return error.InvalidCharacter;
     }
 
-    var output_list = std.ArrayList(u8).init(allocator);
+    var output_list = std.array_list.Managed(u8).init(allocator);
     errdefer output_list.deinit();
 
     try output_list.appendSlice("<!-- ");
@@ -421,7 +429,7 @@ test "createElement" {
     try std.testing.expectEqualStrings("<br/>", selfclosing);
 
     // With attributes
-    const attrs = [_]struct { name: []const u8, value: []const u8 }{
+    const attrs = [_]Attribute{
         .{ .name = "class", .value = "test" },
         .{ .name = "id", .value = "main" },
     };

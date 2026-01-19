@@ -144,7 +144,7 @@ pub fn escapeUrl(input: []const u8, buffer: []u8) HtmlError![]const u8 {
 
 /// Check if a URL scheme is considered safe (no javascript:, data:, vbscript:, etc.)
 pub fn isSafeUrlScheme(url: []const u8) bool {
-    const trimmed = std.mem.trimLeft(u8, url, " \t\n\r");
+    const trimmed = std.mem.trimStart(u8, url, " \t\n\r");
 
     // Check for dangerous schemes (case-insensitive)
     const dangerous_schemes = [_][]const u8{

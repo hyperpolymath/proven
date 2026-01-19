@@ -190,9 +190,16 @@ pub fn parseDate(input: []const u8) DateTimeError!DateTime {
     return dt;
 }
 
+/// Get current Unix timestamp in seconds.
+/// This is a cross-platform helper for getting the current time.
+pub fn getTimestamp() i64 {
+    const ts = std.posix.clock_gettime(.REALTIME) catch return 0;
+    return ts.sec;
+}
+
 /// Get current UTC time
 pub fn now() DateTime {
-    const timestamp = std.time.timestamp();
+    const timestamp = getTimestamp();
     return DateTime.fromUnixTimestamp(timestamp);
 }
 

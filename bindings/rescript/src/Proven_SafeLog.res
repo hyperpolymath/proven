@@ -421,7 +421,7 @@ let formatJson = (entry: logEntry): string => {
     let _ = Js.Array2.push(parts, "\"" ++ field.name ++ "\":" ++ valueStr)
   })
 
-  "{" ++ Js.Array2.join(parts, ",") ++ "}"
+  "{" ++ Js.Array2.joinWith(parts, ",") ++ "}"
 }
 
 /** Format a log entry as a human-readable line */
@@ -447,10 +447,10 @@ let formatLine = (entry: logEntry): string => {
     let fieldStrs = entry.fields->Belt.Array.map(field => {
       field.name ++ "=" ++ fieldValueToString(field.value)
     })
-    let _ = Js.Array2.push(parts, "{" ++ Js.Array2.join(fieldStrs, ", ") ++ "}")
+    let _ = Js.Array2.push(parts, "{" ++ Js.Array2.joinWith(fieldStrs, ", ") ++ "}")
   }
 
-  Js.Array2.join(parts, " ")
+  Js.Array2.joinWith(parts, " ")
 }
 
 /** Create a child logger with additional context */

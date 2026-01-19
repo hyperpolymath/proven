@@ -91,7 +91,7 @@ pub const default_config = Config{};
 
 /// Escape string for HTML context.
 pub fn escapeHtml(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
@@ -111,7 +111,7 @@ pub fn escapeHtml(allocator: Allocator, value: []const u8) ![]u8 {
 
 /// Escape string for HTML attribute context.
 pub fn escapeHtmlAttribute(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
@@ -132,7 +132,7 @@ pub fn escapeHtmlAttribute(allocator: Allocator, value: []const u8) ![]u8 {
 
 /// Escape string for URL context (percent encoding).
 pub fn escapeUrl(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     const safe_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
@@ -153,7 +153,7 @@ pub fn escapeUrl(allocator: Allocator, value: []const u8) ![]u8 {
 
 /// Escape string for JavaScript context.
 pub fn escapeJavaScript(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
@@ -169,7 +169,9 @@ pub fn escapeJavaScript(allocator: Allocator, value: []const u8) ![]u8 {
             '/' => try result.appendSlice("\\/"),
             else => {
                 if (c < 0x20) {
-                    try result.writer().print("\\u{X:0>4}", .{c});
+                    var buf: [6]u8 = undefined;
+                    const formatted = std.fmt.bufPrint(&buf, "\\u{X:0>4}", .{c}) catch continue;
+                    try result.appendSlice(formatted);
                 } else {
                     try result.append(c);
                 }
@@ -182,14 +184,16 @@ pub fn escapeJavaScript(allocator: Allocator, value: []const u8) ![]u8 {
 
 /// Escape string for CSS context.
 pub fn escapeCss(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
         if (std.ascii.isAlphanumeric(c)) {
             try result.append(c);
         } else {
-            try result.writer().print("\\{X} ", .{c});
+            var buf: [8]u8 = undefined;
+            const formatted = std.fmt.bufPrint(&buf, "\\{X} ", .{c}) catch continue;
+            try result.appendSlice(formatted);
         }
     }
 
@@ -198,7 +202,7 @@ pub fn escapeCss(allocator: Allocator, value: []const u8) ![]u8 {
 
 /// Escape string for SQL context (single quotes).
 pub fn escapeSql(allocator: Allocator, value: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (value) |c| {
@@ -256,7 +260,7 @@ pub const Template = struct {
 
     /// Render the template with a custom lookup function.
     pub fn renderWithLookup(self: Template, lookup_ctx: anytype) ![]u8 {
-        var result = std.ArrayList(u8).init(self.allocator);
+        var result = std.array_list.Managed(u8).init(self.allocator);
         errdefer result.deinit();
 
         var pos: usize = 0;
@@ -378,7 +382,7 @@ pub fn isValid(template: []const u8, config: Config) bool {
 
 /// Extract variable names from a template.
 pub fn extractVariables(allocator: Allocator, template: []const u8, config: Config) ![][]const u8 {
-    var variables = std.ArrayList([]const u8).init(allocator);
+    var variables = std.array_list.Managed([]const u8).init(allocator);
     errdefer variables.deinit();
 
     var pos: usize = 0;

@@ -11,6 +11,23 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+/// Get current Unix timestamp in seconds.
+fn getTimestamp() i64 {
+    const ts = std.posix.clock_gettime(.REALTIME) catch return 0;
+    return ts.sec;
+}
+
+/// Constant-time comparison for fixed-size arrays.
+fn timingSafeEql(a: anytype, b: @TypeOf(a)) bool {
+    const bytes_a = std.mem.asBytes(&a);
+    const bytes_b = std.mem.asBytes(&b);
+    var acc: u8 = 0;
+    for (bytes_a, bytes_b) |x, y| {
+        acc |= x ^ y;
+    }
+    return acc == 0;
+}
+
 /// Error types for capability operations.
 pub const CapabilityError = error{
     InvalidToken,
@@ -190,7 +207,7 @@ pub const Capability = struct {
     /// Check if capability is expired.
     pub fn isExpired(self: *const Capability) bool {
         if (self.expires_at == 0) return false;
-        const now = std.time.timestamp();
+        const now = getTimestamp();
         return now > self.expires_at;
     }
 
@@ -213,7 +230,7 @@ pub const Capability = struct {
     /// Get remaining time in seconds (0 if expired or no expiry).
     pub fn remainingTime(self: *const Capability) i64 {
         if (self.expires_at == 0) return 0;
-        const now = std.time.timestamp();
+        const now = getTimestamp();
         const remaining = self.expires_at - now;
         return if (remaining > 0) remaining else 0;
     }
@@ -276,8 +293,8 @@ pub const CapabilityFactory = struct {
             .id = undefined,
             .resource = resource,
             .permissions = permissions,
-            .created_at = std.time.timestamp(),
-            .expires_at = if (expiry_seconds > 0) std.time.timestamp() + expiry_seconds else 0,
+            .created_at = getTimestamp(),
+            .expires_at = if (expiry_seconds > 0) getTimestamp() + expiry_seconds else 0,
             .delegation_depth = 0,
             .max_delegation_depth = max_delegation,
             .revoked = false,
@@ -307,7 +324,7 @@ pub const CapabilityFactory = struct {
             .id = undefined,
             .resource = parent.resource,
             .permissions = parent.permissions.intersect(new_permissions),
-            .created_at = std.time.timestamp(),
+            .created_at = getTimestamp(),
             .expires_at = parent.expires_at, // Inherit parent expiry
             .delegation_depth = parent.delegation_depth + 1,
             .max_delegation_depth = parent.max_delegation_depth,
@@ -324,7 +341,7 @@ pub const CapabilityFactory = struct {
     /// Verify a capability's signature.
     pub fn verify(self: *const CapabilityFactory, capability: *const Capability) bool {
         const expected_signature = self.sign(capability);
-        return std.crypto.utils.timingSafeEql(expected_signature, capability.signature);
+        return timingSafeEql(expected_signature, capability.signature);
     }
 
     /// Validate a capability for a specific resource and permission.
@@ -362,7 +379,7 @@ pub const CapabilityFactory = struct {
 
     /// Sign a capability (internal).
     fn sign(self: *const CapabilityFactory, capability: *const Capability) [32]u8 {
-        var hmac = std.crypto.auth.hmac.HmacSha256.init(&self.secret_key);
+        var hmac = std.crypto.auth.hmac.sha2.HmacSha256.init(&self.secret_key);
 
         // Include all relevant fields in signature
         hmac.update(&capability.id);
@@ -373,7 +390,9 @@ pub const CapabilityFactory = struct {
         hmac.update(std.mem.asBytes(&capability.expires_at));
         hmac.update(&[_]u8{ capability.delegation_depth, capability.max_delegation_depth });
 
-        return hmac.finalResult();
+        var result: [32]u8 = undefined;
+        hmac.final(&result);
+        return result;
     }
 };
 

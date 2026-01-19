@@ -45,6 +45,17 @@ pack install-deps
 # Install Zig
 # See: https://ziglang.org/download/
 
+# Environment fallback (Guix)
+guix time-machine -C guix/channels.scm -- \
+  shell -m guix/manifest.scm
+
+# Environment fallback (Nix)
+nix-shell nix/shard.nix
+
+# Pin cadence (Guix + Nix)
+# Monthly on the first Saturday, plus CVE-driven updates as needed:
+./scripts/update-env-pins.sh
+
 # Build
 zig build
 

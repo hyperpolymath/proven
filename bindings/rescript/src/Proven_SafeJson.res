@@ -16,16 +16,8 @@ type rec jsonValue =
   | Array(array<jsonValue>)
   | Object(Js.Dict.t<jsonValue>)
 
-/** Parse a JSON string safely */
-let parse = (jsonString: string): option<jsonValue> => {
-  try {
-    let parsed = Js.Json.parseExn(jsonString)
-    Some(fromJsJson(parsed))
-  } catch {
-  | _ => None
-  }
-}
-and fromJsJson = (json: Js.Json.t): jsonValue => {
+/** Convert Js.Json.t to jsonValue */
+let rec fromJsJson = (json: Js.Json.t): jsonValue => {
   switch Js.Json.classify(json) {
   | Js.Json.JSONNull => Null
   | Js.Json.JSONFalse => Bool(false)
@@ -36,6 +28,16 @@ and fromJsJson = (json: Js.Json.t): jsonValue => {
   | Js.Json.JSONObject(dict) =>
     let converted = Js.Dict.map((. v) => fromJsJson(v), dict)
     Object(converted)
+  }
+}
+
+/** Parse a JSON string safely */
+let parse = (jsonString: string): option<jsonValue> => {
+  try {
+    let parsed = Js.Json.parseExn(jsonString)
+    Some(fromJsJson(parsed))
+  } catch {
+  | _ => None
   }
 }
 

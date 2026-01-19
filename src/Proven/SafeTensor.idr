@@ -122,7 +122,7 @@ matVecList (row :: rows) v = do
 ||| Safe index into a vector using a bounded index
 public export
 indexVec : Vector n a -> Fin n -> a
-indexVec = index
+indexVec v i = index i v
 
 ||| Safe index into a list with bounds checking
 public export
@@ -148,7 +148,7 @@ argmax : Ord a => Vector (S n) a -> Fin (S n)
 argmax {n = Z} (x :: []) = FZ
 argmax {n = S m} (x :: y :: ys) =
   let rest = argmax (y :: ys)
-      maxRest = index (y :: ys) rest
+      maxRest = index rest (y :: ys)
   in if x >= maxRest then FZ else FS rest
 
 ||| Find the index of the maximum value in a list
@@ -184,10 +184,10 @@ public export
 sumVec : Num a => Vector n a -> a
 sumVec = foldr (+) 0
 
-||| Sum of list elements with overflow detection
+||| Sum of list elements
 public export
-sumList : List Double -> Maybe Double
-sumList = SafeFloat.sumSafe
+sumList : List Double -> Double
+sumList = foldr (+) 0.0
 
 ||| Product of vector elements
 public export
@@ -200,9 +200,9 @@ prodVec = foldr (*) 1
 
 ||| Transpose a matrix (type-safe)
 public export
-transpose : Matrix m n a -> Matrix n m a
-transpose [] = replicate _ []
-transpose (x :: xs) = zipWith (::) x (transpose xs)
+transposeMatrix : {n : Nat} -> Matrix m n a -> Matrix n m a
+transposeMatrix {n} [] = replicate n []
+transposeMatrix (x :: xs) = zipWith (::) x (transposeMatrix xs)
 
 ||| Transpose for list-based matrices
 public export
@@ -304,5 +304,5 @@ public export
 addAssociative : Vector n Double -> Vector n Double -> Vector n Double -> Bool
 addAssociative xs ys zs = addVec (addVec xs ys) zs == addVec xs (addVec ys zs)
 
-||| Length of a matrix-vector product equals number of rows
-||| This is guaranteed by the type signature of matVec
+-- Note: Length of a matrix-vector product equals number of rows
+-- This is guaranteed by the type signature of matVec

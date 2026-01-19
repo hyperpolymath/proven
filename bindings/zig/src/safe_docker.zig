@@ -395,7 +395,7 @@ pub fn isValidImageReference(input: []const u8) bool {
 pub fn normalizeImageReference(allocator: Allocator, input: []const u8) DockerError![]u8 {
     const ref = try parseImageReference(input);
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     // Add registry

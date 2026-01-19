@@ -351,7 +351,7 @@ pub fn escapeString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
         return allocator.dupe(u8, input);
     }
 
-    var output_list = std.ArrayList(u8).init(allocator);
+    var output_list = std.array_list.Managed(u8).init(allocator);
     errdefer output_list.deinit();
 
     try output_list.append('"');
@@ -392,7 +392,7 @@ pub fn unescapeString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
     if (is_single_quoted) {
         // Single-quoted strings only escape '' as '
         const content = trimmed[1 .. trimmed.len - 1];
-        var output_list = std.ArrayList(u8).init(allocator);
+        var output_list = std.array_list.Managed(u8).init(allocator);
         errdefer output_list.deinit();
 
         var read_index: usize = 0;
@@ -412,7 +412,7 @@ pub fn unescapeString(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
     if (is_double_quoted) {
         // Double-quoted strings support escape sequences
         const content = trimmed[1 .. trimmed.len - 1];
-        var output_list = std.ArrayList(u8).init(allocator);
+        var output_list = std.array_list.Managed(u8).init(allocator);
         errdefer output_list.deinit();
 
         var read_index: usize = 0;

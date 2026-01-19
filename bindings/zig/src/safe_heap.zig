@@ -91,9 +91,11 @@ pub fn BoundedHeap(comptime T: type, comptime capacity: usize, comptime order: H
             }
 
             // Check if we should replace the root
+            // For min-heap (tracking top-K largest): replace if value > root
+            // For max-heap (tracking top-K smallest): replace if value < root
             const should_replace = switch (order) {
-                .min => self.compare(value, self.data[0]), // value > root for min-heap
-                .max => self.compare(self.data[0], value), // root > value for max-heap
+                .min => self.compare(self.data[0], value), // root < value means value > root
+                .max => self.compare(value, self.data[0]), // value > root means value < root (inverted)
             };
 
             if (should_replace) {

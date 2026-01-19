@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeArchive - Archive format detection and validation that cannot crash.
  *
@@ -195,7 +197,7 @@ let detectFormat = (data: array<int>): option<archiveFormat> => {
 
 /** Check if data is a valid archive of any supported format */
 let isValidArchive = (data: array<int>): bool => {
-  Option.isSome(detectFormat(data))
+  Belt.Option.isSome(detectFormat(data))
 }
 
 /** Archive detection result with confidence level */

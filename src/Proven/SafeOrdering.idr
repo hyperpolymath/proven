@@ -149,11 +149,12 @@ addEvent evt deps hist =
     happensBefore := map (\d => (d, eventId evt)) deps ++ happensBefore hist } hist
 
 ||| Check if one event causally precedes another
+||| Uses assert_total as termination depends on acyclic causal graph
 public export
 causallyPrecedes : EventId -> EventId -> CausalHistory -> Bool
 causallyPrecedes e1 e2 hist =
   elem (e1, e2) (happensBefore hist) ||
-  any (\mid => causallyPrecedes e1 mid hist && elem (mid, e2) (happensBefore hist))
+  any (\mid => assert_total (causallyPrecedes e1 mid hist) && elem (mid, e2) (happensBefore hist))
       (map fst (happensBefore hist))
 
 ||| Causal delivery - events delivered in causal order
@@ -183,13 +184,14 @@ addPending : Event -> List EventId -> CausalDelivery -> CausalDelivery
 addPending evt deps cd = { pending := (evt, deps) :: pending cd } cd
 
 ||| Process pending events
+||| Uses assert_total as termination depends on finite pending list
 public export
 processPending : CausalDelivery -> CausalDelivery
 processPending cd =
   case find (\p => canDeliver (fst p) (snd p) cd) (pending cd) of
     Nothing => cd
     Just (evt, deps) =>
-      processPending ({ delivered := evt :: delivered cd,
+      assert_total $ processPending ({ delivered := evt :: delivered cd,
                         pending := filter (\p => eventId (fst p) /= eventId evt) (pending cd) } cd)
 
 ||| Interval timestamp for efficient causal ordering

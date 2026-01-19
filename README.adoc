@@ -1602,6 +1602,25 @@ let proven = import "path/to/proven.ncl" in
 }
 ----
 
+=== Development Environment (Idris 2 core)
+
+[source,bash]
+----
+# Primary (pack)
+pack install-deps
+
+# Guix fallback
+guix time-machine -C guix/channels.scm -- \
+  shell -m guix/manifest.scm
+
+# Nix fallback
+nix-shell nix/shard.nix
+
+# Pin cadence (Guix master + nixpkgs-unstable)
+# Monthly on the first Saturday, plus CVE-driven updates:
+./scripts/update-env-pins.sh
+----
+
 === 89 Binding Targets
 
 Bindings are available for traditional languages, configuration languages, domain-specific languages, and exotic computing paradigms. See the `bindings/` directory for language-specific documentation.

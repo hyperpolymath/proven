@@ -106,7 +106,7 @@ pub const Fingerprint = struct {
 
     /// Format fingerprint as string.
     pub fn format(self: Fingerprint, allocator: Allocator) ![]u8 {
-        var result = std.ArrayList(u8).init(allocator);
+        var result = std.array_list.Managed(u8).init(allocator);
         errdefer result.deinit();
 
         try result.appendSlice(self.algorithm.prefix());
@@ -338,7 +338,7 @@ pub fn formatHostPort(allocator: Allocator, hostname: []const u8, port: u16) ![]
 
 /// Sanitize a key comment (remove potentially dangerous characters).
 pub fn sanitizeComment(allocator: Allocator, comment: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (comment) |c| {

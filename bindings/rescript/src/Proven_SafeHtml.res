@@ -278,7 +278,7 @@ let escapeJsInHtml = (input: string): string => {
   ->Js.String2.replaceByRe(%re("/</g"), "\\u003C")
   ->Js.String2.replaceByRe(%re("/>/g"), "\\u003E")
   ->Js.String2.replaceByRe(%re("/&/g"), "\\u0026")
-  ->Js.String2.replaceByRe(%re("/\\//g"), "\\/") // Prevent </script> injection
+  ->Js.String2.replaceByRe(%re("/[/]/g"), "\\/") // Prevent </script> injection
 }
 
 /** Encode data for safe insertion into a CSS context within HTML */
@@ -290,7 +290,7 @@ let escapeCssInHtml = (input: string): string => {
   ->Js.String2.replaceByRe(%re("/</g"), "\\3C ")
   ->Js.String2.replaceByRe(%re("/>/g"), "\\3E ")
   ->Js.String2.replaceByRe(%re("/&/g"), "\\26 ")
-  ->Js.String2.replaceByRe(%re("/\\//g"), "\\2F ")
+  ->Js.String2.replaceByRe(%re("/[/]/g"), "\\2F ")
   ->Js.String2.replaceByRe(%re("/\n/g"), "\\A ")
   ->Js.String2.replaceByRe(%re("/\r/g"), "\\D ")
 }

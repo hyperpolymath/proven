@@ -270,11 +270,14 @@ let isValidOptionName = (name: string): bool => {
   }
 }
 
+/** Result of extracting a value */
+type extractValueResult = {value: string, consumedNext: bool}
+
 /** Extract value for an option, either attached or from next argument */
 let extractValue = (
   current: classifiedArg,
   nextArgValue: option<string>,
-): result<{value: string, consumedNext: bool}, argsError> => {
+): result<extractValueResult, argsError> => {
   // Value already attached (--opt=val or -oval)
   switch current.value {
   | Some(v) => Ok({value: v, consumedNext: false})

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
+open Proven_Bitwise
+
 /**
  * SafeCron - Safe cron expression parsing and validation.
  *
@@ -71,16 +73,16 @@ let matches = (
     let minuteBit = Js.Math.pow_float(~base=2.0, ~exp=Belt.Int.toFloat(minute))
     let minuteMatch = mod(Belt.Float.toInt(cronExpr.minutes /. minuteBit), 2) == 1
 
-    let hourMask = 1->lsl(hour)
+    let hourMask = lsl(1, hour)
     let hourMatch = land(cronExpr.hours, hourMask) != 0
 
-    let dayMask = 1->lsl(day)
+    let dayMask = lsl(1, day)
     let dayMatch = land(cronExpr.daysOfMonth, dayMask) != 0
 
-    let monthMask = 1->lsl(month)
+    let monthMask = lsl(1, month)
     let monthMatch = land(cronExpr.months, monthMask) != 0
 
-    let dowMask = 1->lsl(dayOfWeek)
+    let dowMask = lsl(1, dayOfWeek)
     let dowMatch = land(cronExpr.daysOfWeek, dowMask) != 0
 
     minuteMatch && hourMatch && dayMatch && monthMatch && dowMatch

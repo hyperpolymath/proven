@@ -506,11 +506,12 @@ test "DenseMatrix dimension mismatch" {
     var b = try DenseMatrix(i64).init(allocator, 2, 2);
     defer b.deinit();
 
-    // Addition with mismatched dimensions
+    // Addition with mismatched dimensions (2x3 vs 2x2)
     try std.testing.expectError(error.DimensionMismatch, a.add(b));
 
     // Multiplication with incompatible dimensions
-    try std.testing.expectError(error.DimensionMismatch, b.mul(a));
+    // a.mul(b) requires a.cols (3) == b.rows (2), which fails
+    try std.testing.expectError(error.DimensionMismatch, a.mul(b));
 }
 
 test "DenseMatrix transpose" {

@@ -72,7 +72,7 @@ const LINE_START_ESCAPE_CHARS = [_]u8{
 /// Escape special characters in inline Markdown text.
 /// This prevents user input from being interpreted as Markdown formatting.
 pub fn escapeInline(allocator: Allocator, input: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (input) |char| {
@@ -96,7 +96,7 @@ pub fn escapeInline(allocator: Allocator, input: []const u8) ![]u8 {
 /// Escape special characters at the start of lines.
 /// This prevents user input from creating headers, lists, etc.
 pub fn escapeLineStart(allocator: Allocator, input: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     var at_line_start = true;
@@ -144,7 +144,7 @@ pub fn escapeText(allocator: Allocator, input: []const u8) ![]u8 {
 
 /// Escape text for use in a Markdown link title.
 pub fn escapeLinkTitle(allocator: Allocator, title: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (title) |char| {
@@ -179,7 +179,7 @@ pub fn escapeCodeSpan(allocator: Allocator, code: []const u8) ![]u8 {
     // Use one more backtick than the maximum found
     const fence_count = max_backticks + 1;
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     // Opening fence
@@ -255,7 +255,7 @@ pub fn sanitizeUrl(allocator: Allocator, url: []const u8) ![]u8 {
         return try allocator.dupe(u8, "");
     }
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (url) |char| {
@@ -279,7 +279,7 @@ pub fn createLink(allocator: Allocator, text: []const u8, url: []const u8, title
         return error.InvalidLinkUrl;
     }
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.append('[');
@@ -316,7 +316,7 @@ pub fn createImage(allocator: Allocator, alt_text: []const u8, url: []const u8, 
         return error.InvalidImageUrl;
     }
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.appendSlice("![");
@@ -349,7 +349,7 @@ pub fn createImage(allocator: Allocator, alt_text: []const u8, url: []const u8, 
 
 /// Strip all Markdown formatting from text.
 pub fn stripFormatting(allocator: Allocator, input: []const u8) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     var index: usize = 0;
@@ -422,7 +422,7 @@ pub const BlockType = enum {
 
 /// Detect the type of a Markdown block from its first line.
 pub fn detectBlockType(line: []const u8) BlockType {
-    const trimmed = std.mem.trimLeft(u8, line, " \t");
+    const trimmed = std.mem.trimStart(u8, line, " \t");
 
     if (trimmed.len == 0) return .paragraph;
 

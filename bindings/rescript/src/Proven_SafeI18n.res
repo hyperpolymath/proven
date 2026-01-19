@@ -162,6 +162,7 @@ type countryCode =
   | TW // Taiwan
   | NZ // New Zealand
   | ZA // South Africa
+  | PT // Portugal
 
 /** Get the country name in English */
 let countryName = (code: countryCode): string => {
@@ -196,6 +197,7 @@ let countryName = (code: countryCode): string => {
   | TW => "Taiwan"
   | NZ => "New Zealand"
   | ZA => "South Africa"
+  | PT => "Portugal"
   }
 }
 
@@ -232,6 +234,7 @@ let countryCodeToString = (code: countryCode): string => {
   | TW => "TW"
   | NZ => "NZ"
   | ZA => "ZA"
+  | PT => "PT"
   }
 }
 
@@ -567,7 +570,7 @@ let localeToLanguageTag = (locale: locale): string => {
   | None => ()
   }
 
-  Js.Array2.join(parts, "-")
+  Js.Array2.joinWith(parts, "-")
 }
 
 /** Format as POSIX locale string (e.g., "en_US") */

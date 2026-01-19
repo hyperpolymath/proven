@@ -507,12 +507,14 @@ module Sorted = {
     }
   }
 
+  /** Get all items from the set */
+  let items = (set: sortedSet<'a>): array<'a> => {
+    Belt.Array.slice(set.data, ~offset=0, ~len=set.length)
+  }
+
   /** Get elements in range [low, high] */
   let range = (set: sortedSet<'a>, low: 'a, high: 'a): array<'a> => {
     Belt.Array.keep(items(set), elem => elem >= low && elem <= high)
-  }
-  and items = (set: sortedSet<'a>): array<'a> => {
-    Belt.Array.slice(set.data, ~offset=0, ~len=set.length)
   }
 
   let clear = (set: sortedSet<'a>): unit => {

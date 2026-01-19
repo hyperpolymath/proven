@@ -184,7 +184,8 @@ pub fn Rational(comptime T: type) type {
             if (self.numerator >= 0) {
                 return @divFloor(self.numerator + self.denominator - 1, self.denominator);
             } else {
-                return @divFloor(self.numerator, self.denominator);
+                // For negative numbers, use truncation (toward zero) for ceiling
+                return @divTrunc(self.numerator, self.denominator);
             }
         }
 

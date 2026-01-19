@@ -12,6 +12,7 @@
 module Proven.SafeConsensus
 
 import Data.List
+import Data.List.Elem
 import Data.Nat
 import Data.Fin
 import Data.Vect
@@ -48,18 +49,17 @@ record LogEntry (cmd : Type) where
 
 ||| Proof that we have a quorum (majority)
 public export
-data Quorum : (total : Nat) -> (votes : Nat) -> Type where
-  MkQuorum : (prf : LTE (S (divNatNZ total 2 SIsNonZero)) votes) ->
-             Quorum total votes
+data Quorum : (totalNodes : Nat) -> (votes : Nat) -> Type where
+  MkQuorum : (prf : LTE (S (divNatNZ totalNodes 2 SIsNonZero)) votes) ->
+             Quorum totalNodes votes
 
 ||| Check if we have quorum
 public export
-hasQuorum : (total : Nat) -> (votes : Nat) -> Dec (Quorum total votes)
-hasQuorum total votes =
-  let needed = S (divNatNZ total 2 SIsNonZero)
-  in case isLTE needed votes of
-       Yes prf => Yes (MkQuorum prf)
-       No contra => No (\(MkQuorum prf) => contra prf)
+hasQuorum : (totalNodes : Nat) -> (votes : Nat) -> Dec (Quorum totalNodes votes)
+hasQuorum totalNodes votes =
+  case isLTE (S (divNatNZ totalNodes 2 SIsNonZero)) votes of
+    Yes prf => Yes (MkQuorum prf)
+    No contra => No (\(MkQuorum prf) => contra prf)
 
 ||| Raft node state
 public export
@@ -112,7 +112,7 @@ handleRequestVote req node =
   if rvTerm req < currentTerm node
     then (MkVoteResponse (currentTerm node) False, node)
     else
-      let node' = if rvTerm req > currentTerm node
+      let node' : RaftNode cmd = if rvTerm req > currentTerm node
                     then { currentTerm := rvTerm req,
                            votedFor := Nothing,
                            role := Follower } node

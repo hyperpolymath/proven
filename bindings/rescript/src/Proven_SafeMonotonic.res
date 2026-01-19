@@ -285,22 +285,17 @@ let compareVectorClocks = (a: vectorClock, b: vectorClock): clockOrder => {
   let bEntries = b.entries
 
   // Collect all node IDs
+  module FloatCmp = Belt.Id.MakeComparable({
+    type t = float
+    let cmp = Pervasives.compare
+  })
+
   let allNodeIds = Belt.Set.fromArray(
     Belt.Array.concat(
       Belt.Array.map(aEntries, e => e.nodeId),
       Belt.Array.map(bEntries, e => e.nodeId),
     ),
-    ~id=module(Belt.Id.MakeComparable({
-      type t = float
-      let cmp = (x, y) =>
-        if x < y {
-          -1
-        } else if x > y {
-          1
-        } else {
-          0
-        }
-    })),
+    ~id=module(FloatCmp),
   )
 
   let aLessOrEqual = ref(true)

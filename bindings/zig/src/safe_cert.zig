@@ -121,7 +121,7 @@ pub fn extractPemContent(allocator: Allocator, pem: []const u8) CertError![]u8 {
     const content = pem[content_start..end_pos];
 
     // Strip whitespace and newlines
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     for (content) |c| {

@@ -11,7 +11,19 @@
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const fs = std.fs;
+const Io = std.Io;
+const Dir = Io.Dir;
+const File = Io.File;
+
+/// Get the global single-threaded Io instance for blocking operations.
+fn getIo() Io {
+    return Io.Threaded.global_single_threaded.ioBasic();
+}
+
+/// Get the current working directory handle.
+fn getCwd() Dir {
+    return Dir.cwd();
+}
 
 /// Error types for file operations.
 pub const FileError = error{
@@ -81,20 +93,24 @@ pub fn readFileBounded(
 ) FileError![]u8 {
     _ = validatePath(path) catch |err| return err;
 
-    const file = fs.cwd().openFile(path, .{}) catch |err| {
+    const io = getIo();
+    const cwd = getCwd();
+
+    const file = cwd.openFile(io, path, .{}) catch |err| {
         return switch (err) {
             error.FileNotFound => error.NotFound,
             error.AccessDenied => error.PermissionDenied,
-            error.IsDir => error.IsDirectory,
+            error.PermissionDenied => error.PermissionDenied,
+            error.NotDir => error.IsDirectory,
             else => error.OpenError,
         };
     };
-    defer file.close();
+    defer file.close(io);
 
-    const stat = file.stat() catch return error.ReadError;
+    const stat = file.stat(io) catch return error.ReadError;
     if (stat.size > max_size) return error.FileTooLarge;
 
-    const contents = file.readToEndAlloc(allocator, max_size) catch |err| {
+    const contents = file.readAllAlloc(io, allocator, .limited(max_size)) catch |err| {
         return switch (err) {
             error.OutOfMemory => error.OutOfMemory,
             else => error.ReadError,
@@ -119,7 +135,7 @@ pub fn readLines(
     const contents = try readFileBounded(allocator, path, max_size);
     errdefer allocator.free(contents);
 
-    var lines_list = std.ArrayList([]const u8).init(allocator);
+    var lines_list = std.array_list.Managed([]const u8).init(allocator);
     errdefer lines_list.deinit();
 
     var iter = std.mem.splitScalar(u8, contents, '\n');
@@ -136,41 +152,52 @@ pub fn readLines(
 pub fn writeFile(path: []const u8, data: []const u8) FileError!void {
     _ = validatePath(path) catch |err| return err;
 
-    const file = fs.cwd().createFile(path, .{}) catch |err| {
+    const io = getIo();
+    const cwd = getCwd();
+
+    const file = cwd.createFile(io, path, .{}) catch |err| {
         return switch (err) {
             error.AccessDenied => error.PermissionDenied,
-            error.IsDir => error.IsDirectory,
+            error.PermissionDenied => error.PermissionDenied,
+            error.NotDir => error.IsDirectory,
             else => error.OpenError,
         };
     };
-    defer file.close();
+    defer file.close(io);
 
-    file.writeAll(data) catch return error.WriteError;
+    file.writeAll(io, data) catch return error.WriteError;
 }
 
 /// Append data to a file safely.
 pub fn appendFile(path: []const u8, data: []const u8) FileError!void {
     _ = validatePath(path) catch |err| return err;
 
-    const file = fs.cwd().openFile(path, .{ .mode = .write_only }) catch |err| {
+    const io = getIo();
+    const cwd = getCwd();
+
+    const file = cwd.openFile(io, path, .{ .write = true }) catch |err| {
         return switch (err) {
             error.FileNotFound => error.NotFound,
             error.AccessDenied => error.PermissionDenied,
-            error.IsDir => error.IsDirectory,
+            error.PermissionDenied => error.PermissionDenied,
+            error.NotDir => error.IsDirectory,
             else => error.OpenError,
         };
     };
-    defer file.close();
+    defer file.close(io);
 
-    file.seekFromEnd(0) catch return error.WriteError;
-    file.writeAll(data) catch return error.WriteError;
+    file.seekFromEnd(io, 0) catch return error.WriteError;
+    file.writeAll(io, data) catch return error.WriteError;
 }
 
 /// Check if a file exists and is a regular file (not a directory).
 pub fn fileExists(path: []const u8) bool {
     _ = validatePath(path) catch return false;
 
-    const stat = fs.cwd().statFile(path) catch return false;
+    const io = getIo();
+    const cwd = getCwd();
+
+    const stat = cwd.statFile(io, path, .{}) catch return false;
     return stat.kind == .file;
 }
 
@@ -178,8 +205,11 @@ pub fn fileExists(path: []const u8) bool {
 pub fn directoryExists(path: []const u8) bool {
     _ = validatePath(path) catch return false;
 
-    var dir = fs.cwd().openDir(path, .{}) catch return false;
-    dir.close();
+    const io = getIo();
+    const cwd = getCwd();
+
+    var dir = cwd.openDir(io, path, .{}) catch return false;
+    dir.close(io);
     return true;
 }
 
@@ -187,7 +217,10 @@ pub fn directoryExists(path: []const u8) bool {
 pub fn getFileSize(path: []const u8) ?u64 {
     _ = validatePath(path) catch return null;
 
-    const stat = fs.cwd().statFile(path) catch return null;
+    const io = getIo();
+    const cwd = getCwd();
+
+    const stat = cwd.statFile(io, path, .{}) catch return null;
     if (stat.kind != .file) return null;
     return stat.size;
 }
@@ -197,11 +230,15 @@ pub fn copyFile(src_path: []const u8, dest_path: []const u8) FileError!void {
     _ = validatePath(src_path) catch |err| return err;
     _ = validatePath(dest_path) catch |err| return err;
 
-    fs.cwd().copyFile(src_path, fs.cwd(), dest_path, .{}) catch |err| {
+    const io = getIo();
+    const cwd = getCwd();
+
+    cwd.copyFile(io, src_path, cwd, dest_path, .{}) catch |err| {
         return switch (err) {
             error.FileNotFound => error.NotFound,
             error.AccessDenied => error.PermissionDenied,
-            error.IsDir => error.IsDirectory,
+            error.PermissionDenied => error.PermissionDenied,
+            error.NotDir => error.IsDirectory,
             else => error.WriteError,
         };
     };
@@ -212,11 +249,15 @@ pub fn copyFile(src_path: []const u8, dest_path: []const u8) FileError!void {
 pub fn deleteFile(path: []const u8) FileError!void {
     _ = validatePath(path) catch |err| return err;
 
-    fs.cwd().deleteFile(path) catch |err| {
+    const io = getIo();
+    const cwd = getCwd();
+
+    cwd.deleteFile(io, path) catch |err| {
         return switch (err) {
             error.FileNotFound => {}, // Idempotent delete
             error.AccessDenied => error.PermissionDenied,
-            error.IsDir => error.IsDirectory,
+            error.PermissionDenied => error.PermissionDenied,
+            error.NotDir => error.IsDirectory,
             else => error.WriteError,
         };
     };
@@ -227,11 +268,15 @@ pub fn renameFile(old_path: []const u8, new_path: []const u8) FileError!void {
     _ = validatePath(old_path) catch |err| return err;
     _ = validatePath(new_path) catch |err| return err;
 
-    fs.cwd().rename(old_path, new_path) catch |err| {
+    const io = getIo();
+    const cwd = getCwd();
+
+    cwd.rename(io, old_path, new_path) catch |err| {
         return switch (err) {
             error.FileNotFound => error.NotFound,
             error.AccessDenied => error.PermissionDenied,
-            error.IsDir => error.IsDirectory,
+            error.PermissionDenied => error.PermissionDenied,
+            error.NotDir => error.IsDirectory,
             else => error.WriteError,
         };
     };
@@ -241,7 +286,7 @@ pub fn renameFile(old_path: []const u8, new_path: []const u8) FileError!void {
 pub fn safePath(allocator: Allocator, base: []const u8, filename: []const u8) FileError![]u8 {
     if (hasTraversal(filename)) return error.TraversalDetected;
 
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     result.appendSlice(base) catch return error.OutOfMemory;

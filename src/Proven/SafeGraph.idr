@@ -158,6 +158,7 @@ edgesTo v g = filter (\e => e.target == v) g.edges
 
 ||| Find a path between two vertices using BFS
 ||| Returns Nothing if no path exists
+||| Uses assert_total as termination depends on finite graph
 public export
 findPath : Eq v => v -> v -> Graph v w -> Maybe (List v)
 findPath start end g =
@@ -171,11 +172,11 @@ findPath start end g =
       if current == end
         then Just (reverse path)
         else if any (== current) visited
-          then bfs queue visited
+          then assert_total $ bfs queue visited
           else let newVisited = current :: visited
                    nextNodes = filter (\n => not (any (== n) newVisited)) (neighbors current g)
                    newQueue = queue ++ map (\n => (n, n :: path)) nextNodes
-               in bfs newQueue newVisited
+               in assert_total $ bfs newQueue newVisited
 
 ||| Check if two vertices are connected
 public export
@@ -190,9 +191,10 @@ isConnected start end g =
 --------------------------------------------------------------------------------
 
 ||| Detect if graph has a cycle (using DFS)
+||| Uses assert_total as termination depends on acyclic exploration
 public export
 hasCycle : Eq v => Graph v w -> Bool
-hasCycle g = any (checkFromVertex []) g.vertices
+hasCycle g = any (checkFromVertex []) (vertices g)
   where
     dfs : List v -> List v -> v -> Bool
     dfs visited stack current =
@@ -202,8 +204,8 @@ hasCycle g = any (checkFromVertex []) g.vertices
           then False  -- Already fully explored
           else let newStack = current :: stack
                    succs = neighbors current g
-               in any (dfs visited newStack) succs
-    
+               in any (\s => assert_total (dfs visited newStack s)) succs
+
     checkFromVertex : List v -> v -> Bool
     checkFromVertex visited v = dfs visited [] v
 
@@ -211,30 +213,32 @@ hasCycle g = any (checkFromVertex []) g.vertices
 -- Topological Sort
 --------------------------------------------------------------------------------
 
+||| Visit helper for topological sort
+visitTopo : Eq v => Graph v w -> v -> List v -> List v -> (List v, List v)
+visitTopo g v visited result =
+  if any (== v) visited
+    then (visited, result)
+    else let newVisited = v :: visited
+             succs = neighbors v g
+             (finalVisited, afterSuccs) = foldl (\(vis, res), s => assert_total (visitTopo g s vis res)) (newVisited, result) succs
+         in (finalVisited, v :: afterSuccs)
+
+||| Topological sort helper
+topoSortHelper : Eq v => Graph v w -> List v -> List v -> List v -> List v
+topoSortHelper g [] _ result = result
+topoSortHelper g (v :: vs) visited result =
+  if any (== v) visited
+    then topoSortHelper g vs visited result
+    else let (newVisited, newResult) = visitTopo g v visited result
+         in assert_total $ topoSortHelper g vs newVisited newResult
+
 ||| Topological sort (returns Nothing if graph has cycles)
 public export
 topologicalSort : Eq v => Graph v w -> Maybe (List v)
 topologicalSort g =
   if hasCycle g
     then Nothing
-    else Just (topoSort g.vertices [] [])
-  where
-    topoSort : List v -> List v -> List v -> List v
-    topoSort [] _ result = result
-    topoSort (v :: vs) visited result =
-      if any (== v) visited
-        then topoSort vs visited result
-        else let (newVisited, newResult) = visit v visited result
-             in topoSort vs newVisited newResult
-    
-    visit : v -> List v -> List v -> (List v, List v)
-    visit v visited result =
-      if any (== v) visited
-        then (visited, result)
-        else let newVisited = v :: visited
-                 succs = neighbors v g
-                 (finalVisited, afterSuccs) = foldl (\(vis, res), s => visit s vis res) (newVisited, result) succs
-             in (finalVisited, v :: afterSuccs)
+    else Just (topoSortHelper g (vertices g) [] [])
 
 --------------------------------------------------------------------------------
 -- Display

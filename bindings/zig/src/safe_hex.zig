@@ -195,7 +195,7 @@ pub fn intToHex(value: u64, min_width: usize, out: []u8) HexError![]const u8 {
 
     var v = value;
     if (v == 0) {
-        temp[0] = '0';
+        temp[15] = '0';
         len = 1;
     } else {
         while (v > 0) : (len += 1) {

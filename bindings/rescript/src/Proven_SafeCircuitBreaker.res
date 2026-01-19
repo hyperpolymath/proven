@@ -49,6 +49,22 @@ type executionResult =
 // Default Configuration
 // ============================================================================
 
+/** Calculate time until circuit breaker allows retry */
+let timeUntilRetry = (cb: circuitBreaker, currentTime: float): float => {
+  switch cb.state {
+  | Open => {
+      let elapsed = currentTime -. cb.lastFailureTime
+      let remaining = cb.config.timeout -. elapsed
+      if remaining > 0.0 {
+        remaining
+      } else {
+        0.0
+      }
+    }
+  | _ => 0.0
+  }
+}
+
 /** Default circuit breaker configuration */
 let defaultConfig: circuitConfig = {
   failureThreshold: 5,
@@ -182,7 +198,7 @@ let execute = (cb: circuitBreaker, currentTime: float, success: bool): execution
       recordFailure(cb, currentTime)
     }
 
-    Executed({success})
+    Executed({success: success})
   }
 }
 
@@ -203,7 +219,7 @@ and tryExecute = (cb: circuitBreaker, currentTime: float, operation: unit => boo
       } else {
         recordFailure(cb, currentTime)
       }
-      Executed({success})
+      Executed({success: success})
     } catch {
     | _ => {
         recordFailure(cb, currentTime)

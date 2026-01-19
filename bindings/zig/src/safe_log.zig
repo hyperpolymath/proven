@@ -229,8 +229,7 @@ pub const Logger = struct {
     allocator: Allocator,
     name: ?[]const u8,
     minimum_level: Level,
-    context_fields: std.ArrayList(Field),
-    writer: ?std.io.AnyWriter,
+    context_fields: std.array_list.Managed(Field),
 
     /// Create a new logger.
     pub fn init(allocator: Allocator) Logger {
@@ -238,8 +237,7 @@ pub const Logger = struct {
             .allocator = allocator,
             .name = null,
             .minimum_level = .info,
-            .context_fields = std.ArrayList(Field).init(allocator),
-            .writer = null,
+            .context_fields = std.array_list.Managed(Field).init(allocator),
         };
     }
 
@@ -249,8 +247,7 @@ pub const Logger = struct {
             .allocator = allocator,
             .name = name,
             .minimum_level = .info,
-            .context_fields = std.ArrayList(Field).init(allocator),
-            .writer = null,
+            .context_fields = std.array_list.Managed(Field).init(allocator),
         };
     }
 
@@ -262,11 +259,6 @@ pub const Logger = struct {
     /// Set minimum log level.
     pub fn setLevel(self: *Logger, level: Level) void {
         self.minimum_level = level;
-    }
-
-    /// Set output writer.
-    pub fn setWriter(self: *Logger, writer: std.io.AnyWriter) void {
-        self.writer = writer;
     }
 
     /// Add a context field that will be included in all log entries.
@@ -296,7 +288,7 @@ pub const Logger = struct {
             .level = level,
             .message = message,
             .fields = fields,
-            .timestamp_ns = std.time.nanoTimestamp(),
+            .timestamp_ns = null, // Timestamp not used in basic implementation
             .logger_name = self.name,
         };
 
@@ -351,7 +343,7 @@ pub const Logger = struct {
 
 /// Format a log entry as JSON.
 pub fn formatJson(allocator: Allocator, entry: LogEntry) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     try result.appendSlice("{\"level\":\"");
@@ -368,7 +360,9 @@ pub fn formatJson(allocator: Allocator, entry: LogEntry) ![]u8 {
             '\t' => try result.appendSlice("\\t"),
             else => {
                 if (char < 0x20) {
-                    try result.writer().print("\\u{x:0>4}", .{char});
+                    var buf: [6]u8 = undefined;
+                    const formatted = std.fmt.bufPrint(&buf, "\\u{x:0>4}", .{char}) catch continue;
+                    try result.appendSlice(formatted);
                 } else {
                     try result.append(char);
                 }
@@ -380,7 +374,9 @@ pub fn formatJson(allocator: Allocator, entry: LogEntry) ![]u8 {
 
     // Add timestamp if present
     if (entry.timestamp_ns) |timestamp_value| {
-        try result.writer().print(",\"timestamp_ns\":{d}", .{timestamp_value});
+        var buf: [64]u8 = undefined;
+        const formatted = std.fmt.bufPrint(&buf, ",\"timestamp_ns\":{d}", .{timestamp_value}) catch return error.OutOfMemory;
+        try result.appendSlice(formatted);
     }
 
     // Add logger name if present
@@ -402,9 +398,21 @@ pub fn formatJson(allocator: Allocator, entry: LogEntry) ![]u8 {
                 try result.appendSlice(string);
                 try result.appendSlice("\"");
             },
-            .integer => |integer| try result.writer().print("{d}", .{integer}),
-            .unsigned => |unsigned| try result.writer().print("{d}", .{unsigned}),
-            .float => |float_val| try result.writer().print("{d}", .{float_val}),
+            .integer => |integer| {
+                var buf: [32]u8 = undefined;
+                const formatted = std.fmt.bufPrint(&buf, "{d}", .{integer}) catch return error.OutOfMemory;
+                try result.appendSlice(formatted);
+            },
+            .unsigned => |unsigned| {
+                var buf: [32]u8 = undefined;
+                const formatted = std.fmt.bufPrint(&buf, "{d}", .{unsigned}) catch return error.OutOfMemory;
+                try result.appendSlice(formatted);
+            },
+            .float => |float_val| {
+                var buf: [64]u8 = undefined;
+                const formatted = std.fmt.bufPrint(&buf, "{d}", .{float_val}) catch return error.OutOfMemory;
+                try result.appendSlice(formatted);
+            },
             .boolean => |boolean| try result.appendSlice(if (boolean) "true" else "false"),
             .null_value => try result.appendSlice("null"),
         }
@@ -417,7 +425,7 @@ pub fn formatJson(allocator: Allocator, entry: LogEntry) ![]u8 {
 
 /// Format a log entry as a human-readable line.
 pub fn formatLine(allocator: Allocator, entry: LogEntry) ![]u8 {
-    var result = std.ArrayList(u8).init(allocator);
+    var result = std.array_list.Managed(u8).init(allocator);
     errdefer result.deinit();
 
     // Level
