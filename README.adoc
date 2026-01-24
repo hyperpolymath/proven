@@ -8,7 +8,7 @@
 
 image:https://img.shields.io/badge/version-1.0.0-blue[Version 1.0.0]
 image:https://img.shields.io/badge/license-PMPL--1.0-green[License: PMPL-1.0]
-image:https://img.shields.io/badge/modules-87-blue[87 Modules]
+image:https://img.shields.io/badge/modules-90-blue[90 Modules]
 image:https://img.shields.io/badge/bindings-89_targets-orange[89 Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
 image:https://img.shields.io/badge/Idris-Inside-blueviolet?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJMMyA3djEwbDkgNSA5LTVWN2wtOS01em0wIDJsNyA0djhsLTcgNC03LTRWOGw3LTR6Ii8+PC9zdmc+[Idris Inside]
@@ -42,10 +42,13 @@ image:https://img.shields.io/badge/build-passing-brightgreen[Build Status]
 | <<SafeJson>> • <<SafeXML>> • <<SafeYAML>> • <<SafeTOML>> • <<SafeHtml>> • <<SafeBase64>> • <<SafeHex>> • <<SafeMarkdown>> • <<SafeBibTeX>> • <<SafeArchive>> • <<SafeTemplate>>
 
 | *Web & Network*
-| <<SafeUrl>> • <<SafeEmail>> • <<SafeNetwork>> • <<SafeHeader>> • <<SafeCookie>> • <<SafeContentType>> • <<SafePhone>> • <<SafeDNS>> • <<SafeWebhook>>
+| <<SafeUrl>> • <<SafeEmail>> • <<SafeNetwork>> • <<SafeHeader>> • <<SafeCookie>> • <<SafeContentType>> • <<SafePhone>> • <<SafeDNS>> • <<SafeWebhook>> • <<SafeHTTP>>
 
 | *Security & Auth*
-| <<SafeCrypto>> • <<SafePassword>> • <<SafeJWT>> • <<SafeCapability>> • <<SafePolicy>> • <<SafeCert>> • <<SafeOAuth>> • <<SafeSSH>>
+| <<SafeCrypto>> • <<SafePassword>> • <<SafeJWT>> • <<SafeCapability>> • <<SafePolicy>> • <<SafeCert>> • <<SafeOAuth>> • <<SafeSSH>> • <<SafeDigest>>
+
+| *Container & Registry*
+| <<SafeRegistry>>
 
 | *Input Validation*
 | <<SafeRegex>> • <<SafeSQL>> • <<SafeCommand>> • <<SafePath>> • <<SafeSchema>>
@@ -85,7 +88,7 @@ image:https://img.shields.io/badge/build-passing-brightgreen[Build Status]
 | Metric | Count | Notes
 
 | Core Modules
-| 87
+| 90
 | Idris 2 verified implementations
 
 | Binding Targets
@@ -480,6 +483,117 @@ url.path    # "/path"
 
 SafeUrl.parse("not a url")  # Error object, not exception
 SafeUrl.is_safe_redirect("https://evil.com", allowed=["example.com"])  # False
+----
+
+=== SafeHTTP — URL Encoding & Auth Header Parsing
+
+[cols="1,1,1"]
+|===
+| Function | What It Does | What It Prevents
+
+| `url_encode(s)`
+| RFC 3986 percent encoding
+| URL injection, malformed parameters
+
+| `url_decode(s)`
+| Percent decoding with validation
+| Double-encoding attacks
+
+| `parse_www_authenticate(header)`
+| OAuth2/Registry challenge parsing
+| Auth header injection
+|===
+
+[source,python]
+----
+from proven import SafeHTTP
+
+encoded = SafeHTTP.url_encode("hello world")  # "hello%20world"
+decoded = SafeHTTP.url_decode("hello%20world")  # "hello world"
+
+# Parse Docker Registry v2 auth challenge
+challenge = SafeHTTP.parse_www_authenticate(
+    'Bearer realm="https://auth.io/token",service="registry"'
+)
+challenge.realm   # "https://auth.io/token"
+challenge.service # "registry"
+----
+
+=== SafeRegistry — OCI Image Reference Parsing
+
+[cols="1,1,1"]
+|===
+| Function | What It Does | What It Prevents
+
+| `parse(ref)`
+| Parse [registry/]repo[:tag][@digest]
+| Malformed image references
+
+| `normalize(ref)`
+| Apply Docker Hub defaults
+| Registry confusion attacks
+
+| `has_digest(ref)`
+| Check for content-addressed reference
+| Mutable tag vulnerabilities
+|===
+
+[source,python]
+----
+from proven import SafeRegistry
+
+ref = SafeRegistry.parse("ghcr.io/user/repo:v1.0")
+ref.registry   # "ghcr.io"
+ref.repository # "user/repo"
+ref.tag        # "v1.0"
+
+# Docker Hub shorthand
+ref = SafeRegistry.parse("nginx")
+ref.registry   # "docker.io" (default)
+ref.repository # "library/nginx" (official images)
+ref.tag        # "latest" (default)
+
+# Digest-pinned reference
+ref = SafeRegistry.parse("nginx@sha256:abc123...")
+ref.has_digest # True
+ref.to_canonical()  # "docker.io/library/nginx:latest@sha256:abc123..."
+----
+
+=== SafeDigest — Cryptographic Hash Operations
+
+[cols="1,1,1"]
+|===
+| Function | What It Does | What It Prevents
+
+| `parse(digest)`
+| Parse "algorithm:hex" format
+| Malformed digests, wrong lengths
+
+| `verify(expected, actual)`
+| Constant-time comparison
+| Timing attacks on digest verification
+
+| `is_valid(digest)`
+| Validate digest string
+| Invalid hash formats
+|===
+
+[source,python]
+----
+from proven import SafeDigest
+
+digest = SafeDigest.parse("sha256:e3b0c44298fc1c149afbf4c8...")
+digest.algorithm  # SHA256
+digest.value      # "e3b0c44298fc1c149afbf4c8..."
+
+# Constant-time verification (timing-attack resistant)
+expected = SafeDigest.parse("sha256:abc123...")
+actual = SafeDigest.parse("sha256:abc123...")
+SafeDigest.verify(expected, actual)  # True (constant-time)
+
+# Supports SHA256, SHA384, SHA512, Blake3
+SafeDigest.is_valid("sha512:cf83e1357eefb8bd...")  # True
+SafeDigest.is_valid("md5:abc123")  # False (insecure algorithm)
 ----
 
 === SafeEmail — Validation That Actually Works
