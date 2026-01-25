@@ -1,0 +1,188 @@
+// SPDX-License-Identifier: EUPL-1.2
+//! Example demonstrating ONE FFI adapter handles BOTH affine and linear modes
+
+//-----------------------------------------------------------------------------
+// FFI Declarations (SAME for both modes)
+//-----------------------------------------------------------------------------
+
+@ffi("libephapax_proven.so")
+module ProvenLRU {
+    // Opaque type - the SAME type is used in both modes
+    // The difference is in the TYPE ANNOTATION, not the underlying representation
+    type LRUCache;  // No ! or affine marker here - that comes from wrappers
+
+    // FFI functions are the same for both modes
+    fn new(capacity: usize) -> *LRUCache;
+    fn put(cache: *LRUCache, key: String, value: Bytes) -> *LRUCache;
+    fn get(cache: *LRUCache, key: String, out_len: *mut usize) -> *u8;
+    fn free(cache: *LRUCache) -> Unit;
+    fn size(cache: *LRUCache) -> usize;
+}
+
+//-----------------------------------------------------------------------------
+// Affine Wrapper (implicit cleanup allowed)
+//-----------------------------------------------------------------------------
+
+type LRUCacheAffine = ProvenLRU.LRUCache;  // Affine by default
+
+module AffineAPI {
+    fn new(capacity: usize) -> LRUCacheAffine {
+        ProvenLRU.new(capacity)
+    }
+
+    fn put(cache: LRUCacheAffine, key: String, value: Bytes) -> LRUCacheAffine {
+        ProvenLRU.put(cache, key, value)
+    }
+
+    fn get(cache: LRUCacheAffine, key: String) -> Option<Bytes> {
+        let mut out_len: usize = 0;
+        let ptr = ProvenLRU.get(cache, key, &mut out_len);
+        if ptr == null {
+            None
+        } else {
+            Some(Bytes::from_raw_parts(ptr, out_len))
+        }
+    }
+
+    fn free(cache: LRUCacheAffine) -> Unit {
+        ProvenLRU.free(cache)
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear Wrapper (explicit consumption required)
+//-----------------------------------------------------------------------------
+
+type LRUCacheLinear! = ProvenLRU.LRUCache;  // Mark as linear with !
+
+module LinearAPI {
+    fn new(capacity: usize) -> LRUCacheLinear! {
+        ProvenLRU.new(capacity)
+    }
+
+    fn put!(cache: LRUCacheLinear!, key: String, value: Bytes) -> LRUCacheLinear! {
+        ProvenLRU.put(cache, key, value)
+    }
+
+    fn get!(cache: LRUCacheLinear!, key: String) -> (Option<Bytes>, LRUCacheLinear!) {
+        let mut out_len: usize = 0;
+        let ptr = ProvenLRU.get(cache, key, &mut out_len);
+        let result = if ptr == null {
+            None
+        } else {
+            Some(Bytes::from_raw_parts(ptr, out_len))
+        };
+        (result, cache)  // Return updated cache handle
+    }
+
+    fn free!(cache: LRUCacheLinear!) -> Unit {
+        ProvenLRU.free(cache)
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Example 1: Affine Mode (rapid prototyping)
+//-----------------------------------------------------------------------------
+
+fn affine_example() -> i32 {
+    region prototype:
+        // Create cache (affine mode - can drop implicitly)
+        let cache = AffineAPI.new(1024);
+
+        // Insert some data
+        let cache = AffineAPI.put(cache, "key1", b"value1");
+        let cache = AffineAPI.put(cache, "key2", b"value2");
+
+        // Retrieve data
+        if let Some(value) = AffineAPI.get(cache, "key1") {
+            print("Found: ");
+            print_bytes(value);
+            print("\n");
+        }
+
+        // Optional: explicit free (if not called, implicit at region end)
+        // AffineAPI.free(cache);
+
+        0
+    // Cache automatically freed here if not already freed
+}
+
+//-----------------------------------------------------------------------------
+// Example 2: Linear Mode (production safety)
+//-----------------------------------------------------------------------------
+
+fn linear_example() -> i32 {
+    region production:
+        // Create cache (linear mode - MUST be consumed)
+        let! cache = LinearAPI.new(1024);
+
+        // Insert data (must capture returned cache)
+        let! cache = LinearAPI.put(cache, "key1", b"value1");
+        let! cache = LinearAPI.put(cache, "key2", b"value2");
+
+        // Retrieve data (returns updated cache)
+        let! (result, cache) = LinearAPI.get(cache, "key1");
+        match result {
+            Some(value) => {
+                print("Found: ");
+                print_bytes(value);
+                print("\n");
+            },
+            None => print("Not found\n"),
+        };
+
+        // REQUIRED: explicit free (compiler error if missing)
+        LinearAPI.free(cache);
+
+        0
+    // Compiler verifies all linear variables consumed
+}
+
+//-----------------------------------------------------------------------------
+// Example 3: Gradual Migration (affine → linear)
+//-----------------------------------------------------------------------------
+
+fn migration_example() {
+    print("=== Dyadic Design Demo ===\n");
+
+    print("\n1. Affine mode (fast prototyping):\n");
+    affine_example();
+
+    print("\n2. Linear mode (production safety):\n");
+    linear_example();
+
+    print("\nSame FFI, different type system enforcement!\n");
+    print("ONE adapter handles BOTH modes.\n");
+}
+
+fn main() -> i32 {
+    migration_example();
+    0
+}
+
+//-----------------------------------------------------------------------------
+// Key Insights
+//-----------------------------------------------------------------------------
+
+// 1. FFI layer is the SAME for both modes
+//    - ProvenLRU.new, .put, .get, .free
+//    - No separate "affine" vs "linear" C functions
+//
+// 2. Difference is in Ephapax TYPE ANNOTATIONS
+//    - LRUCacheAffine     (implicit cleanup OK)
+//    - LRUCacheLinear!    (explicit consumption required)
+//
+// 3. Wrapper modules provide mode-specific APIs
+//    - AffineAPI: functions don't require !
+//    - LinearAPI: functions require ! and return updated handle
+//
+// 4. Both call the SAME Zig FFI functions underneath
+//    - ephapax_proven_lru_new
+//    - ephapax_proven_lru_put
+//    - ephapax_proven_lru_get
+//    - ephapax_proven_lru_free
+//
+// 5. Gradual migration path
+//    - Start with affine (fast iteration)
+//    - Switch to linear (stronger guarantees)
+//    - NO changes to underlying FFI
