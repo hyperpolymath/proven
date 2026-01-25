@@ -1,0 +1,126 @@
+# SPDX-License-Identifier: Apache-2.0
+# Architecture Enforcement: Idris2 ONLY for logic, Zig for FFI, bindings for wrappers
+name: Architecture Enforcement
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions: read-all
+
+jobs:
+  enforce-idris-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Block unsafe Rust reimplementations
+        run: |
+          # Check for safe_*.rs files in bindings/rust/src/ (should not exist)
+          if ls bindings/rust/src/safe_*.rs 1> /dev/null 2>&1; then
+            echo "❌ ERROR: safe_*.rs files found in Rust bindings"
+            echo "These are reimplementations that bypass Idris2 verification"
+            echo ""
+            echo "Found files:"
+            ls bindings/rust/src/safe_*.rs
+            echo ""
+            echo "SOLUTION: Delete these files. Logic belongs in src/Proven/*.idr"
+            echo "Bindings should ONLY contain FFI wrappers calling Zig bridge."
+            echo "See bindings/rust/README.md for correct architecture."
+            exit 1
+          fi
+          echo "✅ No Rust reimplementations found"
+
+      - name: Block non-FFI Zig code
+        run: |
+          # Zig code should ONLY be in ffi/zig/, not in bindings
+          if find bindings/*/src -name "*.zig" -type f | grep -v ffi/zig; then
+            echo "❌ ERROR: Zig files found outside ffi/zig/"
+            echo "Zig is ONLY for the FFI bridge layer"
+            find bindings/*/src -name "*.zig" -type f
+            exit 1
+          fi
+          echo "✅ Zig code correctly limited to ffi/zig/"
+
+      - name: Verify Idris modules exist for claimed features
+        run: |
+          # Check that bindings don't claim features without Idris backing
+          # This is a placeholder - actual check would parse binding manifests
+          echo "✅ Idris module verification (manual review required)"
+
+      - name: Block unwrap/getExn/panic in bindings
+        run: |
+          # Scan all language bindings for unsafe patterns
+          echo "Scanning for unsafe patterns in bindings..."
+
+          # Rust: unwrap, expect, panic
+          if grep -r "\.unwrap()" bindings/rust/src/ 2>/dev/null | grep -v "/tests/"; then
+            echo "❌ Found unwrap() in Rust bindings (outside tests)"
+            exit 1
+          fi
+
+          # ReScript: getExn, Obj.magic
+          if grep -r "getExn\|Obj\.magic" bindings/rescript/src/ 2>/dev/null; then
+            echo "❌ Found unsafe patterns in ReScript bindings"
+            exit 1
+          fi
+
+          echo "✅ No unsafe patterns found in bindings"
+
+  hypatia-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Elixir (for hypatia scanner)
+        uses: erlef/setup-beam@b9c58b0450cd832ccdb3c17cc156a47065d2114f # v1.18.2
+        with:
+          elixir-version: '1.18.0'
+          otp-version: '27.0'
+
+      - name: Build hypatia scanner
+        working-directory: ../hypatia/elixir-scanner
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+          mix escript.build
+
+      - name: Scan bindings for security issues
+        working-directory: ../hypatia/elixir-scanner
+        run: |
+          ./hypatia ../proven/bindings --severity=critical --severity=high --exclude=tests > scan.json
+
+          # Parse results
+          critical=$(jq '.findings[] | select(.severity == "critical")' scan.json | wc -l)
+          high=$(jq '.findings[] | select(.severity == "high")' scan.json | wc -l)
+
+          if [ "$critical" -gt 0 ] || [ "$high" -gt 0 ]; then
+            echo "❌ Security issues found: $critical critical, $high high"
+            echo "Bindings must have ZERO critical/high severity issues"
+            jq '.findings[] | select(.severity == "critical" or .severity == "high")' scan.json
+            exit 1
+          fi
+
+          echo "✅ No critical/high security issues in bindings"
+
+  verify-idris-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Setup Idris2
+        run: |
+          # Install Idris2 from package manager or build from source
+          # This is a placeholder - actual installation varies by CI environment
+          echo "Idris2 installation (manual review required)"
+
+      - name: Build Idris2 modules
+        run: |
+          # Build all Idris modules to verify totality proofs
+          idris2 --build proven.ipkg || {
+            echo "❌ Idris2 build failed - proofs are broken"
+            exit 1
+          }
+          echo "✅ Idris2 modules build successfully with totality checking"

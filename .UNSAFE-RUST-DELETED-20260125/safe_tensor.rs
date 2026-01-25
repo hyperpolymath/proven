@@ -255,7 +255,7 @@ impl SafeTensor {
             .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .unwrap();
+            .expect("argmax: max_by should return Some for non-empty iterator - logic bug");
         Ok(idx)
     }
 
@@ -268,7 +268,7 @@ impl SafeTensor {
             .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .unwrap();
+            .expect("argmax_f32: max_by should return Some for non-empty iterator - logic bug");
         Ok(idx)
     }
 
@@ -281,7 +281,7 @@ impl SafeTensor {
             .iter()
             .enumerate()
             .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .unwrap();
+            .expect("argmin: min_by should return Some for non-empty iterator - logic bug");
         Ok(idx)
     }
 

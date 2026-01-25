@@ -6,12 +6,47 @@
 
 [project]
 name = "proven"
-description = "Formally verified safety library"
+description = "Formally verified safety library via Idris2 dependent types"
+type = "formal-verification"  # Triggers strict architecture enforcement
+
+# CRITICAL: This is a formal verification repo
+# Only Idris2 code implements logic. Everything else is FFI wrappers.
+[architecture]
+enforcement_level = "strict"  # strict | normal | relaxed
+primary_language = "idris2"    # The ONLY language allowed for logic
+ffi_bridge = "zig"             # The ONLY language allowed for FFI bridge
+bindings_only = true           # Bindings must ONLY wrap FFI calls
+
+# Auto-cleanup: Remove code that violates architecture
+[auto_cleanup]
+enabled = true
+mode = "pr"  # pr | commit | alert-only
+
+# Patterns to auto-delete in bindings/
+forbidden_patterns = [
+    # Rust reimplementations
+    "bindings/rust/src/safe_*.rs",
+
+    # ReScript reimplementations with unsafe patterns
+    "bindings/rescript/src/**/getExn",
+    "bindings/rescript/src/**/Obj.magic",
+
+    # Any logic files in bindings (should only have FFI wrappers)
+    "bindings/*/src/**/{safe,Safe,Proven}*",
+]
+
+# Files that MUST exist (architecture requirements)
+required_files = [
+    "src/Proven.idr",
+    "src/Proven/Core.idr",
+    "ffi/zig/src/main.zig",
+    ".github/workflows/architecture-enforcement.yml",
+]
 
 # Provers enabled for this repository
 [provers]
 # Primary prover for proven is Idris 2
-idris2 = { enabled = true, priority = "high" }
+idris2 = { enabled = true, priority = "high", required = true }
 
 # Optional: Also verify with SMT solvers for additional assurance
 z3 = { enabled = false }

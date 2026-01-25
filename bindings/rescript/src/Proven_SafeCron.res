@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2025 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
 
 open Proven_Bitwise
 
@@ -303,15 +303,9 @@ let parse = (expression: string): result<cronExpression, cronError> => {
   let parts = Js.String2.split(expression, " ")
   let fields = Belt.Array.keep(parts, part => Js.String2.length(part) > 0)
 
-  if Belt.Array.length(fields) != 5 {
-    Error(InvalidFieldCount)
-  } else {
-    let minuteField = Belt.Array.getExn(fields, 0)
-    let hourField = Belt.Array.getExn(fields, 1)
-    let dayField = Belt.Array.getExn(fields, 2)
-    let monthField = Belt.Array.getExn(fields, 3)
-    let dowField = Belt.Array.getExn(fields, 4)
-
+  // Safe pattern matching - no getExn that can crash
+  switch fields {
+  | [minuteField, hourField, dayField, monthField, dowField] =>
     switch parseField(minuteField, minuteRange, None) {
     | Error(e) => Error(e)
     | Ok(minuteValues) =>
@@ -339,6 +333,7 @@ let parse = (expression: string): result<cronExpression, cronError> => {
         }
       }
     }
+  | _ => Error(InvalidFieldCount)
   }
 }
 

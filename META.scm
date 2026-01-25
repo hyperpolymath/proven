@@ -96,7 +96,35 @@
          "Complexity levels: Linear, Quadratic, Exponential, Unbounded"
          "Safety levels: Strict (linear only), Normal (up to quadratic), Relaxed (all)"
          "Step limits prevent runaway matching"
-         "Pre-built safe patterns for common use cases")))))
+         "Pre-built safe patterns for common use cases")))
+
+      (adr-008
+       (title . "Language bindings MUST use Idris FFI, not reimplementations")
+       (status . accepted)
+       (date . "2026-01-25")
+       (context . "Language bindings (Rust, ReScript, Python, etc.) were being hand-written as reimplementations, bypassing formal verification and introducing unsafe patterns (unwrap, getExn) that can crash")
+       (decision . "ALL language bindings must call the verified Idris code via the Zig FFI layer. Bindings provide language-native types and ergonomics, but computation must happen in verified Idris code.")
+       (consequences
+        ("Preserves safety guarantees across all 89 language targets"
+         "Prevents unsafe pattern proliferation (unwrap, getExn, panic)"
+         "Single source of truth: Idris proofs validate all implementations"
+         "Bindings become thin wrappers, not reimplementations"
+         "hypatia scanner must enforce: bindings with unsafe patterns are BLOCKED from publication"
+         "If FFI call is impractical for a function, it must be marked as unverified and NOT claim 'proven' safety"
+         "Pre-submission: hypatia scan must show ZERO critical/high issues in bindings/")))
+
+      (adr-009
+       (title . "Pre-submission validation prevents external repo rejections")
+       (status . accepted)
+       (date . "2026-01-25")
+       (context . "proven v0.9.0 was rejected from opam-repository due to unsafe code in bindings despite having verified Idris core. Code claiming 'formally verified' but containing unwrap/getExn damages credibility.")
+       (decision . "Add mandatory pre-submission validation: (1) hypatia CI scan blocks merges with critical/high issues, (2) pre-submit.sh script validates licenses, tests, and safety before external publication, (3) Git pre-push hook prevents pushing unsafe code to main")
+       (consequences
+        ("Prevents submitting broken code to external repos (opam, crates.io, npm)"
+         "Automated safety checks replace manual review"
+         "CI must pass hypatia scan before allowing merge"
+         "Maintains reputation: 'formally verified' is actually verified"
+         "Pre-submit checklist documents validation steps"))))
 
     (development-practices
      (code-style
