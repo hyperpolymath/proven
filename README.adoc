@@ -7,14 +7,22 @@
 *Mathematically proven safe operations.* Code that **cannot crash**, verified with Idris2 dependent types and totality checking.
 
 image:https://img.shields.io/badge/version-1.0.0-blue[Version 1.0.0]
-image:https://img.shields.io/badge/license-Apache--2.0-green[License: Apache-2.0]
+image:https://img.shields.io/badge/License-MPL_2.0-blue.svg[MPL-2.0-or-later,link="https://opensource.org/licenses/MPL-2.0"]
 image:https://img.shields.io/badge/modules-90-blue[90 Modules]
 image:https://img.shields.io/badge/bindings-89_targets-orange[89 Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
 image:https://img.shields.io/badge/Idris-Inside-blueviolet?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJMMyA3djEwbDkgNSA5LTVWN2wtOS01em0wIDJsNyA0djhsLTcgNC03LTRWOGw3LTR6Ii8+PC9zdmc+[Idris Inside]
 image:https://img.shields.io/badge/build-passing-brightgreen[Build Status]
 
+== License & Philosophy
+
+This project must declare **MPL-2.0-or-later** for platform/tooling compatibility.
+
+Philosophy: **Palimpsest**. The Palimpsest-MPL (PMPL) text is provided in `license/PMPL-1.0.txt`, and the canonical source is the palimpsest-license repository.
+
 WARNING: **proven** is an **Idris2 library with FFI bindings**, not a native implementation in your language. All computation happens in Idris2 with mathematical proofs. Language bindings call this verified code via FFI.
+
+IMPORTANT: **Unbreakable guarantee applies only to Idris2 code.** The Zig layer must be a *pure ABI bridge* with no safety logic. Any non‑Idris logic in bindings is considered non‑proven and must be removed.
 
 == What Makes proven Different?
 
@@ -28,14 +36,25 @@ Your Application (any of 89 languages)
           ↓
     Language Binding (thin FFI wrapper)
           ↓
-    Zig FFI Bridge (C ABI layer)
+    Zig FFI Bridge (pure ABI layer)
           ↓
     Idris2 Code ← MATHEMATICAL PROOFS HERE
 ```
 
 **Core Implementation:** link:src/Proven/[Idris2 with dependent types] +
-**FFI Bridge:** link:ffi/zig/[Zig for C ABI compatibility] +
-**Language Bindings:** Thin wrappers calling verified code
+**FFI Bridge:** link:ffi/zig/[Zig for C ABI compatibility] (no safety logic) +
+**Language Bindings:** Thin wrappers calling verified code only
+
+== Performance Tradeoff
+
+The Idris‑only ABI maximizes safety but introduces FFI overhead. This is a
+deliberate tradeoff: **correctness over speed**. Performance improvements will
+focus on batching and reducing crossings without re‑introducing non‑proven logic.
+
+== Migration Status
+
+The project is moving all bindings to **pure Zig ABI wrappers** that call Idris
+only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 
 === Supported Languages
 
@@ -1949,7 +1968,7 @@ Especially needed:
 | https://github.com/hyperpolymath/januskey[januskey]
 | Key management system using SafeCrypto, SafePassword, and SafeStateMachine for reversible operations.
 
-| https://github.com/hyperpolymath/gitvisor[gitvisor]
+| https://github.com/hyperpolymath/git-hud[git-hud]
 | Git repository manager using SafeConsensus for distributed operations and SafeGraph for dependency tracking.
 
 | https://github.com/hyperpolymath/ubicity[ubicity]

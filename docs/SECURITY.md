@@ -6,6 +6,10 @@ This document describes the security properties of proven and the formal verific
 
 **proven** is a formally verified safety library where security properties are mathematically proven at compile time using dependent types in Idris 2. This provides stronger guarantees than traditional testing approaches.
 
+IMPORTANT: The **unbreakable guarantee applies only to Idris2 modules**. The Zig
+layer must be a **pure ABI bridge** with no safety logic. Any non‑Idris logic in
+bindings is considered non‑proven and is being removed.
+
 ### Verification Status
 
 | Module | Formal Proofs | Property Tests | Unit Tests | Fuzz Tests |

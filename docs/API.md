@@ -1,5 +1,9 @@
 # API Reference
 
+IMPORTANT: **Unbreakable guarantees apply only to Idris2 code.** The Zig layer is a
+pure ABI bridge with **no safety logic**. All bindings must call Idris‑proven functions
+exclusively.
+
 Complete API reference for all proven modules.
 
 ## Core Types
