@@ -168,7 +168,7 @@ addTransform transform actor lin =
 ||| Check if entity derived from source
 public export
 derivedFrom : EntityId -> Lineage -> Bool
-derivedFrom source lin = elem source (lineageSources lin)
+derivedFrom source lin = any (\s => s == source) (lineageSources lin)
 
 ||| Audit trail entry
 public export
@@ -209,8 +209,8 @@ auditLog entry trail =
   if trailSealed trail
     then Nothing
     else let newHash = hashAuditEntry entry (trailHash trail)
-         in Just { trailEntries := entry :: trailEntries trail,
-                   trailHash := newHash } trail
+         in Just ({ trail with trailEntries := entry :: trailEntries trail,
+                                    trailHash := newHash })
 
 ||| Seal audit trail (no more modifications)
 public export
@@ -228,9 +228,9 @@ verifyAuditTrail trail = verifyRec (trailEntries trail) (trailHash trail)
       let computedHash = hashAuditEntry e (computePrevHash es)
       in computedHash == expectedHash && verifyRec es (computePrevHash es)
 
-    computePrevHash : List AuditEntry -> Hash
-    computePrevHash [] = 0
-    computePrevHash (e :: es) = hashAuditEntry e (computePrevHash es)
+computePrevHash : List AuditEntry -> Hash
+computePrevHash [] = 0
+computePrevHash (e :: es) = hashAuditEntry e (computePrevHash es)
 
 ||| Proof of audit trail integrity
 public export
@@ -330,10 +330,6 @@ addCausalRelation : CausalRelation -> CausalityGraph -> CausalityGraph
 addCausalRelation rel graph =
   { cgEntities := nub (crCause rel :: crEffect rel :: cgEntities graph),
     cgRelations := rel :: cgRelations graph } graph
-  where
-    nub : Eq a => List a -> List a
-    nub [] = []
-    nub (x :: xs) = x :: nub (filter (/= x) xs)
 
 ||| Find causes of an entity
 public export
@@ -352,7 +348,7 @@ public export
 causallyPrecedes : EntityId -> EntityId -> CausalityGraph -> Bool
 causallyPrecedes a b graph =
   elem b (findEffects a graph) ||
-  any (\mid => causallyPrecedes mid b graph) (findEffects a graph)
+  any' (\mid => causallyPrecedes mid b graph) (findEffects a graph)
 
 ||| Proof of causal relationship
 public export
@@ -404,5 +400,3 @@ generateReport entity lineage audit =
 public export
 data CompleteProvenance : ProvenanceReport -> Type where
   MkCompleteProvenance : reportIntegrity report = True -> CompleteProvenance report
-
-

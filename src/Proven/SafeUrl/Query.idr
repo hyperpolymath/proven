@@ -8,6 +8,7 @@ module Proven.SafeUrl.Query
 import Proven.Core
 import Proven.SafeUrl.Parser
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -20,6 +21,11 @@ import Data.String
 public export
 QueryString : Type
 QueryString = List (String, String)
+
+joinWith : String -> List String -> String
+joinWith _ [] = ""
+joinWith sep (x :: xs) = foldl (\acc => \y => acc ++ sep ++ y) x xs
+
 
 ||| Query builder for fluent API
 public export
@@ -36,7 +42,7 @@ public export
 parseQueryString : String -> QueryString
 parseQueryString "" = []
 parseQueryString s =
-  let pairs = split '&' s
+  let pairs = splitChar '&' s
   in mapMaybe parsePair pairs
   where
     splitOn : Char -> String -> (String, String)
@@ -60,7 +66,7 @@ public export
 parseQuery : String -> QueryString
 parseQuery s =
   if isPrefixOf "?" s
-    then parseQueryString (drop 1 s)
+    then parseQueryString (strDrop 1 s)
     else parseQueryString s
 
 --------------------------------------------------------------------------------
@@ -102,7 +108,7 @@ removeParam key qb = MkQueryBuilder (filter (\(k, _) => k /= key) qb.params)
 ||| Build query string (without leading ?)
 public export
 buildQueryString : QueryBuilder -> String
-buildQueryString qb = join "&" (map formatPair qb.params)
+buildQueryString qb = joinWith "&" (map formatPair qb.params)
   where
     formatPair : (String, String) -> String
     formatPair (k, v) = urlEncode k ++ "=" ++ urlEncode v
@@ -220,7 +226,7 @@ isListValue s = ',' `elem` unpack s
 ||| Split a comma-separated value
 public export
 splitListValue : String -> List String
-splitListValue s = split ',' s
+splitListValue s = splitChar ',' s
 
 --------------------------------------------------------------------------------
 -- Query String Conversion
@@ -250,19 +256,19 @@ public export
 getIntParam : String -> QueryString -> Maybe Integer
 getIntParam key qs = getParam key qs >>= parseInteger
   where
-    parseInteger : String -> Maybe Integer
-    parseInteger s = case strM s of
-      StrNil => Nothing
-      StrCons '-' rest => map negate (parseNat rest)
-      StrCons '+' rest => parseNat rest
-      StrCons _ _ => parseNat s
-
-    parseNat : String -> Maybe Integer
-    parseNat str =
+    parseNatDigits : String -> Maybe Integer
+    parseNatDigits str =
       let chars = unpack str
       in if all isDigit chars && not (null chars)
            then Just (cast (foldl (\n, c => n * 10 + cast (ord c - ord '0')) 0 chars))
            else Nothing
+
+    parseInteger : String -> Maybe Integer
+    parseInteger s = case strM s of
+      StrNil => Nothing
+      StrCons '-' rest => map negate (parseNatDigits rest)
+      StrCons '+' rest => parseNatDigits rest
+      StrCons _ _ => parseNatDigits s
 
 ||| Parse natural number parameter
 public export

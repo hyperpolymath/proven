@@ -252,6 +252,12 @@ modules = Proven
         , Proven.SafeSchema
         -- SafeTensor (v1.0.0 - tensor operations)
         , Proven.SafeTensor
+        -- Shell-specific modules (v1.1.0 - for valence-shell integration)
+        , Proven.SafeShell
+        , Proven.SafePipe
+        , Proven.SafeProcess
+        , Proven.SafeSignal
+        , Proven.SafeTerminal
         -- FFI (ECHIDNA integration) - temporarily excluded due to syntax issues
         -- , Proven.FFI.Echidna
 
@@ -260,3 +266,9 @@ depends = base >= 0.6.0
         , network
 
 opts = "--total"
+
+-- ECHIDNA neurosymbolic theorem prover validation modules
+modules = Proven.ECHIDNA.ProofTerm,
+          Proven.ECHIDNA.Validator,
+          Proven.ECHIDNA.Soundness
+

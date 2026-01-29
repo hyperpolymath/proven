@@ -10,13 +10,26 @@
 module Proven.SafeUrl
 
 import public Proven.Core
-import public Proven.SafeUrl.Parser
-import public Proven.SafeUrl.Query
-
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
+
+joinWith : String -> List String -> String
+joinWith _ [] = ""
+joinWith sep (x :: xs) = foldl (\acc => \y => acc ++ sep ++ y) x xs
+
+splitChar : Char -> String -> List String
+splitChar _ "" = []
+splitChar c s = go (unpack s) [] []
+  where
+    go : List Char -> List Char -> List String -> List String
+    go [] current acc = reverse (pack (reverse current) :: acc)
+    go (x :: xs) current acc =
+      if x == c
+        then go xs [] (pack (reverse current) :: acc)
+        else go xs (x :: current) acc
 
 --------------------------------------------------------------------------------
 -- URL Types
@@ -73,6 +86,13 @@ Show Host where
   show (IPv4 a b c d) = show a ++ "." ++ show b ++ "." ++ show c ++ "." ++ show d
   show (IPv6 addr) = "[" ++ addr ++ "]"
 
+public export
+Eq Host where
+  (Domain a) == (Domain b) = a == b
+  (IPv4 a1 b1 c1 d1) == (IPv4 a2 b2 c2 d2) = a1 == a2 && b1 == b2 && c1 == c2 && d1 == d2
+  (IPv6 a) == (IPv6 b) = a == b
+  _ == _ = False
+
 ||| Port number (0-65535)
 public export
 Port : Type
@@ -117,10 +137,10 @@ emptyURL = MkURL Nothing Nothing Nothing Nothing [] [] Nothing
 ||| Create a URL from just a path
 public export
 pathURL : String -> URL
-pathURL p = record { path = splitPath p } emptyURL
+pathURL p = { path := splitPath p } emptyURL
   where
     splitPath : String -> List String
-    splitPath s = filter (not . (== "")) (split '/' s)
+    splitPath s = filter (not . (== "")) (splitChar '/' s)
 
 ||| Create an HTTP URL
 public export
@@ -168,14 +188,14 @@ effectivePort url = url.port <|> (url.scheme >>= defaultPort)
 ||| Get path as string
 public export
 getPath : URL -> String
-getPath url = "/" ++ join "/" url.path
+getPath url = "/" ++ joinWith "/" url.path
 
 ||| Get query string
 public export
 getQuery : URL -> String
 getQuery url = if null url.query
   then ""
-  else "?" ++ join "&" (map formatPair url.query)
+  else "?" ++ joinWith "&" (map formatPair url.query)
   where
     formatPair : (String, String) -> String
     formatPair (k, v) = k ++ "=" ++ v
@@ -202,60 +222,60 @@ getFragment = fragment
 ||| Set scheme
 public export
 setScheme : Scheme -> URL -> URL
-setScheme s url = record { scheme = Just s } url
+setScheme s url = { scheme := Just s } url
 
 ||| Set host
 public export
 setHost : String -> URL -> URL
-setHost h url = record { host = Just (Domain h) } url
+setHost h url = { host := Just (Domain h) } url
 
 ||| Set port
 public export
 setPort : Nat -> URL -> URL
-setPort p url = record { port = Just p } url
+setPort p url = { port := Just p } url
 
 ||| Clear port (use default)
 public export
 clearPort : URL -> URL
-clearPort url = record { port = Nothing } url
+clearPort url = { port := Nothing } url
 
 ||| Set path from string
 public export
 setPath : String -> URL -> URL
-setPath p url = record { path = splitPath p } url
+setPath p url = { path := splitPath p } url
   where
     splitPath : String -> List String
-    splitPath s = filter (not . (== "")) (split '/' s)
+    splitPath s = filter (not . (== "")) (splitChar '/' s)
 
 ||| Append path segment
 public export
 appendPath : String -> URL -> URL
-appendPath seg url = record { path $= (++ [seg]) } url
+appendPath seg url = { path $= (++ [seg]) } url
 
 ||| Set query from list
 public export
 setQuery : Query -> URL -> URL
-setQuery q url = record { query = q } url
+setQuery q url = { query := q } url
 
 ||| Add query parameter
 public export
 addQueryParam : String -> String -> URL -> URL
-addQueryParam key val url = record { query $= (++ [(key, val)]) } url
+addQueryParam key val url = { query $= (++ [(key, val)]) } url
 
 ||| Remove query parameter
 public export
 removeQueryParam : String -> URL -> URL
-removeQueryParam key url = record { query $= filter (\(k, _) => k /= key) } url
+removeQueryParam key url = { query $= filter (\(k, _) => k /= key) } url
 
 ||| Set fragment
 public export
 setFragment : String -> URL -> URL
-setFragment f url = record { fragment = Just f } url
+setFragment f url = { fragment := Just f } url
 
 ||| Clear fragment
 public export
 clearFragment : URL -> URL
-clearFragment url = record { fragment = Nothing } url
+clearFragment url = { fragment := Nothing } url
 
 --------------------------------------------------------------------------------
 -- URL Validation
@@ -293,7 +313,14 @@ isValidPort p = p <= 65535
 public export
 isValidPathChar : Char -> Bool
 isValidPathChar c =
-  isAlphaNum c || c `elem` unpack "-._~!$&'()*+,;=:@/"
+  isAlphaNum c || contains c pathExtras
+  where
+    pathExtras : List Char
+    pathExtras = unpack "-._~!$&'()*+,;=:@/"
+
+    contains : Char -> List Char -> Bool
+    contains _ [] = False
+    contains ch (x :: xs) = if ch == x then True else contains ch xs
 
 ||| Check if host looks valid
 public export
@@ -344,10 +371,10 @@ toString url =
       (Nothing, _) => ""
 
     pathStr : String
-    pathStr = if null url.path then "" else "/" ++ join "/" url.path
+    pathStr = if null url.path then "" else "/" ++ joinWith "/" url.path
 
     queryStr : String
-    queryStr = if null url.query then "" else "?" ++ join "&" (map formatPair url.query)
+    queryStr = if null url.query then "" else "?" ++ joinWith "&" (map formatPair url.query)
       where
         formatPair : (String, String) -> String
         formatPair (k, v) = k ++ "=" ++ v
@@ -380,6 +407,11 @@ equivalent u1 u2 =
     normalizePath : Path -> Path
     normalizePath p = filter (not . (== "")) p
 
+removeLast : List a -> List a
+removeLast [] = []
+removeLast [_] = []
+removeLast (x :: xs) = x :: removeLast xs
+
 --------------------------------------------------------------------------------
 -- URL Resolution
 --------------------------------------------------------------------------------
@@ -391,25 +423,27 @@ resolve base rel =
   if isJust rel.scheme
     then rel  -- Absolute URL, return as-is
     else if isJust rel.host
-      then record { scheme = base.scheme } rel  -- Network-path reference
+      then { scheme := base.scheme } rel  -- Network-path reference
       else if null rel.path
-        then record { path = base.path,
-                      query = if null rel.query then base.query else rel.query,
-                      scheme = base.scheme,
-                      host = base.host,
-                      port = base.port } rel
-        else record { scheme = base.scheme,
-                      host = base.host,
-                      port = base.port,
-                      path = resolvePath base.path rel.path } rel
+        then { path := base.path,
+               query := if null rel.query then base.query else rel.query,
+               scheme := base.scheme,
+               host := base.host,
+               port := base.port } rel
+        else { scheme := base.scheme,
+               host := base.host,
+               port := base.port,
+               path := resolvePath base.path rel.path } rel
   where
     resolvePath : Path -> Path -> Path
     resolvePath basePath relPath =
-      if not (null relPath) && head relPath == Just ""
+      if not (null relPath) && (case relPath of
+        "" :: _ => True
+        _ => False)
         then relPath  -- Starts with /, use as-is
         else case basePath of
           [] => relPath
-          _ => init basePath ++ relPath
+          _ => removeLast basePath ++ relPath
 
 --------------------------------------------------------------------------------
 -- Security Helpers
@@ -442,4 +476,4 @@ isDangerousScheme url = case url.scheme of
 ||| Sanitize URL for safe display (remove userinfo)
 public export
 sanitizeForDisplay : URL -> URL
-sanitizeForDisplay url = record { userInfo = Nothing } url
+sanitizeForDisplay url = { userInfo := Nothing } url

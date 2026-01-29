@@ -1,0 +1,20 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-FileCopyrightText: 2025 Jonathan D.A. Jewell
+package proven-ffi
+
+version = 0.1.0
+authors = "Hyperpolymath"
+license = "PMPL-1.0-or-later"
+brief = "Proven FFI-only build (SafePath/Json/Network/Url)"
+readme = "README.adoc"
+homepage = "https://github.com/hyperpolymath/proven"
+sourceloc = "https://github.com/hyperpolymath/proven"
+bugtracker = "https://github.com/hyperpolymath/proven/issues"
+
+sourcedir = "src"
+builddir = "build"
+outputdir = "build/exec"
+
+modules = Proven.Core
+        , Proven.SafeUrl.Parser
+        , Proven.FFI.SafeUrl

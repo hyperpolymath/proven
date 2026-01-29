@@ -125,3 +125,5 @@ import public Proven.SafeWebhook
 import public Proven.SafeCron
 import public Proven.SafeBibTeX
 import public Proven.SafeMCP
+import Proven.FFI
+import Proven.FFI

@@ -90,15 +90,13 @@ resolveDotsInSegments segs isAbs = reverse (go segs [])
 public export
 normalizePath : String -> String
 normalizePath s =
-  let isAbs = isPrefixOf "/" s || isWindowsAbs s
-      segs = splitPath s
-      resolved = resolveDotsInSegments segs isAbs
-      prefix = if isAbs then "/" else ""
-  in prefix ++ joinSegments resolved
-  where
-    isWindowsAbs : String -> Bool
-    isWindowsAbs str =
-      length str >= 2 && isAlpha (assert_total $ prim__strHead str) && prim__strIndex str 1 == ':'
+  prefixFor s ++ joinSegments (resolveDotsInSegments (splitPath s) (isAbs s))
+where
+  isAbs str = isPrefixOf "/" str || isWindowsAbs str
+  prefixFor str = if isAbs str then "/" else ""
+  isWindowsAbs : String -> Bool
+  isWindowsAbs str =
+    length str >= 2 && isAlpha (assert_total $ prim__strHead str) && prim__strIndex str 1 == ':'
 
 --------------------------------------------------------------------------------
 -- Path Comparison Operations

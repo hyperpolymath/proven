@@ -63,6 +63,10 @@ Show PathPrefix where
   show (UNCShare server share) = "\\\\" ++ server ++ "\\" ++ share
   show (DeviceNS device) = "\\\\.\\" ++ device
 
+joinWith : String -> List String -> String
+joinWith _ [] = ""
+joinWith sep (x :: xs) = foldl (\acc => \y => acc ++ sep ++ y) x xs
+
 --------------------------------------------------------------------------------
 -- File Types
 --------------------------------------------------------------------------------
@@ -155,7 +159,7 @@ record PathInfo where
   pathString : String
   isAbsolute : Bool
   segments : List String
-  prefix : PathPrefix
+  pathPrefix : PathPrefix
   extension : Maybe String
   fileType : Maybe FileType
   permissions : Maybe Permissions
@@ -221,7 +225,7 @@ Show GlobSegment where
   show AnyString = "*"
   show AnyPath = "**"
   show (CharClass chars neg) = "[" ++ (if neg then "^" else "") ++ pack chars ++ "]"
-  show (Alternative alts) = "{" ++ join "," alts ++ "}"
+  show (Alternative alts) = "{" ++ joinWith "," alts ++ "}"
 
 ||| A glob pattern for matching paths
 public export
@@ -234,4 +238,4 @@ public export
 Show GlobPattern where
   show pat =
     let segStrs = map (concat . map show) pat.segments
-    in join "/" segStrs
+    in joinWith "/" segStrs

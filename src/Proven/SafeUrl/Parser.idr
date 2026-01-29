@@ -6,7 +6,9 @@
 module Proven.SafeUrl.Parser
 
 import Proven.Core
+import Data.Char
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -141,6 +143,7 @@ isSubDelim : Char -> Bool
 isSubDelim c = c `elem` unpack "!$&'()*+,;="
 
 ||| Parse a natural number from digits
+public export
 parseNat : List Char -> Maybe Nat
 parseNat [] = Nothing
 parseNat digits =
@@ -168,6 +171,86 @@ splitOnKeep c s = go (unpack s) []
       if x == c then (pack (reverse acc), pack (x :: xs))
                 else go xs (x :: acc)
 
+urlStrLength : String -> Nat
+urlStrLength s = length (unpack s)
+
+public export
+strDrop : Nat -> String -> String
+strDrop n s = pack (drop n (unpack s))
+
+strIsPrefix : String -> String -> Bool
+strIsPrefix pre s = isPrefixOf (unpack pre) (unpack s)
+
+public export
+splitChar : Char -> String -> List String
+splitChar _ "" = []
+splitChar c s = go (unpack s) [] []
+  where
+    go : List Char -> List Char -> List String -> List String
+    go [] current acc = reverse (pack (reverse current) :: acc)
+    go (x :: xs) current acc =
+      if x == c
+        then go xs [] (pack (reverse current) :: acc)
+        else go xs (x :: current) acc
+
+parseUserInfo : String -> (Maybe UserInfo, String)
+parseUserInfo str =
+  case splitOn '@' str of
+    (before, "") => (Nothing, str)
+    (userPart, hostPart) =>
+      let (user, pass) = splitOn ':' userPart
+          password = if pass == "" then Nothing else Just pass
+      in (Just (MkUserInfo user password), hostPart)
+
+parseIPv4Addr : String -> Maybe (Nat, Nat, Nat, Nat)
+parseIPv4Addr str =
+  case splitChar '.' str of
+    [a, b, c, d] => do
+      na <- parseNat (unpack a)
+      nb <- parseNat (unpack b)
+      nc <- parseNat (unpack c)
+      nd <- parseNat (unpack d)
+      if na <= 255 && nb <= 255 && nc <= 255 && nd <= 255
+        then Just (na, nb, nc, nd)
+        else Nothing
+    _ => Nothing
+
+parseHost : String -> Maybe Host
+parseHost "" = Nothing
+parseHost str =
+  case parseIPv4Addr str of
+    Just (a, b, c, d) => Just (IPv4 a b c d)
+    Nothing => Just (Domain str)
+
+parsePort : String -> Maybe Nat
+parsePort "" = Nothing
+parsePort str = do
+  p <- parseNat (unpack str)
+  if p <= 65535 then Just p else Nothing
+
+parseBracketedIPv6 : String -> (Maybe Host, Maybe Nat)
+parseBracketedIPv6 str =
+  case break (== ']') (unpack str) of
+    (addr, ']' :: rest) =>
+      let host = IPv6 (pack (drop 1 addr))
+          port = case rest of
+            ':' :: digits => parsePort (pack digits)
+            _ => Nothing
+      in (Just host, port)
+    _ => (Nothing, Nothing)
+
+public export
+parseIPv6 : String -> (Maybe Host, Maybe Nat)
+parseIPv6 = parseBracketedIPv6
+
+parseHostPort : String -> (Maybe Host, Maybe Nat)
+parseHostPort "" = (Nothing, Nothing)
+parseHostPort str =
+  if strIsPrefix "[" str
+    then parseBracketedIPv6 str
+    else let (hostStr, portStr) = splitOn ':' str
+         in (parseHost hostStr, parsePort portStr)
+
 --------------------------------------------------------------------------------
 -- URL Parsing
 --------------------------------------------------------------------------------
@@ -176,9 +259,9 @@ splitOnKeep c s = go (unpack s) []
 extractScheme : String -> (Maybe Scheme, String)
 extractScheme s =
   let (before, after) = splitOn ':' s
-  in if length after >= 2 && isPrefixOf "//" after
-       then (Just (parseScheme before), drop 2 after)
-       else if length after > 0
+  in if urlStrLength after >= 2 && strIsPrefix "//" after
+       then (Just (parseScheme before), strDrop 2 after)
+       else if urlStrLength after > 0
          then (Just (parseScheme before), after)
          else (Nothing, s)
 
@@ -188,94 +271,44 @@ extractAuthority s =
   let (auth, rest) = splitOnKeep '/' s
       (auth', rest') = splitOnKeep '?' auth
       (auth'', rest'') = splitOnKeep '#' auth'
-      authStr = if isPrefixOf "/" auth then "" else auth''
+      authStr = if strIsPrefix "/" auth then "" else auth''
       (ui, hostPort) = parseUserInfo authStr
       (h, p) = parseHostPort hostPort
   in (ui, h, p, rest ++ rest' ++ rest'')
-  where
-    parseUserInfo : String -> (Maybe UserInfo, String)
-    parseUserInfo str =
-      case splitOn '@' str of
-        (before, "") => (Nothing, str)  -- No @ found
-        (userPart, hostPart) =>
-          let (user, pass) = splitOn ':' userPart
-          in (Just (MkUserInfo user (if pass == "" then Nothing else Just pass)), hostPart)
-
-    parseHostPort : String -> (Maybe Host, Maybe Nat)
-    parseHostPort "" = (Nothing, Nothing)
-    parseHostPort str =
-      if isPrefixOf "[" str
-        then parseIPv6 str
-        else let (hostStr, portStr) = splitOn ':' str
-             in (parseHost hostStr, parsePort portStr)
-
-    parseIPv6 : String -> (Maybe Host, Maybe Nat)
-    parseIPv6 str =
-      case break (== ']') (unpack str) of
-        (addr, ']' :: rest) =>
-          let portStr = drop 1 (pack rest)  -- Skip the colon
-          in (Just (IPv6 (pack (drop 1 addr))), parsePort portStr)
-        _ => (Nothing, Nothing)
-
-    parseHost : String -> Maybe Host
-    parseHost "" = Nothing
-    parseHost str =
-      case parseIPv4Addr str of
-        Just (a, b, c, d) => Just (IPv4 a b c d)
-        Nothing => Just (Domain str)
-
-    parseIPv4Addr : String -> Maybe (Nat, Nat, Nat, Nat)
-    parseIPv4Addr str =
-      case split '.' str of
-        [a, b, c, d] => do
-          na <- parseNat (unpack a)
-          nb <- parseNat (unpack b)
-          nc <- parseNat (unpack c)
-          nd <- parseNat (unpack d)
-          if na <= 255 && nb <= 255 && nc <= 255 && nd <= 255
-            then Just (na, nb, nc, nd)
-            else Nothing
-        _ => Nothing
-
-    parsePort : String -> Maybe Nat
-    parsePort "" = Nothing
-    parsePort str = do
-      p <- parseNat (unpack str)
-      if p <= 65535 then Just p else Nothing
 
 ||| Parse path from URL
 extractPath : String -> (List String, String)
 extractPath s =
   let (pathPart, rest) = splitOnKeep '?' s
       (pathPart', rest') = splitOnKeep '#' pathPart
-      path = if isPrefixOf "/" pathPart' then drop 1 pathPart' else pathPart'
-      segments = split '/' path
+      path = if strIsPrefix "/" pathPart' then strDrop 1 pathPart' else pathPart'
+      segments = splitChar '/' path
   in (filter (not . (== "")) segments, rest ++ rest')
 
 ||| Parse query string
 extractQuery : String -> (List (String, String), String)
 extractQuery s =
-  if isPrefixOf "?" s
-    then let (queryPart, rest) = splitOnKeep '#' (drop 1 s)
+  if strIsPrefix "?" s
+    then let (queryPart, rest) = splitOnKeep '#' (strDrop 1 s)
          in (parseQueryParams queryPart, rest)
     else ([], s)
   where
-    parseQueryParams : String -> List (String, String)
-    parseQueryParams "" = []
-    parseQueryParams str =
-      let pairs = split '&' str
-      in map parsePair pairs
-
     parsePair : String -> (String, String)
     parsePair str =
       let (key, val) = splitOn '=' str
       in (key, val)
 
+    parseQueryParams : String -> List (String, String)
+    parseQueryParams "" = []
+    parseQueryParams str =
+      let pairs = splitChar '&' str
+      in map parsePair pairs
+
 ||| Parse fragment
 extractFragment : String -> Maybe String
 extractFragment s =
-  if isPrefixOf "#" s
-    then Just (drop 1 s)
+  if strIsPrefix "#" s
+    then Just (strDrop 1 s)
     else Nothing
 
 ||| Parse a URL string into components

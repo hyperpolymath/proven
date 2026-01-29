@@ -18,6 +18,22 @@ pub const IdrisValue = ffi.idris_rts.IdrisValue;
 pub const types = ffi.types;
 pub const memory = ffi.memory;
 
+// Idris-exported functions (RefC ABI)
+extern fn proven_idris_path_has_traversal(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_path_sanitize_filename(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_json_is_valid(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_json_get_type(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_network_parse_ipv4(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_network_ipv4_is_private(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_network_ipv4_is_loopback(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_is_valid(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_scheme(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_host(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_port(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_path(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_query(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_fragment(arg: IdrisValue) callconv(.C) IdrisValue;
+
 // ============================================================================
 // Result Types
 // ============================================================================
@@ -72,6 +88,48 @@ export fn proven_free_string(ptr: ?[*:0]u8) void {
         while (p[len] != 0) : (len += 1) {}
         allocator.free(p[0 .. len + 1]);
     }
+}
+
+fn idrisStringArg(ptr: ?[*]const u8, len: usize) ?IdrisString {
+    if (ptr == null) return null;
+    const slice = ptr.?[0..len];
+    const idris_str = ffi.toIdrisString(slice);
+    if (idris_str.data == null and slice.len != 0) return null;
+    return idris_str;
+}
+
+fn idrisCallBool(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]const u8, len: usize) BoolResult {
+    if (ptr == null) {
+        return .{ .status = .err_null_pointer, .value = false };
+    }
+    const idris_str = idrisStringArg(ptr, len) orelse {
+        return .{ .status = .err_allocation_failed, .value = false };
+    };
+    defer ffi.freeIdrisString(idris_str);
+
+    const raw = ffi.idris_rts.callRaw1(func, .{ .string = idris_str });
+    return .{ .status = .ok, .value = raw.int != 0 };
+}
+
+fn idrisCallInt(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]const u8, len: usize) IntResult {
+    if (ptr == null) {
+        return .{ .status = .err_null_pointer, .value = 0 };
+    }
+    const idris_str = idrisStringArg(ptr, len) orelse {
+        return .{ .status = .err_allocation_failed, .value = 0 };
+    };
+    defer ffi.freeIdrisString(idris_str);
+
+    const raw = ffi.idris_rts.callRaw1(func, .{ .string = idris_str });
+    return .{ .status = .ok, .value = raw.int };
+}
+
+fn idrisCallStringSlice(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]const u8, len: usize) ?[]const u8 {
+    const idris_str = idrisStringArg(ptr, len) orelse return null;
+    defer ffi.freeIdrisString(idris_str);
+
+    const raw = ffi.idris_rts.callRaw1(func, .{ .string = idris_str });
+    return types.fromIdrisString(raw.string);
 }
 
 // ============================================================================
@@ -349,26 +407,7 @@ export fn proven_string_escape_js(ptr: ?[*]const u8, len: usize) StringResult {
 
 /// Check if a path attempts directory traversal
 export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) BoolResult {
-    if (ptr == null) {
-        return .{ .status = .err_null_pointer, .value = false };
-    }
-    const path = ptr.?[0..len];
-
-    // Check for .. sequences
-    var i: usize = 0;
-    while (i < path.len) {
-        if (i + 1 < path.len and path[i] == '.' and path[i + 1] == '.') {
-            // Check if this is actually a traversal (not part of filename)
-            const before_ok = i == 0 or path[i - 1] == '/' or path[i - 1] == '\\';
-            const after_ok = i + 2 >= path.len or path[i + 2] == '/' or path[i + 2] == '\\';
-            if (before_ok and after_ok) {
-                return .{ .status = .ok, .value = true };
-            }
-        }
-        i += 1;
-    }
-
-    return .{ .status = .ok, .value = false };
+    return idrisCallBool(proven_idris_path_has_traversal, ptr, len);
 }
 
 /// Sanitize a filename (remove dangerous characters)
@@ -376,38 +415,21 @@ export fn proven_path_sanitize_filename(ptr: ?[*]const u8, len: usize) StringRes
     if (ptr == null) {
         return .{ .status = .err_null_pointer, .value = null, .length = 0 };
     }
-    const input = ptr.?[0..len];
 
-    // Count safe characters
-    var safe_count: usize = 0;
-    for (input) |c| {
-        if (isSafeFilenameChar(c)) safe_count += 1;
-    }
-
-    if (safe_count == 0) {
-        return .{ .status = .err_validation_failed, .value = null, .length = 0 };
-    }
-
-    const output = allocator.allocSentinel(u8, safe_count, 0) catch {
+    const result = idrisCallStringSlice(proven_idris_path_sanitize_filename, ptr, len) orelse {
         return .{ .status = .err_allocation_failed, .value = null, .length = 0 };
     };
 
-    var j: usize = 0;
-    for (input) |c| {
-        if (isSafeFilenameChar(c)) {
-            output[j] = c;
-            j += 1;
-        }
+    if (result.len == 0) {
+        return .{ .status = .err_validation_failed, .value = null, .length = 0 };
     }
 
-    return .{ .status = .ok, .value = output.ptr, .length = safe_count };
-}
-
-fn isSafeFilenameChar(c: u8) bool {
-    return switch (c) {
-        'a'...'z', 'A'...'Z', '0'...'9', '.', '-', '_' => true,
-        else => false,
+    const output = allocator.allocSentinel(u8, result.len, 0) catch {
+        return .{ .status = .err_allocation_failed, .value = null, .length = 0 };
     };
+    @memcpy(output, result);
+
+    return .{ .status = .ok, .value = output.ptr, .length = result.len };
 }
 
 // ============================================================================
@@ -495,82 +517,88 @@ export fn proven_url_parse(ptr: ?[*]const u8, len: usize) UrlResult {
     if (ptr == null) {
         return .{ .status = .err_null_pointer, .components = empty_components };
     }
-
-    const url_str = ptr.?[0..len];
-    const uri = std.Uri.parse(url_str) catch {
+    const valid = idrisCallBool(proven_idris_url_is_valid, ptr, len);
+    if (valid.status != .ok) {
+        return .{ .status = valid.status, .components = empty_components };
+    }
+    if (!valid.value) {
         return .{ .status = .err_parse_failure, .components = empty_components };
-    };
+    }
 
     var components = empty_components;
 
-    // Copy scheme
-    if (uri.scheme.len > 0) {
-        const scheme = allocator.allocSentinel(u8, uri.scheme.len, 0) catch {
-            return .{ .status = .err_allocation_failed, .components = empty_components };
-        };
-        @memcpy(scheme, uri.scheme);
-        components.scheme = scheme.ptr;
-        components.scheme_len = uri.scheme.len;
-    }
-
-    // Helper to get raw string from Uri.Component
-    const getComponentStr = struct {
-        fn get(component: std.Uri.Component) []const u8 {
-            return switch (component) {
-                .raw => |raw| raw,
-                .percent_encoded => |encoded| encoded,
+    if (idrisCallStringSlice(proven_idris_url_scheme, ptr, len)) |scheme_raw| {
+        if (scheme_raw.len > 0) {
+            const scheme = allocator.allocSentinel(u8, scheme_raw.len, 0) catch {
+                return .{ .status = .err_allocation_failed, .components = empty_components };
             };
+            @memcpy(scheme, scheme_raw);
+            components.scheme = scheme.ptr;
+            components.scheme_len = scheme_raw.len;
         }
-    }.get;
-
-    // Copy host
-    if (uri.host) |host| {
-        const host_raw = getComponentStr(host);
-        const host_str = allocator.allocSentinel(u8, host_raw.len, 0) catch {
-            return .{ .status = .err_allocation_failed, .components = empty_components };
-        };
-        @memcpy(host_str, host_raw);
-        components.host = host_str.ptr;
-        components.host_len = host_raw.len;
+    } else {
+        return .{ .status = .err_allocation_failed, .components = empty_components };
     }
 
-    // Port
-    if (uri.port) |port| {
-        components.port = port;
+    if (idrisCallStringSlice(proven_idris_url_host, ptr, len)) |host_raw| {
+        if (host_raw.len > 0) {
+            const host = allocator.allocSentinel(u8, host_raw.len, 0) catch {
+                return .{ .status = .err_allocation_failed, .components = empty_components };
+            };
+            @memcpy(host, host_raw);
+            components.host = host.ptr;
+            components.host_len = host_raw.len;
+        }
+    } else {
+        return .{ .status = .err_allocation_failed, .components = empty_components };
+    }
+
+    const port_result = idrisCallInt(proven_idris_url_port, ptr, len);
+    if (port_result.status != .ok) {
+        return .{ .status = port_result.status, .components = empty_components };
+    }
+    if (port_result.value >= 0) {
+        components.port = @intCast(port_result.value);
         components.has_port = true;
     }
 
-    // Path
-    const path_raw = getComponentStr(uri.path);
-    if (path_raw.len > 0) {
-        const path = allocator.allocSentinel(u8, path_raw.len, 0) catch {
-            return .{ .status = .err_allocation_failed, .components = empty_components };
-        };
-        @memcpy(path, path_raw);
-        components.path = path.ptr;
-        components.path_len = path_raw.len;
+    if (idrisCallStringSlice(proven_idris_url_path, ptr, len)) |path_raw| {
+        if (path_raw.len > 0) {
+            const path = allocator.allocSentinel(u8, path_raw.len, 0) catch {
+                return .{ .status = .err_allocation_failed, .components = empty_components };
+            };
+            @memcpy(path, path_raw);
+            components.path = path.ptr;
+            components.path_len = path_raw.len;
+        }
+    } else {
+        return .{ .status = .err_allocation_failed, .components = empty_components };
     }
 
-    // Query
-    if (uri.query) |query| {
-        const query_raw = getComponentStr(query);
-        const query_str = allocator.allocSentinel(u8, query_raw.len, 0) catch {
-            return .{ .status = .err_allocation_failed, .components = empty_components };
-        };
-        @memcpy(query_str, query_raw);
-        components.query = query_str.ptr;
-        components.query_len = query_raw.len;
+    if (idrisCallStringSlice(proven_idris_url_query, ptr, len)) |query_raw| {
+        if (query_raw.len > 0) {
+            const query = allocator.allocSentinel(u8, query_raw.len, 0) catch {
+                return .{ .status = .err_allocation_failed, .components = empty_components };
+            };
+            @memcpy(query, query_raw);
+            components.query = query.ptr;
+            components.query_len = query_raw.len;
+        }
+    } else {
+        return .{ .status = .err_allocation_failed, .components = empty_components };
     }
 
-    // Fragment
-    if (uri.fragment) |fragment| {
-        const frag_raw = getComponentStr(fragment);
-        const frag_str = allocator.allocSentinel(u8, frag_raw.len, 0) catch {
-            return .{ .status = .err_allocation_failed, .components = empty_components };
-        };
-        @memcpy(frag_str, frag_raw);
-        components.fragment = frag_str.ptr;
-        components.fragment_len = frag_raw.len;
+    if (idrisCallStringSlice(proven_idris_url_fragment, ptr, len)) |fragment_raw| {
+        if (fragment_raw.len > 0) {
+            const fragment = allocator.allocSentinel(u8, fragment_raw.len, 0) catch {
+                return .{ .status = .err_allocation_failed, .components = empty_components };
+            };
+            @memcpy(fragment, fragment_raw);
+            components.fragment = fragment.ptr;
+            components.fragment_len = fragment_raw.len;
+        }
+    } else {
+        return .{ .status = .err_allocation_failed, .components = empty_components };
     }
 
     return .{ .status = .ok, .components = components };
@@ -683,64 +711,43 @@ pub const IPv4Result = extern struct {
 export fn proven_network_parse_ipv4(ptr: ?[*]const u8, len: usize) IPv4Result {
     const empty = IPv4Address{ .octets = .{ 0, 0, 0, 0 } };
 
-    if (ptr == null) {
-        return .{ .status = .err_null_pointer, .address = empty };
+    const idris_result = idrisCallInt(proven_idris_network_parse_ipv4, ptr, len);
+    if (idris_result.status != .ok) {
+        return .{ .status = idris_result.status, .address = empty };
     }
-
-    const str = ptr.?[0..len];
-
-    var octets: [4]u8 = .{ 0, 0, 0, 0 };
-    var octet_idx: usize = 0;
-    var current_value: u16 = 0;
-    var digits_in_current: usize = 0;
-
-    for (str) |c| {
-        if (c >= '0' and c <= '9') {
-            current_value = current_value * 10 + (c - '0');
-            digits_in_current += 1;
-            if (current_value > 255 or digits_in_current > 3) {
-                return .{ .status = .err_parse_failure, .address = empty };
-            }
-        } else if (c == '.') {
-            if (digits_in_current == 0 or octet_idx >= 3) {
-                return .{ .status = .err_parse_failure, .address = empty };
-            }
-            octets[octet_idx] = @intCast(current_value);
-            octet_idx += 1;
-            current_value = 0;
-            digits_in_current = 0;
-        } else {
-            return .{ .status = .err_parse_failure, .address = empty };
-        }
-    }
-
-    // Handle last octet
-    if (digits_in_current == 0 or octet_idx != 3) {
+    if (idris_result.value < 0) {
         return .{ .status = .err_parse_failure, .address = empty };
     }
-    octets[3] = @intCast(current_value);
+
+    const value: u32 = @intCast(idris_result.value);
+    const octets: [4]u8 = .{
+        @intCast((value >> 24) & 0xFF),
+        @intCast((value >> 16) & 0xFF),
+        @intCast((value >> 8) & 0xFF),
+        @intCast(value & 0xFF),
+    };
 
     return .{ .status = .ok, .address = .{ .octets = octets } };
 }
 
 /// Check if IPv4 is private (RFC 1918)
 export fn proven_network_ipv4_is_private(addr: IPv4Address) bool {
-    const a = addr.octets[0];
-    const b = addr.octets[1];
-
-    // 10.0.0.0/8
-    if (a == 10) return true;
-    // 172.16.0.0/12
-    if (a == 172 and b >= 16 and b <= 31) return true;
-    // 192.168.0.0/16
-    if (a == 192 and b == 168) return true;
-
-    return false;
+    const value: i64 = (@as(i64, addr.octets[0]) << 24) |
+        (@as(i64, addr.octets[1]) << 16) |
+        (@as(i64, addr.octets[2]) << 8) |
+        @as(i64, addr.octets[3]);
+    const raw = ffi.idris_rts.callRaw1(proven_idris_network_ipv4_is_private, .{ .int = value });
+    return raw.int != 0;
 }
 
 /// Check if IPv4 is loopback (127.0.0.0/8)
 export fn proven_network_ipv4_is_loopback(addr: IPv4Address) bool {
-    return addr.octets[0] == 127;
+    const value: i64 = (@as(i64, addr.octets[0]) << 24) |
+        (@as(i64, addr.octets[1]) << 16) |
+        (@as(i64, addr.octets[2]) << 8) |
+        @as(i64, addr.octets[3]);
+    const raw = ffi.idris_rts.callRaw1(proven_idris_network_ipv4_is_loopback, .{ .int = value });
+    return raw.int != 0;
 }
 
 // ============================================================================
@@ -2660,73 +2667,20 @@ pub const JsonType = enum(i32) {
 
 /// Check if string is valid JSON
 export fn proven_json_is_valid(ptr: ?[*]const u8, len: usize) BoolResult {
-    if (ptr == null) {
-        return .{ .status = .err_null_pointer, .value = false };
-    }
-    const input = ptr.?[0..len];
-
-    // Simple JSON validation - check balanced braces/brackets and quotes
-    var brace_depth: i32 = 0;
-    var bracket_depth: i32 = 0;
-    var in_string = false;
-    var escape_next = false;
-
-    for (input) |c| {
-        if (escape_next) {
-            escape_next = false;
-            continue;
-        }
-
-        if (in_string) {
-            if (c == '\\') {
-                escape_next = true;
-            } else if (c == '"') {
-                in_string = false;
-            }
-        } else {
-            switch (c) {
-                '"' => in_string = true,
-                '{' => brace_depth += 1,
-                '}' => {
-                    brace_depth -= 1;
-                    if (brace_depth < 0) return .{ .status = .ok, .value = false };
-                },
-                '[' => bracket_depth += 1,
-                ']' => {
-                    bracket_depth -= 1;
-                    if (bracket_depth < 0) return .{ .status = .ok, .value = false };
-                },
-                else => {},
-            }
-        }
-    }
-
-    const valid = !in_string and brace_depth == 0 and bracket_depth == 0;
-    return .{ .status = .ok, .value = valid };
+    return idrisCallBool(proven_idris_json_is_valid, ptr, len);
 }
 
 /// Get JSON value type at root level
 export fn proven_json_get_type(ptr: ?[*]const u8, len: usize) JsonType {
-    if (ptr == null or len == 0) {
-        return .invalid;
-    }
-    const input = ptr.?[0..len];
-
-    // Skip whitespace
-    var i: usize = 0;
-    while (i < len and (input[i] == ' ' or input[i] == '\t' or input[i] == '\n' or input[i] == '\r')) {
-        i += 1;
-    }
-
-    if (i >= len) return .invalid;
-
-    return switch (input[i]) {
-        '{' => .object,
-        '[' => .array,
-        '"' => .string,
-        't', 'f' => .bool_,
-        'n' => .null_,
-        '-', '0'...'9' => .number,
+    const result = idrisCallInt(proven_idris_json_get_type, ptr, len);
+    if (result.status != .ok) return .invalid;
+    return switch (result.value) {
+        0 => .null_,
+        1 => .bool_,
+        2 => .number,
+        3 => .string,
+        4 => .array,
+        5 => .object,
         else => .invalid,
     };
 }

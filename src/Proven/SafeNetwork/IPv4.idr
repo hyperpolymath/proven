@@ -249,7 +249,7 @@ hostCount mask =
       where
         popCount : Bits32 -> Nat
         popCount 0 = 0
-        popCount x = cast (x .&. 1) + popCount (x `shiftR` 1)
+        popCount x = cast (x .&. 1) + popCount (assert_smaller x (x `shiftR` 1))
 
     power : Nat -> Nat -> Nat
     power _ 0 = 1
@@ -262,10 +262,10 @@ hostCount mask =
 ||| Create netmask from prefix length (0-32)
 public export
 prefixToMask : Nat -> IPv4
-prefixToMask prefix =
-  if prefix >= 32
+prefixToMask pre =
+  if pre >= 32
     then MkIPv4 255 255 255 255
-    else integerToIPv4 (complement (cast ((power 2 (32 `minus` prefix)) `minus` 1)))
+    else integerToIPv4 (complement (cast ((power 2 (32 `minus` pre)) `minus` 1)))
   where
     power : Nat -> Nat -> Nat
     power _ 0 = 1
@@ -285,7 +285,7 @@ maskToPrefix mask =
 
     countOnes : Bits32 -> Nat
     countOnes 0 = 0
-    countOnes n = cast (n .&. 1) + countOnes (n `shiftR` 1)
+    countOnes n = cast (n .&. 1) + countOnes (assert_smaller n (n `shiftR` 1))
 
 --------------------------------------------------------------------------------
 -- Common Netmasks
@@ -306,4 +306,3 @@ mask24 = MkIPv4 255 255 255 0
 public export
 mask32 : IPv4
 mask32 = MkIPv4 255 255 255 255
-
