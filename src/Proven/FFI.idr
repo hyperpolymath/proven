@@ -62,5 +62,6 @@ import Proven.FFI.SafeTransaction
 import Proven.FFI.SafeCapability
 import Proven.FFI.SafeConsensus
 import Proven.FFI.SafeFiniteField
+import Proven.FFI.SafeOrdering
 
 %default total
