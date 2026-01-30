@@ -50,5 +50,6 @@ import Proven.FFI.SafeAngle
 import Proven.FFI.SafeProbability
 import Proven.FFI.SafeUnit
 import Proven.FFI.SafeQueue
+import Proven.FFI.SafeBloom
 
 %default total

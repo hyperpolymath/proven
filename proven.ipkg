@@ -304,6 +304,7 @@ modules = Proven
         , Proven.FFI.SafeProbability
         , Proven.FFI.SafeUnit
         , Proven.FFI.SafeQueue
+        , Proven.FFI.SafeBloom
         -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
         -- , Proven.ECHIDNA.ProofTerm
         -- , Proven.ECHIDNA.Validator
