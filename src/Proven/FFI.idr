@@ -48,5 +48,6 @@ import Proven.FFI.SafeChecksum
 import Proven.FFI.SafeGeo
 import Proven.FFI.SafeAngle
 import Proven.FFI.SafeProbability
+import Proven.FFI.SafeUnit
 
 %default total
