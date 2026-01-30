@@ -13,6 +13,7 @@ import Proven.FFI.SafeString
 import Proven.FFI.SafeEmail
 import Proven.FFI.SafeDateTime
 import Proven.FFI.SafeHtml
+import Proven.FFI.SafeCookie
 import Proven.FFI.SafeNetwork
 import Proven.FFI.SafeUrl
 
