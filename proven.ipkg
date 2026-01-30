@@ -296,6 +296,7 @@ modules = Proven
         , Proven.FFI.SafeLog
         , Proven.FFI.SafeCron
         , Proven.FFI.SafeFloat
+        , Proven.FFI.SafeColor
         -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
         -- , Proven.ECHIDNA.ProofTerm
         -- , Proven.ECHIDNA.Validator
