@@ -1,38 +1,29 @@
 {
-  "name": "@hyperpolymath/proven-rescript",
-  "version": "0.9.0",
-  "description": "ReScript bindings for Proven - code that cannot crash. Calls Idris 2 verified code via Zig WASM ABI.",
-  "type": "module",
-  "main": "./src/Proven.res.js",
-  "scripts": {
-    "build": "rescript build",
-    "clean": "rescript clean",
-    "dev": "rescript build -w",
-    "test": "node --test src/__tests__/"
-  },
+  "name": "@proven/rescript-bindings",
+  "version": "0.1.0",
+  "description": "ReScript bindings to proven formally verified library",
+  "author": "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>",
+  "license": "AGPL-3.0-or-later",
   "keywords": [
     "rescript",
+    "idris2",
+    "formal-verification",
     "proven",
-    "safety",
-    "verified",
-    "math",
-    "crypto",
-    "validation"
+    "safe",
+    "bindings"
   ],
-  "author": "Hyperpolymath <hyperpolymath@proton.me>",
-  "license": "PMPL-1.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hyperpolymath/proven.git"
-  },
-  "peerDependencies": {
-    "rescript": ">=11.0.0"
+    "url": "https://github.com/hyperpolymath/proven.git",
+    "directory": "bindings/rescript"
   },
   "dependencies": {
-    "js-sha3": "^0.9.3",
-    "blake3": "^2.1.7"
+    "@rescript/core": "^1.7.0"
+  },
+  "peerDependencies": {
+    "rescript": "^11.0.0"
   },
   "devDependencies": {
-    "rescript": "^11.1.0"
+    "rescript": "^11.1.4"
   }
 }

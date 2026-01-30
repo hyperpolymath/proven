@@ -1,6 +1,6 @@
 {
-  "name": "@hyperpolymath/proven",
-  "version": "0.9.0",
+  "name": "@proven/rescript-bindings",
+  "version": "0.1.0",
   "sources": [
     {
       "dir": "src",
@@ -9,17 +9,18 @@
   ],
   "package-specs": [
     {
-      "module": "esmodule",
+      "module": "es6",
       "in-source": true
     }
   ],
   "suffix": ".res.js",
-  "bs-dependencies": [],
+  "bs-dependencies": [
+    "@rescript/core"
+  ],
   "warnings": {
     "error": "+101"
   },
-  "jsx": {
-    "version": 4,
-    "mode": "automatic"
-  }
+  "bsc-flags": [
+    "-open RescriptCore"
+  ]
 }
