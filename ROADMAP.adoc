@@ -1,0 +1,605 @@
+= proven Library Roadmap
+:toc: macro
+:toclevels: 3
+:icons: font
+
+[.lead]
+*Mathematically verified safety.* From foundational types to distributed systems correctness.
+
+toc::[]
+
+== Vision
+
+proven aims to be the **definitive verified safety library** across all programming ecosystems, providing:
+
+1. **Type-level safety guarantees** enforced by Idris2 dependent types
+2. **Totality checking** - proven code cannot crash, hang, or raise exceptions
+3. **Cross-language accessibility** - 89+ language bindings via Zig FFI
+4. **Industrial strength** - performance, tooling, and ecosystem integration
+5. **Research foundation** - enabling formal methods in production systems
+
+== Development Principles
+
+* **Correctness over speed** - but optimize where verification permits
+* **Proof-first development** - types and proofs before implementation
+* **Zero trust in bindings** - all safety logic stays in Idris2
+* **Bidirectional FFI** - seamless Idris ↔ Zig ↔ Language integration
+* **Reproducible builds** - Guix/Nix for deterministic compilation
+
+---
+
+== Completed Milestones (v0.1.0 - v1.0.0)
+
+=== v0.1.0 - Core Safety Types (2025-01-10)
+
+*Foundation: Result types and core safety primitives*
+
+* Package structure with `proven.ipkg`
+* Core types: `Result`, `NonEmpty`, `Bounded`
+* SafeMath module (overflow-safe arithmetic)
+* SafeString module (UTF-8 validation, escaping)
+
+=== v0.2.0 - Data Format Safety (2025-01-12)
+
+*Parsing without panics*
+
+* SafeJson (exception-free JSON parsing)
+* SafeUrl (RFC 3986 compliant URL parsing)
+* SafeEmail (RFC 5321/5322 validation)
+* SafePath (traversal prevention, glob matching)
+* SafeCrypto (hash, HMAC, secure random stubs)
+* SafePassword (policy validation, strength analysis)
+* SafeDateTime (ISO 8601, timezone handling)
+
+=== v0.3.0 - Extended Safety (2025-01-14)
+
+*Injection prevention and network safety*
+
+* SafeNetwork (IPv4/IPv6, CIDR, port validation)
+* SafeRegex (ReDoS detection, step-limited matching)
+* SafeHtml (XSS prevention, type-safe HTML construction)
+* SafeCommand (shell injection prevention, cross-platform escaping)
+
+=== v0.4.0 - FFI Bridge & Multi-Language Bindings (2025-01-16)
+
+*Making verified code accessible everywhere*
+
+* Zig FFI layer with C ABI compatibility
+* Idris2 ↔ Zig bidirectional integration via `idris2-zig-ffi`
+* Language bindings: Python, JavaScript, Rust, Deno, ReScript, Gleam, Julia, Swift, Kotlin, Go, Elixir
+* CI/CD workflows for cross-platform testing
+* ClusterFuzzLite integration for fuzzing
+
+=== v0.5.0 - Auth & Serialization (2025-01-18)
+
+*Secure data handling*
+
+* SafeSQL (parameterized queries, injection prevention)
+* SafeJWT (token validation, claim verification, timing-safe comparison)
+* SafeBase64 (encoding/decoding with length proofs)
+* SafeXML (XXE prevention, entity expansion protection)
+* SafeYAML (safe deserialization without code execution)
+* SafeTOML (config parsing without crashes)
+
+=== v0.6.0 - Data Types (2025-01-20)
+
+*Specialized validated types*
+
+* SafeUUID (RFC 4122 parsing/generation)
+* SafeCurrency (money arithmetic without float errors, ISO 4217 codes)
+* SafePhone (E.164 international format validation)
+* SafeHex (hexadecimal encoding with bounds checking)
+
+=== v0.7.0 - I/O Safety (2025-01-22)
+
+*Safe interaction with the outside world*
+
+* SafeEnv (environment variable access with validation)
+* SafeArgs (CLI argument parsing with type safety)
+* SafeFile (bounded reads, safe file handles, resource tracking)
+
+=== v0.8.0 - Network Extended (2025-01-24)
+
+*HTTP safety primitives*
+
+* SafeHeader (HTTP header validation, CRLF injection prevention)
+* SafeCookie (cookie parsing/building, SameSite/Secure attributes)
+* SafeContentType (MIME type validation, content sniffing prevention)
+
+=== v0.9.0 - ECHIDNA Integration (2025-01-26)
+
+*Formal verification tooling*
+
+* Idris2 prover backend for ECHIDNA
+* 60-aspect tagging system across 10 categories
+* Proof verification CI workflows
+* echidnabot integration (webhooks → scheduler → worker → ECHIDNA)
+
+=== v1.0.0 - Production Release (2025-01-29)
+
+*Enterprise-ready verified safety*
+
+**Completed Features:**
+
+* 90+ safety modules covering:
+  - Parsing: JSON, XML, YAML, TOML, HTML, Markdown, BibTeX, CSV
+  - Network: URLs, emails, IP addresses, DNS, HTTP headers/cookies
+  - Security: Crypto, passwords, JWT, OAuth, SSH, certificates
+  - Data types: UUID, currency, phone numbers, datetime, version strings
+  - I/O: Files, environment, CLI args, logs, templates
+  - Numerical: Safe math, floats, tensors, ML operations
+  - Collections: Buffers, queues, bloom filters, LRU caches
+  - Systems: State machines, circuit breakers, rate limiters, retry logic
+  - Advanced: Geo coordinates, graphs, monotonic sequences, checksums
+
+* 89 language bindings across:
+  - General purpose: Ada, C, C++, Crystal, D, Dart, Deno, Elixir, Erlang, F#, Gleam, Go, Haskell, Java, JavaScript, Julia, Kotlin, Lua, Nim, OCaml, Perl, PHP, Python, R, Racket, ReScript, Ruby, Rust, Scala, Swift, TypeScript, V, Zig
+  - Functional: Clojure, Common Lisp, Elm, Guile, PureScript
+  - Shell: Bash, Fish, PowerShell, Zsh
+  - Legacy: COBOL, Forth, Fortran
+  - Config: CUE, Dhall, HCL, Jsonnet, Nickel, Starlark
+  - Domain-specific: Arduino, Cairo, GDScript, Ink, MicroPython, Move, Solidity, Unity C#, Vyper
+  - Esoteric: Grain, Malbolge, Odin, Prolog, Tcl
+  - Formal/Query: Alloy, CEL, GraphQL, PromQL, Rego, TLA+
+  - Low-level: AssemblyScript, VHDL, WAT
+  - Exotic: Janus (reversible), Neuromorphic (SNN), OpenQASM (quantum), Q# (quantum), SPICE (analog), Ternary
+
+* Comprehensive testing:
+  - 20 unit test files
+  - 29 property test files (400+ test cases)
+  - ClusterFuzzLite continuous fuzzing
+  - echidnabot formal verification
+
+* Complete documentation:
+  - API reference (`docs/API.md`)
+  - Security guidelines (`docs/SECURITY.md`)
+  - Publishing guide (`docs/PUBLISHING.md`)
+  - Benchmark methodology (`benchmarks/Main.idr`)
+
+* Infrastructure:
+  - CI/CD workflows with SPDX compliance
+  - OpenSSF Scorecard integration
+  - GitHub Packages container publishing
+  - Multi-platform builds (Linux, macOS, Windows, BSD)
+
+---
+
+== Future Roadmap (v1.1.0+)
+
+=== v1.1.0 - Stabilization & Performance (Q2 2026)
+
+*Timeline:* 1-2 months +
+*Focus:* Hardening, optimization, ecosystem growth
+
+**Performance Optimization**
+
+* [ ] FFI overhead reduction
+  - Batching APIs (process arrays of operations in single FFI call)
+  - Reduce crossing overhead with smart buffering
+  - Profile and optimize hot paths identified by benchmarks
+* [ ] WASM compilation optimization
+  - Direct Idris2 → WASM without Zig layer (experimental)
+  - Aggressive inlining for web targets
+  - Tree-shaking dead code in browser bundles
+* [ ] Compiler optimization
+  - Benchmark `--cg chez` vs `--cg refc` backends
+  - Tune inlining thresholds
+  - Dead code elimination improvements
+
+**Binding Quality**
+
+* [ ] Audit all 89 bindings for Idris2 ABI + Zig FFI compliance
+  - Ensure NO native safety logic in bindings (only in Idris2)
+  - Verify bidirectional FFI support (Idris ↔ Zig ↔ Language)
+  - Document binding architecture compliance
+* [ ] Improve binding ergonomics
+  - Idiomatic error handling per language (Result, Maybe, Option, Either)
+  - Language-native documentation generation
+  - Package manager integration (crates.io, JSR, PyPI alternatives, etc.)
+
+**Extended Bindings**
+
+* [ ] Config language maturation
+  - CUE bindings enhancement
+  - Starlark (Bazel) deep integration
+  - HCL (Terraform) validation helpers
+* [ ] Quantum computing bindings
+  - Q# (Microsoft Quantum) maturity
+  - OpenQASM (IBM Qiskit) validation
+  - Quantum circuit safety primitives
+* [ ] Neuromorphic computing
+  - SNN (Spiking Neural Network) format validation
+  - Neuromorphic ML pipeline safety
+
+**Tooling**
+
+* [ ] VS Code extension
+  - Syntax highlighting for proven types
+  - Inline type hints for verified operations
+  - Quick fixes for common safety issues
+* [ ] Language Server Protocol (LSP) integration
+  - Autocomplete for safe operations
+  - Real-time type checking in supported editors
+  - Documentation hover tooltips
+* [ ] Error message improvements
+  - Better FFI boundary error messages
+  - Suggestions for fixing type mismatches
+  - Examples in error output
+
+**Documentation**
+
+* [ ] Video tutorials
+  - "Why proven?" introduction
+  - Language-specific integration guides
+  - Advanced proof techniques
+* [ ] Interactive playground
+  - Web-based REPL for trying proven
+  - Example library with common patterns
+  - Share and embed proven snippets
+* [ ] Migration guides
+  - From standard library math to SafeMath
+  - From regex to SafeRegex
+  - From JSON libraries to SafeJson
+
+=== v1.2.0 - Ecosystem Integration (Q3 2026)
+
+*Timeline:* 2-3 months +
+*Focus:* Build system integration, package management, IDE support
+
+**Build System Plugins**
+
+* [ ] Bazel integration
+  - proven_library() Bazel rule
+  - Automatic dependency resolution
+  - Remote caching support
+* [ ] Buck2 integration
+  - Native Buck2 rule for proven
+  - Incremental compilation
+* [ ] CMake module
+  - find_package(Proven) support
+  - ExternalProject integration
+* [ ] Cargo integration improvements
+  - Procedural macros for proven types
+  - Build script helpers
+
+**Package Manager Integration**
+
+* [ ] Deno registry (JSR) publishing
+* [ ] Crates.io quality improvements (docs, examples)
+* [ ] Julia General registry submission
+* [ ] Gleam packages (Hex.pm)
+* [ ] Elixir Hex packages
+* [ ] OCaml OPAM packages
+* [ ] Haskell Hackage/Stackage
+
+**IDE Deep Integration**
+
+* [ ] IntelliJ IDEA plugin
+  - Kotlin, Scala, Java support
+  - Type hints and inline proofs
+* [ ] Emacs mode
+  - Idris2 integration via LSP
+  - Proof navigation
+* [ ] Vim/Neovim plugin
+  - ALE/CoC integration
+  - Proven-aware linting
+
+**a2ml Integration**
+
+* [ ] Integrate a2ml (aggregate-library meta-language) specification
+  - Map proven modules to aLib universal operations
+  - Cross-language operation consistency
+  - Automated conformance testing
+
+---
+
+=== v2.0.0 - Concurrency & Advanced Verification (Q1 2027)
+
+*Timeline:* 6-12 months +
+*Focus:* Concurrent correctness, advanced formal methods
+
+**SafeConcurrency Module**
+
+* [ ] Type-safe concurrency primitives
+  - Race-free channels with linear types
+  - Deadlock-free locks via capability typing
+  - Fork-join parallelism with provable termination
+* [ ] Actor model implementation
+  - Typed actors with protocol verification
+  - Message ordering guarantees
+  - Supervision tree safety
+* [ ] Data race prevention
+  - Ownership and borrowing in Idris2
+  - Aliasing control via uniqueness types
+  - Shared-nothing concurrency patterns
+* [ ] Async/await safety
+  - Colored function analysis
+  - No leaked futures
+  - Cancellation safety
+
+**Enhanced Verification**
+
+* [ ] SMT solver integration
+  - Z3 backend for automated proofs
+  - CVC5 for advanced theories
+  - Automated lemma discovery
+* [ ] Verification condition generation
+  - Hoare logic for imperative code
+  - Weakest precondition calculus
+  - Automated loop invariant inference
+* [ ] Proof automation
+  - Tactic language for custom proofs
+  - Proof search with backtracking
+  - Proof repair suggestions
+* [ ] Runtime assertion synthesis
+  - Generate runtime checks from proofs
+  - Gradual verification (opt-in checking)
+  - Proof coverage metrics
+
+**Advanced Safety Modules**
+
+* [ ] SafeMemory
+  - Region-based memory management
+  - Arena allocators with lifetime proofs
+  - No use-after-free guarantees
+  - Stack/heap allocation safety
+* [ ] SafeProtocol
+  - Session types for communication protocols
+  - Verified state machines (TLS, HTTP/2, WebSocket)
+  - Protocol composition with safety preservation
+* [ ] SafeSmartContract (extended)
+  - Solidity/Vyper/Move verification
+  - Reentrancy prevention proofs
+  - Gas cost analysis
+  - Integer overflow in blockchain contexts
+* [ ] SafeML
+  - Numerically stable algorithms
+  - Gradient explosion/vanishing prevention
+  - Verified backpropagation
+  - Safe probabilistic inference
+
+**Performance**
+
+* [ ] Parallel proof checking
+  - Multi-core Idris2 compilation
+  - Incremental proof rebuilds
+* [ ] JIT compilation for hot paths
+  - Runtime specialization
+  - Proof-preserving optimization
+
+=== v2.1.0 - Distributed Primitives (Q3 2027)
+
+*Timeline:* 3-4 months +
+*Focus:* Building blocks for distributed correctness
+
+**Distributed Data Structures**
+
+* [ ] Conflict-free Replicated Data Types (CRDTs)
+  - Verified convergence proofs
+  - G-Counter, PN-Counter with commutativity
+  - LWW-Register, OR-Set with causality
+* [ ] Distributed locks
+  - Redlock algorithm verification
+  - Lease-based locking with timeouts
+  - Fencing tokens for correctness
+* [ ] Vector clocks
+  - Happens-before relation proofs
+  - Causal consistency verification
+
+**Network Safety**
+
+* [ ] SafeRPC
+  - Type-safe remote procedure calls
+  - Serialization with schema evolution
+  - Timeout and retry semantics
+* [ ] SafeGossip
+  - Epidemic broadcast verification
+  - Bounded message propagation
+  - Membership protocol safety
+
+---
+
+=== v3.0.0 - Distributed Systems & Formal Methods (Q1 2028)
+
+*Timeline:* 18-24 months +
+*Focus:* Verified distributed algorithms, research platform
+
+**SafeDistributed Module**
+
+* [ ] Consensus algorithm verification
+  - Raft with leader election proofs
+  - Multi-Paxos with liveness guarantees
+  - Byzantine fault tolerance (PBFT)
+  - Proof of safety and liveness properties
+* [ ] Distributed transaction safety
+  - Two-phase commit verification
+  - Saga pattern with compensation proofs
+  - Serializable snapshot isolation
+* [ ] Network partition handling
+  - CAP theorem instantiation
+  - Partition tolerance strategies
+  - Split-brain prevention
+* [ ] Causality tracking
+  - Lamport clocks with happened-before
+  - Vector clock verification
+  - Causal consistency proofs
+
+**Advanced Type System Features**
+
+* [ ] Refinement types for all modules
+  - Liquid types with SMT solving
+  - Predicate abstraction
+  - Automatic refinement inference
+* [ ] Session types for protocols
+  - Binary session types with duality
+  - Multiparty session types
+  - Protocol projection and checking
+* [ ] Linear types for resources
+  - File handles, sockets, memory
+  - Use-once guarantees
+  - Affine types for at-most-once
+* [ ] Higher-order verification
+  - Higher-order contracts
+  - Dependent function types
+  - Polymorphic recursion
+
+**Proof Automation**
+
+* [ ] Custom tactic language
+  - User-defined proof strategies
+  - Tactic composition and reuse
+  - Reflection and metaprogramming
+* [ ] Automated invariant discovery
+  - Loop invariant synthesis
+  - Class invariant inference
+  - Protocol invariants from traces
+* [ ] Proof repair
+  - Suggest fixes for broken proofs
+  - Diff-based proof adaptation
+  - Machine learning-guided repair
+* [ ] Interactive theorem proving
+  - IDE integration for proof development
+  - Step-by-step proof exploration
+  - Counterexample generation
+
+**Research Platform**
+
+* [ ] Academic paper implementations
+  - Verified algorithms from POPL, PLDI, ICFP
+  - Benchmark suite for verification tools
+  - Case studies in distributed systems
+* [ ] Formal methods education
+  - Curriculum modules with proven
+  - Jupyter notebook integration
+  - Visualization of proofs
+* [ ] PL research collaboration
+  - Integration with Coq, Agda, Lean
+  - Proof exchange formats
+  - Cross-prover verification
+
+**Distributed Systems Case Studies**
+
+* [ ] Verified key-value store
+  - Raft-based replication
+  - Linearizability proofs
+  - Production-ready implementation
+* [ ] Verified distributed queue
+  - At-least-once delivery
+  - Ordering guarantees
+  - Partition tolerance
+* [ ] Verified service mesh
+  - Load balancing with fairness
+  - Circuit breaking with safety
+  - Distributed tracing correctness
+
+---
+
+== Long-Term Vision (v4.0+)
+
+=== v4.0.0 - Self-Verifying Systems (2029+)
+
+* Runtime proof checking
+* Proof-carrying code
+* Adaptive safety (runtime theorem proving)
+* Certified compilation (CompCert-style)
+
+=== v5.0.0 - Ecosystem Dominance (2030+)
+
+* Standard library replacement in major languages
+* Operating system integration (verified syscalls)
+* Hardware verification (RISC-V proofs)
+* Quantum-classical hybrid systems
+
+---
+
+== Release Cadence
+
+* **Patch releases (v1.0.x):** Bug fixes, doc updates - as needed
+* **Minor releases (v1.x.0):** New features, bindings - quarterly
+* **Major releases (vX.0.0):** Breaking changes, architecture - annually
+
+---
+
+== Community & Governance
+
+=== Contribution Model
+
+* All contributions require proofs (no unverified code)
+* ADR (Architecture Decision Records) for major changes (see META.scm)
+* Code review by formal methods experts
+* echidnabot automated proof verification
+
+=== Roadmap Evolution
+
+This roadmap is a living document. Priorities may shift based on:
+
+* User feedback and adoption metrics
+* Research breakthroughs in formal methods
+* Critical security vulnerabilities in target ecosystems
+* Funding and contributor availability
+
+**Roadmap updates:** Quarterly review, annual major revision
+
+---
+
+== How to Influence the Roadmap
+
+1. **Open an issue** describing your use case and requirements
+2. **Contribute a proof** for a proposed feature
+3. **Sponsor development** of specific milestones
+4. **Join the formal methods SIG** (Special Interest Group)
+
+---
+
+== Success Metrics
+
+* **v1.x:** 10,000+ weekly downloads across all bindings
+* **v2.x:** 100+ production deployments in critical systems
+* **v3.x:** Academic citations in 50+ peer-reviewed papers
+* **v4.x+:** Industry-standard verified safety library
+
+---
+
+== Related Projects
+
+* **ECHIDNA:** Smart contract verification engine
+* **echidnabot:** Automated proof workflow orchestration
+* **a2ml:** Aggregate-library meta-language for universal operations
+* **Rhodium Standard Repositories (RSR):** Development standards and tooling
+
+See link:ECOSYSTEM.scm[] for detailed project relationships.
+
+---
+
+== Appendix: Technology Stack Evolution
+
+[cols="1,2,2,2", options="header"]
+|===
+| Version | Core Tech | FFI Layer | Verification
+
+| v1.0
+| Idris2 (RefC backend)
+| Zig (C ABI)
+| echidnabot + property tests
+
+| v2.0
+| Idris2 + SMT solvers
+| Zig (bidirectional)
+| echidnabot + Z3/CVC5
+
+| v3.0
+| Idris2 + higher-order types
+| Zig + WASM + JIT
+| echidnabot + interactive proofs
+
+| v4.0+
+| Self-hosted verification
+| Proof-carrying binaries
+| Runtime theorem proving
+|===
+
+---
+
+_Last updated: 2026-01-30_ +
+_Maintained by: Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>_ +
+_License: MPL-2.0-or-later (with Palimpsest philosophy)_

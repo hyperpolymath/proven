@@ -98,7 +98,21 @@
      "SafeString implements aLib string: concat, length, substring"
      "All implementations have termination proofs (totality)"
      "proven serves as gold standard for aLib correctness verification"
-     "12-language FFI bindings allow aLib compliance testing in any language")))
+     "89-language FFI bindings allow aLib compliance testing in any language")))
+
+  ((name . "a2ml")
+   (relationship . "documentation-tool")
+   (repo . "github.com/hyperpolymath/a2ml")
+   (integration-type . "markup-language")
+   (description
+    "A2ML (Attested Markup Language) is a typed, verifiable markup format.
+     proven uses a2ml for specification documents with structural guarantees.")
+   (integration-points
+    ("Progressive strictness for documentation (lax -> checked -> attested)"
+     "Required sections, resolved references, unique IDs"
+     "Shared Idris2 foundation (a2ml has Idris2 typed core)"
+     "Future: proven specs migrate to a2ml format (v1.1+)"
+     "Renderer portability across HTML/Markdown/PDF pipelines")))
 
   ;; Potential consumers
   ((name . "ubicity")
