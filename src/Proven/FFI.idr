@@ -32,5 +32,6 @@ import Proven.FFI.SafeArgs
 import Proven.FFI.SafeFile
 import Proven.FFI.SafeUUID
 import Proven.FFI.SafeCurrency
+import Proven.FFI.SafeHex
 
 %default total
