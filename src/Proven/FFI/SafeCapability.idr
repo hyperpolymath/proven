@@ -71,27 +71,27 @@ encodeBool True = 1
 -- Permission Encoding
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_perm_read : Int
 proven_idris_cap_perm_read = 0
 
-%export
+export
 proven_idris_cap_perm_write : Int
 proven_idris_cap_perm_write = 1
 
-%export
+export
 proven_idris_cap_perm_execute : Int
 proven_idris_cap_perm_execute = 2
 
-%export
+export
 proven_idris_cap_perm_delete : Int
 proven_idris_cap_perm_delete = 3
 
-%export
+export
 proven_idris_cap_perm_admin : Int
 proven_idris_cap_perm_admin = 4
 
-%export
+export
 proven_idris_cap_is_valid_permission : Int -> Int
 proven_idris_cap_is_valid_permission perm =
   encodeBool (perm >= 0 && perm <= 4)
@@ -100,7 +100,7 @@ proven_idris_cap_is_valid_permission perm =
 -- Permission Hierarchy
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_perm_implies : Int -> Int -> Int
 proven_idris_cap_perm_implies perm1 perm2 =
   -- Admin implies all others
@@ -109,29 +109,29 @@ proven_idris_cap_perm_implies perm1 perm2 =
   else if perm1 > perm2 then 1  -- Higher permission implies lower
   else 0
 
-%export
+export
 proven_idris_cap_perm_compare : Int -> Int -> Int
 proven_idris_cap_perm_compare perm1 perm2 =
   if perm1 < perm2 then (-1)
   else if perm1 == perm2 then 0
   else 1
 
-%export
+export
 proven_idris_cap_perm_max : Int -> Int -> Int
 proven_idris_cap_perm_max perm1 perm2 =
   if perm1 > perm2 then perm1 else perm2
 
-%export
+export
 proven_idris_cap_perm_min : Int -> Int -> Int
 proven_idris_cap_perm_min perm1 perm2 =
   if perm1 < perm2 then perm1 else perm2
 
-%export
+export
 proven_idris_cap_is_admin : Int -> Int
 proven_idris_cap_is_admin perm =
   encodeBool (perm == 4)
 
-%export
+export
 proven_idris_cap_requires_admin : Int -> Int
 proven_idris_cap_requires_admin perm =
   encodeBool (perm == 4 || perm == 3)  -- Admin or Delete
@@ -140,32 +140,32 @@ proven_idris_cap_requires_admin perm =
 -- Capability Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_has_permission : Int -> Int
 proven_idris_cap_has_permission hasIt = hasIt
 
-%export
+export
 proven_idris_cap_is_expired : Int -> Int -> Int
 proven_idris_cap_is_expired currentTime expiryTime =
   encodeBool (currentTime > expiryTime)
 
-%export
+export
 proven_idris_cap_never_expires : Int -> Int
 proven_idris_cap_never_expires hasExpiry =
   encodeBool (hasExpiry == 0)
 
-%export
+export
 proven_idris_cap_is_valid : Int -> Int -> Int -> Int
 proven_idris_cap_is_valid hasPermission isExpired neverExpires =
   encodeBool (hasPermission == 1 && (isExpired == 0 || neverExpires == 1))
 
-%export
+export
 proven_idris_cap_remaining_time : Int -> Int -> Int
 proven_idris_cap_remaining_time currentTime expiryTime =
   if currentTime >= expiryTime then 0
   else expiryTime - currentTime
 
-%export
+export
 proven_idris_cap_is_nearly_expired : Int -> Int -> Int -> Int
 proven_idris_cap_is_nearly_expired currentTime expiryTime threshold =
   let remaining = proven_idris_cap_remaining_time currentTime expiryTime
@@ -175,24 +175,24 @@ proven_idris_cap_is_nearly_expired currentTime expiryTime threshold =
 -- Delegation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_is_delegatable : Int -> Int
 proven_idris_cap_is_delegatable delegatable = delegatable
 
-%export
+export
 proven_idris_cap_can_delegate : Int -> Int -> Int
 proven_idris_cap_can_delegate delegatable isExpired =
   encodeBool (delegatable == 1 && isExpired == 0)
 
-%export
+export
 proven_idris_cap_delegation_depth : Int -> Int
 proven_idris_cap_delegation_depth depth = depth
 
-%export
+export
 proven_idris_cap_max_delegation_depth : Int
 proven_idris_cap_max_delegation_depth = 10
 
-%export
+export
 proven_idris_cap_can_delegate_further : Int -> Int -> Int
 proven_idris_cap_can_delegate_further currentDepth maxDepth =
   encodeBool (currentDepth < maxDepth)
@@ -201,19 +201,19 @@ proven_idris_cap_can_delegate_further currentDepth maxDepth =
 -- Attenuation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_can_attenuate_to : Int -> Int -> Int
 proven_idris_cap_can_attenuate_to currentPerm newPerm =
   -- Can only reduce permissions (newPerm ≤ currentPerm)
   encodeBool (newPerm <= currentPerm)
 
-%export
+export
 proven_idris_cap_attenuation_valid : Int -> Int -> Int
 proven_idris_cap_attenuation_valid originalPerms attenuatedPerms =
   -- Attenuated permissions must be subset of original
   encodeBool (attenuatedPerms <= originalPerms)
 
-%export
+export
 proven_idris_cap_permissions_removed : Int -> Int -> Int
 proven_idris_cap_permissions_removed originalCount attenuatedCount =
   if originalCount >= attenuatedCount
@@ -224,15 +224,15 @@ proven_idris_cap_permissions_removed originalCount attenuatedCount =
 -- Revocation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_is_revoked : Int -> Int
 proven_idris_cap_is_revoked revoked = revoked
 
-%export
+export
 proven_idris_cap_can_revoke : Int -> Int
 proven_idris_cap_can_revoke isAdmin = isAdmin
 
-%export
+export
 proven_idris_cap_revocation_count : Int -> Int
 proven_idris_cap_revocation_count count = count
 
@@ -240,19 +240,19 @@ proven_idris_cap_revocation_count count = count
 -- Confinement
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_within_confinement : Int -> Int
 proven_idris_cap_within_confinement withinDomain = withinDomain
 
-%export
+export
 proven_idris_cap_can_confine : Int -> Int
 proven_idris_cap_can_confine canConfine = canConfine
 
-%export
+export
 proven_idris_cap_confinement_domain_size : Int -> Int
 proven_idris_cap_confinement_domain_size size = size
 
-%export
+export
 proven_idris_cap_is_confined : Int -> Int
 proven_idris_cap_is_confined hasConfinement = hasConfinement
 
@@ -260,26 +260,26 @@ proven_idris_cap_is_confined hasConfinement = hasConfinement
 -- Store Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_store_size : Int -> Int
 proven_idris_cap_store_size count = count
 
-%export
+export
 proven_idris_cap_store_capacity : Int -> Int
 proven_idris_cap_store_capacity maxSize = maxSize
 
-%export
+export
 proven_idris_cap_store_is_full : Int -> Int -> Int
 proven_idris_cap_store_is_full currentSize maxSize =
   encodeBool (currentSize >= maxSize)
 
-%export
+export
 proven_idris_cap_store_remaining_capacity : Int -> Int -> Int
 proven_idris_cap_store_remaining_capacity currentSize maxSize =
   if currentSize >= maxSize then 0
   else maxSize - currentSize
 
-%export
+export
 proven_idris_cap_lookup_count : Int -> Int
 proven_idris_cap_lookup_count count = count
 
@@ -287,20 +287,20 @@ proven_idris_cap_lookup_count count = count
 -- Access Control
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_access_granted : Int -> Int
 proven_idris_cap_access_granted granted = granted
 
-%export
+export
 proven_idris_cap_access_denied : Int -> Int
 proven_idris_cap_access_denied denied = denied
 
-%export
+export
 proven_idris_cap_check_access : Int -> Int -> Int -> Int
 proven_idris_cap_check_access hasPermission notExpired notRevoked =
   encodeBool (hasPermission == 1 && notExpired == 1 && notRevoked == 1)
 
-%export
+export
 proven_idris_cap_denial_reason : Int -> String
 proven_idris_cap_denial_reason reason =
   if reason == 0 then "No permission"
@@ -314,28 +314,28 @@ proven_idris_cap_denial_reason reason =
 -- Audit Logging
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_audit_entry_count : Int -> Int
 proven_idris_cap_audit_entry_count count = count
 
-%export
+export
 proven_idris_cap_access_success_rate : Int -> Int -> Double
 proven_idris_cap_access_success_rate granted total =
   if total == 0 then 0.0
   else cast granted / cast total
 
-%export
+export
 proven_idris_cap_access_success_rate_percent : Int -> Int -> Double
 proven_idris_cap_access_success_rate_percent granted total =
   proven_idris_cap_access_success_rate granted total * 100.0
 
-%export
+export
 proven_idris_cap_denial_rate : Int -> Int -> Double
 proven_idris_cap_denial_rate denied total =
   if total == 0 then 0.0
   else cast denied / cast total
 
-%export
+export
 proven_idris_cap_denial_rate_percent : Int -> Int -> Double
 proven_idris_cap_denial_rate_percent denied total =
   proven_idris_cap_denial_rate denied total * 100.0
@@ -344,15 +344,15 @@ proven_idris_cap_denial_rate_percent denied total =
 -- Token Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_token_is_valid : Int -> Int
 proven_idris_cap_token_is_valid valid = valid
 
-%export
+export
 proven_idris_cap_token_secret_matches : Int -> Int
 proven_idris_cap_token_secret_matches matches = matches
 
-%export
+export
 proven_idris_cap_generate_token_id : Int -> Int
 proven_idris_cap_generate_token_id currentId = currentId + 1
 
@@ -360,16 +360,16 @@ proven_idris_cap_generate_token_id currentId = currentId + 1
 -- Object Capabilities
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_object_has_access : Int -> Int -> Int -> Int
 proven_idris_cap_object_has_access hasPermission notExpired notRevoked =
   proven_idris_cap_check_access hasPermission notExpired notRevoked
 
-%export
+export
 proven_idris_cap_membrane_allows : Int -> Int
 proven_idris_cap_membrane_allows allows = allows
 
-%export
+export
 proven_idris_cap_membrane_is_readonly : Int -> Int -> Int
 proven_idris_cap_membrane_is_readonly requestedPerm _ =
   encodeBool (requestedPerm == 0)  -- Read only
@@ -378,21 +378,21 @@ proven_idris_cap_membrane_is_readonly requestedPerm _ =
 -- Statistics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_delegation_count : Int -> Int
 proven_idris_cap_delegation_count count = count
 
-%export
+export
 proven_idris_cap_attenuation_count : Int -> Int
 proven_idris_cap_attenuation_count count = count
 
-%export
+export
 proven_idris_cap_average_lifetime : Int -> Int -> Double
 proven_idris_cap_average_lifetime totalLifetime capCount =
   if capCount == 0 then 0.0
   else cast totalLifetime / cast capCount
 
-%export
+export
 proven_idris_cap_average_delegation_depth : Int -> Int -> Double
 proven_idris_cap_average_delegation_depth totalDepth capCount =
   if capCount == 0 then 0.0
@@ -402,15 +402,15 @@ proven_idris_cap_average_delegation_depth totalDepth capCount =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_default_expiry : Int
 proven_idris_cap_default_expiry = 3600  -- 1 hour
 
-%export
+export
 proven_idris_cap_max_store_size : Int
 proven_idris_cap_max_store_size = 100000
 
-%export
+export
 proven_idris_cap_expiry_warning_threshold : Int
 proven_idris_cap_expiry_warning_threshold = 300  -- 5 minutes
 
@@ -418,7 +418,7 @@ proven_idris_cap_expiry_warning_threshold = 300  -- 5 minutes
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cap_friendly_error : String -> String
 proven_idris_cap_friendly_error errorMsg =
   if isInfixOf "permission" (toLower errorMsg) || isInfixOf "access" (toLower errorMsg)
@@ -436,7 +436,7 @@ proven_idris_cap_friendly_error errorMsg =
   else
     "Capability error"
 
-%export
+export
 proven_idris_cap_permission_description : Int -> String
 proven_idris_cap_permission_description perm =
   if perm == 0 then "Read (view resources)"

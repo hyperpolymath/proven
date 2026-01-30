@@ -12,14 +12,14 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
-%export
+export
 proven_idris_tensor_same_shape : Int -> Int -> Int
 proven_idris_tensor_same_shape len1 len2 = encodeBool (len1 == len2)
 
-%export
+export
 proven_idris_tensor_valid_index : Int -> Int -> Int
 proven_idris_tensor_valid_index idx len = encodeBool (idx >= 0 && idx < len)
 
-%export
+export
 proven_idris_tensor_matmul_compatible : Int -> Int -> Int
 proven_idris_tensor_matmul_compatible cols1 rows2 = encodeBool (cols1 == rows2)

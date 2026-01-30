@@ -8,12 +8,12 @@ import Data.String
 
 %default total
 
-%export
+export
 proven_idris_path_has_traversal : String -> Bool
 proven_idris_path_has_traversal s =
   elem ".." (splitPath s)
 
-%export
+export
 proven_idris_path_sanitize_filename : String -> String
 proven_idris_path_sanitize_filename s =
   let cleaned = filter isSafe (unpack s)

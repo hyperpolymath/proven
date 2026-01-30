@@ -64,27 +64,27 @@ decodeDimension l m t i th n j = MkDim
 -- Base Dimensions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_dimensionless : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_dimensionless = encodeDimension dimensionless
 
-%export
+export
 proven_idris_unit_length_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_length_dim = encodeDimension lengthDim
 
-%export
+export
 proven_idris_unit_mass_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_mass_dim = encodeDimension massDim
 
-%export
+export
 proven_idris_unit_time_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_time_dim = encodeDimension timeDim
 
-%export
+export
 proven_idris_unit_current_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_current_dim = encodeDimension currentDim
 
-%export
+export
 proven_idris_unit_temperature_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_temperature_dim = encodeDimension temperatureDim
 
@@ -92,27 +92,27 @@ proven_idris_unit_temperature_dim = encodeDimension temperatureDim
 -- Derived Dimensions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_velocity_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_velocity_dim = encodeDimension velocityDim
 
-%export
+export
 proven_idris_unit_acceleration_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_acceleration_dim = encodeDimension accelerationDim
 
-%export
+export
 proven_idris_unit_force_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_force_dim = encodeDimension forceDim
 
-%export
+export
 proven_idris_unit_energy_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_energy_dim = encodeDimension energyDim
 
-%export
+export
 proven_idris_unit_power_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_power_dim = encodeDimension powerDim
 
-%export
+export
 proven_idris_unit_pressure_dim : (Int, Int, Int, Int, Int, Int, Int)
 proven_idris_unit_pressure_dim = encodeDimension pressureDim
 
@@ -120,7 +120,7 @@ proven_idris_unit_pressure_dim = encodeDimension pressureDim
 -- Dimension Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_mul_dim : Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                              Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                              (Int, Int, Int, Int, Int, Int, Int)
@@ -129,7 +129,7 @@ proven_idris_unit_mul_dim l1 m1 t1 i1 th1 n1 j1 l2 m2 t2 i2 th2 n2 j2 =
       d2 = decodeDimension l2 m2 t2 i2 th2 n2 j2
   in encodeDimension (mulDim d1 d2)
 
-%export
+export
 proven_idris_unit_div_dim : Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                              Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                              (Int, Int, Int, Int, Int, Int, Int)
@@ -138,7 +138,7 @@ proven_idris_unit_div_dim l1 m1 t1 i1 th1 n1 j1 l2 m2 t2 i2 th2 n2 j2 =
       d2 = decodeDimension l2 m2 t2 i2 th2 n2 j2
   in encodeDimension (divDim d1 d2)
 
-%export
+export
 proven_idris_unit_dims_equal : Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                                 Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                                 Int
@@ -147,7 +147,7 @@ proven_idris_unit_dims_equal l1 m1 t1 i1 th1 n1 j1 l2 m2 t2 i2 th2 n2 j2 =
       d2 = decodeDimension l2 m2 t2 i2 th2 n2 j2
   in encodeBool (d1 == d2)
 
-%export
+export
 proven_idris_unit_is_dimensionless : Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int
 proven_idris_unit_is_dimensionless l m t i th n j =
   let d = decodeDimension l m t i th n j
@@ -157,7 +157,7 @@ proven_idris_unit_is_dimensionless l m t i th n j =
 -- Quantity Arithmetic
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_add : Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                          Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                          (Int, Double)
@@ -170,7 +170,7 @@ proven_idris_unit_add v1 l1 m1 t1 i1 th1 n1 j1 v2 l2 m2 t2 i2 th2 n2 j2 =
        Nothing => (1, 0.0)  -- Incompatible dimensions
        Just result => (0, result.value)
 
-%export
+export
 proven_idris_unit_subtract : Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                               Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                               (Int, Double)
@@ -183,7 +183,7 @@ proven_idris_unit_subtract v1 l1 m1 t1 i1 th1 n1 j1 v2 l2 m2 t2 i2 th2 n2 j2 =
        Nothing => (1, 0.0)
        Just result => (0, result.value)
 
-%export
+export
 proven_idris_unit_multiply : Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                               Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                               (Double, Int, Int, Int, Int, Int, Int, Int)
@@ -196,7 +196,7 @@ proven_idris_unit_multiply v1 l1 m1 t1 i1 th1 n1 j1 v2 l2 m2 t2 i2 th2 n2 j2 =
       (l, m, t, i, th, n, j) = encodeDimension result.dimension
   in (result.value, l, m, t, i, th, n, j)
 
-%export
+export
 proven_idris_unit_divide : Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                             Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                             (Int, Double, Int, Int, Int, Int, Int, Int, Int)
@@ -211,7 +211,7 @@ proven_idris_unit_divide v1 l1 m1 t1 i1 th1 n1 j1 v2 l2 m2 t2 i2 th2 n2 j2 =
          let (l, m, t, i, th, n, j) = encodeDimension result.dimension
          in (0, result.value, l, m, t, i, th, n, j)
 
-%export
+export
 proven_idris_unit_scale : Double -> Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
                            Double
 proven_idris_unit_scale scalar value l m t i th n j =
@@ -224,31 +224,31 @@ proven_idris_unit_scale scalar value l m t i th n j =
 -- Unit Constructors (Length)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_meters : Double -> Double
 proven_idris_unit_meters v = (meters v).value
 
-%export
+export
 proven_idris_unit_kilometers : Double -> Double
 proven_idris_unit_kilometers v = (kilometers v).value
 
-%export
+export
 proven_idris_unit_miles : Double -> Double
 proven_idris_unit_miles v = (miles v).value
 
-%export
+export
 proven_idris_unit_meters_to_km : Double -> Double
 proven_idris_unit_meters_to_km m = m / 1000.0
 
-%export
+export
 proven_idris_unit_km_to_meters : Double -> Double
 proven_idris_unit_km_to_meters km = km * 1000.0
 
-%export
+export
 proven_idris_unit_miles_to_meters : Double -> Double
 proven_idris_unit_miles_to_meters mi = mi * 1609.344
 
-%export
+export
 proven_idris_unit_meters_to_miles : Double -> Double
 proven_idris_unit_meters_to_miles m = m / 1609.344
 
@@ -256,19 +256,19 @@ proven_idris_unit_meters_to_miles m = m / 1609.344
 -- Unit Constructors (Mass)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_kilograms : Double -> Double
 proven_idris_unit_kilograms v = (kilograms v).value
 
-%export
+export
 proven_idris_unit_pounds : Double -> Double
 proven_idris_unit_pounds v = (pounds v).value
 
-%export
+export
 proven_idris_unit_pounds_to_kg : Double -> Double
 proven_idris_unit_pounds_to_kg lb = lb * 0.453592
 
-%export
+export
 proven_idris_unit_kg_to_pounds : Double -> Double
 proven_idris_unit_kg_to_pounds kg = kg / 0.453592
 
@@ -276,19 +276,19 @@ proven_idris_unit_kg_to_pounds kg = kg / 0.453592
 -- Unit Constructors (Time)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_seconds : Double -> Double
 proven_idris_unit_seconds v = (seconds v).value
 
-%export
+export
 proven_idris_unit_hours : Double -> Double
 proven_idris_unit_hours v = (hours v).value
 
-%export
+export
 proven_idris_unit_hours_to_seconds : Double -> Double
 proven_idris_unit_hours_to_seconds h = h * 3600.0
 
-%export
+export
 proven_idris_unit_seconds_to_hours : Double -> Double
 proven_idris_unit_seconds_to_hours s = s / 3600.0
 
@@ -296,31 +296,31 @@ proven_idris_unit_seconds_to_hours s = s / 3600.0
 -- Unit Constructors (Temperature)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_kelvin : Double -> Double
 proven_idris_unit_kelvin v = (kelvin v).value
 
-%export
+export
 proven_idris_unit_celsius : Double -> Double
 proven_idris_unit_celsius c = (celsius c).value
 
-%export
+export
 proven_idris_unit_fahrenheit : Double -> Double
 proven_idris_unit_fahrenheit f = (fahrenheit f).value
 
-%export
+export
 proven_idris_unit_kelvin_to_celsius : Double -> Double
 proven_idris_unit_kelvin_to_celsius k = k - 273.15
 
-%export
+export
 proven_idris_unit_celsius_to_kelvin : Double -> Double
 proven_idris_unit_celsius_to_kelvin c = c + 273.15
 
-%export
+export
 proven_idris_unit_fahrenheit_to_celsius : Double -> Double
 proven_idris_unit_fahrenheit_to_celsius f = (f - 32.0) * 5.0 / 9.0
 
-%export
+export
 proven_idris_unit_celsius_to_fahrenheit : Double -> Double
 proven_idris_unit_celsius_to_fahrenheit c = c * 9.0 / 5.0 + 32.0
 
@@ -328,19 +328,19 @@ proven_idris_unit_celsius_to_fahrenheit c = c * 9.0 / 5.0 + 32.0
 -- Conversion Factors
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_meter_to_km_factor : Double
 proven_idris_unit_meter_to_km_factor = 0.001
 
-%export
+export
 proven_idris_unit_mile_to_meter_factor : Double
 proven_idris_unit_mile_to_meter_factor = 1609.344
 
-%export
+export
 proven_idris_unit_pound_to_kg_factor : Double
 proven_idris_unit_pound_to_kg_factor = 0.453592
 
-%export
+export
 proven_idris_unit_hour_to_second_factor : Double
 proven_idris_unit_hour_to_second_factor = 3600.0
 
@@ -348,7 +348,7 @@ proven_idris_unit_hour_to_second_factor = 3600.0
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_unit_friendly_error : String -> String
 proven_idris_unit_friendly_error errorMsg =
   if isInfixOf "dimension" (toLower errorMsg) || isInfixOf "incompatible" (toLower errorMsg)

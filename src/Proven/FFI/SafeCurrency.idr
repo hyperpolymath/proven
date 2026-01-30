@@ -35,7 +35,7 @@ encodeRoundingMode RoundHalfUp = 2
 encodeRoundingMode RoundHalfDown = 3
 encodeRoundingMode RoundHalfEven = 4
 
-%export
+export
 proven_idris_currency_minor_units : Int -> Int
 proven_idris_currency_minor_units code =
   if code == 3 then 0       -- JPY
@@ -43,18 +43,18 @@ proven_idris_currency_minor_units code =
   else if code == 10 then 18 -- ETH
   else 2                     -- Most currencies
 
-%export
+export
 proven_idris_currency_same : Int -> Int -> Int
 proven_idris_currency_same c1 c2 = encodeBool (c1 == c2)
 
-%export
+export
 proven_idris_money_is_positive : Int -> Int
 proven_idris_money_is_positive amt = encodeBool (amt > 0)
 
-%export
+export
 proven_idris_money_is_negative : Int -> Int
 proven_idris_money_is_negative amt = encodeBool (amt < 0)
 
-%export
+export
 proven_idris_money_is_zero : Int -> Int
 proven_idris_money_is_zero amt = encodeBool (amt == 0)

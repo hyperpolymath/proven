@@ -42,12 +42,12 @@ encodeStringResult (Just s) = (0, s)
 -- Content-Type Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_content_type_parse : String -> (Int, String)
 proven_idris_content_type_parse header =
   encodeContentTypeResult (parseContentTypeDefault header)
 
-%export
+export
 proven_idris_content_type_create : String -> String -> (Int, String)
 proven_idris_content_type_create mediaType subtype =
   encodeContentTypeResult (mkContentTypeDefault mediaType subtype)
@@ -56,51 +56,51 @@ proven_idris_content_type_create mediaType subtype =
 -- Common Content Types (Presets)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_content_type_json : String
 proven_idris_content_type_json = renderContentType json
 
-%export
+export
 proven_idris_content_type_html : String
 proven_idris_content_type_html = renderContentType html
 
-%export
+export
 proven_idris_content_type_xml : String
 proven_idris_content_type_xml = renderContentType xml
 
-%export
+export
 proven_idris_content_type_plain : String
 proven_idris_content_type_plain = renderContentType plain
 
-%export
+export
 proven_idris_content_type_css : String
 proven_idris_content_type_css = renderContentType css
 
-%export
+export
 proven_idris_content_type_javascript : String
 proven_idris_content_type_javascript = renderContentType javascript
 
-%export
+export
 proven_idris_content_type_binary : String
 proven_idris_content_type_binary = renderContentType binary
 
-%export
+export
 proven_idris_content_type_form : String
 proven_idris_content_type_form = renderContentType form
 
-%export
+export
 proven_idris_content_type_pdf : String
 proven_idris_content_type_pdf = renderContentType pdf
 
-%export
+export
 proven_idris_content_type_png : String
 proven_idris_content_type_png = renderContentType png
 
-%export
+export
 proven_idris_content_type_jpeg : String
 proven_idris_content_type_jpeg = renderContentType jpeg
 
-%export
+export
 proven_idris_content_type_svg : String
 proven_idris_content_type_svg = renderContentType svg
 
@@ -108,49 +108,49 @@ proven_idris_content_type_svg = renderContentType svg
 -- Type Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_content_type_is_text : String -> Int
 proven_idris_content_type_is_text header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (isText ct)
 
-%export
+export
 proven_idris_content_type_is_binary : String -> Int
 proven_idris_content_type_is_binary header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (isBinary ct)
 
-%export
+export
 proven_idris_content_type_is_json : String -> Int
 proven_idris_content_type_is_json header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (isJson ct)
 
-%export
+export
 proven_idris_content_type_is_xml : String -> Int
 proven_idris_content_type_is_xml header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (isXml ct)
 
-%export
+export
 proven_idris_content_type_is_html : String -> Int
 proven_idris_content_type_is_html header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (isHtml ct)
 
-%export
+export
 proven_idris_content_type_is_multipart : String -> Int
 proven_idris_content_type_is_multipart header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (isMultipart ct)
 
-%export
+export
 proven_idris_content_type_matches : String -> String -> Int
 proven_idris_content_type_matches header pattern =
   case parseContentTypeDefault header of
@@ -161,14 +161,14 @@ proven_idris_content_type_matches header pattern =
 -- Extension Mapping
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_content_type_from_extension : String -> (Int, String)
 proven_idris_content_type_from_extension ext =
   case extensionToContentType ext of
     Nothing => (1, "")
     Just ct => (0, renderContentType ct)
 
-%export
+export
 proven_idris_content_type_to_extension : String -> (Int, String)
 proven_idris_content_type_to_extension header =
   case parseContentTypeDefault header of
@@ -179,21 +179,21 @@ proven_idris_content_type_to_extension header =
 -- Security Checks
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_content_type_safe_from_sniffing : String -> Int
 proven_idris_content_type_safe_from_sniffing header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (safeFromSniffing ct)
 
-%export
+export
 proven_idris_content_type_secure_charset : String -> Int
 proven_idris_content_type_secure_charset header =
   case parseContentTypeDefault header of
     Err _ => 0
     Ok ct => encodeBool (secureCharset ct)
 
-%export
+export
 proven_idris_content_type_nosniff : String
 proven_idris_content_type_nosniff = nosniff
 
@@ -201,21 +201,21 @@ proven_idris_content_type_nosniff = nosniff
 -- Error Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_content_type_is_format_error : String -> Int
 proven_idris_content_type_is_format_error errorMsg =
   if isInfixOf "invalid" (toLower errorMsg) || isInfixOf "empty" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_content_type_is_size_error : String -> Int
 proven_idris_content_type_is_size_error errorMsg =
   if isInfixOf "too long" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_content_type_is_sniffing_error : String -> Int
 proven_idris_content_type_is_sniffing_error errorMsg =
   if isInfixOf "sniffing" (toLower errorMsg)

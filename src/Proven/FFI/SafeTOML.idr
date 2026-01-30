@@ -45,11 +45,11 @@ encodeMaybeString (Just s) = (0, s)
 -- TOML Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_toml_parse : String -> (Int, String)
 proven_idris_toml_parse s = encodeTOMLResult (parse s)
 
-%export
+export
 proven_idris_toml_render : String -> (Int, String)
 proven_idris_toml_render s =
   case parse s of
@@ -60,7 +60,7 @@ proven_idris_toml_render s =
 -- Type Coercion
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_toml_as_string : String -> String -> (Int, String)
 proven_idris_toml_as_string tomlStr key =
   case parse tomlStr of
@@ -71,7 +71,7 @@ proven_idris_toml_as_string tomlStr key =
         Err err => (1, show err)
         Ok s => (0, s)
 
-%export
+export
 proven_idris_toml_as_int : String -> String -> (Int, String)
 proven_idris_toml_as_int tomlStr key =
   case parse tomlStr of
@@ -82,7 +82,7 @@ proven_idris_toml_as_int tomlStr key =
         Err err => (1, show err)
         Ok i => (0, show i)
 
-%export
+export
 proven_idris_toml_as_float : String -> String -> (Int, String)
 proven_idris_toml_as_float tomlStr key =
   case parse tomlStr of
@@ -93,7 +93,7 @@ proven_idris_toml_as_float tomlStr key =
         Err err => (1, show err)
         Ok f => (0, show f)
 
-%export
+export
 proven_idris_toml_as_bool : String -> String -> (Int, String)
 proven_idris_toml_as_bool tomlStr key =
   case parse tomlStr of
@@ -109,7 +109,7 @@ proven_idris_toml_as_bool tomlStr key =
 -- Document/Table Access
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_toml_get_field : String -> String -> (Int, String)
 proven_idris_toml_get_field tomlStr key =
   case parse tomlStr of
@@ -118,14 +118,14 @@ proven_idris_toml_get_field tomlStr key =
       Err err => (1, show err)
       Ok val => (0, show val)
 
-%export
+export
 proven_idris_toml_has_field : String -> String -> Int
 proven_idris_toml_has_field tomlStr key =
   case parse tomlStr of
     Err _ => 0
     Ok doc => encodeBool (hasField key doc)
 
-%export
+export
 proven_idris_toml_get_path : String -> String -> (Int, String)
 proven_idris_toml_get_path tomlStr path =
   case parse tomlStr of
@@ -134,7 +134,7 @@ proven_idris_toml_get_path tomlStr path =
       Err err => (1, show err)
       Ok val => (0, show val)
 
-%export
+export
 proven_idris_toml_keys : String -> (Int, String)
 proven_idris_toml_keys tomlStr =
   case parse tomlStr of
@@ -149,7 +149,7 @@ proven_idris_toml_keys tomlStr =
 -- Typed Field Access
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_toml_get_string : String -> String -> (Int, String)
 proven_idris_toml_get_string tomlStr key =
   case parse tomlStr of
@@ -158,7 +158,7 @@ proven_idris_toml_get_string tomlStr key =
       Err err => (1, show err)
       Ok s => (0, s)
 
-%export
+export
 proven_idris_toml_get_int : String -> String -> (Int, String)
 proven_idris_toml_get_int tomlStr key =
   case parse tomlStr of
@@ -167,7 +167,7 @@ proven_idris_toml_get_int tomlStr key =
       Err err => (1, show err)
       Ok i => (0, show i)
 
-%export
+export
 proven_idris_toml_get_float : String -> String -> (Int, String)
 proven_idris_toml_get_float tomlStr key =
   case parse tomlStr of
@@ -176,7 +176,7 @@ proven_idris_toml_get_float tomlStr key =
       Err err => (1, show err)
       Ok f => (0, show f)
 
-%export
+export
 proven_idris_toml_get_bool : String -> String -> (Int, String)
 proven_idris_toml_get_bool tomlStr key =
   case parse tomlStr of
@@ -190,27 +190,27 @@ proven_idris_toml_get_bool tomlStr key =
 -- Security Options Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_toml_secure_max_depth : Int
 proven_idris_toml_secure_max_depth = cast secureDefaults.maxDepth
 
-%export
+export
 proven_idris_toml_secure_max_key_length : Int
 proven_idris_toml_secure_max_key_length = cast secureDefaults.maxKeyLength
 
-%export
+export
 proven_idris_toml_secure_max_value_size : Int
 proven_idris_toml_secure_max_value_size = cast secureDefaults.maxValueSize
 
-%export
+export
 proven_idris_toml_secure_max_total_keys : Int
 proven_idris_toml_secure_max_total_keys = cast secureDefaults.maxTotalKeys
 
-%export
+export
 proven_idris_toml_secure_max_array_length : Int
 proven_idris_toml_secure_max_array_length = cast secureDefaults.maxArrayLength
 
-%export
+export
 proven_idris_toml_secure_allow_heterogeneous : Int
 proven_idris_toml_secure_allow_heterogeneous = encodeBool secureDefaults.allowHeterogeneousArrays
 
@@ -218,42 +218,42 @@ proven_idris_toml_secure_allow_heterogeneous = encodeBool secureDefaults.allowHe
 -- Error Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_toml_is_syntax_error : String -> Int
 proven_idris_toml_is_syntax_error errorMsg =
   if isInfixOf "syntax" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_toml_is_duplicate_key_error : String -> Int
 proven_idris_toml_is_duplicate_key_error errorMsg =
   if isInfixOf "duplicate" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_toml_is_nesting_error : String -> Int
 proven_idris_toml_is_nesting_error errorMsg =
   if isInfixOf "nesting" (toLower errorMsg) || isInfixOf "depth" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_toml_is_limit_error : String -> Int
 proven_idris_toml_is_limit_error errorMsg =
   if isInfixOf "too long" (toLower errorMsg) || isInfixOf "too large" (toLower errorMsg) || isInfixOf "too many" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_toml_is_type_error : String -> Int
 proven_idris_toml_is_type_error errorMsg =
   if isInfixOf "type" (toLower errorMsg) || isInfixOf "mismatch" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_toml_is_datetime_error : String -> Int
 proven_idris_toml_is_datetime_error errorMsg =
   if isInfixOf "datetime" (toLower errorMsg)
@@ -264,7 +264,7 @@ proven_idris_toml_is_datetime_error errorMsg =
 -- Friendly Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_toml_friendly_error : String -> String
 proven_idris_toml_friendly_error errorMsg =
   if isInfixOf "nesting" (toLower errorMsg) || isInfixOf "depth" (toLower errorMsg)

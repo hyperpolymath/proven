@@ -58,19 +58,19 @@ encodeEnvResult (Ok val) = (0, show val)
 -- Name Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_env_is_valid_name : String -> Int
 proven_idris_env_is_valid_name name = encodeBool (isValidEnvName name)
 
-%export
+export
 proven_idris_env_is_well_known : String -> Int
 proven_idris_env_is_well_known name = encodeBool (isWellKnown name)
 
-%export
+export
 proven_idris_env_is_sensitive_name : String -> Int
 proven_idris_env_is_sensitive_name name = encodeBool (isSensitiveName name)
 
-%export
+export
 proven_idris_env_classify_by_name : String -> Int
 proven_idris_env_classify_by_name name = encodeEnvSecurity (classifyByName name)
 
@@ -78,7 +78,7 @@ proven_idris_env_classify_by_name name = encodeEnvSecurity (classifyByName name)
 -- Type Parsers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_env_parse_bool : String -> (Int, String)
 proven_idris_env_parse_bool s =
   case parseBool s of
@@ -86,19 +86,19 @@ proven_idris_env_parse_bool s =
     Just True => (0, "true")
     Just False => (0, "false")
 
-%export
+export
 proven_idris_env_parse_int : String -> (Int, String)
 proven_idris_env_parse_int s = encodeMaybeInt (parseInt s)
 
-%export
+export
 proven_idris_env_parse_nat : String -> (Int, String)
 proven_idris_env_parse_nat s = encodeMaybeInt (parseNat s)
 
-%export
+export
 proven_idris_env_parse_port : String -> (Int, String)
 proven_idris_env_parse_port s = encodeMaybeInt (parsePort s)
 
-%export
+export
 proven_idris_env_parse_list : String -> String
 proven_idris_env_parse_list s = joinWith "," (parseList s)
   where
@@ -106,7 +106,7 @@ proven_idris_env_parse_list s = joinWith "," (parseList s)
     joinWith _ [] = ""
     joinWith sep (x :: xs) = foldl (\acc, y => acc ++ sep ++ y) x xs
 
-%export
+export
 proven_idris_env_parse_key_value : String -> (Int, String)
 proven_idris_env_parse_key_value s =
   case parseKeyValue s of
@@ -117,35 +117,35 @@ proven_idris_env_parse_key_value s =
 -- Options Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_env_default_max_value_length : Int
 proven_idris_env_default_max_value_length = cast defaultMaxValueLength
 
-%export
+export
 proven_idris_env_default_allow_sensitive : Int
 proven_idris_env_default_allow_sensitive = encodeBool defaultOptions.allowSensitive
 
-%export
+export
 proven_idris_env_default_require_uppercase : Int
 proven_idris_env_default_require_uppercase = encodeBool defaultOptions.requireUppercase
 
-%export
+export
 proven_idris_env_strict_max_value_length : Int
 proven_idris_env_strict_max_value_length = cast strictOptions.maxValueLength
 
-%export
+export
 proven_idris_env_strict_allow_sensitive : Int
 proven_idris_env_strict_allow_sensitive = encodeBool strictOptions.allowSensitive
 
-%export
+export
 proven_idris_env_strict_require_uppercase : Int
 proven_idris_env_strict_require_uppercase = encodeBool strictOptions.requireUppercase
 
-%export
+export
 proven_idris_env_permissive_max_value_length : Int
 proven_idris_env_permissive_max_value_length = cast permissiveOptions.maxValueLength
 
-%export
+export
 proven_idris_env_permissive_allow_sensitive : Int
 proven_idris_env_permissive_allow_sensitive = encodeBool permissiveOptions.allowSensitive
 
@@ -153,7 +153,7 @@ proven_idris_env_permissive_allow_sensitive = encodeBool permissiveOptions.allow
 -- Security/Redaction
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_env_redact_value : Int -> String -> String
 proven_idris_env_redact_value secInt value =
   case secInt of
@@ -162,11 +162,11 @@ proven_idris_env_redact_value secInt value =
     2 => redactValue Secret value      -- Secret
     _ => "***INVALID_SECURITY_LEVEL***"
 
-%export
+export
 proven_idris_env_mask_value : String -> String
 proven_idris_env_mask_value value = maskValue value
 
-%export
+export
 proven_idris_env_to_loggable : String -> String -> String
 proven_idris_env_to_loggable name value = toLoggable name value
 
@@ -174,11 +174,11 @@ proven_idris_env_to_loggable name value = toLoggable name value
 -- Well-Known Variables Count
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_env_well_known_count : Int
 proven_idris_env_well_known_count = cast (length wellKnownVars)
 
-%export
+export
 proven_idris_env_sensitive_patterns_count : Int
 proven_idris_env_sensitive_patterns_count = cast (length sensitivePatterns)
 
@@ -186,42 +186,42 @@ proven_idris_env_sensitive_patterns_count = cast (length sensitivePatterns)
 -- Error Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_env_is_not_found_error : String -> Int
 proven_idris_env_is_not_found_error errorMsg =
   if isInfixOf "not found" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_env_is_invalid_name_error : String -> Int
 proven_idris_env_is_invalid_name_error errorMsg =
   if isInfixOf "invalid" (toLower errorMsg) && isInfixOf "name" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_env_is_value_too_long_error : String -> Int
 proven_idris_env_is_value_too_long_error errorMsg =
   if isInfixOf "too long" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_env_is_type_conversion_error : String -> Int
 proven_idris_env_is_type_conversion_error errorMsg =
   if isInfixOf "cannot convert" (toLower errorMsg) || isInfixOf "conversion" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_env_is_sensitive_variable_error : String -> Int
 proven_idris_env_is_sensitive_variable_error errorMsg =
   if isInfixOf "sensitive" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_env_is_access_denied_error : String -> Int
 proven_idris_env_is_access_denied_error errorMsg =
   if isInfixOf "access denied" (toLower errorMsg) || isInfixOf "blocked" (toLower errorMsg)
@@ -232,7 +232,7 @@ proven_idris_env_is_access_denied_error errorMsg =
 -- Friendly Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_env_friendly_error : String -> String
 proven_idris_env_friendly_error errorMsg =
   if isInfixOf "not found" (toLower errorMsg)

@@ -54,33 +54,33 @@ encodeRateLimitResult (Denied retryAfter) = (1, cast retryAfter)
 -- Token Bucket Calculations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_tokens_to_add : Int -> Int -> Int -> Int
 proven_idris_ratelimit_tokens_to_add refillRate elapsedTime capacity =
   let tokensToAdd = refillRate * elapsedTime
       -- Don't exceed capacity
   in tokensToAdd
 
-%export
+export
 proven_idris_ratelimit_tokens_after_refill : Int -> Int -> Int -> Int -> Int
 proven_idris_ratelimit_tokens_after_refill currentTokens refillRate elapsedTime capacity =
   let newTokens = proven_idris_ratelimit_tokens_to_add refillRate elapsedTime capacity
       total = currentTokens + newTokens
   in if total > capacity then capacity else total
 
-%export
+export
 proven_idris_ratelimit_can_acquire : Int -> Int -> Int
 proven_idris_ratelimit_can_acquire currentTokens requestedTokens =
   encodeBool (currentTokens >= requestedTokens)
 
-%export
+export
 proven_idris_ratelimit_tokens_after_acquire : Int -> Int -> Int
 proven_idris_ratelimit_tokens_after_acquire currentTokens acquired =
   if currentTokens >= acquired
     then currentTokens - acquired
     else currentTokens
 
-%export
+export
 proven_idris_ratelimit_wait_time_for_tokens : Int -> Int -> Int -> Int
 proven_idris_ratelimit_wait_time_for_tokens needed refillRate capacity =
   if refillRate == 0 then 0
@@ -90,7 +90,7 @@ proven_idris_ratelimit_wait_time_for_tokens needed refillRate capacity =
 -- Sliding Window Calculations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_is_in_window : Int -> Int -> Int -> Int
 proven_idris_ratelimit_is_in_window requestTime currentTime windowSize =
   let cutoff = if currentTime >= windowSize
@@ -98,24 +98,24 @@ proven_idris_ratelimit_is_in_window requestTime currentTime windowSize =
                  else 0
   in encodeBool (requestTime >= cutoff)
 
-%export
+export
 proven_idris_ratelimit_window_start : Int -> Int -> Int
 proven_idris_ratelimit_window_start currentTime windowSize =
   if currentTime >= windowSize
     then currentTime - windowSize
     else 0
 
-%export
+export
 proven_idris_ratelimit_requests_in_window : Int -> Int -> Int
 proven_idris_ratelimit_requests_in_window currentCount maxRequests =
   currentCount
 
-%export
+export
 proven_idris_ratelimit_can_accept_request : Int -> Int -> Int
 proven_idris_ratelimit_can_accept_request currentCount maxRequests =
   encodeBool (currentCount < maxRequests)
 
-%export
+export
 proven_idris_ratelimit_remaining_requests : Int -> Int -> Int
 proven_idris_ratelimit_remaining_requests currentCount maxRequests =
   if currentCount >= maxRequests then 0
@@ -125,17 +125,17 @@ proven_idris_ratelimit_remaining_requests currentCount maxRequests =
 -- Fixed Window Calculations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_current_window_start : Int -> Int -> Int
 proven_idris_ratelimit_current_window_start currentTime windowSize =
   (currentTime `div` windowSize) * windowSize
 
-%export
+export
 proven_idris_ratelimit_is_new_window : Int -> Int -> Int -> Int
 proven_idris_ratelimit_is_new_window currentTime windowStart windowSize =
   encodeBool (currentTime >= (windowStart + windowSize))
 
-%export
+export
 proven_idris_ratelimit_time_until_next_window : Int -> Int -> Int -> Int
 proven_idris_ratelimit_time_until_next_window currentTime windowStart windowSize =
   let windowEnd = windowStart + windowSize
@@ -146,17 +146,17 @@ proven_idris_ratelimit_time_until_next_window currentTime windowStart windowSize
 -- Rate Calculations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_requests_per_second : Int -> Int -> Double
 proven_idris_ratelimit_requests_per_second maxRequests windowSizeSeconds =
   if windowSizeSeconds == 0 then 0.0
   else cast maxRequests / cast windowSizeSeconds
 
-%export
+export
 proven_idris_ratelimit_burst_size : Int -> Int
 proven_idris_ratelimit_burst_size capacity = capacity
 
-%export
+export
 proven_idris_ratelimit_effective_rate : Int -> Int -> Double
 proven_idris_ratelimit_effective_rate refillRate intervalSize =
   if intervalSize == 0 then 0.0
@@ -166,19 +166,19 @@ proven_idris_ratelimit_effective_rate refillRate intervalSize =
 -- Capacity Planning
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_recommend_capacity : Int -> Int -> Int
 proven_idris_ratelimit_recommend_capacity avgRequestsPerSec burstDuration =
   -- Capacity = average rate × burst duration
   avgRequestsPerSec * burstDuration
 
-%export
+export
 proven_idris_ratelimit_recommend_refill_rate : Int -> Int -> Int
 proven_idris_ratelimit_recommend_refill_rate targetRequestsPerSec intervalSize =
   -- Refill rate = target rate × interval
   targetRequestsPerSec * intervalSize
 
-%export
+export
 proven_idris_ratelimit_recommend_window_size : Int -> Int
 proven_idris_ratelimit_recommend_window_size targetRequestsPerSec maxBurst =
   -- Window size should be large enough to smooth out bursts
@@ -189,19 +189,19 @@ proven_idris_ratelimit_recommend_window_size targetRequestsPerSec maxBurst =
 -- Utilization
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_token_utilization : Int -> Int -> Double
 proven_idris_ratelimit_token_utilization currentTokens capacity =
   if capacity == 0 then 0.0
   else cast currentTokens / cast capacity
 
-%export
+export
 proven_idris_ratelimit_request_utilization : Int -> Int -> Double
 proven_idris_ratelimit_request_utilization currentCount maxRequests =
   if maxRequests == 0 then 0.0
   else cast currentCount / cast maxRequests
 
-%export
+export
 proven_idris_ratelimit_is_throttled : Int -> Int -> Int -> Int
 proven_idris_ratelimit_is_throttled currentCount maxRequests threshold =
   let percent = cast (currentCount * 100) / cast maxRequests
@@ -211,14 +211,14 @@ proven_idris_ratelimit_is_throttled currentCount maxRequests threshold =
 -- Time Calculations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_elapsed_time : Int -> Int -> Int
 proven_idris_ratelimit_elapsed_time currentTime lastTime =
   if currentTime >= lastTime
     then currentTime - lastTime
     else 0
 
-%export
+export
 proven_idris_ratelimit_retry_after : Int -> Int -> Int -> Int
 proven_idris_ratelimit_retry_after oldestRequest currentTime windowSize =
   let age = if currentTime >= oldestRequest
@@ -231,22 +231,22 @@ proven_idris_ratelimit_retry_after oldestRequest currentTime windowSize =
 -- Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_is_valid_capacity : Int -> Int
 proven_idris_ratelimit_is_valid_capacity cap =
   encodeBool (cap > 0)
 
-%export
+export
 proven_idris_ratelimit_is_valid_refill_rate : Int -> Int
 proven_idris_ratelimit_is_valid_refill_rate rate =
   encodeBool (rate > 0)
 
-%export
+export
 proven_idris_ratelimit_is_valid_window_size : Int -> Int
 proven_idris_ratelimit_is_valid_window_size size =
   encodeBool (size > 0)
 
-%export
+export
 proven_idris_ratelimit_is_valid_max_requests : Int -> Int
 proven_idris_ratelimit_is_valid_max_requests max =
   encodeBool (max > 0)
@@ -255,19 +255,19 @@ proven_idris_ratelimit_is_valid_max_requests max =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_default_burst_size : Int
 proven_idris_ratelimit_default_burst_size = 10
 
-%export
+export
 proven_idris_ratelimit_default_refill_rate : Int
 proven_idris_ratelimit_default_refill_rate = 1
 
-%export
+export
 proven_idris_ratelimit_default_window_size : Int
 proven_idris_ratelimit_default_window_size = 60  -- 60 seconds
 
-%export
+export
 proven_idris_ratelimit_default_max_requests : Int
 proven_idris_ratelimit_default_max_requests = 100
 
@@ -275,7 +275,7 @@ proven_idris_ratelimit_default_max_requests = 100
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ratelimit_friendly_error : String -> String
 proven_idris_ratelimit_friendly_error errorMsg =
   if isInfixOf "denied" (toLower errorMsg) || isInfixOf "limit" (toLower errorMsg)
@@ -291,7 +291,7 @@ proven_idris_ratelimit_friendly_error errorMsg =
   else
     "Rate limiting error"
 
-%export
+export
 proven_idris_ratelimit_status_message : Int -> Int -> String
 proven_idris_ratelimit_status_message allowed retryAfter =
   if allowed == 0

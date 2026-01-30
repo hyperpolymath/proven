@@ -51,27 +51,27 @@ decodeNat n = if n < 0 then Z else fromInteger (cast n)
 -- Safe String Access
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_string_char_at : String -> Int -> (Int, Int)
 proven_idris_string_char_at s idx =
   encodeCharResult (charAt s (decodeNat idx))
 
-%export
+export
 proven_idris_string_substring : Int -> Int -> String -> (Int, String)
 proven_idris_string_substring start len s =
   encodeStringResult (substring (decodeNat start) (decodeNat len) s)
 
-%export
+export
 proven_idris_string_head_char : String -> (Int, Int)
 proven_idris_string_head_char s =
   encodeCharResult (headChar s)
 
-%export
+export
 proven_idris_string_tail : String -> (Int, String)
 proven_idris_string_tail s =
   encodeStringResult (tailStr s)
 
-%export
+export
 proven_idris_string_last_char : String -> (Int, Int)
 proven_idris_string_last_char s =
   encodeCharResult (lastChar s)
@@ -80,32 +80,32 @@ proven_idris_string_last_char s =
 -- String Predicates
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_string_is_empty : String -> Int
 proven_idris_string_is_empty s =
   encodeBool (isEmpty s)
 
-%export
+export
 proven_idris_string_is_not_empty : String -> Int
 proven_idris_string_is_not_empty s =
   encodeBool (isNotEmpty s)
 
-%export
+export
 proven_idris_string_is_blank : String -> Int
 proven_idris_string_is_blank s =
   encodeBool (isBlank s)
 
-%export
+export
 proven_idris_string_contains : String -> String -> Int
 proven_idris_string_contains needle haystack =
   encodeBool (contains needle haystack)
 
-%export
+export
 proven_idris_string_starts_with : String -> String -> Int
 proven_idris_string_starts_with prefix s =
   encodeBool (startsWith prefix s)
 
-%export
+export
 proven_idris_string_ends_with : String -> String -> Int
 proven_idris_string_ends_with suffix s =
   encodeBool (endsWith suffix s)
@@ -114,34 +114,34 @@ proven_idris_string_ends_with suffix s =
 -- String Transformation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_string_trim : String -> String
 proven_idris_string_trim s = trim s
 
-%export
+export
 proven_idris_string_trim_left : String -> String
 proven_idris_string_trim_left s = trimLeft s
 
-%export
+export
 proven_idris_string_trim_right : String -> String
 proven_idris_string_trim_right s = trimRight s
 
-%export
+export
 proven_idris_string_pad_left : Int -> Int -> String -> String
 proven_idris_string_pad_left targetLen padCharCode s =
   padLeft (decodeNat targetLen) (decodeChar padCharCode) s
 
-%export
+export
 proven_idris_string_pad_right : Int -> Int -> String -> String
 proven_idris_string_pad_right targetLen padCharCode s =
   padRight (decodeNat targetLen) (decodeChar padCharCode) s
 
-%export
+export
 proven_idris_string_truncate : Int -> String -> String
 proven_idris_string_truncate maxLen s =
   truncate (decodeNat maxLen) s
 
-%export
+export
 proven_idris_string_truncate_ellipsis : Int -> String -> String
 proven_idris_string_truncate_ellipsis maxLen s =
   truncateWithEllipsis (decodeNat maxLen) s
@@ -150,15 +150,15 @@ proven_idris_string_truncate_ellipsis maxLen s =
 -- Case Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_string_to_lower : String -> String
 proven_idris_string_to_lower s = toLowerAscii s
 
-%export
+export
 proven_idris_string_to_upper : String -> String
 proven_idris_string_to_upper s = toUpperAscii s
 
-%export
+export
 proven_idris_string_capitalize : String -> String
 proven_idris_string_capitalize s = capitalize s
 
@@ -166,22 +166,22 @@ proven_idris_string_capitalize s = capitalize s
 -- Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_string_is_ascii : String -> Int
 proven_idris_string_is_ascii s =
   encodeBool (isAscii s)
 
-%export
+export
 proven_idris_string_is_alphanum : String -> Int
 proven_idris_string_is_alphanum s =
   encodeBool (isAlphaNum s)
 
-%export
+export
 proven_idris_string_is_digits : String -> Int
 proven_idris_string_is_digits s =
   encodeBool (isDigits s)
 
-%export
+export
 proven_idris_string_is_identifier : String -> Int
 proven_idris_string_is_identifier s =
   encodeBool (isIdentifier s)
@@ -193,14 +193,14 @@ proven_idris_string_is_identifier s =
 ||| Parse string to Nat, return (status, value)
 ||| status = 0: success, value is valid
 ||| status = 1: parse error, value is 0
-%export
+export
 proven_idris_string_parse_nat : String -> (Int, Integer)
 proven_idris_string_parse_nat s =
   case parseNat s of
     Nothing => (1, 0)
     Just n => (0, cast n)
 
-%export
+export
 proven_idris_string_parse_int : String -> (Int, Integer)
 proven_idris_string_parse_int s =
   case parseInt s of
@@ -211,7 +211,7 @@ proven_idris_string_parse_int s =
 -- String Length
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_string_length : String -> Int
 proven_idris_string_length s =
   cast (length s)

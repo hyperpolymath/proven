@@ -58,27 +58,27 @@ decodeAngleUnit _ = Nothing
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_pi : Double
 proven_idris_angle_pi = piConst
 
-%export
+export
 proven_idris_angle_tau : Double
 proven_idris_angle_tau = tauConst
 
-%export
+export
 proven_idris_angle_degrees_per_radian : Double
 proven_idris_angle_degrees_per_radian = 180.0 / piConst
 
-%export
+export
 proven_idris_angle_radians_per_degree : Double
 proven_idris_angle_radians_per_degree = piConst / 180.0
 
-%export
+export
 proven_idris_angle_degrees_per_turn : Double
 proven_idris_angle_degrees_per_turn = 360.0
 
-%export
+export
 proven_idris_angle_gradians_per_turn : Double
 proven_idris_angle_gradians_per_turn = 400.0
 
@@ -86,52 +86,52 @@ proven_idris_angle_gradians_per_turn = 400.0
 -- Unit Conversion
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_degrees_to_radians : Double -> Double
 proven_idris_angle_degrees_to_radians d =
   toRadians (fromDegrees d)
 
-%export
+export
 proven_idris_angle_radians_to_degrees : Double -> Double
 proven_idris_angle_radians_to_degrees r =
   toDegrees (fromRadians r)
 
-%export
+export
 proven_idris_angle_degrees_to_gradians : Double -> Double
 proven_idris_angle_degrees_to_gradians d =
   toGradians (fromDegrees d)
 
-%export
+export
 proven_idris_angle_gradians_to_degrees : Double -> Double
 proven_idris_angle_gradians_to_degrees g =
   toDegrees (MkAngle g Gradians)
 
-%export
+export
 proven_idris_angle_degrees_to_turns : Double -> Double
 proven_idris_angle_degrees_to_turns d =
   toTurns (fromDegrees d)
 
-%export
+export
 proven_idris_angle_turns_to_degrees : Double -> Double
 proven_idris_angle_turns_to_degrees t =
   toDegrees (MkAngle t Turns)
 
-%export
+export
 proven_idris_angle_radians_to_gradians : Double -> Double
 proven_idris_angle_radians_to_gradians r =
   toGradians (fromRadians r)
 
-%export
+export
 proven_idris_angle_gradians_to_radians : Double -> Double
 proven_idris_angle_gradians_to_radians g =
   toRadians (MkAngle g Gradians)
 
-%export
+export
 proven_idris_angle_radians_to_turns : Double -> Double
 proven_idris_angle_radians_to_turns r =
   toTurns (fromRadians r)
 
-%export
+export
 proven_idris_angle_turns_to_radians : Double -> Double
 proven_idris_angle_turns_to_radians t =
   toRadians (MkAngle t Turns)
@@ -140,24 +140,24 @@ proven_idris_angle_turns_to_radians t =
 -- Normalization (Positive Range)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_normalize_degrees : Double -> Double
 proven_idris_angle_normalize_degrees d =
   normalizeDegrees d
 
-%export
+export
 proven_idris_angle_normalize_radians : Double -> Double
 proven_idris_angle_normalize_radians r =
   normalizeRadians r
 
-%export
+export
 proven_idris_angle_normalize_gradians : Double -> Double
 proven_idris_angle_normalize_gradians g =
   let a = MkAngle g Gradians
       normalized = normalize a
   in normalized.value
 
-%export
+export
 proven_idris_angle_normalize_turns : Double -> Double
 proven_idris_angle_normalize_turns t =
   let a = MkAngle t Turns
@@ -168,24 +168,24 @@ proven_idris_angle_normalize_turns t =
 -- Normalization (Symmetric Range)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_normalize_degrees_symmetric : Double -> Double
 proven_idris_angle_normalize_degrees_symmetric d =
   normalizeDegreesSymmetric d
 
-%export
+export
 proven_idris_angle_normalize_radians_symmetric : Double -> Double
 proven_idris_angle_normalize_radians_symmetric r =
   normalizeRadiansSymmetric r
 
-%export
+export
 proven_idris_angle_normalize_gradians_symmetric : Double -> Double
 proven_idris_angle_normalize_gradians_symmetric g =
   let normalized = normalizeDegrees (g * 0.9)  -- Convert to degrees first
       symmetric = normalizeDegreesSymmetric normalized
   in symmetric * 400.0 / 360.0  -- Back to gradians
 
-%export
+export
 proven_idris_angle_normalize_turns_symmetric : Double -> Double
 proven_idris_angle_normalize_turns_symmetric t =
   let normalized = t - floor t
@@ -195,34 +195,34 @@ proven_idris_angle_normalize_turns_symmetric t =
 -- Trigonometric Functions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_sin_degrees : Double -> Double
 proven_idris_angle_sin_degrees d =
   safeSin (fromDegrees d)
 
-%export
+export
 proven_idris_angle_cos_degrees : Double -> Double
 proven_idris_angle_cos_degrees d =
   safeCos (fromDegrees d)
 
-%export
+export
 proven_idris_angle_tan_degrees : Double -> (Int, Double)
 proven_idris_angle_tan_degrees d =
   case safeTan (fromDegrees d) of
     Nothing => (1, 0.0)  -- Discontinuity
     Just result => (0, result)
 
-%export
+export
 proven_idris_angle_sin_radians : Double -> Double
 proven_idris_angle_sin_radians r =
   safeSin (fromRadians r)
 
-%export
+export
 proven_idris_angle_cos_radians : Double -> Double
 proven_idris_angle_cos_radians r =
   safeCos (fromRadians r)
 
-%export
+export
 proven_idris_angle_tan_radians : Double -> (Int, Double)
 proven_idris_angle_tan_radians r =
   case safeTan (fromRadians r) of
@@ -233,50 +233,50 @@ proven_idris_angle_tan_radians r =
 -- Inverse Trigonometric Functions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_asin_degrees : Double -> (Int, Double)
 proven_idris_angle_asin_degrees x =
   case safeAsin x of
     Nothing => (1, 0.0)  -- Invalid input
     Just angle => (0, toDegrees angle)
 
-%export
+export
 proven_idris_angle_acos_degrees : Double -> (Int, Double)
 proven_idris_angle_acos_degrees x =
   case safeAcos x of
     Nothing => (1, 0.0)
     Just angle => (0, toDegrees angle)
 
-%export
+export
 proven_idris_angle_atan_degrees : Double -> Double
 proven_idris_angle_atan_degrees x =
   toDegrees (safeAtan x)
 
-%export
+export
 proven_idris_angle_atan2_degrees : Double -> Double -> Double
 proven_idris_angle_atan2_degrees y x =
   toDegrees (safeAtan2 y x)
 
-%export
+export
 proven_idris_angle_asin_radians : Double -> (Int, Double)
 proven_idris_angle_asin_radians x =
   case safeAsin x of
     Nothing => (1, 0.0)
     Just angle => (0, toRadians angle)
 
-%export
+export
 proven_idris_angle_acos_radians : Double -> (Int, Double)
 proven_idris_angle_acos_radians x =
   case safeAcos x of
     Nothing => (1, 0.0)
     Just angle => (0, toRadians angle)
 
-%export
+export
 proven_idris_angle_atan_radians : Double -> Double
 proven_idris_angle_atan_radians x =
   toRadians (safeAtan x)
 
-%export
+export
 proven_idris_angle_atan2_radians : Double -> Double -> Double
 proven_idris_angle_atan2_radians y x =
   toRadians (safeAtan2 y x)
@@ -285,42 +285,42 @@ proven_idris_angle_atan2_radians y x =
 -- Angle Arithmetic
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_add_degrees : Double -> Double -> Double
 proven_idris_angle_add_degrees a b =
   toDegrees (addAngle (fromDegrees a) (fromDegrees b))
 
-%export
+export
 proven_idris_angle_subtract_degrees : Double -> Double -> Double
 proven_idris_angle_subtract_degrees a b =
   toDegrees (subAngle (fromDegrees a) (fromDegrees b))
 
-%export
+export
 proven_idris_angle_scale_degrees : Double -> Double -> Double
 proven_idris_angle_scale_degrees scalar angle =
   toDegrees (scaleAngle scalar (fromDegrees angle))
 
-%export
+export
 proven_idris_angle_difference_degrees : Double -> Double -> Double
 proven_idris_angle_difference_degrees a b =
   toDegrees (angleDifference (fromDegrees a) (fromDegrees b))
 
-%export
+export
 proven_idris_angle_add_radians : Double -> Double -> Double
 proven_idris_angle_add_radians a b =
   toRadians (addAngle (fromRadians a) (fromRadians b))
 
-%export
+export
 proven_idris_angle_subtract_radians : Double -> Double -> Double
 proven_idris_angle_subtract_radians a b =
   toRadians (subAngle (fromRadians a) (fromRadians b))
 
-%export
+export
 proven_idris_angle_scale_radians : Double -> Double -> Double
 proven_idris_angle_scale_radians scalar angle =
   toRadians (scaleAngle scalar (fromRadians angle))
 
-%export
+export
 proven_idris_angle_difference_radians : Double -> Double -> Double
 proven_idris_angle_difference_radians a b =
   toRadians (angleDifference (fromRadians a) (fromRadians b))
@@ -329,17 +329,17 @@ proven_idris_angle_difference_radians a b =
 -- Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_is_valid_for_asin_acos : Double -> Int
 proven_idris_angle_is_valid_for_asin_acos x =
   encodeBool (x >= -1.0 && x <= 1.0)
 
-%export
+export
 proven_idris_angle_is_normalized_degrees : Double -> Int
 proven_idris_angle_is_normalized_degrees d =
   encodeBool (d >= 0.0 && d < 360.0)
 
-%export
+export
 proven_idris_angle_is_normalized_radians : Double -> Int
 proven_idris_angle_is_normalized_radians r =
   encodeBool (r >= 0.0 && r < tauConst)
@@ -348,7 +348,7 @@ proven_idris_angle_is_normalized_radians r =
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_angle_friendly_error : String -> String
 proven_idris_angle_friendly_error errorMsg =
   if isInfixOf "asin" (toLower errorMsg) || isInfixOf "acos" (toLower errorMsg)

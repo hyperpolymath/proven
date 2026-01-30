@@ -60,43 +60,43 @@ encodeOrdering GT = 1
 -- Monotonic Counter Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_monotonic_zero : Int
 proven_idris_monotonic_zero = 0
 
-%export
+export
 proven_idris_monotonic_from_nat : Int -> Int
 proven_idris_monotonic_from_nat n = n
 
-%export
+export
 proven_idris_monotonic_get_value : Int -> Int
 proven_idris_monotonic_get_value value = value
 
-%export
+export
 proven_idris_monotonic_increment : Int -> Int
 proven_idris_monotonic_increment current = current + 1
 
-%export
+export
 proven_idris_monotonic_increment_by : Int -> Int -> Int
 proven_idris_monotonic_increment_by current delta = current + delta
 
-%export
+export
 proven_idris_monotonic_advance_to : Int -> Int -> Int
 proven_idris_monotonic_advance_to target current =
   if target > current then target else current
 
-%export
+export
 proven_idris_monotonic_compare : Int -> Int -> Int
 proven_idris_monotonic_compare a b =
   if a < b then (-1)
   else if a == b then 0
   else 1
 
-%export
+export
 proven_idris_monotonic_max : Int -> Int -> Int
 proven_idris_monotonic_max a b = if a > b then a else b
 
-%export
+export
 proven_idris_monotonic_min : Int -> Int -> Int
 proven_idris_monotonic_min a b = if a < b then a else b
 
@@ -104,21 +104,21 @@ proven_idris_monotonic_min a b = if a < b then a else b
 -- Lamport Clock Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_lamport_new : Int -> (Int, Int)
 proven_idris_lamport_new nodeId = (0, nodeId)
 
-%export
+export
 proven_idris_lamport_tick : Int -> Int -> (Int, Int)
 proven_idris_lamport_tick timestamp nodeId = (timestamp + 1, nodeId)
 
-%export
+export
 proven_idris_lamport_send : Int -> Int -> (Int, Int, Int)
 proven_idris_lamport_send timestamp nodeId =
   let newTimestamp = timestamp + 1
   in (newTimestamp, newTimestamp, nodeId)
 
-%export
+export
 proven_idris_lamport_receive : Int -> Int -> Int -> (Int, Int)
 proven_idris_lamport_receive receivedTimestamp localTimestamp nodeId =
   let maxTime = if localTimestamp > receivedTimestamp
@@ -127,15 +127,15 @@ proven_idris_lamport_receive receivedTimestamp localTimestamp nodeId =
       newTimestamp = maxTime + 1
   in (newTimestamp, nodeId)
 
-%export
+export
 proven_idris_lamport_get_timestamp : Int -> Int -> Int
 proven_idris_lamport_get_timestamp timestamp _ = timestamp
 
-%export
+export
 proven_idris_lamport_get_node_id : Int -> Int -> Int
 proven_idris_lamport_get_node_id _ nodeId = nodeId
 
-%export
+export
 proven_idris_lamport_compare : Int -> Int -> Int -> Int -> Int
 proven_idris_lamport_compare ts1 nid1 ts2 nid2 =
   if ts1 < ts2 then (-1)
@@ -144,7 +144,7 @@ proven_idris_lamport_compare ts1 nid1 ts2 nid2 =
   else if nid1 > nid2 then 1
   else 0
 
-%export
+export
 proven_idris_lamport_happened_before : Int -> Int -> Int -> Int -> Int
 proven_idris_lamport_happened_before ts1 _ ts2 _ =
   encodeBool (ts1 < ts2)
@@ -153,43 +153,43 @@ proven_idris_lamport_happened_before ts1 _ ts2 _ =
 -- Vector Clock Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_vector_new : Int -> Int
 proven_idris_vector_new selfId = selfId
 
-%export
+export
 proven_idris_vector_get_node_time : Int -> Int -> Int -> Int
 proven_idris_vector_get_node_time nodeId timestamp defaultVal =
   -- Simplified: if nodeId matches, return timestamp, else default
   -- In real impl, Zig would maintain full vector
   if nodeId == 0 then timestamp else defaultVal
 
-%export
+export
 proven_idris_vector_update_node_time : Int -> Int -> Int -> Int
 proven_idris_vector_update_node_time _ newTimestamp _ = newTimestamp
 
-%export
+export
 proven_idris_vector_tick : Int -> Int -> Int
 proven_idris_vector_tick currentTimestamp selfId =
   currentTimestamp + 1
 
-%export
+export
 proven_idris_vector_merge_timestamp : Int -> Int -> Int
 proven_idris_vector_merge_timestamp localTime receivedTime =
   if localTime > receivedTime then localTime else receivedTime
 
-%export
+export
 proven_idris_vector_receive : Int -> Int -> Int
 proven_idris_vector_receive localTime receivedTime =
   let merged = proven_idris_vector_merge_timestamp localTime receivedTime
   in merged + 1
 
-%export
+export
 proven_idris_vector_compare_component : Int -> Int -> Int
 proven_idris_vector_compare_component time1 time2 =
   encodeBool (time1 <= time2)
 
-%export
+export
 proven_idris_vector_strict_less : Int -> Int -> Int
 proven_idris_vector_strict_less time1 time2 =
   encodeBool (time1 < time2)
@@ -198,25 +198,25 @@ proven_idris_vector_strict_less time1 time2 =
 -- High-Water Mark Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_hwm_new : Int
 proven_idris_hwm_new = 0
 
-%export
+export
 proven_idris_hwm_update : Int -> Int -> Int
 proven_idris_hwm_update offset currentMark =
   if offset > currentMark then offset else currentMark
 
-%export
+export
 proven_idris_hwm_is_processed : Int -> Int -> Int
 proven_idris_hwm_is_processed offset mark =
   encodeBool (offset <= mark)
 
-%export
+export
 proven_idris_hwm_get : Int -> Int
 proven_idris_hwm_get mark = mark
 
-%export
+export
 proven_idris_hwm_distance : Int -> Int -> Int
 proven_idris_hwm_distance offset mark =
   if offset > mark then offset - mark else 0
@@ -225,22 +225,22 @@ proven_idris_hwm_distance offset mark =
 -- Causality Checks
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_causality_happened_before_lamport : Int -> Int -> Int
 proven_idris_causality_happened_before_lamport ts1 ts2 =
   encodeBool (ts1 < ts2)
 
-%export
+export
 proven_idris_causality_concurrent_lamport : Int -> Int -> Int
 proven_idris_causality_concurrent_lamport ts1 ts2 =
   encodeBool (ts1 == ts2)
 
-%export
+export
 proven_idris_causality_is_ancestor : Int -> Int -> Int
 proven_idris_causality_is_ancestor ancestor descendant =
   encodeBool (ancestor < descendant)
 
-%export
+export
 proven_idris_causality_is_descendant : Int -> Int -> Int
 proven_idris_causality_is_descendant descendant ancestor =
   encodeBool (descendant > ancestor)
@@ -249,27 +249,27 @@ proven_idris_causality_is_descendant descendant ancestor =
 -- Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_monotonic_is_valid : Int -> Int
 proven_idris_monotonic_is_valid value =
   encodeBool (value >= 0)
 
-%export
+export
 proven_idris_monotonic_is_increasing : Int -> Int -> Int
 proven_idris_monotonic_is_increasing current next =
   encodeBool (next > current)
 
-%export
+export
 proven_idris_monotonic_is_non_decreasing : Int -> Int -> Int
 proven_idris_monotonic_is_non_decreasing current next =
   encodeBool (next >= current)
 
-%export
+export
 proven_idris_lamport_is_valid_timestamp : Int -> Int
 proven_idris_lamport_is_valid_timestamp timestamp =
   encodeBool (timestamp >= 0)
 
-%export
+export
 proven_idris_lamport_is_valid_node_id : Int -> Int
 proven_idris_lamport_is_valid_node_id nodeId =
   encodeBool (nodeId >= 0)
@@ -278,28 +278,28 @@ proven_idris_lamport_is_valid_node_id nodeId =
 -- Statistics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_monotonic_delta : Int -> Int -> Int
 proven_idris_monotonic_delta current previous =
   if current >= previous then current - previous else 0
 
-%export
+export
 proven_idris_monotonic_average : Int -> Int -> Int
 proven_idris_monotonic_average total count =
   if count == 0 then 0 else total `div` count
 
-%export
+export
 proven_idris_lamport_clock_drift : Int -> Int -> Int
 proven_idris_lamport_clock_drift ts1 ts2 =
   if ts1 > ts2 then ts1 - ts2
   else ts2 - ts1
 
-%export
+export
 proven_idris_lamport_max_timestamp : Int -> Int -> Int
 proven_idris_lamport_max_timestamp ts1 ts2 =
   if ts1 > ts2 then ts1 else ts2
 
-%export
+export
 proven_idris_lamport_min_timestamp : Int -> Int -> Int
 proven_idris_lamport_min_timestamp ts1 ts2 =
   if ts1 < ts2 then ts1 else ts2
@@ -308,26 +308,26 @@ proven_idris_lamport_min_timestamp ts1 ts2 =
 -- Sequence Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_sequence_next : Int -> Int
 proven_idris_sequence_next current = current + 1
 
-%export
+export
 proven_idris_sequence_gap_size : Int -> Int -> Int
 proven_idris_sequence_gap_size expected actual =
   if actual > expected then actual - expected else 0
 
-%export
+export
 proven_idris_sequence_is_consecutive : Int -> Int -> Int
 proven_idris_sequence_is_consecutive current next =
   encodeBool (next == current + 1)
 
-%export
+export
 proven_idris_sequence_is_duplicate : Int -> Int -> Int
 proven_idris_sequence_is_duplicate current next =
   encodeBool (next == current)
 
-%export
+export
 proven_idris_sequence_is_reordered : Int -> Int -> Int
 proven_idris_sequence_is_reordered expected actual =
   encodeBool (actual < expected)
@@ -336,17 +336,17 @@ proven_idris_sequence_is_reordered expected actual =
 -- Overflow Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_monotonic_will_overflow : Int -> Int -> Int
 proven_idris_monotonic_will_overflow current maxValue =
   encodeBool (current >= maxValue)
 
-%export
+export
 proven_idris_monotonic_room_to_grow : Int -> Int -> Int
 proven_idris_monotonic_room_to_grow current maxValue =
   if current < maxValue then maxValue - current else 0
 
-%export
+export
 proven_idris_monotonic_percent_full : Int -> Int -> Double
 proven_idris_monotonic_percent_full current maxValue =
   if maxValue == 0 then 0.0
@@ -356,15 +356,15 @@ proven_idris_monotonic_percent_full current maxValue =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_monotonic_min_value : Int
 proven_idris_monotonic_min_value = 0
 
-%export
+export
 proven_idris_monotonic_max_safe_value : Int
 proven_idris_monotonic_max_safe_value = 2147483647  -- Max Int32
 
-%export
+export
 proven_idris_lamport_initial_timestamp : Int
 proven_idris_lamport_initial_timestamp = 0
 
@@ -372,7 +372,7 @@ proven_idris_lamport_initial_timestamp = 0
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_monotonic_friendly_error : String -> String
 proven_idris_monotonic_friendly_error errorMsg =
   if isInfixOf "overflow" (toLower errorMsg)
@@ -386,7 +386,7 @@ proven_idris_monotonic_friendly_error errorMsg =
   else
     "Monotonic value error"
 
-%export
+export
 proven_idris_monotonic_status_message : Int -> String
 proven_idris_monotonic_status_message value =
   "Monotonic counter: " ++ show value

@@ -48,11 +48,11 @@ encodeBool True = 1
 -- Mathematical Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_ln2 : Double
 proven_idris_bloom_ln2 = 0.6931471805599453
 
-%export
+export
 proven_idris_bloom_ln2_squared : Double
 proven_idris_bloom_ln2_squared = 0.4804530139182014
 
@@ -60,17 +60,17 @@ proven_idris_bloom_ln2_squared = 0.4804530139182014
 -- Optimal Parameter Calculation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_optimal_size : Int -> Double -> Int
 proven_idris_bloom_optimal_size expectedItems falsePositiveRate =
   cast (optimalSize (cast expectedItems) falsePositiveRate)
 
-%export
+export
 proven_idris_bloom_optimal_hashes : Int -> Int -> Int
 proven_idris_bloom_optimal_hashes filterSize expectedItems =
   cast (optimalHashes (cast filterSize) (cast expectedItems))
 
-%export
+export
 proven_idris_bloom_create_optimal : Int -> Double -> (Int, Int)
 proven_idris_bloom_create_optimal expectedItems falsePositiveRate =
   let sz = proven_idris_bloom_optimal_size expectedItems falsePositiveRate
@@ -81,22 +81,22 @@ proven_idris_bloom_create_optimal expectedItems falsePositiveRate =
 -- Parameter Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_is_valid_size : Int -> Int
 proven_idris_bloom_is_valid_size size =
   encodeBool (size > 0 && size < 1000000000)  -- Reasonable upper limit
 
-%export
+export
 proven_idris_bloom_is_valid_num_hashes : Int -> Int
 proven_idris_bloom_is_valid_num_hashes numHashes =
   encodeBool (numHashes > 0 && numHashes <= 20)  -- Practical range
 
-%export
+export
 proven_idris_bloom_is_valid_fp_rate : Double -> Int
 proven_idris_bloom_is_valid_fp_rate rate =
   encodeBool (rate > 0.0 && rate < 1.0)
 
-%export
+export
 proven_idris_bloom_params_compatible : Int -> Int -> Int -> Int -> Int
 proven_idris_bloom_params_compatible size1 hashes1 size2 hashes2 =
   encodeBool (size1 == size2 && hashes1 == hashes2)
@@ -105,7 +105,7 @@ proven_idris_bloom_params_compatible size1 hashes1 size2 hashes2 =
 -- False Positive Rate Estimation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_estimate_fp_rate : Int -> Int -> Int -> Double
 proven_idris_bloom_estimate_fp_rate filterSize numHashes bitsSet =
   let k = cast numHashes
@@ -113,7 +113,7 @@ proven_idris_bloom_estimate_fp_rate filterSize numHashes bitsSet =
       ones = cast bitsSet
   in pow (ones / m) k
 
-%export
+export
 proven_idris_bloom_expected_fp_rate : Int -> Int -> Int -> Double
 proven_idris_bloom_expected_fp_rate filterSize numHashes itemsInserted =
   -- Expected FP rate after n insertions: (1 - e^(-kn/m))^k
@@ -127,23 +127,23 @@ proven_idris_bloom_expected_fp_rate filterSize numHashes itemsInserted =
 -- Fill Ratio and Saturation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_fill_ratio : Int -> Int -> Double
 proven_idris_bloom_fill_ratio bitsSet filterSize =
   if filterSize == 0 then 0.0
   else cast bitsSet / cast filterSize
 
-%export
+export
 proven_idris_bloom_fill_ratio_percent : Int -> Int -> Double
 proven_idris_bloom_fill_ratio_percent bitsSet filterSize =
   proven_idris_bloom_fill_ratio bitsSet filterSize * 100.0
 
-%export
+export
 proven_idris_bloom_is_saturated : Int -> Int -> Int
 proven_idris_bloom_is_saturated bitsSet filterSize =
   encodeBool (bitsSet >= filterSize)
 
-%export
+export
 proven_idris_bloom_is_nearly_saturated : Int -> Int -> Int -> Int
 proven_idris_bloom_is_nearly_saturated bitsSet filterSize threshold =
   let percent = cast (bitsSet * 100) / cast filterSize
@@ -153,7 +153,7 @@ proven_idris_bloom_is_nearly_saturated bitsSet filterSize threshold =
 -- Expected Bits Set
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_expected_bits_set : Int -> Int -> Int -> Int
 proven_idris_bloom_expected_bits_set filterSize numHashes itemsInserted =
   -- Expected bits set after n insertions: m × (1 - (1 - 1/m)^(kn))
@@ -163,7 +163,7 @@ proven_idris_bloom_expected_bits_set filterSize numHashes itemsInserted =
       prob = 1.0 - pow (1.0 - 1.0 / m) (k * n)
   in cast (m * prob)
 
-%export
+export
 proven_idris_bloom_expected_empty_bits : Int -> Int -> Int -> Int
 proven_idris_bloom_expected_empty_bits filterSize numHashes itemsInserted =
   let expected = proven_idris_bloom_expected_bits_set filterSize numHashes itemsInserted
@@ -173,7 +173,7 @@ proven_idris_bloom_expected_empty_bits filterSize numHashes itemsInserted =
 -- Capacity Planning
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_max_items_for_rate : Int -> Int -> Double -> Int
 proven_idris_bloom_max_items_for_rate filterSize numHashes maxFpRate =
   -- Solve for n given m, k, and target p: n ≈ -m × ln(p) / (k × ln(2))
@@ -182,7 +182,7 @@ proven_idris_bloom_max_items_for_rate filterSize numHashes maxFpRate =
       p = maxFpRate
   in cast (negate m * log p / (k * 0.6931471805599453))
 
-%export
+export
 proven_idris_bloom_recommend_resize_at : Int -> Int -> Double -> Int
 proven_idris_bloom_recommend_resize_at filterSize numHashes maxFpRate =
   -- Recommend resizing when 75% of max capacity is reached
@@ -193,15 +193,15 @@ proven_idris_bloom_recommend_resize_at filterSize numHashes maxFpRate =
 -- Hash Function Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_hash_seed : Int -> Int
 proven_idris_bloom_hash_seed i = i
 
-%export
+export
 proven_idris_bloom_num_hash_indices : Int -> Int
 proven_idris_bloom_num_hash_indices numHashes = numHashes
 
-%export
+export
 proven_idris_bloom_bit_index_in_range : Int -> Int -> Int
 proven_idris_bloom_bit_index_in_range index filterSize =
   encodeBool (index >= 0 && index < filterSize)
@@ -210,16 +210,16 @@ proven_idris_bloom_bit_index_in_range index filterSize =
 -- Memory Usage
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_memory_bits : Int -> Int
 proven_idris_bloom_memory_bits filterSize = filterSize
 
-%export
+export
 proven_idris_bloom_memory_bytes : Int -> Int
 proven_idris_bloom_memory_bytes filterSize =
   (filterSize + 7) `div` 8  -- Round up to nearest byte
 
-%export
+export
 proven_idris_bloom_memory_kb : Int -> Double
 proven_idris_bloom_memory_kb filterSize =
   cast (proven_idris_bloom_memory_bytes filterSize) / 1024.0
@@ -228,12 +228,12 @@ proven_idris_bloom_memory_kb filterSize =
 -- Comparison
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_more_accurate : Double -> Double -> Int
 proven_idris_bloom_more_accurate fpRate1 fpRate2 =
   encodeBool (fpRate1 < fpRate2)
 
-%export
+export
 proven_idris_bloom_compare_accuracy : Double -> Double -> Int
 proven_idris_bloom_compare_accuracy fpRate1 fpRate2 =
   case compare fpRate1 fpRate2 of
@@ -245,13 +245,13 @@ proven_idris_bloom_compare_accuracy fpRate1 fpRate2 =
 -- Statistics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_bits_per_item : Int -> Int -> Double
 proven_idris_bloom_bits_per_item filterSize expectedItems =
   if expectedItems == 0 then 0.0
   else cast filterSize / cast expectedItems
 
-%export
+export
 proven_idris_bloom_hashes_per_item : Int -> Int
 proven_idris_bloom_hashes_per_item numHashes = numHashes
 
@@ -259,7 +259,7 @@ proven_idris_bloom_hashes_per_item numHashes = numHashes
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_bloom_friendly_error : String -> String
 proven_idris_bloom_friendly_error errorMsg =
   if isInfixOf "saturated" (toLower errorMsg) || isInfixOf "full" (toLower errorMsg)

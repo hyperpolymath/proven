@@ -27,7 +27,7 @@ encodeVariant RFC4122 = 1
 encodeVariant Microsoft = 2
 encodeVariant Future = 3
 
-%export
+export
 proven_idris_uuid_version_encode : Int -> Int
 proven_idris_uuid_version_encode v =
   if v == 1 then 1
@@ -37,7 +37,7 @@ proven_idris_uuid_version_encode v =
   else if v == 5 then 5
   else 0
 
-%export
+export
 proven_idris_uuid_variant_encode : Int -> Int
 proven_idris_uuid_variant_encode v =
   if v == 0 then 0
@@ -46,10 +46,10 @@ proven_idris_uuid_variant_encode v =
   else if v == 3 then 3
   else 0
 
-%export
+export
 proven_idris_uuid_valid_hex_length : Int -> Int
 proven_idris_uuid_valid_hex_length len = encodeBool (len == 32 || len == 36)
 
-%export
+export
 proven_idris_uuid_is_nil : String -> Int
 proven_idris_uuid_is_nil hex = encodeBool (hex == "00000000000000000000000000000000")

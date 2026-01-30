@@ -12,20 +12,20 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
-%export
+export
 proven_idris_fsm_is_final_state : Int -> Int -> Int
 proven_idris_fsm_is_final_state currentState finalStatesCount =
   encodeBool (finalStatesCount > 0)
 
-%export
+export
 proven_idris_fsm_transition_valid : Int -> Int -> Int
 proven_idris_fsm_transition_valid fromState toState =
   encodeBool (fromState /= toState)
 
-%export
+export
 proven_idris_fsm_can_trigger : Int -> Int
 proven_idris_fsm_can_trigger transitionExists = encodeBool (transitionExists /= 0)
 
-%export
+export
 proven_idris_fsm_history_depth : Int -> Int
 proven_idris_fsm_history_depth historyLength = historyLength

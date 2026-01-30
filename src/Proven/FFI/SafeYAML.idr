@@ -45,26 +45,26 @@ encodeMaybeString (Just s) = (0, s)
 -- YAML Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_parse : String -> (Int, String)
 proven_idris_yaml_parse s = encodeYAMLResult (parse s)
 
-%export
+export
 proven_idris_yaml_is_valid : String -> Int
 proven_idris_yaml_is_valid s = encodeBool (isSafe s)
 
-%export
+export
 proven_idris_yaml_validate : String -> (Int, String)
 proven_idris_yaml_validate s =
   case validate s of
     Err err => (1, show err)
     Ok () => (0, "")
 
-%export
+export
 proven_idris_yaml_has_dangerous_patterns : String -> Int
 proven_idris_yaml_has_dangerous_patterns s = encodeBool (hasDangerousPatterns s)
 
-%export
+export
 proven_idris_yaml_has_anchors : String -> Int
 proven_idris_yaml_has_anchors s = encodeBool (hasAnchors s)
 
@@ -72,7 +72,7 @@ proven_idris_yaml_has_anchors s = encodeBool (hasAnchors s)
 -- Type Coercion
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_as_string : String -> (Int, String)
 proven_idris_yaml_as_string s =
   case parse s of
@@ -81,7 +81,7 @@ proven_idris_yaml_as_string s =
       Err err => (1, show err)
       Ok str => (0, str)
 
-%export
+export
 proven_idris_yaml_as_int : String -> (Int, String)
 proven_idris_yaml_as_int s =
   case parse s of
@@ -90,7 +90,7 @@ proven_idris_yaml_as_int s =
       Err err => (1, show err)
       Ok i => (0, show i)
 
-%export
+export
 proven_idris_yaml_as_float : String -> (Int, String)
 proven_idris_yaml_as_float s =
   case parse s of
@@ -99,7 +99,7 @@ proven_idris_yaml_as_float s =
       Err err => (1, show err)
       Ok f => (0, show f)
 
-%export
+export
 proven_idris_yaml_as_bool : String -> (Int, String)
 proven_idris_yaml_as_bool s =
   case parse s of
@@ -113,7 +113,7 @@ proven_idris_yaml_as_bool s =
 -- Object Access
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_get_field : String -> String -> (Int, String)
 proven_idris_yaml_get_field yamlStr fieldName =
   case parse yamlStr of
@@ -122,14 +122,14 @@ proven_idris_yaml_get_field yamlStr fieldName =
       Err err => (1, show err)
       Ok fieldVal => (0, show fieldVal)
 
-%export
+export
 proven_idris_yaml_has_field : String -> String -> Int
 proven_idris_yaml_has_field yamlStr fieldName =
   case parse yamlStr of
     Err _ => 0
     Ok val => encodeBool (hasField fieldName val)
 
-%export
+export
 proven_idris_yaml_get_path : String -> String -> (Int, String)
 proven_idris_yaml_get_path yamlStr path =
   case parse yamlStr of
@@ -138,7 +138,7 @@ proven_idris_yaml_get_path yamlStr path =
       Err err => (1, show err)
       Ok result => (0, show result)
 
-%export
+export
 proven_idris_yaml_keys : String -> (Int, String)
 proven_idris_yaml_keys yamlStr =
   case parse yamlStr of
@@ -153,7 +153,7 @@ proven_idris_yaml_keys yamlStr =
 -- Array Access
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_get_index : String -> Int -> (Int, String)
 proven_idris_yaml_get_index yamlStr idx =
   case parse yamlStr of
@@ -162,7 +162,7 @@ proven_idris_yaml_get_index yamlStr idx =
       Err err => (1, show err)
       Ok result => (0, show result)
 
-%export
+export
 proven_idris_yaml_array_length : String -> (Int, String)
 proven_idris_yaml_array_length yamlStr =
   case parse yamlStr of
@@ -173,7 +173,7 @@ proven_idris_yaml_array_length yamlStr =
 -- Rendering
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_render : String -> (Int, String)
 proven_idris_yaml_render yamlStr =
   case parse yamlStr of
@@ -184,35 +184,35 @@ proven_idris_yaml_render yamlStr =
 -- Security Options Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_secure_max_documents : Int
 proven_idris_yaml_secure_max_documents = cast secureDefaults.maxDocuments
 
-%export
+export
 proven_idris_yaml_secure_max_depth : Int
 proven_idris_yaml_secure_max_depth = cast secureDefaults.maxDepth
 
-%export
+export
 proven_idris_yaml_secure_max_key_length : Int
 proven_idris_yaml_secure_max_key_length = cast secureDefaults.maxKeyLength
 
-%export
+export
 proven_idris_yaml_secure_max_value_size : Int
 proven_idris_yaml_secure_max_value_size = cast secureDefaults.maxValueSize
 
-%export
+export
 proven_idris_yaml_secure_max_alias_depth : Int
 proven_idris_yaml_secure_max_alias_depth = cast secureDefaults.maxAliasDepth
 
-%export
+export
 proven_idris_yaml_secure_allow_anchors : Int
 proven_idris_yaml_secure_allow_anchors = encodeBool secureDefaults.allowAnchors
 
-%export
+export
 proven_idris_yaml_secure_allow_binary : Int
 proven_idris_yaml_secure_allow_binary = encodeBool secureDefaults.allowBinary
 
-%export
+export
 proven_idris_yaml_secure_allow_custom_tags : Int
 proven_idris_yaml_secure_allow_custom_tags = encodeBool secureDefaults.allowCustomTags
 
@@ -220,7 +220,7 @@ proven_idris_yaml_secure_allow_custom_tags = encodeBool secureDefaults.allowCust
 -- Dangerous Tag Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_is_dangerous_tag : String -> Int
 proven_idris_yaml_is_dangerous_tag tag = encodeBool (isDangerousTag tag)
 
@@ -228,35 +228,35 @@ proven_idris_yaml_is_dangerous_tag tag = encodeBool (isDangerousTag tag)
 -- Error Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_is_syntax_error : String -> Int
 proven_idris_yaml_is_syntax_error errorMsg =
   if isInfixOf "syntax" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_yaml_is_alias_error : String -> Int
 proven_idris_yaml_is_alias_error errorMsg =
   if isInfixOf "alias" (toLower errorMsg) || isInfixOf "anchor" (toLower errorMsg) || isInfixOf "circular" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_yaml_is_dangerous_tag_error : String -> Int
 proven_idris_yaml_is_dangerous_tag_error errorMsg =
   if isInfixOf "dangerous" (toLower errorMsg) || isInfixOf "tag" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_yaml_is_limit_error : String -> Int
 proven_idris_yaml_is_limit_error errorMsg =
   if isInfixOf "exceeded" (toLower errorMsg) || isInfixOf "too" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_yaml_is_type_error : String -> Int
 proven_idris_yaml_is_type_error errorMsg =
   if isInfixOf "type" (toLower errorMsg) || isInfixOf "mismatch" (toLower errorMsg)
@@ -267,7 +267,7 @@ proven_idris_yaml_is_type_error errorMsg =
 -- Friendly Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_yaml_friendly_error : String -> String
 proven_idris_yaml_friendly_error errorMsg =
   if isInfixOf "dangerous" (toLower errorMsg)

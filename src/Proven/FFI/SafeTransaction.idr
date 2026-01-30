@@ -65,58 +65,58 @@ encodeBool True = 1
 -- Transaction Status Encoding
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_status_pending : Int
 proven_idris_tx_status_pending = 0
 
-%export
+export
 proven_idris_tx_status_committed : Int
 proven_idris_tx_status_committed = 1
 
-%export
+export
 proven_idris_tx_status_rolledback : Int
 proven_idris_tx_status_rolledback = 2
 
-%export
+export
 proven_idris_tx_status_failed : Int
 proven_idris_tx_status_failed = 3
 
-%export
+export
 proven_idris_tx_is_valid_status : Int -> Int
 proven_idris_tx_is_valid_status status =
   encodeBool (status >= 0 && status <= 3)
 
-%export
+export
 proven_idris_tx_is_active : Int -> Int
 proven_idris_tx_is_active status =
   encodeBool (status == 0)  -- Pending
 
-%export
+export
 proven_idris_tx_is_committed : Int -> Int
 proven_idris_tx_is_committed status =
   encodeBool (status == 1)  -- Committed
 
-%export
+export
 proven_idris_tx_is_rolledback : Int -> Int
 proven_idris_tx_is_rolledback status =
   encodeBool (status == 2)  -- RolledBack
 
-%export
+export
 proven_idris_tx_is_failed : Int -> Int
 proven_idris_tx_is_failed status =
   encodeBool (status == 3)  -- Failed
 
-%export
+export
 proven_idris_tx_is_final : Int -> Int
 proven_idris_tx_is_final status =
   encodeBool (status >= 1 && status <= 3)  -- Committed/RolledBack/Failed
 
-%export
+export
 proven_idris_tx_can_commit : Int -> Int
 proven_idris_tx_can_commit status =
   encodeBool (status == 0)  -- Pending
 
-%export
+export
 proven_idris_tx_can_rollback : Int -> Int
 proven_idris_tx_can_rollback status =
   encodeBool (status == 0)  -- Pending
@@ -125,43 +125,43 @@ proven_idris_tx_can_rollback status =
 -- Isolation Level Encoding
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_isolation_read_uncommitted : Int
 proven_idris_tx_isolation_read_uncommitted = 0
 
-%export
+export
 proven_idris_tx_isolation_read_committed : Int
 proven_idris_tx_isolation_read_committed = 1
 
-%export
+export
 proven_idris_tx_isolation_repeatable_read : Int
 proven_idris_tx_isolation_repeatable_read = 2
 
-%export
+export
 proven_idris_tx_isolation_serializable : Int
 proven_idris_tx_isolation_serializable = 3
 
-%export
+export
 proven_idris_tx_is_valid_isolation : Int -> Int
 proven_idris_tx_is_valid_isolation isolation =
   encodeBool (isolation >= 0 && isolation <= 3)
 
-%export
+export
 proven_idris_tx_isolation_allows_dirty_reads : Int -> Int
 proven_idris_tx_isolation_allows_dirty_reads isolation =
   encodeBool (isolation == 0)  -- ReadUncommitted only
 
-%export
+export
 proven_idris_tx_isolation_prevents_dirty_reads : Int -> Int
 proven_idris_tx_isolation_prevents_dirty_reads isolation =
   encodeBool (isolation >= 1)  -- ReadCommitted and above
 
-%export
+export
 proven_idris_tx_isolation_prevents_nonrepeatable_reads : Int -> Int
 proven_idris_tx_isolation_prevents_nonrepeatable_reads isolation =
   encodeBool (isolation >= 2)  -- RepeatableRead and above
 
-%export
+export
 proven_idris_tx_isolation_prevents_phantoms : Int -> Int
 proven_idris_tx_isolation_prevents_phantoms isolation =
   encodeBool (isolation == 3)  -- Serializable only
@@ -170,28 +170,28 @@ proven_idris_tx_isolation_prevents_phantoms isolation =
 -- Transaction Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_begin : Int -> Int
 proven_idris_tx_begin txId = txId
 
-%export
+export
 proven_idris_tx_op_count : Int -> Int
 proven_idris_tx_op_count count = count
 
-%export
+export
 proven_idris_tx_log_count : Int -> Int
 proven_idris_tx_log_count count = count
 
-%export
+export
 proven_idris_tx_has_operations : Int -> Int
 proven_idris_tx_has_operations opCount =
   encodeBool (opCount > 0)
 
-%export
+export
 proven_idris_tx_max_operations : Int
 proven_idris_tx_max_operations = 10000
 
-%export
+export
 proven_idris_tx_can_add_operation : Int -> Int -> Int
 proven_idris_tx_can_add_operation opCount maxOps =
   encodeBool (opCount < maxOps)
@@ -200,27 +200,27 @@ proven_idris_tx_can_add_operation opCount maxOps =
 -- Savepoint Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_savepoint_count : Int -> Int
 proven_idris_tx_savepoint_count count = count
 
-%export
+export
 proven_idris_tx_max_savepoints : Int
 proven_idris_tx_max_savepoints = 100
 
-%export
+export
 proven_idris_tx_can_create_savepoint : Int -> Int -> Int
 proven_idris_tx_can_create_savepoint spCount maxSavepoints =
   encodeBool (spCount < maxSavepoints)
 
-%export
+export
 proven_idris_tx_operations_since_savepoint : Int -> Int -> Int
 proven_idris_tx_operations_since_savepoint currentOpCount savepointOpCount =
   if currentOpCount >= savepointOpCount
     then currentOpCount - savepointOpCount
     else 0
 
-%export
+export
 proven_idris_tx_can_rollback_to_savepoint : Int -> Int -> Int
 proven_idris_tx_can_rollback_to_savepoint status savepointOpCount =
   encodeBool (status == 0 && savepointOpCount >= 0)  -- Pending and valid savepoint
@@ -229,40 +229,40 @@ proven_idris_tx_can_rollback_to_savepoint status savepointOpCount =
 -- Transaction Statistics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_success_rate : Int -> Int -> Double
 proven_idris_tx_success_rate committed total =
   if total == 0 then 0.0
   else cast committed / cast total
 
-%export
+export
 proven_idris_tx_success_rate_percent : Int -> Int -> Double
 proven_idris_tx_success_rate_percent committed total =
   proven_idris_tx_success_rate committed total * 100.0
 
-%export
+export
 proven_idris_tx_rollback_rate : Int -> Int -> Double
 proven_idris_tx_rollback_rate rolledBack total =
   if total == 0 then 0.0
   else cast rolledBack / cast total
 
-%export
+export
 proven_idris_tx_rollback_rate_percent : Int -> Int -> Double
 proven_idris_tx_rollback_rate_percent rolledBack total =
   proven_idris_tx_rollback_rate rolledBack total * 100.0
 
-%export
+export
 proven_idris_tx_failure_rate : Int -> Int -> Double
 proven_idris_tx_failure_rate failed total =
   if total == 0 then 0.0
   else cast failed / cast total
 
-%export
+export
 proven_idris_tx_failure_rate_percent : Int -> Int -> Double
 proven_idris_tx_failure_rate_percent failed total =
   proven_idris_tx_failure_rate failed total * 100.0
 
-%export
+export
 proven_idris_tx_average_operations : Int -> Int -> Double
 proven_idris_tx_average_operations totalOps totalTxs =
   if totalTxs == 0 then 0.0
@@ -272,21 +272,21 @@ proven_idris_tx_average_operations totalOps totalTxs =
 -- Conflict Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_has_conflict : Int -> Int
 proven_idris_tx_has_conflict hasConflict = hasConflict
 
-%export
+export
 proven_idris_tx_conflict_count : Int -> Int
 proven_idris_tx_conflict_count count = count
 
-%export
+export
 proven_idris_tx_conflict_rate : Int -> Int -> Double
 proven_idris_tx_conflict_rate conflicts total =
   if total == 0 then 0.0
   else cast conflicts / cast total
 
-%export
+export
 proven_idris_tx_should_retry : Int -> Int -> Int
 proven_idris_tx_should_retry status hasConflict =
   encodeBool (status == 3 && hasConflict == 1)  -- Failed due to conflict
@@ -295,17 +295,17 @@ proven_idris_tx_should_retry status hasConflict =
 -- Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_is_valid_txid : Int -> Int
 proven_idris_tx_is_valid_txid txId =
   encodeBool (txId >= 0)
 
-%export
+export
 proven_idris_tx_is_valid_timestamp : Int -> Int
 proven_idris_tx_is_valid_timestamp timestamp =
   encodeBool (timestamp >= 0)
 
-%export
+export
 proven_idris_tx_is_valid_operation_count : Int -> Int
 proven_idris_tx_is_valid_operation_count count =
   encodeBool (count >= 0 && count <= 10000)
@@ -314,25 +314,25 @@ proven_idris_tx_is_valid_operation_count count =
 -- ACID Checks
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_atomicity_preserved : Int -> Int -> Int
 proven_idris_tx_atomicity_preserved status allOpsExecuted =
   -- Atomicity: either all ops execute or none
   encodeBool ((status == 1 && allOpsExecuted == 1) || (status == 2) || (status == 3))
 
-%export
+export
 proven_idris_tx_consistency_preserved : Int -> Int
 proven_idris_tx_consistency_preserved validationPassed =
   -- Consistency: state valid before and after
   encodeBool (validationPassed == 1)
 
-%export
+export
 proven_idris_tx_isolation_preserved : Int -> Int
 proven_idris_tx_isolation_preserved noInterference =
   -- Isolation: no interference from concurrent txs
   encodeBool (noInterference == 1)
 
-%export
+export
 proven_idris_tx_durability_preserved : Int -> Int
 proven_idris_tx_durability_preserved persisted =
   -- Durability: committed changes persist
@@ -342,19 +342,19 @@ proven_idris_tx_durability_preserved persisted =
 -- Concurrency Control
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_lock_acquired : Int -> Int
 proven_idris_tx_lock_acquired acquired = acquired
 
-%export
+export
 proven_idris_tx_lock_released : Int -> Int
 proven_idris_tx_lock_released released = released
 
-%export
+export
 proven_idris_tx_deadlock_detected : Int -> Int
 proven_idris_tx_deadlock_detected hasDeadlock = hasDeadlock
 
-%export
+export
 proven_idris_tx_wait_time : Int -> Int
 proven_idris_tx_wait_time milliseconds = milliseconds
 
@@ -362,20 +362,20 @@ proven_idris_tx_wait_time milliseconds = milliseconds
 -- Performance Metrics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_duration : Int -> Int -> Int
 proven_idris_tx_duration startTime endTime =
   if endTime >= startTime
     then endTime - startTime
     else 0
 
-%export
+export
 proven_idris_tx_average_duration : Int -> Int -> Double
 proven_idris_tx_average_duration totalDuration totalTxs =
   if totalTxs == 0 then 0.0
   else cast totalDuration / cast totalTxs
 
-%export
+export
 proven_idris_tx_throughput : Int -> Int -> Double
 proven_idris_tx_throughput committed timeWindow =
   if timeWindow == 0 then 0.0
@@ -385,19 +385,19 @@ proven_idris_tx_throughput committed timeWindow =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_default_isolation : Int
 proven_idris_tx_default_isolation = 1  -- ReadCommitted
 
-%export
+export
 proven_idris_tx_default_timeout : Int
 proven_idris_tx_default_timeout = 30000  -- 30 seconds
 
-%export
+export
 proven_idris_tx_max_retry_attempts : Int
 proven_idris_tx_max_retry_attempts = 3
 
-%export
+export
 proven_idris_tx_default_max_operations : Int
 proven_idris_tx_default_max_operations = 1000
 
@@ -405,7 +405,7 @@ proven_idris_tx_default_max_operations = 1000
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_tx_friendly_error : String -> String
 proven_idris_tx_friendly_error errorMsg =
   if isInfixOf "deadlock" (toLower errorMsg)
@@ -423,7 +423,7 @@ proven_idris_tx_friendly_error errorMsg =
   else
     "Transaction error"
 
-%export
+export
 proven_idris_tx_status_description : Int -> String
 proven_idris_tx_status_description status =
   if status == 0 then "Pending (transaction active, not yet committed)"
@@ -432,7 +432,7 @@ proven_idris_tx_status_description status =
   else if status == 3 then "Failed (transaction aborted due to error)"
   else "Unknown status"
 
-%export
+export
 proven_idris_tx_isolation_description : Int -> String
 proven_idris_tx_isolation_description isolation =
   if isolation == 0 then "Read Uncommitted (dirty reads possible, lowest isolation)"

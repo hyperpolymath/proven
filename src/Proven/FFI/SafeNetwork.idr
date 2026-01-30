@@ -62,60 +62,60 @@ encodeMaybeHostname (Just (MkHostname name)) = (0, name)
 -- IPv4 Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ipv4_parse : String -> (Int, String)
 proven_idris_ipv4_parse s = encodeMaybeIPv4 (parseIPv4 s)
 
-%export
+export
 proven_idris_ipv4_is_private : String -> Int
 proven_idris_ipv4_is_private s =
   case parseIPv4 s of
     Nothing => 0
     Just ip => encodeBool (isPrivateIPv4 ip)
 
-%export
+export
 proven_idris_ipv4_is_loopback : String -> Int
 proven_idris_ipv4_is_loopback s =
   case parseIPv4 s of
     Nothing => 0
     Just ip => encodeBool (isLoopbackIPv4 ip)
 
-%export
+export
 proven_idris_ipv4_is_link_local : String -> Int
 proven_idris_ipv4_is_link_local s =
   case parseIPv4 s of
     Nothing => 0
     Just ip => encodeBool (isLinkLocalIPv4 ip)
 
-%export
+export
 proven_idris_ipv4_is_multicast : String -> Int
 proven_idris_ipv4_is_multicast s =
   case parseIPv4 s of
     Nothing => 0
     Just ip => encodeBool (isMulticastIPv4 ip)
 
-%export
+export
 proven_idris_ipv4_is_broadcast : String -> Int
 proven_idris_ipv4_is_broadcast s =
   case parseIPv4 s of
     Nothing => 0
     Just ip => ip == broadcast
 
-%export
+export
 proven_idris_ipv4_is_global : String -> Int
 proven_idris_ipv4_is_global s =
   case parseIPv4 s of
     Nothing => 0
     Just ip => encodeBool (isGlobalIPv4 ip)
 
-%export
+export
 proven_idris_ipv4_is_documentation : String -> Int
 proven_idris_ipv4_is_documentation s =
   case parseIPv4 s of
     Nothing => 0
     Just ip => encodeBool (isDocumentationIPv4 ip)
 
-%export
+export
 proven_idris_ipv4_is_benchmarking : String -> Int
 proven_idris_ipv4_is_benchmarking s =
   case parseIPv4 s of
@@ -126,46 +126,46 @@ proven_idris_ipv4_is_benchmarking s =
 -- IPv6 Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ipv6_parse : String -> (Int, String)
 proven_idris_ipv6_parse s = encodeMaybeIPv6 (parseIPv6 s)
 
-%export
+export
 proven_idris_ipv6_is_loopback : String -> Int
 proven_idris_ipv6_is_loopback s =
   case parseIPv6 s of
     Nothing => 0
     Just ip => encodeBool (isLoopbackIPv6 ip)
 
-%export
+export
 proven_idris_ipv6_is_link_local : String -> Int
 proven_idris_ipv6_is_link_local s =
   case parseIPv6 s of
     Nothing => 0
     Just ip => encodeBool (isLinkLocalIPv6 ip)
 
-%export
+export
 proven_idris_ipv6_is_unique_local : String -> Int
 proven_idris_ipv6_is_unique_local s =
   case parseIPv6 s of
     Nothing => 0
     Just ip => encodeBool (isUniqueLocalIPv6 ip)
 
-%export
+export
 proven_idris_ipv6_is_global : String -> Int
 proven_idris_ipv6_is_global s =
   case parseIPv6 s of
     Nothing => 0
     Just ip => encodeBool (isGlobalIPv6 ip)
 
-%export
+export
 proven_idris_ipv6_is_multicast : String -> Int
 proven_idris_ipv6_is_multicast s =
   case parseIPv6 s of
     Nothing => 0
     Just ip => encodeBool (isMulticastIPv6 ip)
 
-%export
+export
 proven_idris_ipv6_is_documentation : String -> Int
 proven_idris_ipv6_is_documentation s =
   case parseIPv6 s of
@@ -176,21 +176,21 @@ proven_idris_ipv6_is_documentation s =
 -- IP Address (Either IPv4 or IPv6)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ip_parse : String -> (Int, String)
 proven_idris_ip_parse s =
   case parseIPAddress s of
     Nothing => (1, "")
     Just addr => (0, show addr)
 
-%export
+export
 proven_idris_ip_is_ipv4 : String -> Int
 proven_idris_ip_is_ipv4 s =
   case parseIPAddress s of
     Nothing => 0
     Just addr => encodeBool (isIPv4 addr)
 
-%export
+export
 proven_idris_ip_is_ipv6 : String -> Int
 proven_idris_ip_is_ipv6 s =
   case parseIPAddress s of
@@ -201,35 +201,35 @@ proven_idris_ip_is_ipv6 s =
 -- Port Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_port_parse : String -> (Int, String)
 proven_idris_port_parse s =
   case parsePositive s of
     Just n => encodeMaybePort (mkPort n)
     Nothing => (1, "Invalid port number")
 
-%export
+export
 proven_idris_port_is_well_known : Int -> Int
 proven_idris_port_is_well_known n =
   case mkPort (cast n) of
     Nothing => 0
     Just port => encodeBool (isWellKnownPort port)
 
-%export
+export
 proven_idris_port_is_registered : Int -> Int
 proven_idris_port_is_registered n =
   case mkPort (cast n) of
     Nothing => 0
     Just port => encodeBool (isRegisteredPort port)
 
-%export
+export
 proven_idris_port_is_ephemeral : Int -> Int
 proven_idris_port_is_ephemeral n =
   case mkPort (cast n) of
     Nothing => 0
     Just port => encodeBool (isEphemeralPort port)
 
-%export
+export
 proven_idris_port_is_privileged : Int -> Int
 proven_idris_port_is_privileged n =
   case mkPort (cast n) of
@@ -240,25 +240,25 @@ proven_idris_port_is_privileged n =
 -- MAC Address Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_mac_parse : String -> (Int, String)
 proven_idris_mac_parse s = encodeMaybeMAC (parseMAC s)
 
-%export
+export
 proven_idris_mac_is_broadcast : String -> Int
 proven_idris_mac_is_broadcast s =
   case parseMAC s of
     Nothing => 0
     Just mac => encodeBool (isBroadcast mac)
 
-%export
+export
 proven_idris_mac_is_multicast : String -> Int
 proven_idris_mac_is_multicast s =
   case parseMAC s of
     Nothing => 0
     Just mac => encodeBool (isMulticast mac)
 
-%export
+export
 proven_idris_mac_is_locally_administered : String -> Int
 proven_idris_mac_is_locally_administered s =
   case parseMAC s of
@@ -269,7 +269,7 @@ proven_idris_mac_is_locally_administered s =
 -- Hostname Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_hostname_parse : String -> (Int, String)
 proven_idris_hostname_parse s = encodeMaybeHostname (parseHostname s)
 
@@ -277,23 +277,23 @@ proven_idris_hostname_parse s = encodeMaybeHostname (parseHostname s)
 -- Port Range Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_port_min : Int
 proven_idris_port_min = 1
 
-%export
+export
 proven_idris_port_max : Int
 proven_idris_port_max = 65535
 
-%export
+export
 proven_idris_port_well_known_max : Int
 proven_idris_port_well_known_max = 1023
 
-%export
+export
 proven_idris_port_registered_max : Int
 proven_idris_port_registered_max = 49151
 
-%export
+export
 proven_idris_port_ephemeral_min : Int
 proven_idris_port_ephemeral_min = 49152
 
@@ -301,15 +301,15 @@ proven_idris_port_ephemeral_min = 49152
 -- Special IPv4 Addresses
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_ipv4_localhost : String
 proven_idris_ipv4_localhost = show localhost
 
-%export
+export
 proven_idris_ipv4_broadcast : String
 proven_idris_ipv4_broadcast = show broadcast
 
-%export
+export
 proven_idris_ipv4_any : String
 proven_idris_ipv4_any = show anyAddress
 
@@ -317,14 +317,14 @@ proven_idris_ipv4_any = show anyAddress
 -- Error Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_network_is_parse_error : String -> Int
 proven_idris_network_is_parse_error errorMsg =
   if isInfixOf "invalid" (toLower errorMsg) || isInfixOf "parse" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_network_is_range_error : String -> Int
 proven_idris_network_is_range_error errorMsg =
   if isInfixOf "range" (toLower errorMsg) || isInfixOf "out of" (toLower errorMsg)

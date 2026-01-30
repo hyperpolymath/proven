@@ -65,39 +65,39 @@ encodeBool True = 1
 -- Resource State Encoding
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_resource_state_unacquired : Int
 proven_idris_resource_state_unacquired = 0
 
-%export
+export
 proven_idris_resource_state_acquired : Int
 proven_idris_resource_state_acquired = 1
 
-%export
+export
 proven_idris_resource_state_released : Int
 proven_idris_resource_state_released = 2
 
-%export
+export
 proven_idris_resource_is_valid_state : Int -> Int
 proven_idris_resource_is_valid_state state =
   encodeBool (state >= 0 && state <= 2)
 
-%export
+export
 proven_idris_resource_can_acquire : Int -> Int
 proven_idris_resource_can_acquire state =
   encodeBool (state == 0)  -- Unacquired
 
-%export
+export
 proven_idris_resource_can_release : Int -> Int
 proven_idris_resource_can_release state =
   encodeBool (state == 1)  -- Acquired
 
-%export
+export
 proven_idris_resource_is_held : Int -> Int
 proven_idris_resource_is_held state =
   encodeBool (state == 1)  -- Acquired
 
-%export
+export
 proven_idris_resource_is_released : Int -> Int
 proven_idris_resource_is_released state =
   encodeBool (state == 2)  -- Released
@@ -106,21 +106,21 @@ proven_idris_resource_is_released state =
 -- Resource Handle Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_resource_new_handle : Int
 proven_idris_resource_new_handle = 0  -- Unacquired
 
-%export
+export
 proven_idris_resource_mark_acquired : Int -> Int -> (Int, Int)
 proven_idris_resource_mark_acquired _ timestamp =
   (1, timestamp)  -- (Acquired, acquiredAt)
 
-%export
+export
 proven_idris_resource_mark_released : Int -> Int -> (Int, Int)
 proven_idris_resource_mark_released acquiredAt timestamp =
   (2, timestamp)  -- (Released, releasedAt)
 
-%export
+export
 proven_idris_resource_hold_duration : Int -> Int -> Int
 proven_idris_resource_hold_duration acquiredAt releasedAt =
   if releasedAt >= acquiredAt
@@ -131,49 +131,49 @@ proven_idris_resource_hold_duration acquiredAt releasedAt =
 -- Resource Pool Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_pool_available_count : Int -> Int
 proven_idris_pool_available_count count = count
 
-%export
+export
 proven_idris_pool_in_use_count : Int -> Int
 proven_idris_pool_in_use_count count = count
 
-%export
+export
 proven_idris_pool_total_size : Int -> Int -> Int
 proven_idris_pool_total_size available inUse = available + inUse
 
-%export
+export
 proven_idris_pool_max_size : Int -> Int
 proven_idris_pool_max_size maxSize = maxSize
 
-%export
+export
 proven_idris_pool_is_exhausted : Int -> Int
 proven_idris_pool_is_exhausted availableCount =
   encodeBool (availableCount == 0)
 
-%export
+export
 proven_idris_pool_has_available : Int -> Int
 proven_idris_pool_has_available availableCount =
   encodeBool (availableCount > 0)
 
-%export
+export
 proven_idris_pool_is_full : Int -> Int -> Int
 proven_idris_pool_is_full inUseCount maxSize =
   encodeBool (inUseCount >= maxSize)
 
-%export
+export
 proven_idris_pool_utilization : Int -> Int -> Double
 proven_idris_pool_utilization inUseCount maxSize =
   if maxSize == 0 then 0.0
   else cast inUseCount / cast maxSize
 
-%export
+export
 proven_idris_pool_utilization_percent : Int -> Int -> Double
 proven_idris_pool_utilization_percent inUseCount maxSize =
   proven_idris_pool_utilization inUseCount maxSize * 100.0
 
-%export
+export
 proven_idris_pool_remaining_capacity : Int -> Int
 proven_idris_pool_remaining_capacity availableCount = availableCount
 
@@ -181,54 +181,54 @@ proven_idris_pool_remaining_capacity availableCount = availableCount
 -- Lease Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_lease_new : Int -> Int -> Int -> (Int, Int, Int)
 proven_idris_lease_new acquiredAt duration renewable =
   (acquiredAt, acquiredAt + duration, renewable)  -- (acquiredAt, expiresAt, renewable)
 
-%export
+export
 proven_idris_lease_is_expired : Int -> Int -> Int
 proven_idris_lease_is_expired currentTime expiresAt =
   encodeBool (currentTime >= expiresAt)
 
-%export
+export
 proven_idris_lease_is_valid : Int -> Int -> Int
 proven_idris_lease_is_valid currentTime expiresAt =
   encodeBool (currentTime < expiresAt)
 
-%export
+export
 proven_idris_lease_remaining_time : Int -> Int -> Int
 proven_idris_lease_remaining_time currentTime expiresAt =
   if currentTime >= expiresAt then 0
   else expiresAt - currentTime
 
-%export
+export
 proven_idris_lease_can_renew : Int -> Int -> Int -> Int
 proven_idris_lease_can_renew renewable currentTime expiresAt =
   encodeBool (renewable == 1 && currentTime < expiresAt)
 
-%export
+export
 proven_idris_lease_renew : Int -> Int -> Int -> (Int, Int)
 proven_idris_lease_renew currentTime duration renewable =
   if renewable == 1
     then (currentTime, currentTime + duration)  -- (acquiredAt, expiresAt)
     else (0, 0)  -- Renewal failed
 
-%export
+export
 proven_idris_lease_elapsed_time : Int -> Int -> Int
 proven_idris_lease_elapsed_time acquiredAt currentTime =
   if currentTime >= acquiredAt
     then currentTime - acquiredAt
     else 0
 
-%export
+export
 proven_idris_lease_total_duration : Int -> Int -> Int
 proven_idris_lease_total_duration acquiredAt expiresAt =
   if expiresAt >= acquiredAt
     then expiresAt - acquiredAt
     else 0
 
-%export
+export
 proven_idris_lease_percent_elapsed : Int -> Int -> Int -> Double
 proven_idris_lease_percent_elapsed acquiredAt currentTime expiresAt =
   let duration = expiresAt - acquiredAt
@@ -243,34 +243,34 @@ proven_idris_lease_percent_elapsed acquiredAt currentTime expiresAt =
 -- Reference Counting
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_refcount_new : Int
 proven_idris_refcount_new = 1
 
-%export
+export
 proven_idris_refcount_add_ref : Int -> Int
 proven_idris_refcount_add_ref current = current + 1
 
-%export
+export
 proven_idris_refcount_release_ref : Int -> Int
 proven_idris_refcount_release_ref current =
   if current > 0 then current - 1 else 0
 
-%export
+export
 proven_idris_refcount_is_last_ref : Int -> Int
 proven_idris_refcount_is_last_ref refCount =
   encodeBool (refCount == 1)
 
-%export
+export
 proven_idris_refcount_should_free : Int -> Int
 proven_idris_refcount_should_free refCount =
   encodeBool (refCount == 0)
 
-%export
+export
 proven_idris_refcount_get : Int -> Int
 proven_idris_refcount_get refCount = refCount
 
-%export
+export
 proven_idris_refcount_is_valid : Int -> Int
 proven_idris_refcount_is_valid refCount =
   encodeBool (refCount > 0)
@@ -279,28 +279,28 @@ proven_idris_refcount_is_valid refCount =
 -- Lifecycle Event Encoding
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_lifecycle_evt_created : Int
 proven_idris_lifecycle_evt_created = 0
 
-%export
+export
 proven_idris_lifecycle_evt_acquired : Int
 proven_idris_lifecycle_evt_acquired = 1
 
-%export
+export
 proven_idris_lifecycle_evt_released : Int
 proven_idris_lifecycle_evt_released = 2
 
-%export
+export
 proven_idris_lifecycle_evt_destroyed : Int
 proven_idris_lifecycle_evt_destroyed = 3
 
-%export
+export
 proven_idris_lifecycle_is_valid_event : Int -> Int
 proven_idris_lifecycle_is_valid_event event =
   encodeBool (event >= 0 && event <= 3)
 
-%export
+export
 proven_idris_lifecycle_event_count : Int -> Int
 proven_idris_lifecycle_event_count count = count
 
@@ -308,22 +308,22 @@ proven_idris_lifecycle_event_count count = count
 -- Resource Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_resource_is_valid_duration : Int -> Int
 proven_idris_resource_is_valid_duration duration =
   encodeBool (duration > 0 && duration <= 86400)  -- Max 24 hours
 
-%export
+export
 proven_idris_resource_is_valid_timestamp : Int -> Int
 proven_idris_resource_is_valid_timestamp timestamp =
   encodeBool (timestamp >= 0)
 
-%export
+export
 proven_idris_resource_is_valid_pool_size : Int -> Int
 proven_idris_resource_is_valid_pool_size size =
   encodeBool (size > 0 && size <= 10000)
 
-%export
+export
 proven_idris_resource_is_valid_refcount : Int -> Int
 proven_idris_resource_is_valid_refcount refCount =
   encodeBool (refCount >= 0 && refCount <= 1000000)
@@ -332,30 +332,30 @@ proven_idris_resource_is_valid_refcount refCount =
 -- Resource Statistics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_resource_average_hold_time : Int -> Int -> Double
 proven_idris_resource_average_hold_time totalTime resourceCount =
   if resourceCount == 0 then 0.0
   else cast totalTime / cast resourceCount
 
-%export
+export
 proven_idris_resource_acquisition_rate : Int -> Int -> Double
 proven_idris_resource_acquisition_rate acquisitions timeWindow =
   if timeWindow == 0 then 0.0
   else cast acquisitions / cast timeWindow
 
-%export
+export
 proven_idris_resource_release_rate : Int -> Int -> Double
 proven_idris_resource_release_rate releases timeWindow =
   if timeWindow == 0 then 0.0
   else cast releases / cast timeWindow
 
-%export
+export
 proven_idris_resource_leak_count : Int -> Int -> Int
 proven_idris_resource_leak_count acquired released =
   if acquired > released then acquired - released else 0
 
-%export
+export
 proven_idris_resource_leak_rate : Int -> Int -> Double
 proven_idris_resource_leak_rate acquired released =
   if acquired == 0 then 0.0
@@ -365,7 +365,7 @@ proven_idris_resource_leak_rate acquired released =
 -- Pool Planning
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_pool_recommend_size : Int -> Double -> Int
 proven_idris_pool_recommend_size peakUsage targetUtilization =
   -- Recommended size = peak / target utilization
@@ -373,7 +373,7 @@ proven_idris_pool_recommend_size peakUsage targetUtilization =
     then peakUsage
     else cast (cast peakUsage / targetUtilization)
 
-%export
+export
 proven_idris_pool_should_expand : Int -> Int -> Int -> Int
 proven_idris_pool_should_expand inUse available maxSize =
   -- Should expand if utilization > 80% and not at max
@@ -382,7 +382,7 @@ proven_idris_pool_should_expand inUse available maxSize =
                      else cast inUse / cast total
   in encodeBool (utilization > 0.8 && total < maxSize)
 
-%export
+export
 proven_idris_pool_should_shrink : Int -> Int -> Int
 proven_idris_pool_should_shrink inUse available =
   -- Should shrink if many resources idle
@@ -395,23 +395,23 @@ proven_idris_pool_should_shrink inUse available =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_resource_default_lease_duration : Int
 proven_idris_resource_default_lease_duration = 3600  -- 1 hour
 
-%export
+export
 proven_idris_resource_default_pool_size : Int
 proven_idris_resource_default_pool_size = 10
 
-%export
+export
 proven_idris_resource_max_lease_duration : Int
 proven_idris_resource_max_lease_duration = 86400  -- 24 hours
 
-%export
+export
 proven_idris_resource_max_pool_size : Int
 proven_idris_resource_max_pool_size = 10000
 
-%export
+export
 proven_idris_resource_target_utilization : Double
 proven_idris_resource_target_utilization = 0.75  -- 75%
 
@@ -419,7 +419,7 @@ proven_idris_resource_target_utilization = 0.75  -- 75%
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_resource_friendly_error : String -> String
 proven_idris_resource_friendly_error errorMsg =
   if isInfixOf "exhausted" (toLower errorMsg) || isInfixOf "pool" (toLower errorMsg)
@@ -437,7 +437,7 @@ proven_idris_resource_friendly_error errorMsg =
   else
     "Resource management error"
 
-%export
+export
 proven_idris_resource_state_description : Int -> String
 proven_idris_resource_state_description state =
   if state == 0 then "Unacquired (ready for acquisition)"

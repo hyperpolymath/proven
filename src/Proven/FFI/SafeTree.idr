@@ -12,22 +12,22 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
-%export
+export
 proven_idris_tree_is_empty : Int -> Int
 proven_idris_tree_is_empty nodeCount = encodeBool (nodeCount == 0)
 
-%export
+export
 proven_idris_tree_height_diff : Int -> Int -> Int
 proven_idris_tree_height_diff leftHeight rightHeight =
   if leftHeight >= rightHeight
     then leftHeight - rightHeight
     else rightHeight - leftHeight
 
-%export
+export
 proven_idris_tree_is_balanced : Int -> Int
 proven_idris_tree_is_balanced heightDiff = encodeBool (heightDiff <= 1)
 
-%export
+export
 proven_idris_tree_max_height : Int -> Int -> Int
 proven_idris_tree_max_height leftHeight rightHeight =
   if leftHeight >= rightHeight then leftHeight else rightHeight

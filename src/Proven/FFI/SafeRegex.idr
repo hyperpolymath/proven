@@ -59,19 +59,19 @@ encodeComplexity analysis =
 -- Pattern Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_regex_parse : String -> (Int, String)
 proven_idris_regex_parse pattern = encodeRegexResult (regex pattern)
 
-%export
+export
 proven_idris_regex_parse_strict : String -> (Int, String)
 proven_idris_regex_parse_strict pattern = encodeRegexResult (regexStrict pattern)
 
-%export
+export
 proven_idris_regex_parse_relaxed : String -> (Int, String)
 proven_idris_regex_parse_relaxed pattern = encodeRegexResult (regexRelaxed pattern)
 
-%export
+export
 proven_idris_regex_is_pattern_safe : String -> Int
 proven_idris_regex_is_pattern_safe pattern = encodeBool (isPatternSafe pattern)
 
@@ -79,18 +79,18 @@ proven_idris_regex_is_pattern_safe pattern = encodeBool (isPatternSafe pattern)
 -- ReDoS Risk Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_regex_has_redos_risk : String -> Int
 proven_idris_regex_has_redos_risk pattern = encodeBool (hasRedosRisk pattern)
 
-%export
+export
 proven_idris_regex_analyze_complexity : String -> (Int, Int, Int, Int, String)
 proven_idris_regex_analyze_complexity pattern =
   case analyzePattern pattern of
     Left err => (3, 0, 0, 0, show err)  -- Unbounded for errors
     Right analysis => encodeComplexity analysis
 
-%export
+export
 proven_idris_regex_get_warnings : String -> (Int, String)
 proven_idris_regex_get_warnings pattern =
   case patternWarnings pattern of
@@ -101,29 +101,29 @@ proven_idris_regex_get_warnings pattern =
 -- Pattern Matching
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_regex_quick_test : String -> String -> Int
 proven_idris_regex_quick_test pattern input =
   encodeBool (quickTest pattern input)
 
-%export
+export
 proven_idris_regex_quick_test_full : String -> String -> Int
 proven_idris_regex_quick_test_full pattern input =
   encodeBool (quickTestFull pattern input)
 
-%export
+export
 proven_idris_regex_quick_find : String -> String -> (Int, String)
 proven_idris_regex_quick_find pattern input =
   case quickFind pattern input of
     Nothing => (1, "")
     Just matched => (0, matched)
 
-%export
+export
 proven_idris_regex_quick_replace : String -> String -> String -> String
 proven_idris_regex_quick_replace pattern input replacement =
   quickReplace pattern input replacement
 
-%export
+export
 proven_idris_regex_quick_replace_all : String -> String -> String -> String
 proven_idris_regex_quick_replace_all pattern input replacement =
   quickReplaceAll pattern input replacement
@@ -132,43 +132,43 @@ proven_idris_regex_quick_replace_all pattern input replacement =
 -- Pre-built Safe Patterns
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_regex_email_pattern : String
 proven_idris_regex_email_pattern = emailPattern
 
-%export
+export
 proven_idris_regex_url_pattern : String
 proven_idris_regex_url_pattern = urlPattern
 
-%export
+export
 proven_idris_regex_ipv4_pattern : String
 proven_idris_regex_ipv4_pattern = ipv4Pattern
 
-%export
+export
 proven_idris_regex_uuid_pattern : String
 proven_idris_regex_uuid_pattern = uuidPattern
 
-%export
+export
 proven_idris_regex_integer_pattern : String
 proven_idris_regex_integer_pattern = integerPattern
 
-%export
+export
 proven_idris_regex_decimal_pattern : String
 proven_idris_regex_decimal_pattern = decimalPattern
 
-%export
+export
 proven_idris_regex_identifier_pattern : String
 proven_idris_regex_identifier_pattern = identifierPattern
 
-%export
+export
 proven_idris_regex_hex_color_pattern : String
 proven_idris_regex_hex_color_pattern = hexColorPattern
 
-%export
+export
 proven_idris_regex_date_pattern : String
 proven_idris_regex_date_pattern = datePattern
 
-%export
+export
 proven_idris_regex_time_pattern : String
 proven_idris_regex_time_pattern = timePattern
 
@@ -176,19 +176,19 @@ proven_idris_regex_time_pattern = timePattern
 -- Complexity Level Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_regex_complexity_linear : Int
 proven_idris_regex_complexity_linear = encodeComplexityLevel Linear
 
-%export
+export
 proven_idris_regex_complexity_quadratic : Int
 proven_idris_regex_complexity_quadratic = encodeComplexityLevel Quadratic
 
-%export
+export
 proven_idris_regex_complexity_exponential : Int
 proven_idris_regex_complexity_exponential = encodeComplexityLevel Exponential
 
-%export
+export
 proven_idris_regex_complexity_unbounded : Int
 proven_idris_regex_complexity_unbounded = encodeComplexityLevel Unbounded
 
@@ -196,28 +196,28 @@ proven_idris_regex_complexity_unbounded = encodeComplexityLevel Unbounded
 -- Error Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_regex_is_parse_error : String -> Int
 proven_idris_regex_is_parse_error errorMsg =
   if isInfixOf "parse" (toLower errorMsg) || isInfixOf "syntax" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_regex_is_complexity_error : String -> Int
 proven_idris_regex_is_complexity_error errorMsg =
   if isInfixOf "complexity" (toLower errorMsg) || isInfixOf "redos" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_regex_is_nested_quantifier_error : String -> Int
 proven_idris_regex_is_nested_quantifier_error errorMsg =
   if isInfixOf "nested" (toLower errorMsg) || isInfixOf "quantifier" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_regex_is_overlapping_error : String -> Int
 proven_idris_regex_is_overlapping_error errorMsg =
   if isInfixOf "overlapping" (toLower errorMsg) || isInfixOf "ambiguous" (toLower errorMsg)
@@ -228,18 +228,18 @@ proven_idris_regex_is_overlapping_error errorMsg =
 -- Safety Recommendations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_regex_max_safe_quantifiers : Int
 proven_idris_regex_max_safe_quantifiers = 5
 
-%export
+export
 proven_idris_regex_max_safe_alternations : Int
 proven_idris_regex_max_safe_alternations = 10
 
-%export
+export
 proven_idris_regex_max_safe_depth : Int
 proven_idris_regex_max_safe_depth = 10
 
-%export
+export
 proven_idris_regex_default_step_limit : Int
 proven_idris_regex_default_step_limit = 10000

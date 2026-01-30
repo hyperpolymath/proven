@@ -70,30 +70,30 @@ encodeVerifyResult HashCorrupted = 3
 -- Hash Algorithm Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_hash_argon2id : Int
 proven_idris_password_hash_argon2id = encodeHashAlgorithm Argon2id
 
-%export
+export
 proven_idris_password_hash_argon2i : Int
 proven_idris_password_hash_argon2i = encodeHashAlgorithm Argon2i
 
-%export
+export
 proven_idris_password_hash_bcrypt : Int
 proven_idris_password_hash_bcrypt = encodeHashAlgorithm Bcrypt
 
-%export
+export
 proven_idris_password_hash_scrypt : Int
 proven_idris_password_hash_scrypt = encodeHashAlgorithm Scrypt
 
-%export
+export
 proven_idris_password_hash_name : Int -> String
 proven_idris_password_hash_name algInt =
   case decodeHashAlgorithm algInt of
     Nothing => "Unknown"
     Just alg => show alg
 
-%export
+export
 proven_idris_password_hash_is_recommended : Int -> Int
 proven_idris_password_hash_is_recommended algInt =
   case decodeHashAlgorithm algInt of
@@ -104,27 +104,27 @@ proven_idris_password_hash_is_recommended algInt =
 -- Password Policy Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_validate_default : String -> (Int, String)
 proven_idris_password_validate_default pwd =
   encodeValidationResult (checkPolicy defaultPolicy pwd)
 
-%export
+export
 proven_idris_password_validate_strict : String -> (Int, String)
 proven_idris_password_validate_strict pwd =
   encodeValidationResult (checkPolicy strictPolicy pwd)
 
-%export
+export
 proven_idris_password_validate_passphrase : String -> (Int, String)
 proven_idris_password_validate_passphrase pwd =
   encodeValidationResult (checkPolicy passphrasePolicy pwd)
 
-%export
+export
 proven_idris_password_is_valid_default : String -> Int
 proven_idris_password_is_valid_default pwd =
   encodeBool (isValidPassword defaultPolicy pwd)
 
-%export
+export
 proven_idris_password_is_valid_strict : String -> Int
 proven_idris_password_is_valid_strict pwd =
   encodeBool (isValidPassword strictPolicy pwd)
@@ -133,12 +133,12 @@ proven_idris_password_is_valid_strict pwd =
 -- Pattern Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_contains_username : String -> String -> Int
 proven_idris_password_contains_username pwd username =
   encodeBool (containsUsername pwd username)
 
-%export
+export
 proven_idris_password_is_common_pattern : String -> Int
 proven_idris_password_is_common_pattern pwd =
   encodeBool (isCommonPattern pwd)
@@ -147,42 +147,42 @@ proven_idris_password_is_common_pattern pwd =
 -- Entropy Calculation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_calculate_entropy : String -> Double
 proven_idris_password_calculate_entropy = calculateEntropy
 
-%export
+export
 proven_idris_password_entropy_low : Double
 proven_idris_password_entropy_low = entropyBits LowSecurity
 
-%export
+export
 proven_idris_password_entropy_medium : Double
 proven_idris_password_entropy_medium = entropyBits MediumSecurity
 
-%export
+export
 proven_idris_password_entropy_high : Double
 proven_idris_password_entropy_high = entropyBits HighSecurity
 
-%export
+export
 proven_idris_password_entropy_critical : Double
 proven_idris_password_entropy_critical = entropyBits CriticalSecurity
 
-%export
+export
 proven_idris_password_meets_entropy_low : String -> Int
 proven_idris_password_meets_entropy_low pwd =
   encodeBool (meetsEntropyRequirement pwd LowSecurity)
 
-%export
+export
 proven_idris_password_meets_entropy_medium : String -> Int
 proven_idris_password_meets_entropy_medium pwd =
   encodeBool (meetsEntropyRequirement pwd MediumSecurity)
 
-%export
+export
 proven_idris_password_meets_entropy_high : String -> Int
 proven_idris_password_meets_entropy_high pwd =
   encodeBool (meetsEntropyRequirement pwd HighSecurity)
 
-%export
+export
 proven_idris_password_meets_entropy_critical : String -> Int
 proven_idris_password_meets_entropy_critical pwd =
   encodeBool (meetsEntropyRequirement pwd CriticalSecurity)
@@ -191,7 +191,7 @@ proven_idris_password_meets_entropy_critical pwd =
 -- Utility Functions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_mask : String -> String
 proven_idris_password_mask = maskPassword
 
@@ -199,23 +199,23 @@ proven_idris_password_mask = maskPassword
 -- Default Argon2id Parameters
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_argon2_default_time_cost : Int
 proven_idris_password_argon2_default_time_cost = cast defaultArgon2Params.timeCost
 
-%export
+export
 proven_idris_password_argon2_default_memory_cost : Int
 proven_idris_password_argon2_default_memory_cost = cast defaultArgon2Params.memoryCost
 
-%export
+export
 proven_idris_password_argon2_default_parallelism : Int
 proven_idris_password_argon2_default_parallelism = cast defaultArgon2Params.parallelism
 
-%export
+export
 proven_idris_password_argon2_default_hash_length : Int
 proven_idris_password_argon2_default_hash_length = cast defaultArgon2Params.hashLength
 
-%export
+export
 proven_idris_password_argon2_default_salt_length : Int
 proven_idris_password_argon2_default_salt_length = cast defaultArgon2Params.saltLength
 
@@ -223,15 +223,15 @@ proven_idris_password_argon2_default_salt_length = cast defaultArgon2Params.salt
 -- High Security Argon2id Parameters
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_argon2_high_time_cost : Int
 proven_idris_password_argon2_high_time_cost = cast highSecurityArgon2Params.timeCost
 
-%export
+export
 proven_idris_password_argon2_high_memory_cost : Int
 proven_idris_password_argon2_high_memory_cost = cast highSecurityArgon2Params.memoryCost
 
-%export
+export
 proven_idris_password_argon2_high_parallelism : Int
 proven_idris_password_argon2_high_parallelism = cast highSecurityArgon2Params.parallelism
 
@@ -239,11 +239,11 @@ proven_idris_password_argon2_high_parallelism = cast highSecurityArgon2Params.pa
 -- Default Bcrypt Parameters
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_bcrypt_default_cost : Int
 proven_idris_password_bcrypt_default_cost = cast defaultBcryptParams.cost
 
-%export
+export
 proven_idris_password_bcrypt_high_cost : Int
 proven_idris_password_bcrypt_high_cost = cast highSecurityBcryptParams.cost
 
@@ -251,19 +251,19 @@ proven_idris_password_bcrypt_high_cost = cast highSecurityBcryptParams.cost
 -- Policy Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_default_min_length : Int
 proven_idris_password_default_min_length = cast defaultPolicy.minLength
 
-%export
+export
 proven_idris_password_default_max_length : Int
 proven_idris_password_default_max_length = cast defaultPolicy.maxLength
 
-%export
+export
 proven_idris_password_strict_min_length : Int
 proven_idris_password_strict_min_length = cast strictPolicy.minLength
 
-%export
+export
 proven_idris_password_passphrase_min_length : Int
 proven_idris_password_passphrase_min_length = cast passphrasePolicy.minLength
 
@@ -271,14 +271,14 @@ proven_idris_password_passphrase_min_length = cast passphrasePolicy.minLength
 -- Error Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_password_is_length_error : String -> Int
 proven_idris_password_is_length_error errorMsg =
   if isInfixOf "too short" (toLower errorMsg) || isInfixOf "too long" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_password_is_complexity_error : String -> Int
 proven_idris_password_is_complexity_error errorMsg =
   if isInfixOf "uppercase" (toLower errorMsg) ||
@@ -288,7 +288,7 @@ proven_idris_password_is_complexity_error errorMsg =
     then 1
     else 0
 
-%export
+export
 proven_idris_password_is_pattern_error : String -> Int
 proven_idris_password_is_pattern_error errorMsg =
   if isInfixOf "pattern" (toLower errorMsg) || isInfixOf "repeated" (toLower errorMsg)

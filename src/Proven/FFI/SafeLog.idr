@@ -72,7 +72,7 @@ formatContext ((k, v) :: rest) = k ++ "=" ++ v ++ "," ++ formatContext rest
 -- Log Level Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_encode_level : String -> Int
 proven_idris_log_encode_level s =
   case toLower s of
@@ -86,7 +86,7 @@ proven_idris_log_encode_level s =
     "critical" => 5
     _ => (-1)
 
-%export
+export
 proven_idris_log_decode_level : Int -> String
 proven_idris_log_decode_level levelCode =
   case decodeLogLevel levelCode of
@@ -98,23 +98,23 @@ proven_idris_log_decode_level levelCode =
     Just Error => "error"
     Just Fatal => "fatal"
 
-%export
+export
 proven_idris_log_is_valid_level : Int -> Int
 proven_idris_log_is_valid_level levelCode =
   encodeBool (isJust (decodeLogLevel levelCode))
 
-%export
+export
 proven_idris_log_level_priority : Int -> Int
 proven_idris_log_level_priority levelCode =
   case decodeLogLevel levelCode of
     Nothing => (-1)
     Just lvl => cast (levelPriority lvl)
 
-%export
+export
 proven_idris_log_levels_equal : Int -> Int -> Int
 proven_idris_log_levels_equal l1 l2 = encodeBool (l1 == l2)
 
-%export
+export
 proven_idris_log_level_compare : Int -> Int -> Int
 proven_idris_log_level_compare l1 l2 =
   case (decodeLogLevel l1, decodeLogLevel l2) of
@@ -125,7 +125,7 @@ proven_idris_log_level_compare l1 l2 =
         GT => 1
     _ => 0
 
-%export
+export
 proven_idris_log_should_log : Int -> Int -> Int
 proven_idris_log_should_log minLevel currentLevel =
   encodeBool (currentLevel >= minLevel)
@@ -134,19 +134,19 @@ proven_idris_log_should_log minLevel currentLevel =
 -- Logger State Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_entry_count : Int -> Int
 proven_idris_log_entry_count count = count
 
-%export
+export
 proven_idris_log_has_entries : Int -> Int
 proven_idris_log_has_entries count = encodeBool (count > 0)
 
-%export
+export
 proven_idris_log_is_empty : Int -> Int
 proven_idris_log_is_empty count = encodeBool (count == 0)
 
-%export
+export
 proven_idris_log_max_entries_reached : Int -> Int -> Int
 proven_idris_log_max_entries_reached current max =
   encodeBool (current >= max)
@@ -155,7 +155,7 @@ proven_idris_log_max_entries_reached current max =
 -- Error/Warning Counting
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_is_error_level : Int -> Int
 proven_idris_log_is_error_level levelCode =
   case decodeLogLevel levelCode of
@@ -163,14 +163,14 @@ proven_idris_log_is_error_level levelCode =
     Just Fatal => 1
     _ => 0
 
-%export
+export
 proven_idris_log_is_warning_level : Int -> Int
 proven_idris_log_is_warning_level levelCode =
   case decodeLogLevel levelCode of
     Just Warn => 1
     _ => 0
 
-%export
+export
 proven_idris_log_is_info_or_below : Int -> Int
 proven_idris_log_is_info_or_below levelCode =
   case decodeLogLevel levelCode of
@@ -183,17 +183,17 @@ proven_idris_log_is_info_or_below levelCode =
 -- Time Range Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_is_valid_timestamp : Int -> Int
 proven_idris_log_is_valid_timestamp timestamp =
   encodeBool (timestamp >= 0)
 
-%export
+export
 proven_idris_log_in_time_range : Int -> Int -> Int -> Int
 proven_idris_log_in_time_range timestamp fromTime toTime =
   encodeBool (timestamp >= fromTime && timestamp <= toTime)
 
-%export
+export
 proven_idris_log_timestamps_ordered : Int -> Int -> Int
 proven_idris_log_timestamps_ordered earlier later =
   encodeBool (earlier <= later)
@@ -202,17 +202,17 @@ proven_idris_log_timestamps_ordered earlier later =
 -- Context Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_context_pair_count : String -> Int
 proven_idris_log_context_pair_count contextStr =
   cast (length (parseContext contextStr))
 
-%export
+export
 proven_idris_log_has_context : String -> Int
 proven_idris_log_has_context contextStr =
   encodeBool (not (null contextStr))
 
-%export
+export
 proven_idris_log_add_context_pair : String -> String -> String -> String
 proven_idris_log_add_context_pair existingContext key value =
   let existing = parseContext existingContext
@@ -220,7 +220,7 @@ proven_idris_log_add_context_pair existingContext key value =
       updated = newPair :: existing
   in formatContext updated
 
-%export
+export
 proven_idris_log_merge_context : String -> String -> String
 proven_idris_log_merge_context ctx1 ctx2 =
   let pairs1 = parseContext ctx1
@@ -260,23 +260,23 @@ redactEmail email =
 redactIP : String -> String
 redactIP _ = "xxx.xxx.xxx.xxx"
 
-%export
+export
 proven_idris_log_contains_email : String -> Int
 proven_idris_log_contains_email s = encodeBool (containsEmail s)
 
-%export
+export
 proven_idris_log_contains_ip : String -> Int
 proven_idris_log_contains_ip s = encodeBool (containsIP s)
 
-%export
+export
 proven_idris_log_redact_email : String -> String
 proven_idris_log_redact_email s = redactEmail s
 
-%export
+export
 proven_idris_log_redact_ip : String -> String
 proven_idris_log_redact_ip s = redactIP s
 
-%export
+export
 proven_idris_log_contains_pii : String -> Int
 proven_idris_log_contains_pii s =
   encodeBool (containsEmail s || containsIP s)
@@ -285,7 +285,7 @@ proven_idris_log_contains_pii s =
 -- String Matching (for search)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_message_contains : String -> String -> Int
 proven_idris_log_message_contains message searchTerm =
   encodeBool (isInfixOf searchTerm message)
@@ -307,7 +307,7 @@ proven_idris_log_message_contains message searchTerm =
     startsWith _ [] = False
     startsWith (n :: ns) (h :: hs) = n == h && startsWith ns hs
 
-%export
+export
 proven_idris_log_logger_name_matches : String -> String -> Int
 proven_idris_log_logger_name_matches actual expected =
   encodeBool (actual == expected)
@@ -316,12 +316,12 @@ proven_idris_log_logger_name_matches actual expected =
 -- Configuration Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_is_valid_max_entries : Int -> Int
 proven_idris_log_is_valid_max_entries maxEntries =
   encodeBool (maxEntries > 0)
 
-%export
+export
 proven_idris_log_is_valid_logger_name : String -> Int
 proven_idris_log_is_valid_logger_name name =
   encodeBool (not (null name))
@@ -330,7 +330,7 @@ proven_idris_log_is_valid_logger_name name =
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_log_friendly_error : String -> String
 proven_idris_log_friendly_error errorMsg =
   if isInfixOf "level" (toLower errorMsg)

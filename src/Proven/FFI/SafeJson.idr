@@ -16,11 +16,11 @@ jsonTypeToInt (JsonString _) = 3
 jsonTypeToInt (JsonArray _) = 4
 jsonTypeToInt (JsonObject _) = 5
 
-%export
+export
 proven_idris_json_is_valid : String -> Bool
 proven_idris_json_is_valid s = isValidJson s
 
-%export
+export
 proven_idris_json_get_type : String -> Int
 proven_idris_json_get_type s = case parseJson s of
   Just v => jsonTypeToInt v

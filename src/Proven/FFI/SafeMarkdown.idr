@@ -33,11 +33,11 @@ encodeAlignment AlignCenter = 1
 encodeAlignment AlignRight = 2
 encodeAlignment AlignDefault = 3
 
-%export
+export
 proven_idris_md_heading_valid : Int -> Int
 proven_idris_md_heading_valid level = encodeBool (level >= 1 && level <= 6)
 
-%export
+export
 proven_idris_md_needs_escape : Int -> Int
 proven_idris_md_needs_escape charCode =
   let c = charCode

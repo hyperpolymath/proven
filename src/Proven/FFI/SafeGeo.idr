@@ -41,27 +41,27 @@ encodeBool True = 1
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_earth_radius_km : Double
 proven_idris_geo_earth_radius_km = earthRadiusKm
 
-%export
+export
 proven_idris_geo_lat_min : Double
 proven_idris_geo_lat_min = -90.0
 
-%export
+export
 proven_idris_geo_lat_max : Double
 proven_idris_geo_lat_max = 90.0
 
-%export
+export
 proven_idris_geo_lon_min : Double
 proven_idris_geo_lon_min = -180.0
 
-%export
+export
 proven_idris_geo_lon_max : Double
 proven_idris_geo_lon_max = 180.0
 
-%export
+export
 proven_idris_geo_km_per_degree_lat : Double
 proven_idris_geo_km_per_degree_lat = 111.0
 
@@ -69,27 +69,27 @@ proven_idris_geo_km_per_degree_lat = 111.0
 -- Coordinate Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_is_valid_latitude : Double -> Int
 proven_idris_geo_is_valid_latitude lat =
   encodeBool (isValidLatitude lat)
 
-%export
+export
 proven_idris_geo_is_valid_longitude : Double -> Int
 proven_idris_geo_is_valid_longitude lon =
   encodeBool (isValidLongitude lon)
 
-%export
+export
 proven_idris_geo_is_valid_coord : Double -> Double -> Int
 proven_idris_geo_is_valid_coord lat lon =
   encodeBool (isValidLatitude lat && isValidLongitude lon)
 
-%export
+export
 proven_idris_geo_normalize_longitude : Double -> Double
 proven_idris_geo_normalize_longitude lon =
   normalizeLongitude lon
 
-%export
+export
 proven_idris_geo_clamp_latitude : Double -> Double
 proven_idris_geo_clamp_latitude lat =
   if lat < -90.0 then -90.0
@@ -100,14 +100,14 @@ proven_idris_geo_clamp_latitude lat =
 -- Coordinate Creation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_create_coord : Double -> Double -> (Int, Double, Double)
 proven_idris_geo_create_coord lat lon =
   case mkGeoCoord lat lon of
     Nothing => (1, 0.0, 0.0)  -- Invalid
     Just c => (0, c.latitude, c.longitude)
 
-%export
+export
 proven_idris_geo_create_coord_normalized : Double -> Double -> (Int, Double, Double)
 proven_idris_geo_create_coord_normalized lat lon =
   case mkGeoCoordNormalized lat lon of
@@ -118,26 +118,26 @@ proven_idris_geo_create_coord_normalized lat lon =
 -- Distance Calculations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_haversine_distance : Double -> Double -> Double -> Double -> Double
 proven_idris_geo_haversine_distance lat1 lon1 lat2 lon2 =
   let c1 = MkGeoCoord lat1 lon1
       c2 = MkGeoCoord lat2 lon2
   in haversineDistance c1 c2
 
-%export
+export
 proven_idris_geo_equirectangular_distance : Double -> Double -> Double -> Double -> Double
 proven_idris_geo_equirectangular_distance lat1 lon1 lat2 lon2 =
   let c1 = MkGeoCoord lat1 lon1
       c2 = MkGeoCoord lat2 lon2
   in equirectangularDistance c1 c2
 
-%export
+export
 proven_idris_geo_distance : Double -> Double -> Double -> Double -> Double
 proven_idris_geo_distance lat1 lon1 lat2 lon2 =
   proven_idris_geo_haversine_distance lat1 lon1 lat2 lon2
 
-%export
+export
 proven_idris_geo_distance_meters : Double -> Double -> Double -> Double -> Double
 proven_idris_geo_distance_meters lat1 lon1 lat2 lon2 =
   proven_idris_geo_haversine_distance lat1 lon1 lat2 lon2 * 1000.0
@@ -146,26 +146,26 @@ proven_idris_geo_distance_meters lat1 lon1 lat2 lon2 =
 -- Bearing and Direction
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_bearing : Double -> Double -> Double -> Double -> Double
 proven_idris_geo_bearing lat1 lon1 lat2 lon2 =
   let c1 = MkGeoCoord lat1 lon1
       c2 = MkGeoCoord lat2 lon2
   in bearing c1 c2
 
-%export
+export
 proven_idris_geo_destination : Double -> Double -> Double -> Double -> (Double, Double)
 proven_idris_geo_destination lat lon bearingDeg distKm =
   let start = MkGeoCoord lat lon
       dest = destination start bearingDeg distKm
   in (dest.latitude, dest.longitude)
 
-%export
+export
 proven_idris_geo_is_valid_bearing : Double -> Int
 proven_idris_geo_is_valid_bearing brng =
   encodeBool (brng >= 0.0 && brng < 360.0)
 
-%export
+export
 proven_idris_geo_normalize_bearing : Double -> Double
 proven_idris_geo_normalize_bearing brng =
   let normalized = brng - 360.0 * floor (brng / 360.0)
@@ -175,7 +175,7 @@ proven_idris_geo_normalize_bearing brng =
 -- Bounding Box Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_create_bbox : Double -> Double -> Double -> Double -> (Double, Double, Double, Double)
 proven_idris_geo_create_bbox lat1 lon1 lat2 lon2 =
   let c1 = MkGeoCoord lat1 lon1
@@ -183,28 +183,28 @@ proven_idris_geo_create_bbox lat1 lon1 lat2 lon2 =
       bbox = mkBBox c1 c2
   in (bbox.minLat, bbox.minLon, bbox.maxLat, bbox.maxLon)
 
-%export
+export
 proven_idris_geo_in_bbox : Double -> Double -> Double -> Double -> Double -> Double -> Int
 proven_idris_geo_in_bbox lat lon minLat minLon maxLat maxLon =
   let coord = MkGeoCoord lat lon
       bbox = MkGeoBBox minLat minLon maxLat maxLon
   in encodeBool (inBBox coord bbox)
 
-%export
+export
 proven_idris_geo_bbox_center : Double -> Double -> Double -> Double -> (Double, Double)
 proven_idris_geo_bbox_center minLat minLon maxLat maxLon =
   let bbox = MkGeoBBox minLat minLon maxLat maxLon
       center = bboxCenter bbox
   in (center.latitude, center.longitude)
 
-%export
+export
 proven_idris_geo_expand_bbox : Double -> Double -> Double -> Double -> Double -> (Double, Double, Double, Double)
 proven_idris_geo_expand_bbox minLat minLon maxLat maxLon km =
   let bbox = MkGeoBBox minLat minLon maxLat maxLon
       expanded = expandBBox km bbox
   in (expanded.minLat, expanded.minLon, expanded.maxLat, expanded.maxLon)
 
-%export
+export
 proven_idris_geo_bbox_width_km : Double -> Double -> Double -> Double -> Double
 proven_idris_geo_bbox_width_km minLat minLon maxLat maxLon =
   let centerLat = (minLat + maxLat) / 2.0
@@ -212,7 +212,7 @@ proven_idris_geo_bbox_width_km minLat minLon maxLat maxLon =
       east = MkGeoCoord centerLat maxLon
   in haversineDistance west east
 
-%export
+export
 proven_idris_geo_bbox_height_km : Double -> Double -> Double -> Double -> Double
 proven_idris_geo_bbox_height_km minLat minLon maxLat maxLon =
   let centerLon = (minLon + maxLon) / 2.0
@@ -224,14 +224,14 @@ proven_idris_geo_bbox_height_km minLat minLon maxLat maxLon =
 -- Coordinate Comparison
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_coords_equal : Double -> Double -> Double -> Double -> Int
 proven_idris_geo_coords_equal lat1 lon1 lat2 lon2 =
   let c1 = MkGeoCoord lat1 lon1
       c2 = MkGeoCoord lat2 lon2
   in encodeBool (c1 == c2)
 
-%export
+export
 proven_idris_geo_coords_approx_equal : Double -> Double -> Double -> Double -> Double -> Int
 proven_idris_geo_coords_approx_equal lat1 lon1 lat2 lon2 tolerance =
   encodeBool (
@@ -243,12 +243,12 @@ proven_idris_geo_coords_approx_equal lat1 lon1 lat2 lon2 tolerance =
 -- Conversion Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_degrees_to_radians : Double -> Double
 proven_idris_geo_degrees_to_radians deg =
   toRadians deg
 
-%export
+export
 proven_idris_geo_radians_to_degrees : Double -> Double
 proven_idris_geo_radians_to_degrees rad =
   rad * 180.0 / pi
@@ -257,15 +257,15 @@ proven_idris_geo_radians_to_degrees rad =
 -- Well-Known Coordinates
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_null_island_lat : Double
 proven_idris_geo_null_island_lat = nullIsland.latitude
 
-%export
+export
 proven_idris_geo_null_island_lon : Double
 proven_idris_geo_null_island_lon = nullIsland.longitude
 
-%export
+export
 proven_idris_geo_is_null_island : Double -> Double -> Int
 proven_idris_geo_is_null_island lat lon =
   encodeBool (lat == 0.0 && lon == 0.0)
@@ -274,7 +274,7 @@ proven_idris_geo_is_null_island lat lon =
 -- Cardinal Direction Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_bearing_to_cardinal : Double -> String
 proven_idris_geo_bearing_to_cardinal brng =
   let b = proven_idris_geo_normalize_bearing brng
@@ -288,13 +288,13 @@ proven_idris_geo_bearing_to_cardinal brng =
      else if b < 337.5 then "NW"
      else "N"
 
-%export
+export
 proven_idris_geo_is_northward : Double -> Int
 proven_idris_geo_is_northward brng =
   let b = proven_idris_geo_normalize_bearing brng
   in encodeBool (b < 90.0 || b >= 270.0)
 
-%export
+export
 proven_idris_geo_is_eastward : Double -> Int
 proven_idris_geo_is_eastward brng =
   let b = proven_idris_geo_normalize_bearing brng
@@ -304,7 +304,7 @@ proven_idris_geo_is_eastward brng =
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_geo_friendly_error : String -> String
 proven_idris_geo_friendly_error errorMsg =
   if isInfixOf "latitude" (toLower errorMsg)

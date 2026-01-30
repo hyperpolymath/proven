@@ -12,7 +12,7 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
-%export
+export
 proven_idris_hex_is_valid_char : Int -> Int
 proven_idris_hex_is_valid_char charCode =
   let c = charCode
@@ -20,7 +20,7 @@ proven_idris_hex_is_valid_char charCode =
               || (c >= 97 && c <= 102)   -- 'a'-'f'
               || (c >= 65 && c <= 70))   -- 'A'-'F'
 
-%export
+export
 proven_idris_hex_char_to_nibble : Int -> Int
 proven_idris_hex_char_to_nibble charCode =
   if charCode >= 48 && charCode <= 57 then charCode - 48        -- '0'-'9'
@@ -28,13 +28,13 @@ proven_idris_hex_char_to_nibble charCode =
   else if charCode >= 65 && charCode <= 70 then charCode - 55   -- 'A'-'F' (65-10)
   else (-1)  -- Invalid
 
-%export
+export
 proven_idris_hex_nibble_to_char : Int -> Int
 proven_idris_hex_nibble_to_char n =
   if n >= 0 && n <= 9 then n + 48      -- '0'-'9'
   else if n >= 10 && n <= 15 then n + 87  -- 'a'-'f'
   else 48  -- Default to '0'
 
-%export
+export
 proven_idris_hex_even_length : Int -> Int
 proven_idris_hex_even_length len = encodeBool (len `mod` 2 == 0)

@@ -45,17 +45,17 @@ encodeMaybeCommand (Just cmd) = (0, render cmd)
 -- Command Name Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_is_valid_name : String -> Int
 proven_idris_command_is_valid_name name =
   encodeBool (isValidCommandName name)
 
-%export
+export
 proven_idris_command_validate_name : String -> (Int, String)
 proven_idris_command_validate_name name =
   encodeValidation (isValidCommandName name) ("Invalid command name: " ++ name)
 
-%export
+export
 proven_idris_command_is_safe_path : String -> Int
 proven_idris_command_is_safe_path path =
   encodeBool (isSafePath path)
@@ -64,17 +64,17 @@ proven_idris_command_is_safe_path path =
 -- Argument Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_is_flag : String -> Int
 proven_idris_command_is_flag arg =
   encodeBool (isFlag arg)
 
-%export
+export
 proven_idris_command_is_valid_flag : String -> Int
 proven_idris_command_is_valid_flag flag =
   encodeBool (isValidFlag flag)
 
-%export
+export
 proven_idris_command_contains_shell_meta : String -> Int
 proven_idris_command_contains_shell_meta arg =
   encodeBool (containsShellMeta arg)
@@ -83,43 +83,43 @@ proven_idris_command_contains_shell_meta arg =
 -- Escaping Functions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_escape_shell_arg : String -> String
 proven_idris_command_escape_shell_arg = escapeShellArg
 
-%export
+export
 proven_idris_command_escape_double_quoted : String -> String
 proven_idris_command_escape_double_quoted = escapeDoubleQuoted
 
-%export
+export
 proven_idris_command_escape_backslash : String -> String
 proven_idris_command_escape_backslash = escapeBackslash
 
-%export
+export
 proven_idris_command_escape_cmd_arg : String -> String
 proven_idris_command_escape_cmd_arg = escapeCmdArg
 
-%export
+export
 proven_idris_command_escape_cmd_bare : String -> String
 proven_idris_command_escape_cmd_bare = escapeCmdBare
 
-%export
+export
 proven_idris_command_escape_powershell : String -> String
 proven_idris_command_escape_powershell = escapePowerShell
 
-%export
+export
 proven_idris_command_escape_powershell_double : String -> String
 proven_idris_command_escape_powershell_double = escapePowerShellDouble
 
-%export
+export
 proven_idris_command_escape_path : String -> String
 proven_idris_command_escape_path = escapePath
 
-%export
+export
 proven_idris_command_escape_windows_path : String -> String
 proven_idris_command_escape_windows_path = escapeWindowsPath
 
-%export
+export
 proven_idris_command_escape_url_arg : String -> String
 proven_idris_command_escape_url_arg = escapeUrlArg
 
@@ -127,14 +127,14 @@ proven_idris_command_escape_url_arg = escapeUrlArg
 -- Environment Variable Escaping
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_escape_env_name : String -> (Int, String)
 proven_idris_command_escape_env_name name =
   case escapeEnvName name of
     Nothing => (1, "Invalid environment variable name")
     Just n => (0, n)
 
-%export
+export
 proven_idris_command_escape_env_value : String -> String
 proven_idris_command_escape_env_value = escapeEnvValue
 
@@ -142,22 +142,22 @@ proven_idris_command_escape_env_value = escapeEnvValue
 -- Dangerous Pattern Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_contains_dangerous : String -> Int
 proven_idris_command_contains_dangerous arg =
   encodeBool (containsDangerousPattern arg)
 
-%export
+export
 proven_idris_command_looks_like_substitution : String -> Int
 proven_idris_command_looks_like_substitution arg =
   encodeBool (looksLikeSubstitution arg)
 
-%export
+export
 proven_idris_command_looks_like_glob : String -> Int
 proven_idris_command_looks_like_glob arg =
   encodeBool (looksLikeGlob arg)
 
-%export
+export
 proven_idris_command_url_needs_escaping : String -> Int
 proven_idris_command_url_needs_escaping url =
   encodeBool (urlNeedsEscaping url)
@@ -166,56 +166,56 @@ proven_idris_command_url_needs_escaping url =
 -- Command Building (Simple Cases)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_make : String -> (Int, String)
 proven_idris_command_make name =
   encodeMaybeCommand (cmd name)
 
-%export
+export
 proven_idris_command_echo : String -> String
 proven_idris_command_echo msg = render (echo msg)
 
-%export
+export
 proven_idris_command_cat : String -> String
 proven_idris_command_cat file = render (cat [file])
 
-%export
+export
 proven_idris_command_ls : String -> String
 proven_idris_command_ls path = render (ls [path])
 
-%export
+export
 proven_idris_command_mkdir : String -> String
 proven_idris_command_mkdir path = render (mkdir path)
 
-%export
+export
 proven_idris_command_mkdir_p : String -> String
 proven_idris_command_mkdir_p path = render (mkdirP path)
 
-%export
+export
 proven_idris_command_cp : String -> String -> String
 proven_idris_command_cp src dst = render (cp src dst)
 
-%export
+export
 proven_idris_command_mv : String -> String -> String
 proven_idris_command_mv src dst = render (mv src dst)
 
-%export
+export
 proven_idris_command_rm : String -> String
 proven_idris_command_rm path = render (rm [path])
 
-%export
+export
 proven_idris_command_grep : String -> String -> String
 proven_idris_command_grep pattern file = render (grep pattern [file])
 
-%export
+export
 proven_idris_command_find : String -> String -> String
 proven_idris_command_find path pattern = render (find path pattern)
 
-%export
+export
 proven_idris_command_curl : String -> String
 proven_idris_command_curl url = render (curl url)
 
-%export
+export
 proven_idris_command_wget : String -> String
 proven_idris_command_wget url = render (wget url)
 
@@ -223,7 +223,7 @@ proven_idris_command_wget url = render (wget url)
 -- Display/Debugging
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_unescape_display : String -> String
 proven_idris_command_unescape_display = unescapeForDisplay
 
@@ -231,14 +231,14 @@ proven_idris_command_unescape_display = unescapeForDisplay
 -- Error Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_command_is_injection_error : String -> Int
 proven_idris_command_is_injection_error errorMsg =
   if isInfixOf "injection" (toLower errorMsg) || isInfixOf "dangerous" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_command_is_validation_error : String -> Int
 proven_idris_command_is_validation_error errorMsg =
   if isInfixOf "invalid" (toLower errorMsg) || isInfixOf "validation" (toLower errorMsg)

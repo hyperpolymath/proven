@@ -14,7 +14,7 @@ encodeBool False = 0
 encodeBool True = 1
 
 -- Version comparison
-%export
+export
 proven_idris_schema_version_compare : Int -> Int -> Int -> Int -> Int -> Int -> Int
 proven_idris_schema_version_compare maj1 min1 pat1 maj2 min2 pat2 =
   if maj1 < maj2 then (-1)
@@ -26,15 +26,15 @@ proven_idris_schema_version_compare maj1 min1 pat1 maj2 min2 pat2 =
   else 0
 
 -- Compatibility checks
-%export
+export
 proven_idris_schema_backward_compatible : Int -> Int
 proven_idris_schema_backward_compatible = id
 
-%export
+export
 proven_idris_schema_forward_compatible : Int -> Int
 proven_idris_schema_forward_compatible = id
 
-%export
+export
 proven_idris_schema_type_widening_safe : Int -> Int -> Int
 proven_idris_schema_type_widening_safe from to =
   encodeBool ((from == 0 && to == 3) ||  -- Int -> Float
@@ -44,7 +44,7 @@ proven_idris_schema_type_widening_safe from to =
               (from == 2 && to == 0) ||  -- Bool -> Int
               from == to)
 
-%export
+export
 proven_idris_schema_friendly_error : String -> String
 proven_idris_schema_friendly_error msg =
   if isInfixOf "compat" (toLower msg)

@@ -66,32 +66,32 @@ encodeFileType OtherType = 3
 -- Path Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_is_safe_path : String -> Int
 proven_idris_file_is_safe_path path =
   case validatePathDefault path of
     Ok _ => 1  -- Safe
     Err _ => 0  -- Unsafe
 
-%export
+export
 proven_idris_file_validate_path : String -> (Int, String)
 proven_idris_file_validate_path path =
   case validatePathDefault path of
     Ok sp => (0, sp.rawPath)
     Err err => (1, show err)
 
-%export
+export
 proven_idris_file_has_dangerous_pattern : String -> Int
 proven_idris_file_has_dangerous_pattern path =
   encodeBool (hasDangerousPattern path)
 
-%export
+export
 proven_idris_file_is_in_allowed_dir : String -> String -> Int
 proven_idris_file_is_in_allowed_dir allowedDirs path =
   let dirs = split (== ',') allowedDirs
   in encodeBool (isInAllowedDir dirs path)
 
-%export
+export
 proven_idris_file_is_blocked_path : String -> String -> Int
 proven_idris_file_is_blocked_path blockedPaths path =
   let paths = split (== ',') blockedPaths
@@ -101,29 +101,29 @@ proven_idris_file_is_blocked_path blockedPaths path =
 -- Path Utilities
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_normalize_path : String -> String
 proven_idris_file_normalize_path path = normalizePath path
 
-%export
+export
 proven_idris_file_filename : String -> String
 proven_idris_file_filename path = filename path
 
-%export
+export
 proven_idris_file_dirname : String -> String
 proven_idris_file_dirname path = dirname path
 
-%export
+export
 proven_idris_file_extension : String -> (Int, String)
 proven_idris_file_extension path = encodeMaybeString (extension path)
 
-%export
+export
 proven_idris_file_join_path : String -> String
 proven_idris_file_join_path componentsStr =
   let components = split (== ',') componentsStr
   in joinPath components
 
-%export
+export
 proven_idris_file_combine_path : String -> String -> String
 proven_idris_file_combine_path base rel = combinePath base rel
 
@@ -131,27 +131,27 @@ proven_idris_file_combine_path base rel = combinePath base rel
 -- Path Limits Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_max_path_length : Int
 proven_idris_file_max_path_length = cast maxPathLength
 
-%export
+export
 proven_idris_file_max_filename_length : Int
 proven_idris_file_max_filename_length = cast maxFilenameLength
 
-%export
+export
 proven_idris_file_default_read_limit : Int
 proven_idris_file_default_read_limit = cast defaultReadLimit
 
-%export
+export
 proven_idris_file_default_write_limit : Int
 proven_idris_file_default_write_limit = cast defaultWriteLimit
 
-%export
+export
 proven_idris_file_strict_read_limit : Int
 proven_idris_file_strict_read_limit = cast strictReadLimit
 
-%export
+export
 proven_idris_file_strict_write_limit : Int
 proven_idris_file_strict_write_limit = cast strictWriteLimit
 
@@ -159,27 +159,27 @@ proven_idris_file_strict_write_limit = cast strictWriteLimit
 -- Options Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_default_allow_traversal : Int
 proven_idris_file_default_allow_traversal = encodeBool defaultOptions.allowTraversal
 
-%export
+export
 proven_idris_file_default_follow_symlinks : Int
 proven_idris_file_default_follow_symlinks = encodeBool defaultOptions.followSymlinks
 
-%export
+export
 proven_idris_file_strict_allow_traversal : Int
 proven_idris_file_strict_allow_traversal = encodeBool strictOptions.allowTraversal
 
-%export
+export
 proven_idris_file_strict_follow_symlinks : Int
 proven_idris_file_strict_follow_symlinks = encodeBool strictOptions.followSymlinks
 
-%export
+export
 proven_idris_file_permissive_allow_traversal : Int
 proven_idris_file_permissive_allow_traversal = encodeBool permissiveOptions.allowTraversal
 
-%export
+export
 proven_idris_file_permissive_follow_symlinks : Int
 proven_idris_file_permissive_follow_symlinks = encodeBool permissiveOptions.followSymlinks
 
@@ -187,21 +187,21 @@ proven_idris_file_permissive_follow_symlinks = encodeBool permissiveOptions.foll
 -- Limit Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_check_path_length : String -> Int
 proven_idris_file_check_path_length path =
   if length (unpack path) <= maxPathLength
     then 1  -- Valid
     else 0  -- Too long
 
-%export
+export
 proven_idris_file_check_filename_length : String -> Int
 proven_idris_file_check_filename_length name =
   if length (unpack name) <= maxFilenameLength
     then 1  -- Valid
     else 0  -- Too long
 
-%export
+export
 proven_idris_file_check_read_size : Int -> Int -> Int
 proven_idris_file_check_read_size maxSize requested =
   if requested <= maxSize
@@ -212,70 +212,70 @@ proven_idris_file_check_read_size maxSize requested =
 -- Error Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_is_path_too_long_error : String -> Int
 proven_idris_file_is_path_too_long_error errorMsg =
   if isInfixOf "path too long" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_invalid_path_error : String -> Int
 proven_idris_file_is_invalid_path_error errorMsg =
   if isInfixOf "invalid path" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_path_traversal_error : String -> Int
 proven_idris_file_is_path_traversal_error errorMsg =
   if isInfixOf "traversal" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_not_found_error : String -> Int
 proven_idris_file_is_not_found_error errorMsg =
   if isInfixOf "not found" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_permission_denied_error : String -> Int
 proven_idris_file_is_permission_denied_error errorMsg =
   if isInfixOf "permission denied" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_read_limit_exceeded_error : String -> Int
 proven_idris_file_is_read_limit_exceeded_error errorMsg =
   if isInfixOf "read limit exceeded" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_write_limit_exceeded_error : String -> Int
 proven_idris_file_is_write_limit_exceeded_error errorMsg =
   if isInfixOf "write limit exceeded" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_file_too_large_error : String -> Int
 proven_idris_file_is_file_too_large_error errorMsg =
   if isInfixOf "too large" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_handle_closed_error : String -> Int
 proven_idris_file_is_handle_closed_error errorMsg =
   if isInfixOf "closed" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_file_is_invalid_operation_error : String -> Int
 proven_idris_file_is_invalid_operation_error errorMsg =
   if isInfixOf "invalid operation" (toLower errorMsg)
@@ -286,7 +286,7 @@ proven_idris_file_is_invalid_operation_error errorMsg =
 -- Friendly Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_friendly_error : String -> String
 proven_idris_file_friendly_error errorMsg =
   if isInfixOf "traversal" (toLower errorMsg)
@@ -316,6 +316,6 @@ proven_idris_file_friendly_error errorMsg =
 -- Dangerous Patterns Count
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_file_dangerous_patterns_count : Int
 proven_idris_file_dangerous_patterns_count = cast (length dangerousPatterns)

@@ -52,7 +52,7 @@ encodeArgType Rest = 3
 -- Type Parsers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_args_parse_bool : String -> (Int, String)
 proven_idris_args_parse_bool s =
   case parseBoolArg s of
@@ -60,15 +60,15 @@ proven_idris_args_parse_bool s =
     Just True => (0, "true")
     Just False => (0, "false")
 
-%export
+export
 proven_idris_args_parse_int : String -> (Int, String)
 proven_idris_args_parse_int s = encodeMaybe (parseIntArg s)
 
-%export
+export
 proven_idris_args_parse_nat : String -> (Int, String)
 proven_idris_args_parse_nat s = encodeMaybe (parseNatArg s)
 
-%export
+export
 proven_idris_args_parse_double : String -> (Int, String)
 proven_idris_args_parse_double s = encodeMaybe (parseDoubleArg s)
 
@@ -76,14 +76,14 @@ proven_idris_args_parse_double s = encodeMaybe (parseDoubleArg s)
 -- Argument Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_args_is_long_opt : String -> Int
 proven_idris_args_is_long_opt arg =
   case unpack arg of
     ('-' :: '-' :: _ :: _) => 1
     _ => 0
 
-%export
+export
 proven_idris_args_is_short_opt : String -> Int
 proven_idris_args_is_short_opt arg =
   case unpack arg of
@@ -91,19 +91,19 @@ proven_idris_args_is_short_opt arg =
       if c /= '-' then 1 else 0
     _ => 0
 
-%export
+export
 proven_idris_args_is_positional : String -> Int
 proven_idris_args_is_positional arg =
   case unpack arg of
     ('-' :: _) => 0
     _ => 1
 
-%export
+export
 proven_idris_args_is_end_of_opts : String -> Int
 proven_idris_args_is_end_of_opts arg =
   if arg == "--" then 1 else 0
 
-%export
+export
 proven_idris_args_has_equals : String -> Int
 proven_idris_args_has_equals arg =
   encodeBool (isInfixOf "=" arg)
@@ -112,63 +112,63 @@ proven_idris_args_has_equals arg =
 -- Parser Options Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_args_default_allow_unknown : Int
 proven_idris_args_default_allow_unknown = encodeBool defaultParserOptions.allowUnknown
 
-%export
+export
 proven_idris_args_default_stop_at_non_option : Int
 proven_idris_args_default_stop_at_non_option = encodeBool defaultParserOptions.stopAtNonOption
 
-%export
+export
 proven_idris_args_default_allow_bundling : Int
 proven_idris_args_default_allow_bundling = encodeBool defaultParserOptions.allowBundling
 
-%export
+export
 proven_idris_args_default_allow_equals : Int
 proven_idris_args_default_allow_equals = encodeBool defaultParserOptions.allowEquals
 
-%export
+export
 proven_idris_args_default_case_sensitive : Int
 proven_idris_args_default_case_sensitive = encodeBool defaultParserOptions.caseSensitive
 
-%export
+export
 proven_idris_args_default_max_arg_length : Int
 proven_idris_args_default_max_arg_length = cast defaultParserOptions.maxArgLength
 
-%export
+export
 proven_idris_args_default_max_arg_count : Int
 proven_idris_args_default_max_arg_count = cast defaultParserOptions.maxArgCount
 
-%export
+export
 proven_idris_args_strict_allow_unknown : Int
 proven_idris_args_strict_allow_unknown = encodeBool strictParserOptions.allowUnknown
 
-%export
+export
 proven_idris_args_strict_allow_bundling : Int
 proven_idris_args_strict_allow_bundling = encodeBool strictParserOptions.allowBundling
 
-%export
+export
 proven_idris_args_strict_max_arg_length : Int
 proven_idris_args_strict_max_arg_length = cast strictParserOptions.maxArgLength
 
-%export
+export
 proven_idris_args_strict_max_arg_count : Int
 proven_idris_args_strict_max_arg_count = cast strictParserOptions.maxArgCount
 
-%export
+export
 proven_idris_args_permissive_allow_unknown : Int
 proven_idris_args_permissive_allow_unknown = encodeBool permissiveParserOptions.allowUnknown
 
-%export
+export
 proven_idris_args_permissive_stop_at_non_option : Int
 proven_idris_args_permissive_stop_at_non_option = encodeBool permissiveParserOptions.stopAtNonOption
 
-%export
+export
 proven_idris_args_permissive_max_arg_length : Int
 proven_idris_args_permissive_max_arg_length = cast permissiveParserOptions.maxArgLength
 
-%export
+export
 proven_idris_args_permissive_max_arg_count : Int
 proven_idris_args_permissive_max_arg_count = cast permissiveParserOptions.maxArgCount
 
@@ -176,14 +176,14 @@ proven_idris_args_permissive_max_arg_count = cast permissiveParserOptions.maxArg
 -- Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_args_check_arg_length : Int -> String -> Int
 proven_idris_args_check_arg_length maxLen arg =
   if length (unpack arg) <= (cast maxLen)
     then 1  -- Valid
     else 0  -- Too long
 
-%export
+export
 proven_idris_args_check_arg_count : Int -> Int -> Int
 proven_idris_args_check_arg_count maxCount currentCount =
   if currentCount <= maxCount
@@ -194,63 +194,63 @@ proven_idris_args_check_arg_count maxCount currentCount =
 -- Error Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_args_is_unknown_option_error : String -> Int
 proven_idris_args_is_unknown_option_error errorMsg =
   if isInfixOf "unknown option" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_missing_required_error : String -> Int
 proven_idris_args_is_missing_required_error errorMsg =
   if isInfixOf "missing required" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_missing_value_error : String -> Int
 proven_idris_args_is_missing_value_error errorMsg =
   if isInfixOf "requires a value" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_invalid_value_error : String -> Int
 proven_idris_args_is_invalid_value_error errorMsg =
   if isInfixOf "invalid value" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_not_allowed_error : String -> Int
 proven_idris_args_is_not_allowed_error errorMsg =
   if isInfixOf "not allowed" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_too_many_positional_error : String -> Int
 proven_idris_args_is_too_many_positional_error errorMsg =
   if isInfixOf "too many positional" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_ambiguous_short_error : String -> Int
 proven_idris_args_is_ambiguous_short_error errorMsg =
   if isInfixOf "ambiguous" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_type_conversion_error : String -> Int
 proven_idris_args_is_type_conversion_error errorMsg =
   if isInfixOf "cannot convert" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_args_is_invalid_format_error : String -> Int
 proven_idris_args_is_invalid_format_error errorMsg =
   if isInfixOf "invalid argument format" (toLower errorMsg)
@@ -261,7 +261,7 @@ proven_idris_args_is_invalid_format_error errorMsg =
 -- Friendly Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_args_friendly_error : String -> String
 proven_idris_args_friendly_error errorMsg =
   if isInfixOf "unknown option" (toLower errorMsg)
@@ -291,7 +291,7 @@ proven_idris_args_friendly_error errorMsg =
 -- String Utilities
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_args_extract_long_name : String -> (Int, String)
 proven_idris_args_extract_long_name arg =
   case unpack arg of
@@ -300,7 +300,7 @@ proven_idris_args_extract_long_name arg =
         (name, _) => (0, name)
     _ => (1, "not a long option")
 
-%export
+export
 proven_idris_args_extract_short_name : String -> (Int, String)
 proven_idris_args_extract_short_name arg =
   case unpack arg of
@@ -308,7 +308,7 @@ proven_idris_args_extract_short_name arg =
       if c /= '-' then (0, singleton c) else (1, "not a short option")
     _ => (1, "not a short option")
 
-%export
+export
 proven_idris_args_extract_equals_value : String -> (Int, String)
 proven_idris_args_extract_equals_value arg =
   case break (== '=') arg of

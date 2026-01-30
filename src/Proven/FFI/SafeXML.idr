@@ -56,15 +56,15 @@ encodeMaybeString (Just s) = (0, s)
 -- XML Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_xml_parse : String -> (Int, String)
 proven_idris_xml_parse s = encodeDocResult (parse s)
 
-%export
+export
 proven_idris_xml_is_valid : String -> Int
 proven_idris_xml_is_valid s = encodeBool (isSafe s)
 
-%export
+export
 proven_idris_xml_validate : String -> (Int, String)
 proven_idris_xml_validate s =
   case validate s of
@@ -75,16 +75,16 @@ proven_idris_xml_validate s =
 -- Element Building
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_xml_text_element : String -> String -> (Int, String)
 proven_idris_xml_text_element name content =
   encodeNodeResult (textElem name content)
 
-%export
+export
 proven_idris_xml_empty_element : String -> (Int, String)
 proven_idris_xml_empty_element name = encodeNodeResult (emptyElem name)
 
-%export
+export
 proven_idris_xml_comment : String -> (Int, String)
 proven_idris_xml_comment content = encodeNodeResult (comment content)
 
@@ -92,13 +92,13 @@ proven_idris_xml_comment content = encodeNodeResult (comment content)
 -- Text Escaping
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_xml_escape_text : String -> String
 proven_idris_xml_escape_text s =
   let xmlTxt = xmlText s
   in xmlTxt.escaped
 
-%export
+export
 proven_idris_xml_escape_attr : String -> String
 proven_idris_xml_escape_attr s =
   let xmlAttr = xmlAttrValue s
@@ -108,7 +108,7 @@ proven_idris_xml_escape_attr s =
 -- Query Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_xml_find_element : String -> String -> (Int, String)
 proven_idris_xml_find_element xmlStr elemName =
   case parse xmlStr of
@@ -117,7 +117,7 @@ proven_idris_xml_find_element xmlStr elemName =
       Nothing => (1, "Element not found")
       Just node => (0, renderNode node)
 
-%export
+export
 proven_idris_xml_get_attribute : String -> String -> String -> (Int, String)
 proven_idris_xml_get_attribute xmlStr elemName attrName =
   case parse xmlStr of
@@ -126,7 +126,7 @@ proven_idris_xml_get_attribute xmlStr elemName attrName =
       Nothing => (1, "Element not found")
       Just node => encodeMaybeString (getAttribute attrName node)
 
-%export
+export
 proven_idris_xml_get_text_content : String -> String -> (Int, String)
 proven_idris_xml_get_text_content xmlStr elemName =
   case parse xmlStr of
@@ -139,35 +139,35 @@ proven_idris_xml_get_text_content xmlStr elemName =
 -- Security Options Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_xml_secure_max_entity_expansions : Int
 proven_idris_xml_secure_max_entity_expansions = cast secureDefaults.maxEntityExpansions
 
-%export
+export
 proven_idris_xml_secure_max_nesting_depth : Int
 proven_idris_xml_secure_max_nesting_depth = cast secureDefaults.maxNestingDepth
 
-%export
+export
 proven_idris_xml_secure_max_attributes : Int
 proven_idris_xml_secure_max_attributes = cast secureDefaults.maxAttributesPerElement
 
-%export
+export
 proven_idris_xml_secure_max_text_size : Int
 proven_idris_xml_secure_max_text_size = cast secureDefaults.maxTextNodeSize
 
-%export
+export
 proven_idris_xml_secure_allow_external_entities : Int
 proven_idris_xml_secure_allow_external_entities = encodeBool secureDefaults.allowExternalEntities
 
-%export
+export
 proven_idris_xml_secure_allow_internal_entities : Int
 proven_idris_xml_secure_allow_internal_entities = encodeBool secureDefaults.allowInternalEntities
 
-%export
+export
 proven_idris_xml_secure_allow_dtd : Int
 proven_idris_xml_secure_allow_dtd = encodeBool secureDefaults.allowDTD
 
-%export
+export
 proven_idris_xml_secure_allow_pi : Int
 proven_idris_xml_secure_allow_pi = encodeBool secureDefaults.allowProcessingInstructions
 
@@ -175,42 +175,42 @@ proven_idris_xml_secure_allow_pi = encodeBool secureDefaults.allowProcessingInst
 -- Error Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_xml_is_xxe_error : String -> Int
 proven_idris_xml_is_xxe_error errorMsg =
   if isInfixOf "external entity" (toLower errorMsg) || isInfixOf "xxe" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_xml_is_entity_expansion_error : String -> Int
 proven_idris_xml_is_entity_expansion_error errorMsg =
   if isInfixOf "entity expansion" (toLower errorMsg) || isInfixOf "expansion limit" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_xml_is_nesting_error : String -> Int
 proven_idris_xml_is_nesting_error errorMsg =
   if isInfixOf "nesting" (toLower errorMsg) || isInfixOf "depth" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_xml_is_invalid_name_error : String -> Int
 proven_idris_xml_is_invalid_name_error errorMsg =
   if isInfixOf "invalid name" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_xml_is_malformed_error : String -> Int
 proven_idris_xml_is_malformed_error errorMsg =
   if isInfixOf "malformed" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_xml_is_dtd_error : String -> Int
 proven_idris_xml_is_dtd_error errorMsg =
   if isInfixOf "dtd" (toLower errorMsg) || isInfixOf "doctype" (toLower errorMsg)
@@ -221,7 +221,7 @@ proven_idris_xml_is_dtd_error errorMsg =
 -- Security Warnings
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_xml_friendly_error : String -> String
 proven_idris_xml_friendly_error errorMsg =
   if isInfixOf "external entity" (toLower errorMsg)

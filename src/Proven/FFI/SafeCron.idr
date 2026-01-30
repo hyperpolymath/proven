@@ -44,43 +44,43 @@ encodeCronFieldType (List _) = 4
 -- Field Bounds Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_minute_min : Int
 proven_idris_cron_minute_min = cast minuteBounds.minVal
 
-%export
+export
 proven_idris_cron_minute_max : Int
 proven_idris_cron_minute_max = cast minuteBounds.maxVal
 
-%export
+export
 proven_idris_cron_hour_min : Int
 proven_idris_cron_hour_min = cast hourBounds.minVal
 
-%export
+export
 proven_idris_cron_hour_max : Int
 proven_idris_cron_hour_max = cast hourBounds.maxVal
 
-%export
+export
 proven_idris_cron_day_of_month_min : Int
 proven_idris_cron_day_of_month_min = cast dayOfMonthBounds.minVal
 
-%export
+export
 proven_idris_cron_day_of_month_max : Int
 proven_idris_cron_day_of_month_max = cast dayOfMonthBounds.maxVal
 
-%export
+export
 proven_idris_cron_month_min : Int
 proven_idris_cron_month_min = cast monthBounds.minVal
 
-%export
+export
 proven_idris_cron_month_max : Int
 proven_idris_cron_month_max = cast monthBounds.maxVal
 
-%export
+export
 proven_idris_cron_day_of_week_min : Int
 proven_idris_cron_day_of_week_min = cast dayOfWeekBounds.minVal
 
-%export
+export
 proven_idris_cron_day_of_week_max : Int
 proven_idris_cron_day_of_week_max = cast dayOfWeekBounds.maxVal
 
@@ -88,42 +88,42 @@ proven_idris_cron_day_of_week_max = cast dayOfWeekBounds.maxVal
 -- Field Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_is_valid_minute : Int -> Int
 proven_idris_cron_is_valid_minute val =
   encodeBool (inBounds minuteBounds (cast val))
 
-%export
+export
 proven_idris_cron_is_valid_hour : Int -> Int
 proven_idris_cron_is_valid_hour val =
   encodeBool (inBounds hourBounds (cast val))
 
-%export
+export
 proven_idris_cron_is_valid_day_of_month : Int -> Int
 proven_idris_cron_is_valid_day_of_month val =
   encodeBool (inBounds dayOfMonthBounds (cast val))
 
-%export
+export
 proven_idris_cron_is_valid_month : Int -> Int
 proven_idris_cron_is_valid_month val =
   encodeBool (inBounds monthBounds (cast val))
 
-%export
+export
 proven_idris_cron_is_valid_day_of_week : Int -> Int
 proven_idris_cron_is_valid_day_of_week val =
   encodeBool (inBounds dayOfWeekBounds (cast val))
 
-%export
+export
 proven_idris_cron_validate_single : Int -> Int -> Int -> Int
 proven_idris_cron_validate_single minBound maxBound val =
   encodeBool (val >= minBound && val <= maxBound)
 
-%export
+export
 proven_idris_cron_validate_range : Int -> Int -> Int -> Int -> Int
 proven_idris_cron_validate_range minBound maxBound start end =
   encodeBool (start >= minBound && end <= maxBound && start <= end)
 
-%export
+export
 proven_idris_cron_validate_step : Int -> Int
 proven_idris_cron_validate_step step =
   encodeBool (step > 0)
@@ -132,7 +132,7 @@ proven_idris_cron_validate_step step =
 -- Time Component Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_is_valid_time : Int -> Int -> Int -> Int -> Int -> Int
 proven_idris_cron_is_valid_time minute hour dayOfMonth month dayOfWeek =
   encodeBool (
@@ -143,7 +143,7 @@ proven_idris_cron_is_valid_time minute hour dayOfMonth month dayOfWeek =
     inBounds dayOfWeekBounds (cast dayOfWeek)
   )
 
-%export
+export
 proven_idris_cron_normalize_day_of_week : Int -> Int
 proven_idris_cron_normalize_day_of_week dow =
   if dow < 0 then 0
@@ -155,14 +155,14 @@ proven_idris_cron_normalize_day_of_week dow =
 --------------------------------------------------------------------------------
 
 ||| Check if a cron expression is too frequent (< 1 minute interval)
-%export
+export
 proven_idris_cron_is_too_frequent : String -> Int
 proven_idris_cron_is_too_frequent cronStr =
   -- Basic heuristic: check for "* * * * *" pattern (every minute)
   encodeBool (cronStr == "* * * * *")
 
 ||| Calculate approximate minutes between executions (simplified)
-%export
+export
 proven_idris_cron_estimate_interval_minutes : String -> Int
 proven_idris_cron_estimate_interval_minutes cronStr =
   let parts = split (== ' ') cronStr
@@ -186,17 +186,17 @@ proven_idris_cron_estimate_interval_minutes cronStr =
     parsePositive : String -> Maybe Nat
     parsePositive s = parsePositive (cast {to = Integer} s)
 
-%export
+export
 proven_idris_cron_is_at_least_hourly : String -> Int
 proven_idris_cron_is_at_least_hourly cronStr =
   encodeBool (proven_idris_cron_estimate_interval_minutes cronStr >= 60)
 
-%export
+export
 proven_idris_cron_is_at_least_daily : String -> Int
 proven_idris_cron_is_at_least_daily cronStr =
   encodeBool (proven_idris_cron_estimate_interval_minutes cronStr >= 1440)
 
-%export
+export
 proven_idris_cron_exceeds_max_frequency : Int -> Int -> Int
 proven_idris_cron_exceeds_max_frequency intervalMinutes maxFreqMinutes =
   encodeBool (intervalMinutes < maxFreqMinutes)
@@ -205,17 +205,17 @@ proven_idris_cron_exceeds_max_frequency intervalMinutes maxFreqMinutes =
 -- Day of Week Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_is_weekday : Int -> Int
 proven_idris_cron_is_weekday dow =
   encodeBool (dow >= 1 && dow <= 5)
 
-%export
+export
 proven_idris_cron_is_weekend : Int -> Int
 proven_idris_cron_is_weekend dow =
   encodeBool (dow == 0 || dow == 6)
 
-%export
+export
 proven_idris_cron_day_of_week_name : Int -> String
 proven_idris_cron_day_of_week_name dow =
   case dow of
@@ -232,7 +232,7 @@ proven_idris_cron_day_of_week_name dow =
 -- Month Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_month_name : Int -> String
 proven_idris_cron_month_name month =
   case month of
@@ -250,7 +250,7 @@ proven_idris_cron_month_name month =
     12 => "December"
     _ => "Invalid"
 
-%export
+export
 proven_idris_cron_days_in_month : Int -> Int
 proven_idris_cron_days_in_month month =
   case month of
@@ -268,7 +268,7 @@ proven_idris_cron_days_in_month month =
     12 => 31 -- December
     _ => 0
 
-%export
+export
 proven_idris_cron_is_valid_day_for_month : Int -> Int -> Int
 proven_idris_cron_is_valid_day_for_month day month =
   let maxDays = proven_idris_cron_days_in_month month
@@ -278,27 +278,27 @@ proven_idris_cron_is_valid_day_for_month day month =
 -- Special Expression Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_is_every_minute : String -> Int
 proven_idris_cron_is_every_minute cronStr =
   encodeBool (cronStr == "* * * * *")
 
-%export
+export
 proven_idris_cron_is_hourly : String -> Int
 proven_idris_cron_is_hourly cronStr =
   encodeBool (isPrefixOf "0 * * * *" cronStr)
 
-%export
+export
 proven_idris_cron_is_daily : String -> Int
 proven_idris_cron_is_daily cronStr =
   encodeBool (isPrefixOf "0 0 * * *" cronStr)
 
-%export
+export
 proven_idris_cron_is_weekly : String -> Int
 proven_idris_cron_is_weekly cronStr =
   encodeBool (isPrefixOf "0 0 * * 0" cronStr)
 
-%export
+export
 proven_idris_cron_is_monthly : String -> Int
 proven_idris_cron_is_monthly cronStr =
   encodeBool (isPrefixOf "0 0 1 * *" cronStr)
@@ -307,17 +307,17 @@ proven_idris_cron_is_monthly cronStr =
 -- Field Count and Structure
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_field_count : String -> Int
 proven_idris_cron_field_count cronStr =
   cast (length (split (== ' ') cronStr))
 
-%export
+export
 proven_idris_cron_has_five_fields : String -> Int
 proven_idris_cron_has_five_fields cronStr =
   encodeBool (proven_idris_cron_field_count cronStr == 5)
 
-%export
+export
 proven_idris_cron_is_valid_format : String -> Int
 proven_idris_cron_is_valid_format cronStr =
   encodeBool (
@@ -329,7 +329,7 @@ proven_idris_cron_is_valid_format cronStr =
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cron_friendly_error : String -> String
 proven_idris_cron_friendly_error errorMsg =
   if isInfixOf "frequency" (toLower errorMsg) || isInfixOf "too frequent" (toLower errorMsg)

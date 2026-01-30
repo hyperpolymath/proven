@@ -64,19 +64,19 @@ decodeCircuitState _ = Nothing
 -- State Encoding
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_state_closed : Int
 proven_idris_circuitbreaker_state_closed = 0
 
-%export
+export
 proven_idris_circuitbreaker_state_open : Int
 proven_idris_circuitbreaker_state_open = 1
 
-%export
+export
 proven_idris_circuitbreaker_state_halfopen : Int
 proven_idris_circuitbreaker_state_halfopen = 2
 
-%export
+export
 proven_idris_circuitbreaker_is_valid_state : Int -> Int
 proven_idris_circuitbreaker_is_valid_state state =
   encodeBool (state == 0 || state == 1 || state == 2)
@@ -85,12 +85,12 @@ proven_idris_circuitbreaker_is_valid_state state =
 -- State Transitions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_should_open : Int -> Int -> Int
 proven_idris_circuitbreaker_should_open consecutiveFailures failureThreshold =
   encodeBool (consecutiveFailures >= failureThreshold)
 
-%export
+export
 proven_idris_circuitbreaker_should_attempt_halfopen : Int -> Int -> Int -> Int
 proven_idris_circuitbreaker_should_attempt_halfopen currentTime openedAt timeout =
   let elapsed = if currentTime >= openedAt
@@ -98,12 +98,12 @@ proven_idris_circuitbreaker_should_attempt_halfopen currentTime openedAt timeout
                   else 0
   in encodeBool (elapsed >= timeout)
 
-%export
+export
 proven_idris_circuitbreaker_should_close : Int -> Int -> Int
 proven_idris_circuitbreaker_should_close consecutiveSuccesses successThreshold =
   encodeBool (consecutiveSuccesses >= successThreshold)
 
-%export
+export
 proven_idris_circuitbreaker_should_reopen : Int -> Int
 proven_idris_circuitbreaker_should_reopen state failureOccurred =
   encodeBool (state == 2 && failureOccurred == 1)  -- HalfOpen + failure
@@ -112,7 +112,7 @@ proven_idris_circuitbreaker_should_reopen state failureOccurred =
 -- Execution Gating
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_can_execute : Int -> Int -> Int -> Int
 proven_idris_circuitbreaker_can_execute state halfOpenCalls halfOpenMaxCalls =
   if state == 0 then 1  -- Closed: allow
@@ -120,7 +120,7 @@ proven_idris_circuitbreaker_can_execute state halfOpenCalls halfOpenMaxCalls =
   else if halfOpenCalls < halfOpenMaxCalls then 1  -- HalfOpen: limited
   else 0  -- HalfOpen exceeded limit
 
-%export
+export
 proven_idris_circuitbreaker_time_until_retry : Int -> Int -> Int -> Int
 proven_idris_circuitbreaker_time_until_retry currentTime openedAt timeout =
   let elapsed = if currentTime >= openedAt
@@ -129,7 +129,7 @@ proven_idris_circuitbreaker_time_until_retry currentTime openedAt timeout =
   in if elapsed >= timeout then 0
      else timeout - elapsed
 
-%export
+export
 proven_idris_circuitbreaker_remaining_halfopen_calls : Int -> Int -> Int
 proven_idris_circuitbreaker_remaining_halfopen_calls halfOpenCalls halfOpenMaxCalls =
   if halfOpenCalls >= halfOpenMaxCalls then 0
@@ -139,21 +139,21 @@ proven_idris_circuitbreaker_remaining_halfopen_calls halfOpenCalls halfOpenMaxCa
 -- Failure/Success Recording
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_record_failure : Int -> Int
 proven_idris_circuitbreaker_record_failure consecutiveFailures =
   consecutiveFailures + 1
 
-%export
+export
 proven_idris_circuitbreaker_record_success : Int -> Int
 proven_idris_circuitbreaker_record_success consecutiveSuccesses =
   consecutiveSuccesses + 1
 
-%export
+export
 proven_idris_circuitbreaker_reset_failure_count : Int
 proven_idris_circuitbreaker_reset_failure_count = 0
 
-%export
+export
 proven_idris_circuitbreaker_reset_success_count : Int
 proven_idris_circuitbreaker_reset_success_count = 0
 
@@ -161,29 +161,29 @@ proven_idris_circuitbreaker_reset_success_count = 0
 -- Statistics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_failure_rate : Int -> Int -> Double
 proven_idris_circuitbreaker_failure_rate failures total =
   if total == 0 then 0.0
   else cast failures / cast total
 
-%export
+export
 proven_idris_circuitbreaker_failure_rate_percent : Int -> Int -> Double
 proven_idris_circuitbreaker_failure_rate_percent failures total =
   proven_idris_circuitbreaker_failure_rate failures total * 100.0
 
-%export
+export
 proven_idris_circuitbreaker_success_rate : Int -> Int -> Double
 proven_idris_circuitbreaker_success_rate successes total =
   if total == 0 then 0.0
   else cast successes / cast total
 
-%export
+export
 proven_idris_circuitbreaker_success_rate_percent : Int -> Int -> Double
 proven_idris_circuitbreaker_success_rate_percent successes total =
   proven_idris_circuitbreaker_success_rate successes total * 100.0
 
-%export
+export
 proven_idris_circuitbreaker_uptime_percent : Int -> Int -> Double
 proven_idris_circuitbreaker_uptime_percent closedTime totalTime =
   if totalTime == 0 then 0.0
@@ -193,27 +193,27 @@ proven_idris_circuitbreaker_uptime_percent closedTime totalTime =
 -- Configuration Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_is_valid_failure_threshold : Int -> Int
 proven_idris_circuitbreaker_is_valid_failure_threshold threshold =
   encodeBool (threshold > 0 && threshold <= 1000)
 
-%export
+export
 proven_idris_circuitbreaker_is_valid_success_threshold : Int -> Int
 proven_idris_circuitbreaker_is_valid_success_threshold threshold =
   encodeBool (threshold > 0 && threshold <= 1000)
 
-%export
+export
 proven_idris_circuitbreaker_is_valid_timeout : Int -> Int
 proven_idris_circuitbreaker_is_valid_timeout timeout =
   encodeBool (timeout > 0 && timeout <= 3600000)  -- Max 1 hour
 
-%export
+export
 proven_idris_circuitbreaker_is_valid_halfopen_max : Int -> Int
 proven_idris_circuitbreaker_is_valid_halfopen_max maxCalls =
   encodeBool (maxCalls > 0 && maxCalls <= 100)
 
-%export
+export
 proven_idris_circuitbreaker_is_valid_config : Int -> Int -> Int -> Int -> Int
 proven_idris_circuitbreaker_is_valid_config failureThreshold successThreshold timeout halfOpenMax =
   let validFailure = proven_idris_circuitbreaker_is_valid_failure_threshold failureThreshold
@@ -228,24 +228,24 @@ proven_idris_circuitbreaker_is_valid_config failureThreshold successThreshold ti
 -- Health Checks
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_is_healthy : Int -> Int -> Int
 proven_idris_circuitbreaker_is_healthy state consecutiveFailures =
   encodeBool (state == 0 && consecutiveFailures == 0)  -- Closed with no failures
 
-%export
+export
 proven_idris_circuitbreaker_is_degraded : Int -> Int -> Int -> Int
 proven_idris_circuitbreaker_is_degraded state consecutiveFailures failureThreshold =
   let ratio = if failureThreshold == 0 then 0
                else (consecutiveFailures * 100) `div` failureThreshold
   in encodeBool (state == 0 && ratio >= 50)  -- Closed but approaching threshold
 
-%export
+export
 proven_idris_circuitbreaker_is_failing : Int -> Int
 proven_idris_circuitbreaker_is_failing state =
   encodeBool (state == 1)  -- Open
 
-%export
+export
 proven_idris_circuitbreaker_is_recovering : Int -> Int
 proven_idris_circuitbreaker_is_recovering state =
   encodeBool (state == 2)  -- HalfOpen
@@ -254,20 +254,20 @@ proven_idris_circuitbreaker_is_recovering state =
 -- Capacity Planning
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_recommend_failure_threshold : Int -> Double -> Int
 proven_idris_circuitbreaker_recommend_failure_threshold avgRequests errorBudget =
   -- Failure threshold = avg requests × error budget
   -- Example: 1000 requests/min, 1% error budget = 10 failures
   cast (cast avgRequests * errorBudget)
 
-%export
+export
 proven_idris_circuitbreaker_recommend_timeout : Int -> Int
 proven_idris_circuitbreaker_recommend_timeout avgResponseTime =
   -- Timeout = 3x average response time (in ms)
   avgResponseTime * 3
 
-%export
+export
 proven_idris_circuitbreaker_recommend_halfopen_max : Int -> Int
 proven_idris_circuitbreaker_recommend_halfopen_max successThreshold =
   -- Allow 2x success threshold during half-open testing
@@ -277,14 +277,14 @@ proven_idris_circuitbreaker_recommend_halfopen_max successThreshold =
 -- Time Calculations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_elapsed_time : Int -> Int -> Int
 proven_idris_circuitbreaker_elapsed_time currentTime startTime =
   if currentTime >= startTime
     then currentTime - startTime
     else 0
 
-%export
+export
 proven_idris_circuitbreaker_time_in_state : Int -> Int -> Int
 proven_idris_circuitbreaker_time_in_state currentTime stateEnteredAt =
   proven_idris_circuitbreaker_elapsed_time currentTime stateEnteredAt
@@ -293,19 +293,19 @@ proven_idris_circuitbreaker_time_in_state currentTime stateEnteredAt =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_default_failure_threshold : Int
 proven_idris_circuitbreaker_default_failure_threshold = 5
 
-%export
+export
 proven_idris_circuitbreaker_default_success_threshold : Int
 proven_idris_circuitbreaker_default_success_threshold = 2
 
-%export
+export
 proven_idris_circuitbreaker_default_timeout : Int
 proven_idris_circuitbreaker_default_timeout = 60000  -- 60 seconds
 
-%export
+export
 proven_idris_circuitbreaker_default_halfopen_max : Int
 proven_idris_circuitbreaker_default_halfopen_max = 3
 
@@ -313,7 +313,7 @@ proven_idris_circuitbreaker_default_halfopen_max = 3
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_circuitbreaker_friendly_error : String -> String
 proven_idris_circuitbreaker_friendly_error errorMsg =
   if isInfixOf "open" (toLower errorMsg) || isInfixOf "circuit" (toLower errorMsg)
@@ -329,7 +329,7 @@ proven_idris_circuitbreaker_friendly_error errorMsg =
   else
     "Circuit breaker error"
 
-%export
+export
 proven_idris_circuitbreaker_state_message : Int -> String
 proven_idris_circuitbreaker_state_message state =
   if state == 0 then "Circuit breaker: Closed (normal operation)"

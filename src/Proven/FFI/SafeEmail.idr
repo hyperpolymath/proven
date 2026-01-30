@@ -41,12 +41,12 @@ encodeStringResult (Just s) = (0, s)
 -- Email Construction and Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_email_validate : String -> (Int, String)
 proven_idris_email_validate s =
   encodeEmailResult (validateEmail s)
 
-%export
+export
 proven_idris_email_mk : String -> String -> (Int, String)
 proven_idris_email_mk local domain =
   encodeEmailResult (mkEmail local domain)
@@ -55,17 +55,17 @@ proven_idris_email_mk local domain =
 -- Email Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_email_is_valid : String -> Int
 proven_idris_email_is_valid s =
   encodeBool (isValidEmail s)
 
-%export
+export
 proven_idris_email_is_valid_local : String -> Int
 proven_idris_email_is_valid_local s =
   encodeBool (isValidLocalPart s)
 
-%export
+export
 proven_idris_email_is_valid_domain : String -> Int
 proven_idris_email_is_valid_domain s =
   encodeBool (isValidDomain s)
@@ -75,7 +75,7 @@ proven_idris_email_is_valid_domain s =
 --------------------------------------------------------------------------------
 
 ||| Parse email and get local part
-%export
+export
 proven_idris_email_get_local : String -> (Int, String)
 proven_idris_email_get_local s =
   case validateEmail s of
@@ -83,7 +83,7 @@ proven_idris_email_get_local s =
     Just email => (0, getLocalPart email)
 
 ||| Parse email and get domain
-%export
+export
 proven_idris_email_get_domain : String -> (Int, String)
 proven_idris_email_get_domain s =
   case validateEmail s of
@@ -91,7 +91,7 @@ proven_idris_email_get_domain s =
     Just email => (0, getDomain email)
 
 ||| Parse email and get TLD
-%export
+export
 proven_idris_email_get_tld : String -> (Int, String)
 proven_idris_email_get_tld s =
   case validateEmail s of
@@ -99,7 +99,7 @@ proven_idris_email_get_tld s =
     Just email => encodeStringResult (getTLD email)
 
 ||| Parse email and get second-level domain
-%export
+export
 proven_idris_email_get_sld : String -> (Int, String)
 proven_idris_email_get_sld s =
   case validateEmail s of
@@ -111,7 +111,7 @@ proven_idris_email_get_sld s =
 --------------------------------------------------------------------------------
 
 ||| Parse and normalize email (lowercase domain)
-%export
+export
 proven_idris_email_normalize : String -> (Int, String)
 proven_idris_email_normalize s =
   case validateEmail s of
@@ -119,7 +119,7 @@ proven_idris_email_normalize s =
     Just email => (0, toString (normalize email))
 
 ||| Parse and normalize email (lowercase both parts)
-%export
+export
 proven_idris_email_normalize_full : String -> (Int, String)
 proven_idris_email_normalize_full s =
   case validateEmail s of
@@ -127,7 +127,7 @@ proven_idris_email_normalize_full s =
     Just email => (0, toString (normalizeFull email))
 
 ||| Parse email and get base (remove +suffix)
-%export
+export
 proven_idris_email_get_base : String -> (Int, String)
 proven_idris_email_get_base s =
   case validateEmail s of
@@ -138,24 +138,24 @@ proven_idris_email_get_base s =
 -- Email Security
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_email_sanitize_header : String -> String
 proven_idris_email_sanitize_header s =
   sanitizeForHeader s
 
-%export
+export
 proven_idris_email_escape_html : String -> (Int, String)
 proven_idris_email_escape_html s =
   case validateEmail s of
     Nothing => (1, "")
     Just email => (0, escapeForHTML email)
 
-%export
+export
 proven_idris_email_is_disposable_domain : String -> Int
 proven_idris_email_is_disposable_domain domain =
   encodeBool (isDisposableDomain domain)
 
-%export
+export
 proven_idris_email_is_disposable : String -> Int
 proven_idris_email_is_disposable s =
   case validateEmail s of
@@ -166,7 +166,7 @@ proven_idris_email_is_disposable s =
 -- Email Domain Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_email_domain_matches : String -> String -> Int
 proven_idris_email_domain_matches pattern emailStr =
   case validateEmail emailStr of
@@ -178,7 +178,7 @@ proven_idris_email_domain_matches pattern emailStr =
 --------------------------------------------------------------------------------
 
 ||| Compare two emails (case-insensitive)
-%export
+export
 proven_idris_email_equals : String -> String -> Int
 proven_idris_email_equals s1 s2 =
   case (validateEmail s1, validateEmail s2) of

@@ -12,24 +12,24 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
-%export
+export
 proven_idris_buffer_is_empty : Int -> Int
 proven_idris_buffer_is_empty length = encodeBool (length == 0)
 
-%export
+export
 proven_idris_buffer_is_full : Int -> Int -> Int
 proven_idris_buffer_is_full length capacity = encodeBool (length >= capacity)
 
-%export
+export
 proven_idris_buffer_remaining : Int -> Int -> Int
 proven_idris_buffer_remaining capacity length =
   if capacity >= length then capacity - length else 0
 
-%export
+export
 proven_idris_buffer_can_write : Int -> Int -> Int -> Int
 proven_idris_buffer_can_write writeCount length capacity =
   encodeBool (writeCount <= (capacity - length))
 
-%export
+export
 proven_idris_buffer_index_valid : Int -> Int -> Int
 proven_idris_buffer_index_valid idx length = encodeBool (idx >= 0 && idx < length)

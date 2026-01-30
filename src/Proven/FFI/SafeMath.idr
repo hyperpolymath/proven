@@ -31,17 +31,17 @@ encodeResult (Just x) = (0, x)
 -- Safe Division
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_math_div : Integer -> Integer -> (Int, Integer)
 proven_idris_math_div numerator denominator =
   encodeResult (div numerator denominator)
 
-%export
+export
 proven_idris_math_div_or : Integer -> Integer -> Integer -> Integer
 proven_idris_math_div_or def numerator denominator =
   divOr def numerator denominator
 
-%export
+export
 proven_idris_math_mod : Integer -> Integer -> (Int, Integer)
 proven_idris_math_mod numerator denominator =
   encodeResult (mod numerator denominator)
@@ -50,17 +50,17 @@ proven_idris_math_mod numerator denominator =
 -- Checked Arithmetic (Overflow Detection)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_math_add_checked : Integer -> Integer -> (Int, Integer)
 proven_idris_math_add_checked a b =
   encodeResult (addChecked a b)
 
-%export
+export
 proven_idris_math_sub_checked : Integer -> Integer -> (Int, Integer)
 proven_idris_math_sub_checked a b =
   encodeResult (subChecked a b)
 
-%export
+export
 proven_idris_math_mul_checked : Integer -> Integer -> (Int, Integer)
 proven_idris_math_mul_checked a b =
   encodeResult (mulChecked a b)
@@ -69,12 +69,12 @@ proven_idris_math_mul_checked a b =
 -- Safe Absolute Value
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_math_abs_safe : Integer -> (Int, Integer)
 proven_idris_math_abs_safe n =
   encodeResult (absSafe n)
 
-%export
+export
 proven_idris_math_abs_clamped : Integer -> Integer
 proven_idris_math_abs_clamped n =
   absClamped n
@@ -90,7 +90,7 @@ natFromInteger n =
   if n < 0 then Nothing
   else Just (fromInteger n)
 
-%export
+export
 proven_idris_math_pow_checked : Integer -> Integer -> (Int, Integer)
 proven_idris_math_pow_checked base exp =
   case natFromInteger exp of
@@ -104,12 +104,12 @@ proven_idris_math_pow_checked base exp =
 -- Clamping Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_math_clamp : Integer -> Integer -> Integer -> Integer
 proven_idris_math_clamp lo hi value =
   clamp lo hi value
 
-%export
+export
 proven_idris_math_clamp_non_negative : Integer -> Integer
 proven_idris_math_clamp_non_negative n =
   clampNonNegative n
@@ -124,17 +124,17 @@ encodeOrdering LT = -1
 encodeOrdering EQ = 0
 encodeOrdering GT = 1
 
-%export
+export
 proven_idris_math_compare : Integer -> Integer -> Int
 proven_idris_math_compare a b =
   encodeOrdering (compareInt a b)
 
-%export
+export
 proven_idris_math_min : Integer -> Integer -> Integer
 proven_idris_math_min a b =
   minInt a b
 
-%export
+export
 proven_idris_math_max : Integer -> Integer -> Integer
 proven_idris_math_max a b =
   maxInt a b
@@ -143,12 +143,12 @@ proven_idris_math_max a b =
 -- Percentage Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_math_percent_of : Integer -> Integer -> (Int, Integer)
 proven_idris_math_percent_of percent total =
   encodeResult (percentOf percent total)
 
-%export
+export
 proven_idris_math_as_percent : Integer -> Integer -> (Int, Integer)
 proven_idris_math_as_percent part whole =
   encodeResult (asPercent part whole)
@@ -157,15 +157,15 @@ proven_idris_math_as_percent part whole =
 -- Bounds Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_math_fits_int64 : Integer -> Bool
 proven_idris_math_fits_int64 n =
   fitsInt64 n
 
-%export
+export
 proven_idris_math_max_int64 : Integer
 proven_idris_math_max_int64 = maxInt64
 
-%export
+export
 proven_idris_math_min_int64 : Integer
 proven_idris_math_min_int64 = minInt64

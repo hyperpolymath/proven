@@ -58,12 +58,12 @@ decodeNat n = if n < 0 then Z else fromInteger (cast n)
 -- Date Construction
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_date_make : Int -> Int -> Int -> (Int, String)
 proven_idris_date_make year month day =
   encodeDateResult (makeDate (decodeNat year) (decodeNat month) (decodeNat day))
 
-%export
+export
 proven_idris_date_from_days : Integer -> (Int, String)
 proven_idris_date_from_days days =
   encodeDateResult (dateFromDays days)
@@ -72,12 +72,12 @@ proven_idris_date_from_days days =
 -- Time Construction
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_time_make : Int -> Int -> Int -> (Int, String)
 proven_idris_time_make hour minute second =
   encodeTimeResult (makeTime (decodeNat hour) (decodeNat minute) (decodeNat second))
 
-%export
+export
 proven_idris_time_make_nano : Int -> Int -> Int -> Int -> (Int, String)
 proven_idris_time_make_nano hour minute second nano =
   encodeTimeResult (makeTimeNano (decodeNat hour) (decodeNat minute) (decodeNat second) (decodeNat nano))
@@ -86,14 +86,14 @@ proven_idris_time_make_nano hour minute second nano =
 -- Month Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_month_to_nat : Int -> Int
 proven_idris_month_to_nat monthNum =
   case natToMonth (decodeNat monthNum) of
     Nothing => 0  -- Invalid month
     Just m => cast (monthToNat m)
 
-%export
+export
 proven_idris_month_from_nat : Int -> (Int, Int)
 proven_idris_month_from_nat n =
   case natToMonth (decodeNat n) of
@@ -104,33 +104,33 @@ proven_idris_month_from_nat n =
 -- Date Validation and Utilities
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_date_is_leap_year : Int -> Int
 proven_idris_date_is_leap_year year =
   encodeBool (isLeapYear (decodeNat year))
 
-%export
+export
 proven_idris_date_days_in_month : Int -> Int -> Int
 proven_idris_date_days_in_month year monthNum =
   case natToMonth (decodeNat monthNum) of
     Nothing => 0  -- Invalid month
     Just m => cast (daysInMonth (decodeNat year) m)
 
-%export
+export
 proven_idris_date_day_of_week : Int -> Int -> Int -> Int
 proven_idris_date_day_of_week year month day =
   case makeDate (decodeNat year) (decodeNat month) (decodeNat day) of
     Nothing => 0  -- Invalid date
     Just d => encodeDayOfWeek (dayOfWeek d)
 
-%export
+export
 proven_idris_date_is_weekend : Int -> Int -> Int -> Int
 proven_idris_date_is_weekend year month day =
   case makeDate (decodeNat year) (decodeNat month) (decodeNat day) of
     Nothing => 0  -- Invalid date
     Just d => encodeBool (isWeekend d)
 
-%export
+export
 proven_idris_date_days_since_epoch : Int -> Int -> Int -> (Int, Integer)
 proven_idris_date_days_since_epoch year month day =
   case makeDate (decodeNat year) (decodeNat month) (decodeNat day) of
@@ -141,27 +141,27 @@ proven_idris_date_days_since_epoch year month day =
 -- Instant Operations (Unix Timestamps)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_instant_from_epoch_second : Integer -> Integer
 proven_idris_instant_from_epoch_second secs =
   toEpochMilli (fromEpochSecond secs)
 
-%export
+export
 proven_idris_instant_from_epoch_milli : Integer -> Integer
 proven_idris_instant_from_epoch_milli millis =
   toEpochMilli (fromEpochMilli millis)
 
-%export
+export
 proven_idris_instant_to_epoch_second : Integer -> Integer
 proven_idris_instant_to_epoch_second millis =
   toEpochSecond (fromEpochMilli millis)
 
-%export
+export
 proven_idris_instant_to_epoch_milli : Integer -> Integer
 proven_idris_instant_to_epoch_milli millis =
   millis  -- Identity function (already in millis)
 
-%export
+export
 proven_idris_instant_plus : Integer -> Integer -> Integer
 proven_idris_instant_plus instantMillis durationNanos =
   let inst = fromEpochMilli instantMillis
@@ -169,7 +169,7 @@ proven_idris_instant_plus instantMillis durationNanos =
       result = instantPlus inst dur
   in toEpochMilli result
 
-%export
+export
 proven_idris_instant_minus : Integer -> Integer -> Integer
 proven_idris_instant_minus instantMillis durationNanos =
   let inst = fromEpochMilli instantMillis
@@ -177,7 +177,7 @@ proven_idris_instant_minus instantMillis durationNanos =
       result = instantMinus inst dur
   in toEpochMilli result
 
-%export
+export
 proven_idris_instant_duration_between : Integer -> Integer -> Integer
 proven_idris_instant_duration_between startMillis endMillis =
   let start = fromEpochMilli startMillis
@@ -189,54 +189,54 @@ proven_idris_instant_duration_between startMillis endMillis =
 -- Duration Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_duration_seconds : Integer -> Integer
 proven_idris_duration_seconds n =
   let MkDuration nanos = seconds n
   in nanos
 
-%export
+export
 proven_idris_duration_minutes : Integer -> Integer
 proven_idris_duration_minutes n =
   let MkDuration nanos = minutes n
   in nanos
 
-%export
+export
 proven_idris_duration_hours : Integer -> Integer
 proven_idris_duration_hours n =
   let MkDuration nanos = hours n
   in nanos
 
-%export
+export
 proven_idris_duration_days : Integer -> Integer
 proven_idris_duration_days n =
   let MkDuration nanos = days n
   in nanos
 
-%export
+export
 proven_idris_duration_add : Integer -> Integer -> Integer
 proven_idris_duration_add nanos1 nanos2 =
   let MkDuration result = addDuration (MkDuration nanos1) (MkDuration nanos2)
   in result
 
-%export
+export
 proven_idris_duration_sub : Integer -> Integer -> Integer
 proven_idris_duration_sub nanos1 nanos2 =
   let MkDuration result = subDuration (MkDuration nanos1) (MkDuration nanos2)
   in result
 
-%export
+export
 proven_idris_duration_negate : Integer -> Integer
 proven_idris_duration_negate nanos =
   let MkDuration result = negateDuration (MkDuration nanos)
   in result
 
-%export
+export
 proven_idris_duration_to_seconds : Integer -> Integer
 proven_idris_duration_to_seconds nanos =
   toSeconds (MkDuration nanos)
 
-%export
+export
 proven_idris_duration_to_millis : Integer -> Integer
 proven_idris_duration_to_millis nanos =
   toMilliseconds (MkDuration nanos)

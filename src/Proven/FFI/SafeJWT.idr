@@ -52,12 +52,12 @@ decodeInteger n = cast n
 -- JWT Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_jwt_verify : String -> Integer -> String -> (Int, String)
 proven_idris_jwt_verify secret currentTime token =
   encodeJWTResult (verifyJWT secret currentTime token)
 
-%export
+export
 proven_idris_jwt_is_valid : String -> Integer -> String -> Int
 proven_idris_jwt_is_valid secret currentTime token =
   encodeBool (isTokenValid secret currentTime token)
@@ -66,12 +66,12 @@ proven_idris_jwt_is_valid secret currentTime token =
 -- JWT Decoding (Inspection)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_jwt_decode : String -> (Int, String)
 proven_idris_jwt_decode token =
   encodeDecodedResult (inspectJWT token)
 
-%export
+export
 proven_idris_jwt_token_info : String -> (Int, String)
 proven_idris_jwt_token_info token =
   case tokenInfo token of
@@ -82,21 +82,21 @@ proven_idris_jwt_token_info token =
 -- Error Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_jwt_is_expired_error : String -> Int
 proven_idris_jwt_is_expired_error errorMsg =
   if isInfixOf "expired" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_jwt_is_signature_error : String -> Int
 proven_idris_jwt_is_signature_error errorMsg =
   if isInfixOf "signature" (toLower errorMsg) || isInfixOf "invalid token" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_jwt_is_algorithm_error : String -> Int
 proven_idris_jwt_is_algorithm_error errorMsg =
   if isInfixOf "algorithm" (toLower errorMsg)
@@ -107,15 +107,15 @@ proven_idris_jwt_is_algorithm_error errorMsg =
 -- Validation Presets (Constants)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_jwt_access_token_max_age : Integer
 proven_idris_jwt_access_token_max_age = 3600  -- 1 hour
 
-%export
+export
 proven_idris_jwt_refresh_token_max_age : Integer
 proven_idris_jwt_refresh_token_max_age = 604800  -- 1 week
 
-%export
+export
 proven_idris_jwt_id_token_max_age : Integer
 proven_idris_jwt_id_token_max_age = 3600  -- 1 hour
 
@@ -130,14 +130,14 @@ parseAndCheckValidity currentTime tokenStr =
     Err _ => Nothing
     Ok decoded => timeUntilExpiration currentTime (MkValidatedJWT decoded (SecretKey []))
 
-%export
+export
 proven_idris_jwt_remaining_validity : Integer -> String -> (Int, Integer)
 proven_idris_jwt_remaining_validity currentTime token =
   case parseAndCheckValidity currentTime token of
     Nothing => (1, 0)  -- Error
     Just remaining => (0, remaining)
 
-%export
+export
 proven_idris_jwt_needs_refresh : Integer -> Int -> String -> Int
 proven_idris_jwt_needs_refresh currentTime thresholdSeconds token =
   case parseAndCheckValidity currentTime token of
@@ -151,7 +151,7 @@ proven_idris_jwt_needs_refresh currentTime thresholdSeconds token =
 -- Security Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_jwt_friendly_error : String -> String
 proven_idris_jwt_friendly_error errorMsg =
   -- Simple mapping - in production would parse error type first

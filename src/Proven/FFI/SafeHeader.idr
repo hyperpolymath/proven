@@ -47,12 +47,12 @@ decodeNat n = if n < 0 then Z else fromInteger (cast n)
 -- Header Creation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_header_make : String -> String -> (Int, String)
 proven_idris_header_make name value =
   encodeHeaderResult (mkHeaderDefault name value)
 
-%export
+export
 proven_idris_header_parse_line : String -> (Int, String)
 proven_idris_header_parse_line line =
   encodeHeaderResult (parseHeaderLine defaultOptions line)
@@ -61,7 +61,7 @@ proven_idris_header_parse_line line =
 -- Header Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_header_parse_raw : String -> (Int, Int, String)
 proven_idris_header_parse_raw raw =
   encodeHeadersResult (parseHeaderString defaultOptions raw)
@@ -70,7 +70,7 @@ proven_idris_header_parse_raw raw =
 -- Rendering
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_header_render_http : String -> String
 proven_idris_header_render_http headersStr =
   case parseHeaderString defaultOptions headersStr of
@@ -81,28 +81,28 @@ proven_idris_header_render_http headersStr =
 -- Security Header Builders
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_header_strict_csp : String
 proven_idris_header_strict_csp = strictCSP
 
-%export
+export
 proven_idris_header_standard_hsts : String
 proven_idris_header_standard_hsts = standardHSTS
 
-%export
+export
 proven_idris_header_hsts : Int -> Int -> Int -> String
 proven_idris_header_hsts maxAge includeSubdomains preload =
   buildHSTS (decodeNat maxAge) (includeSubdomains /= 0) (preload /= 0)
 
-%export
+export
 proven_idris_header_no_frame : String
 proven_idris_header_no_frame = noFrame
 
-%export
+export
 proven_idris_header_no_sniff : String
 proven_idris_header_no_sniff = noSniff
 
-%export
+export
 proven_idris_header_strict_referrer : String
 proven_idris_header_strict_referrer = strictReferrer
 
@@ -118,7 +118,7 @@ encodeErrorType (ValueTooLong _ _) = 2      -- Size error
 encodeErrorType (TotalSizeTooLarge _) = 2   -- Size error
 encodeErrorType _ = 0                        -- Other
 
-%export
+export
 proven_idris_header_is_injection_error : String -> Int
 proven_idris_header_is_injection_error errorMsg =
   -- Simple heuristic: check if error message contains "injection"
@@ -126,7 +126,7 @@ proven_idris_header_is_injection_error errorMsg =
     then 1
     else 0
 
-%export
+export
 proven_idris_header_is_size_error : String -> Int
 proven_idris_header_is_size_error errorMsg =
   -- Simple heuristic: check if error message contains size-related keywords
@@ -139,14 +139,14 @@ proven_idris_header_is_size_error errorMsg =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_header_max_name_length : Int
 proven_idris_header_max_name_length = cast maxHeaderNameLength
 
-%export
+export
 proven_idris_header_max_value_length : Int
 proven_idris_header_max_value_length = cast maxHeaderValueLength
 
-%export
+export
 proven_idris_header_max_total_size : Int
 proven_idris_header_max_total_size = cast maxTotalHeaderSize

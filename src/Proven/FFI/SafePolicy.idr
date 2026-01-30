@@ -27,17 +27,17 @@ encodeAction Audit = 2
 encodeAction Transform = 3
 encodeAction Delegate = 4
 
-%export
+export
 proven_idris_policy_action_allows : Int -> Int
 proven_idris_policy_action_allows action = encodeBool (action == 0 || action == 2)
 
-%export
+export
 proven_idris_policy_priority_compare : Int -> Int -> Int
 proven_idris_policy_priority_compare p1 p2 =
   if p1 > p2 then 1
   else if p1 < p2 then (-1)
   else 0
 
-%export
+export
 proven_idris_policy_zone_mutable : Int -> Int
 proven_idris_policy_zone_mutable zoneClass = encodeBool (zoneClass == 0 || zoneClass == 2)

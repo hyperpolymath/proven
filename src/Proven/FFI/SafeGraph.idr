@@ -56,37 +56,37 @@ encodeBool True = 1
 -- Graph Size and Bounds
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_vertex_count : Int -> Int
 proven_idris_graph_vertex_count count = count
 
-%export
+export
 proven_idris_graph_edge_count : Int -> Int
 proven_idris_graph_edge_count count = count
 
-%export
+export
 proven_idris_graph_is_empty : Int -> Int
 proven_idris_graph_is_empty vertexCount =
   encodeBool (vertexCount == 0)
 
-%export
+export
 proven_idris_graph_max_edges_directed : Int -> Int
 proven_idris_graph_max_edges_directed vertexCount =
   -- n × (n - 1) for directed graph (no self-loops)
   vertexCount * (vertexCount - 1)
 
-%export
+export
 proven_idris_graph_max_edges_undirected : Int -> Int
 proven_idris_graph_max_edges_undirected vertexCount =
   -- n × (n - 1) / 2 for undirected graph
   (vertexCount * (vertexCount - 1)) `div` 2
 
-%export
+export
 proven_idris_graph_is_valid_vertex_index : Int -> Int -> Int
 proven_idris_graph_is_valid_vertex_index index vertexCount =
   encodeBool (index >= 0 && index < vertexCount)
 
-%export
+export
 proven_idris_graph_is_valid_edge_count : Int -> Int -> Int
 proven_idris_graph_is_valid_edge_count edgeCount maxEdges =
   encodeBool (edgeCount >= 0 && edgeCount <= maxEdges)
@@ -95,40 +95,40 @@ proven_idris_graph_is_valid_edge_count edgeCount maxEdges =
 -- Degree Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_out_degree : Int -> Int
 proven_idris_graph_out_degree count = count
 
-%export
+export
 proven_idris_graph_in_degree : Int -> Int
 proven_idris_graph_in_degree count = count
 
-%export
+export
 proven_idris_graph_total_degree : Int -> Int -> Int
 proven_idris_graph_total_degree inDegree outDegree = inDegree + outDegree
 
-%export
+export
 proven_idris_graph_average_degree : Int -> Int -> Double
 proven_idris_graph_average_degree totalDegree vertexCount =
   if vertexCount == 0 then 0.0
   else cast totalDegree / cast vertexCount
 
-%export
+export
 proven_idris_graph_max_degree : Int -> Int
 proven_idris_graph_max_degree vertexCount =
   if vertexCount <= 0 then 0 else vertexCount - 1
 
-%export
+export
 proven_idris_graph_is_sink : Int -> Int
 proven_idris_graph_is_sink outDegree =
   encodeBool (outDegree == 0)
 
-%export
+export
 proven_idris_graph_is_source : Int -> Int
 proven_idris_graph_is_source inDegree =
   encodeBool (inDegree == 0)
 
-%export
+export
 proven_idris_graph_is_isolated : Int -> Int -> Int
 proven_idris_graph_is_isolated inDegree outDegree =
   encodeBool (inDegree == 0 && outDegree == 0)
@@ -137,31 +137,31 @@ proven_idris_graph_is_isolated inDegree outDegree =
 -- Graph Density
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_density_directed : Int -> Int -> Double
 proven_idris_graph_density_directed edgeCount vertexCount =
   if vertexCount <= 1 then 0.0
   else let maxEdges = vertexCount * (vertexCount - 1)
        in cast edgeCount / cast maxEdges
 
-%export
+export
 proven_idris_graph_density_undirected : Int -> Int -> Double
 proven_idris_graph_density_undirected edgeCount vertexCount =
   if vertexCount <= 1 then 0.0
   else let maxEdges = (vertexCount * (vertexCount - 1)) `div` 2
        in cast edgeCount / cast maxEdges
 
-%export
+export
 proven_idris_graph_is_sparse : Double -> Int
 proven_idris_graph_is_sparse density =
   encodeBool (density < 0.5)
 
-%export
+export
 proven_idris_graph_is_dense : Double -> Int
 proven_idris_graph_is_dense density =
   encodeBool (density >= 0.5)
 
-%export
+export
 proven_idris_graph_is_complete : Int -> Int -> Int
 proven_idris_graph_is_complete edgeCount maxEdges =
   encodeBool (edgeCount == maxEdges)
@@ -170,33 +170,33 @@ proven_idris_graph_is_complete edgeCount maxEdges =
 -- Path Finding Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_max_path_length : Int -> Int
 proven_idris_graph_max_path_length vertexCount =
   if vertexCount <= 0 then 0 else vertexCount - 1
 
-%export
+export
 proven_idris_graph_is_valid_path_length : Int -> Int -> Int
 proven_idris_graph_is_valid_path_length pathLength vertexCount =
   encodeBool (pathLength >= 0 && pathLength < vertexCount)
 
-%export
+export
 proven_idris_graph_bfs_depth_limit : Int -> Int
 proven_idris_graph_bfs_depth_limit vertexCount =
   -- BFS depth limit = diameter ≤ n-1
   if vertexCount <= 0 then 0 else vertexCount - 1
 
-%export
+export
 proven_idris_graph_dfs_depth_limit : Int -> Int
 proven_idris_graph_dfs_depth_limit vertexCount =
   -- DFS depth limit for cycle detection
   vertexCount
 
-%export
+export
 proven_idris_graph_path_exists : Int -> Int
 proven_idris_graph_path_exists hasPath = hasPath
 
-%export
+export
 proven_idris_graph_path_length : Int -> Int
 proven_idris_graph_path_length numEdges = numEdges
 
@@ -204,22 +204,22 @@ proven_idris_graph_path_length numEdges = numEdges
 -- Cycle Detection
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_has_cycle : Int -> Int
 proven_idris_graph_has_cycle hasCycle = hasCycle
 
-%export
+export
 proven_idris_graph_is_dag : Int -> Int
 proven_idris_graph_is_dag hasCycle =
   encodeBool (hasCycle == 0)
 
-%export
+export
 proven_idris_graph_can_topological_sort : Int -> Int
 proven_idris_graph_can_topological_sort hasCycle =
   -- Can only topologically sort DAGs (acyclic)
   encodeBool (hasCycle == 0)
 
-%export
+export
 proven_idris_graph_back_edge_detected : Int -> Int
 proven_idris_graph_back_edge_detected stackContains = stackContains
 
@@ -227,20 +227,20 @@ proven_idris_graph_back_edge_detected stackContains = stackContains
 -- Connectivity
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_is_connected : Int -> Int -> Int
 proven_idris_graph_is_connected vertexCount reachableCount =
   encodeBool (vertexCount == reachableCount)
 
-%export
+export
 proven_idris_graph_connected_components : Int -> Int
 proven_idris_graph_connected_components count = count
 
-%export
+export
 proven_idris_graph_is_strongly_connected : Int -> Int
 proven_idris_graph_is_strongly_connected isConnected = isConnected
 
-%export
+export
 proven_idris_graph_is_weakly_connected : Int -> Int
 proven_idris_graph_is_weakly_connected isConnected = isConnected
 
@@ -248,23 +248,23 @@ proven_idris_graph_is_weakly_connected isConnected = isConnected
 -- Special Graphs
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_is_tree : Int -> Int -> Int -> Int
 proven_idris_graph_is_tree vertexCount edgeCount hasCycle =
   -- Tree: n vertices, n-1 edges, acyclic, connected
   encodeBool (vertexCount > 0 && edgeCount == vertexCount - 1 && hasCycle == 0)
 
-%export
+export
 proven_idris_graph_is_forest : Int -> Int
 proven_idris_graph_is_forest hasCycle =
   -- Forest: acyclic (possibly disconnected)
   encodeBool (hasCycle == 0)
 
-%export
+export
 proven_idris_graph_is_bipartite : Int -> Int
 proven_idris_graph_is_bipartite isBipartite = isBipartite
 
-%export
+export
 proven_idris_graph_is_planar : Int -> Int -> Int
 proven_idris_graph_is_planar vertexCount edgeCount =
   -- Planar: e ≤ 3v - 6 (for v ≥ 3)
@@ -275,26 +275,26 @@ proven_idris_graph_is_planar vertexCount edgeCount =
 -- Edge Weight Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_has_negative_weight : Int -> Int
 proven_idris_graph_has_negative_weight weight =
   encodeBool (weight < 0)
 
-%export
+export
 proven_idris_graph_total_weight : Int -> Int
 proven_idris_graph_total_weight sum = sum
 
-%export
+export
 proven_idris_graph_average_weight : Int -> Int -> Double
 proven_idris_graph_average_weight totalWeight edgeCount =
   if edgeCount == 0 then 0.0
   else cast totalWeight / cast edgeCount
 
-%export
+export
 proven_idris_graph_min_weight : Int -> Int
 proven_idris_graph_min_weight weight = weight
 
-%export
+export
 proven_idris_graph_max_weight : Int -> Int
 proven_idris_graph_max_weight weight = weight
 
@@ -302,19 +302,19 @@ proven_idris_graph_max_weight weight = weight
 -- Graph Traversal Limits
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_max_visits : Int -> Int
 proven_idris_graph_max_visits vertexCount = vertexCount
 
-%export
+export
 proven_idris_graph_max_queue_size : Int -> Int
 proven_idris_graph_max_queue_size vertexCount = vertexCount
 
-%export
+export
 proven_idris_graph_max_stack_depth : Int -> Int
 proven_idris_graph_max_stack_depth vertexCount = vertexCount
 
-%export
+export
 proven_idris_graph_visit_limit_exceeded : Int -> Int -> Int
 proven_idris_graph_visit_limit_exceeded visitCount vertexCount =
   encodeBool (visitCount > vertexCount)
@@ -323,21 +323,21 @@ proven_idris_graph_visit_limit_exceeded visitCount vertexCount =
 -- Graph Statistics
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_clustering_coefficient : Int -> Int -> Int -> Double
 proven_idris_graph_clustering_coefficient triangles connectedTriples =
   if connectedTriples == 0 then 0.0
   else cast triangles / cast connectedTriples
 
-%export
+export
 proven_idris_graph_diameter : Int -> Int
 proven_idris_graph_diameter maxDistance = maxDistance
 
-%export
+export
 proven_idris_graph_radius : Int -> Int
 proven_idris_graph_radius minEccentricity = minEccentricity
 
-%export
+export
 proven_idris_graph_girth : Int -> Int
 proven_idris_graph_girth shortestCycleLength = shortestCycleLength
 
@@ -345,23 +345,23 @@ proven_idris_graph_girth shortestCycleLength = shortestCycleLength
 -- Memory Estimation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_vertex_memory : Int -> Int -> Int
 proven_idris_graph_vertex_memory vertexCount bytesPerVertex =
   vertexCount * bytesPerVertex
 
-%export
+export
 proven_idris_graph_edge_memory : Int -> Int -> Int
 proven_idris_graph_edge_memory edgeCount bytesPerEdge =
   edgeCount * bytesPerEdge
 
-%export
+export
 proven_idris_graph_total_memory : Int -> Int -> Int -> Int -> Int
 proven_idris_graph_total_memory vertexCount edgeCount bytesPerVertex bytesPerEdge =
   proven_idris_graph_vertex_memory vertexCount bytesPerVertex +
   proven_idris_graph_edge_memory edgeCount bytesPerEdge
 
-%export
+export
 proven_idris_graph_recommend_adjacency_list : Int -> Int -> Int
 proven_idris_graph_recommend_adjacency_list vertexCount edgeCount =
   -- Adjacency list better for sparse graphs
@@ -369,7 +369,7 @@ proven_idris_graph_recommend_adjacency_list vertexCount edgeCount =
                  else cast edgeCount / cast (vertexCount * vertexCount)
   in encodeBool (density < 0.5)
 
-%export
+export
 proven_idris_graph_recommend_adjacency_matrix : Int -> Int -> Int
 proven_idris_graph_recommend_adjacency_matrix vertexCount edgeCount =
   -- Adjacency matrix better for dense graphs
@@ -381,19 +381,19 @@ proven_idris_graph_recommend_adjacency_matrix vertexCount edgeCount =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_min_vertices : Int
 proven_idris_graph_min_vertices = 0
 
-%export
+export
 proven_idris_graph_max_reasonable_vertices : Int
 proven_idris_graph_max_reasonable_vertices = 1000000
 
-%export
+export
 proven_idris_graph_max_reasonable_edges : Int
 proven_idris_graph_max_reasonable_edges = 10000000
 
-%export
+export
 proven_idris_graph_sparse_threshold : Double
 proven_idris_graph_sparse_threshold = 0.5
 
@@ -401,7 +401,7 @@ proven_idris_graph_sparse_threshold = 0.5
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_graph_friendly_error : String -> String
 proven_idris_graph_friendly_error errorMsg =
   if isInfixOf "cycle" (toLower errorMsg)
@@ -419,7 +419,7 @@ proven_idris_graph_friendly_error errorMsg =
   else
     "Graph operation error"
 
-%export
+export
 proven_idris_graph_type_description : Double -> String
 proven_idris_graph_type_description density =
   if density == 0.0 then "Empty graph (no edges)"

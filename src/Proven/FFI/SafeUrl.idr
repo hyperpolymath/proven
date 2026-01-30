@@ -62,11 +62,11 @@ encodeMaybeString (Just s) = (0, s)
 -- URL Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_url_parse : String -> (Int, String)
 proven_idris_url_parse s = encodeURLResult (parseURL s)
 
-%export
+export
 proven_idris_url_is_valid : String -> Int
 proven_idris_url_is_valid s = encodeBool (isValidURL s)
 
@@ -74,7 +74,7 @@ proven_idris_url_is_valid s = encodeBool (isValidURL s)
 -- Component Extraction
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_url_get_scheme : String -> (Int, String)
 proven_idris_url_get_scheme s =
   case parseURLMaybe s of
@@ -83,7 +83,7 @@ proven_idris_url_get_scheme s =
       Nothing => (1, "")
       Just scheme => (0, show scheme)
 
-%export
+export
 proven_idris_url_get_host : String -> (Int, String)
 proven_idris_url_get_host s =
   case parseURLMaybe s of
@@ -92,7 +92,7 @@ proven_idris_url_get_host s =
       Nothing => (1, "")
       Just host => (0, show host)
 
-%export
+export
 proven_idris_url_get_port : String -> (Int, String)
 proven_idris_url_get_port s =
   case parseURLMaybe s of
@@ -101,7 +101,7 @@ proven_idris_url_get_port s =
       Nothing => (1, "")
       Just port => (0, show port)
 
-%export
+export
 proven_idris_url_get_path : String -> (Int, String)
 proven_idris_url_get_path s =
   case parseURLMaybe s of
@@ -112,7 +112,7 @@ proven_idris_url_get_path s =
     joinWith _ [] = ""
     joinWith sep (x :: xs) = foldl (\acc, y => acc ++ sep ++ y) x xs
 
-%export
+export
 proven_idris_url_get_query : String -> (Int, String)
 proven_idris_url_get_query s =
   case parseURLMaybe s of
@@ -130,7 +130,7 @@ proven_idris_url_get_query s =
     formatPair : (String, String) -> String
     formatPair (k, v) = k ++ "=" ++ v
 
-%export
+export
 proven_idris_url_get_fragment : String -> (Int, String)
 proven_idris_url_get_fragment s =
   case parseURLMaybe s of
@@ -143,7 +143,7 @@ proven_idris_url_get_fragment s =
 -- Scheme Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_url_is_http : String -> Int
 proven_idris_url_is_http s =
   case parseURLMaybe s of
@@ -152,7 +152,7 @@ proven_idris_url_is_http s =
       Just HTTP => 1
       _ => 0
 
-%export
+export
 proven_idris_url_is_https : String -> Int
 proven_idris_url_is_https s =
   case parseURLMaybe s of
@@ -161,7 +161,7 @@ proven_idris_url_is_https s =
       Just HTTPS => 1
       _ => 0
 
-%export
+export
 proven_idris_url_is_secure : String -> Int
 proven_idris_url_is_secure s =
   case parseURLMaybe s of
@@ -171,7 +171,7 @@ proven_idris_url_is_secure s =
       Just FTPS => 1
       _ => 0
 
-%export
+export
 proven_idris_url_is_mailto : String -> Int
 proven_idris_url_is_mailto s =
   case parseURLMaybe s of
@@ -180,7 +180,7 @@ proven_idris_url_is_mailto s =
       Just Mailto => 1
       _ => 0
 
-%export
+export
 proven_idris_url_is_file : String -> Int
 proven_idris_url_is_file s =
   case parseURLMaybe s of
@@ -193,7 +193,7 @@ proven_idris_url_is_file s =
 -- URL Normalization
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_url_normalize : String -> (Int, String)
 proven_idris_url_normalize s = encodeURLResult (normalizeURL s)
 
@@ -201,21 +201,21 @@ proven_idris_url_normalize s = encodeURLResult (normalizeURL s)
 -- Query String Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_url_query_get : String -> String -> String
 proven_idris_url_query_get url key =
   case parseURLMaybe url of
     Nothing => ""
     Just parsed => maybe "" id (lookup key parsed.query)
 
-%export
+export
 proven_idris_url_query_has : String -> String -> Int
 proven_idris_url_query_has url key =
   case parseURLMaybe url of
     Nothing => 0
     Just parsed => encodeBool (isJust (lookup key parsed.query))
 
-%export
+export
 proven_idris_url_query_keys : String -> String
 proven_idris_url_query_keys url =
   case parseURLMaybe url of
@@ -230,19 +230,19 @@ proven_idris_url_query_keys url =
 -- Default Ports
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_url_default_port_http : Int
 proven_idris_url_default_port_http = 80
 
-%export
+export
 proven_idris_url_default_port_https : Int
 proven_idris_url_default_port_https = 443
 
-%export
+export
 proven_idris_url_default_port_ftp : Int
 proven_idris_url_default_port_ftp = 21
 
-%export
+export
 proven_idris_url_default_port_ftps : Int
 proven_idris_url_default_port_ftps = 990
 
@@ -250,28 +250,28 @@ proven_idris_url_default_port_ftps = 990
 -- Error Checking
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_url_is_parse_error : String -> Int
 proven_idris_url_is_parse_error errorMsg =
   if isInfixOf "parse" (toLower errorMsg) || isInfixOf "invalid" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_url_is_scheme_error : String -> Int
 proven_idris_url_is_scheme_error errorMsg =
   if isInfixOf "scheme" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_url_is_host_error : String -> Int
 proven_idris_url_is_host_error errorMsg =
   if isInfixOf "host" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_url_is_port_error : String -> Int
 proven_idris_url_is_port_error errorMsg =
   if isInfixOf "port" (toLower errorMsg)

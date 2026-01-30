@@ -68,32 +68,32 @@ decodeNat n = if n < 0 then Z else fromInteger (cast n)
 -- Cookie Creation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cookie_make_default : String -> String -> (Int, String)
 proven_idris_cookie_make_default name value =
   encodeCookieResult (mkCookieDefault name value)
 
-%export
+export
 proven_idris_cookie_make_session : String -> String -> (Int, String)
 proven_idris_cookie_make_session name value =
   encodeCookieResult (mkSessionCookie name value)
 
-%export
+export
 proven_idris_cookie_make_strict : String -> String -> (Int, String)
 proven_idris_cookie_make_strict name value =
   encodeCookieResult (mkStrictCookie name value)
 
-%export
+export
 proven_idris_cookie_make_auth : String -> String -> Integer -> (Int, String)
 proven_idris_cookie_make_auth name value maxAge =
   encodeCookieResult (authCookie name value maxAge)
 
-%export
+export
 proven_idris_cookie_make_csrf : String -> String -> (Int, String)
 proven_idris_cookie_make_csrf name value =
   encodeCookieResult (csrfCookie name value)
 
-%export
+export
 proven_idris_cookie_make_remember : String -> String -> (Int, String)
 proven_idris_cookie_make_remember name value =
   encodeCookieResult (rememberMeCookie name value)
@@ -102,7 +102,7 @@ proven_idris_cookie_make_remember name value =
 -- Cookie Parsing
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cookie_parse : String -> (Int, Int, String)
 proven_idris_cookie_parse header =
   encodeCookiesResult (parseCookieHeaderDefault header)
@@ -111,7 +111,7 @@ proven_idris_cookie_parse header =
 -- Building and Deletion
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cookie_build_delete : String -> String
 proven_idris_cookie_build_delete name =
   buildDeleteCookie name
@@ -120,28 +120,28 @@ proven_idris_cookie_build_delete name =
 -- Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cookie_validate_name : String -> (Int, String)
 proven_idris_cookie_validate_name name =
   case validateNameDefault name of
     Err err => (1, friendlyError err)
     Ok cookieName => (0, show cookieName)
 
-%export
+export
 proven_idris_cookie_validate_value : String -> String -> (Int, String)
 proven_idris_cookie_validate_value name value =
   case validateValueDefault name value of
     Err err => (1, friendlyError err)
     Ok cookieValue => (0, show cookieValue)
 
-%export
+export
 proven_idris_cookie_validate_domain : String -> (Int, String)
 proven_idris_cookie_validate_domain domain =
   case validateDomain defaultOptions domain of
     Err err => (1, friendlyError err)
     Ok d => (0, d)
 
-%export
+export
 proven_idris_cookie_validate_path : String -> (Int, String)
 proven_idris_cookie_validate_path path =
   case validatePath path of
@@ -152,22 +152,22 @@ proven_idris_cookie_validate_path path =
 -- Security Checks
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cookie_get_prefix : String -> Int
 proven_idris_cookie_get_prefix name =
   encodeCookiePrefix (getPrefix name)
 
-%export
+export
 proven_idris_cookie_is_host_prefixed : String -> Int
 proven_idris_cookie_is_host_prefixed name =
   encodeBool (isHostPrefixed name)
 
-%export
+export
 proven_idris_cookie_is_secure_prefixed : String -> Int
 proven_idris_cookie_is_secure_prefixed name =
   encodeBool (isSecurePrefixed name)
 
-%export
+export
 proven_idris_cookie_has_prefix_security : String -> Int
 proven_idris_cookie_has_prefix_security name =
   encodeBool (hasPrefixSecurity name)
@@ -176,23 +176,23 @@ proven_idris_cookie_has_prefix_security name =
 -- Expiration Presets
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cookie_hour : Integer
 proven_idris_cookie_hour = oneHour
 
-%export
+export
 proven_idris_cookie_day : Integer
 proven_idris_cookie_day = oneDay
 
-%export
+export
 proven_idris_cookie_week : Integer
 proven_idris_cookie_week = oneWeek
 
-%export
+export
 proven_idris_cookie_month : Integer
 proven_idris_cookie_month = thirtyDays
 
-%export
+export
 proven_idris_cookie_year : Integer
 proven_idris_cookie_year = oneYear
 
@@ -200,18 +200,18 @@ proven_idris_cookie_year = oneYear
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_cookie_max_name_length : Int
 proven_idris_cookie_max_name_length = cast maxNameLength
 
-%export
+export
 proven_idris_cookie_max_value_length : Int
 proven_idris_cookie_max_value_length = cast maxValueLength
 
-%export
+export
 proven_idris_cookie_max_cookie_size : Int
 proven_idris_cookie_max_cookie_size = cast maxCookieSize
 
-%export
+export
 proven_idris_cookie_max_per_domain : Int
 proven_idris_cookie_max_per_domain = cast maxCookiesPerDomain

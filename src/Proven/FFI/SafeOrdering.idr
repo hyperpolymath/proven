@@ -17,20 +17,20 @@ encodeBool False = 0
 encodeBool True = 1
 
 -- Vector timestamp operations
-%export
+export
 proven_idris_vt_component_le : Int -> Int -> Int
 proven_idris_vt_component_le v1 v2 = encodeBool (v1 <= v2)
 
-%export
+export
 proven_idris_vt_component_lt : Int -> Int -> Int
 proven_idris_vt_component_lt v1 v2 = encodeBool (v1 < v2)
 
-%export
+export
 proven_idris_vt_merge : Int -> Int -> Int
 proven_idris_vt_merge v1 v2 = if v1 > v2 then v1 else v2
 
 -- Plausible clock operations
-%export
+export
 proven_idris_pc_compare : Int -> Int -> Int -> Int -> Int
 proven_idris_pc_compare phys1 log1 phys2 log2 =
   if phys1 < phys2 then (-1)
@@ -39,17 +39,17 @@ proven_idris_pc_compare phys1 log1 phys2 log2 =
   else if log1 > log2 then 1
   else 0
 
-%export
+export
 proven_idris_pc_max_physical : Int -> Int -> Int -> Int
 proven_idris_pc_max_physical pt lt rt =
   max pt (max lt rt)
 
 -- Sequence number operations
-%export
+export
 proven_idris_seq_next : Int -> Int
 proven_idris_seq_next n = n + 1
 
-%export
+export
 proven_idris_seq_compare : Int -> Int -> Int -> Int -> Int
 proven_idris_seq_compare n1 p1 n2 p2 =
   if n1 < n2 then (-1)
@@ -59,7 +59,7 @@ proven_idris_seq_compare n1 p1 n2 p2 =
   else 0
 
 -- Epoch ordering
-%export
+export
 proven_idris_epoch_compare : Int -> Int -> Int -> Int -> Int
 proven_idris_epoch_compare e1 s1 e2 s2 =
   if e1 < e2 then (-1)
@@ -68,11 +68,11 @@ proven_idris_epoch_compare e1 s1 e2 s2 =
   else if s1 > s2 then 1
   else 0
 
-%export
+export
 proven_idris_epoch_next : Int -> Int
 proven_idris_epoch_next e = e + 1
 
-%export
+export
 proven_idris_ordering_friendly_error : String -> String
 proven_idris_ordering_friendly_error msg =
   if isInfixOf "causal" (toLower msg)

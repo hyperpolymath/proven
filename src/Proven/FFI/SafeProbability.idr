@@ -42,23 +42,23 @@ encodeBool True = 1
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_certain : Double
 proven_idris_prob_certain = certain.value
 
-%export
+export
 proven_idris_prob_impossible : Double
 proven_idris_prob_impossible = impossible.value
 
-%export
+export
 proven_idris_prob_fair : Double
 proven_idris_prob_fair = fair.value
 
-%export
+export
 proven_idris_prob_min : Double
 proven_idris_prob_min = 0.0
 
-%export
+export
 proven_idris_prob_max : Double
 proven_idris_prob_max = 1.0
 
@@ -66,19 +66,19 @@ proven_idris_prob_max = 1.0
 -- Probability Construction
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_create : Double -> (Int, Double)
 proven_idris_prob_create p =
   case mkProbability p of
     Nothing => (1, 0.0)  -- Invalid
     Just prob => (0, prob.value)
 
-%export
+export
 proven_idris_prob_create_clamped : Double -> Double
 proven_idris_prob_create_clamped p =
   (mkProbabilityClamped p).value
 
-%export
+export
 proven_idris_prob_is_valid : Double -> Int
 proven_idris_prob_is_valid p =
   encodeBool (isJust (mkProbability p))
@@ -87,29 +87,29 @@ proven_idris_prob_is_valid p =
 -- Basic Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_complement : Double -> Double
 proven_idris_prob_complement p =
   (complement (MkProb p)).value
 
-%export
+export
 proven_idris_prob_and_independent : Double -> Double -> Double
 proven_idris_prob_and_independent p1 p2 =
   (andIndependent (MkProb p1) (MkProb p2)).value
 
-%export
+export
 proven_idris_prob_or_exclusive : Double -> Double -> (Int, Double)
 proven_idris_prob_or_exclusive p1 p2 =
   case orExclusive (MkProb p1) (MkProb p2) of
     Nothing => (1, 0.0)  -- Not mutually exclusive (result > 1)
     Just prob => (0, prob.value)
 
-%export
+export
 proven_idris_prob_or_general : Double -> Double -> Double -> Double
 proven_idris_prob_or_general pA pB pAandB =
   (orGeneral (MkProb pA) (MkProb pB) (MkProb pAandB)).value
 
-%export
+export
 proven_idris_prob_conditional : Double -> Double -> (Int, Double)
 proven_idris_prob_conditional pAandB pB =
   case conditional (MkProb pAandB) (MkProb pB) of
@@ -120,30 +120,30 @@ proven_idris_prob_conditional pAandB pB =
 -- Odds Conversion
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_to_odds : Double -> (Int, Double, Double)
 proven_idris_prob_to_odds p =
   case toOdds (MkProb p) of
     Nothing => (1, 0.0, 0.0)  -- Infinite odds (p = 1)
     Just odds => (0, odds.forEvent, odds.againstEvent)
 
-%export
+export
 proven_idris_prob_from_odds : Double -> Double -> Double
 proven_idris_prob_from_odds forEvent againstEvent =
   (fromOdds (MkOdds forEvent againstEvent)).value
 
-%export
+export
 proven_idris_prob_odds_ratio : Double -> Double -> (Double, Double)
 proven_idris_prob_odds_ratio forEvent againstEvent =
   oddsRatio (MkOdds forEvent againstEvent)
 
-%export
+export
 proven_idris_prob_decimal_odds_to_prob : Double -> Double
 proven_idris_prob_decimal_odds_to_prob decimalOdds =
   if decimalOdds <= 0.0 then 0.0
   else 1.0 / decimalOdds
 
-%export
+export
 proven_idris_prob_prob_to_decimal_odds : Double -> (Int, Double)
 proven_idris_prob_prob_to_decimal_odds p =
   if p == 0.0 then (1, 0.0)  -- Would be infinite
@@ -153,14 +153,14 @@ proven_idris_prob_prob_to_decimal_odds p =
 -- Bayesian Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_bayes : Double -> Double -> Double -> (Int, Double)
 proven_idris_prob_bayes pBgivenA pA pB =
   case bayes (MkProb pBgivenA) (MkProb pA) (MkProb pB) of
     Nothing => (1, 0.0)  -- Division by zero (pB = 0) or result out of range
     Just prob => (0, prob.value)
 
-%export
+export
 proven_idris_prob_update_belief : Double -> Double -> Double -> (Int, Double)
 proven_idris_prob_update_belief prior likelihood marginal =
   case updateBelief (MkProb prior) (MkProb likelihood) (MkProb marginal) of
@@ -171,12 +171,12 @@ proven_idris_prob_update_belief prior likelihood marginal =
 -- Distributions
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_bernoulli : Int -> Double -> Double
 proven_idris_prob_bernoulli k p =
   bernoulli (cast k) (MkProb p)
 
-%export
+export
 proven_idris_prob_binomial_pmf : Int -> Int -> Double -> Double
 proven_idris_prob_binomial_pmf n k p =
   binomialPMF (cast n) (cast k) (MkProb p)
@@ -185,22 +185,22 @@ proven_idris_prob_binomial_pmf n k p =
 -- Comparison
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_equal : Double -> Double -> Int
 proven_idris_prob_equal p1 p2 =
   encodeBool ((MkProb p1) == (MkProb p2))
 
-%export
+export
 proven_idris_prob_less_than : Double -> Double -> Int
 proven_idris_prob_less_than p1 p2 =
   encodeBool (p1 < p2)
 
-%export
+export
 proven_idris_prob_greater_than : Double -> Double -> Int
 proven_idris_prob_greater_than p1 p2 =
   encodeBool (p1 > p2)
 
-%export
+export
 proven_idris_prob_compare : Double -> Double -> Int
 proven_idris_prob_compare p1 p2 =
   case compare (MkProb p1) (MkProb p2) of
@@ -212,27 +212,27 @@ proven_idris_prob_compare p1 p2 =
 -- Special Probability Checks
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_is_certain : Double -> Int
 proven_idris_prob_is_certain p =
   encodeBool (p == 1.0)
 
-%export
+export
 proven_idris_prob_is_impossible : Double -> Int
 proven_idris_prob_is_impossible p =
   encodeBool (p == 0.0)
 
-%export
+export
 proven_idris_prob_is_fair : Double -> Int
 proven_idris_prob_is_fair p =
   encodeBool (approxEqual 0.0001 p 0.5)
 
-%export
+export
 proven_idris_prob_is_likely : Double -> Int
 proven_idris_prob_is_likely p =
   encodeBool (p > 0.5)
 
-%export
+export
 proven_idris_prob_is_unlikely : Double -> Int
 proven_idris_prob_is_unlikely p =
   encodeBool (p < 0.5)
@@ -241,12 +241,12 @@ proven_idris_prob_is_unlikely p =
 -- Percentage Conversion
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_to_percentage : Double -> Double
 proven_idris_prob_to_percentage p =
   p * 100.0
 
-%export
+export
 proven_idris_prob_from_percentage : Double -> (Int, Double)
 proven_idris_prob_from_percentage pct =
   let p = pct / 100.0
@@ -258,12 +258,12 @@ proven_idris_prob_from_percentage pct =
 -- Mutually Exclusive Check
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_can_be_mutually_exclusive : Double -> Double -> Int
 proven_idris_prob_can_be_mutually_exclusive p1 p2 =
   encodeBool (p1 + p2 <= 1.0)
 
-%export
+export
 proven_idris_prob_sum_is_valid : Double -> Double -> Int
 proven_idris_prob_sum_is_valid p1 p2 =
   encodeBool (p1 + p2 <= 1.0)
@@ -272,7 +272,7 @@ proven_idris_prob_sum_is_valid p1 p2 =
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_prob_friendly_error : String -> String
 proven_idris_prob_friendly_error errorMsg =
   if isInfixOf "range" (toLower errorMsg) || isInfixOf "0" (toLower errorMsg)

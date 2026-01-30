@@ -41,37 +41,37 @@ decodeChar code = chr code
 -- Core HTML Escaping (XSS Prevention)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_html_escape_content : String -> String
 proven_idris_html_escape_content s =
   escapeHtmlContent s
 
-%export
+export
 proven_idris_html_escape_attr : String -> String
 proven_idris_html_escape_attr s =
   escapeHtmlAttr s
 
-%export
+export
 proven_idris_html_escape_inline_script : String -> String
 proven_idris_html_escape_inline_script s =
   escapeInlineScript s
 
-%export
+export
 proven_idris_html_escape_inline_css : String -> String
 proven_idris_html_escape_inline_css s =
   escapeInlineCss s
 
-%export
+export
 proven_idris_html_escape_comment : String -> String
 proven_idris_html_escape_comment s =
   escapeHtmlComment s
 
-%export
+export
 proven_idris_html_escape_event_handler : String -> String
 proven_idris_html_escape_event_handler s =
   escapeEventHandler s
 
-%export
+export
 proven_idris_html_escape_non_ascii : String -> String
 proven_idris_html_escape_non_ascii s =
   escapeNonAscii s
@@ -80,17 +80,17 @@ proven_idris_html_escape_non_ascii s =
 -- URL Sanitization
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_html_has_dangerous_scheme : String -> Int
 proven_idris_html_has_dangerous_scheme url =
   encodeBool (hasDangerousScheme url)
 
-%export
+export
 proven_idris_html_sanitize_url : String -> (Int, String)
 proven_idris_html_sanitize_url url =
   encodeStringResult (sanitizeUrl url)
 
-%export
+export
 proven_idris_html_escape_url_attr : String -> (Int, String)
 proven_idris_html_escape_url_attr url =
   encodeStringResult (escapeUrlAttr url)
@@ -99,12 +99,12 @@ proven_idris_html_escape_url_attr url =
 -- Attribute Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_html_is_valid_attr_name : String -> Int
 proven_idris_html_is_valid_attr_name name =
   encodeBool (isValidAttrName name)
 
-%export
+export
 proven_idris_html_is_event_handler : String -> Int
 proven_idris_html_is_event_handler name =
   encodeBool (isEventHandler name)
@@ -113,12 +113,12 @@ proven_idris_html_is_event_handler name =
 -- Tag Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_html_is_void_tag : String -> Int
 proven_idris_html_is_void_tag tag =
   encodeBool (isVoidTag tag)
 
-%export
+export
 proven_idris_html_is_dangerous_tag : String -> Int
 proven_idris_html_is_dangerous_tag tag =
   encodeBool (isDangerousTag tag)
@@ -127,12 +127,12 @@ proven_idris_html_is_dangerous_tag tag =
 -- Character Entity Conversion
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_html_char_to_numeric_entity : Int -> String
 proven_idris_html_char_to_numeric_entity charCode =
   toNumericEntity (decodeChar charCode)
 
-%export
+export
 proven_idris_html_char_to_hex_entity : Int -> String
 proven_idris_html_char_to_hex_entity charCode =
   toHexEntity (decodeChar charCode)

@@ -64,23 +64,23 @@ encodeValidationResult (Ok ()) = (0, "")
 -- SQL Dialect Operations
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_sql_dialect_postgresql : Int
 proven_idris_sql_dialect_postgresql = encodeSQLDialect PostgreSQL
 
-%export
+export
 proven_idris_sql_dialect_mysql : Int
 proven_idris_sql_dialect_mysql = encodeSQLDialect MySQL
 
-%export
+export
 proven_idris_sql_dialect_sqlite : Int
 proven_idris_sql_dialect_sqlite = encodeSQLDialect SQLite
 
-%export
+export
 proven_idris_sql_dialect_mssql : Int
 proven_idris_sql_dialect_mssql = encodeSQLDialect MSSQL
 
-%export
+export
 proven_idris_sql_dialect_oracle : Int
 proven_idris_sql_dialect_oracle = encodeSQLDialect Oracle
 
@@ -88,7 +88,7 @@ proven_idris_sql_dialect_oracle = encodeSQLDialect Oracle
 -- Query Building (Simple Patterns)
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_sql_select_from : Int -> String -> (Int, String, Int)
 proven_idris_sql_select_from dialectInt tableName =
   case decodeSQLDialect dialectInt of
@@ -101,7 +101,7 @@ proven_idris_sql_select_from dialectInt tableName =
             Err err => (1, friendlyError err, 0)
             Ok query => encodeQueryResult (Ok query)
 
-%export
+export
 proven_idris_sql_count_all : Int -> String -> (Int, String, Int)
 proven_idris_sql_count_all dialectInt tableName =
   case decodeSQLDialect dialectInt of
@@ -112,21 +112,21 @@ proven_idris_sql_count_all dialectInt tableName =
 -- Identifier Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_sql_is_valid_identifier : String -> Int
 proven_idris_sql_is_valid_identifier name =
   case mkIdentifier name of
     Nothing => 0
     Just _ => 1
 
-%export
+export
 proven_idris_sql_validate_table_name : String -> (Int, String)
 proven_idris_sql_validate_table_name name =
   case mkTableName name of
     Nothing => (1, "Invalid table name: " ++ name)
     Just _ => (0, name)
 
-%export
+export
 proven_idris_sql_validate_column_name : String -> (Int, String)
 proven_idris_sql_validate_column_name name =
   case mkColumnName name of
@@ -137,7 +137,7 @@ proven_idris_sql_validate_column_name name =
 -- Injection Analysis
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_sql_analyze_for_injection : String -> Int
 proven_idris_sql_analyze_for_injection text =
   case analyzeForInjection text of
@@ -145,17 +145,17 @@ proven_idris_sql_analyze_for_injection text =
     Warning _ => 1      -- Warning (suspicious but might be OK)
     Critical _ => 2     -- Critical (definitely injection)
 
-%export
+export
 proven_idris_sql_has_sql_keywords : String -> Int
 proven_idris_sql_has_sql_keywords text =
   encodeBool (hasSQLKeywords text)
 
-%export
+export
 proven_idris_sql_has_comment_syntax : String -> Int
 proven_idris_sql_has_comment_syntax text =
   encodeBool (hasCommentSyntax text)
 
-%export
+export
 proven_idris_sql_has_string_escape : String -> Int
 proven_idris_sql_has_string_escape text =
   encodeBool (hasStringEscape text)
@@ -164,14 +164,14 @@ proven_idris_sql_has_string_escape text =
 -- Error Classification
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_sql_is_injection_error : String -> Int
 proven_idris_sql_is_injection_error errorMsg =
   if isInfixOf "injection" (toLower errorMsg)
     then 1
     else 0
 
-%export
+export
 proven_idris_sql_is_identifier_error : String -> Int
 proven_idris_sql_is_identifier_error errorMsg =
   if isInfixOf "identifier" (toLower errorMsg) || isInfixOf "table" (toLower errorMsg) || isInfixOf "column" (toLower errorMsg)
@@ -182,14 +182,14 @@ proven_idris_sql_is_identifier_error errorMsg =
 -- Constants
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_sql_max_identifier_length : Int
 proven_idris_sql_max_identifier_length = cast maxIdentifierLength
 
-%export
+export
 proven_idris_sql_max_query_length : Int
 proven_idris_sql_max_query_length = cast maxQueryLength
 
-%export
+export
 proven_idris_sql_max_param_count : Int
 proven_idris_sql_max_param_count = cast maxParamCount

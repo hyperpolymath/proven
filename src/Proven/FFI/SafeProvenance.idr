@@ -22,20 +22,20 @@ encodeChangeType Transform = 4
 encodeChangeType Annotate = 5
 encodeChangeType Link = 6
 
-%export
+export
 proven_idris_provenance_hash_valid : Int -> Int -> Int
 proven_idris_provenance_hash_valid expectedHash computedHash =
   encodeBool (expectedHash == computedHash)
 
-%export
+export
 proven_idris_audit_trail_sealed : Int -> Int
 proven_idris_audit_trail_sealed sealed = encodeBool (sealed /= 0)
 
-%export
+export
 proven_idris_tamper_detected : Int -> Int
 proven_idris_tamper_detected tamperCode = encodeBool (tamperCode /= 0)
 
-%export
+export
 proven_idris_version_compare : Int -> Int -> Int
 proven_idris_version_compare v1 v2 =
   if v1 < v2 then (-1)

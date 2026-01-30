@@ -82,8 +82,6 @@ modules = Proven
         , Proven.SafeRegex
         , Proven.SafeRegex.Types
         , Proven.SafeRegex.Safety
-        , Proven.SafeRegex.Parser
-        , Proven.SafeRegex.Matcher
         , Proven.SafeRegex.Proofs
         -- SafeCommand
         , Proven.SafeCommand

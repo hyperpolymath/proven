@@ -57,22 +57,22 @@ intToBits32 i = cast {to = Bits32} i
 -- CRC32
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_crc32 : String -> Int
 proven_idris_checksum_crc32 s =
   bits32ToInt (crc32 (stringToBytes s))
 
-%export
+export
 proven_idris_checksum_crc32_bytes : String -> Int
 proven_idris_checksum_crc32_bytes s =
   bits32ToInt (crc32 (stringToBytes s))
 
-%export
+export
 proven_idris_checksum_verify_crc32 : String -> Int -> Int
 proven_idris_checksum_verify_crc32 s expected =
   encodeBool (verifyCRC32 (stringToBytes s) (intToBits32 expected))
 
-%export
+export
 proven_idris_checksum_crc32_polynomial : Int
 proven_idris_checksum_crc32_polynomial = bits32ToInt crc32Polynomial
 
@@ -80,17 +80,17 @@ proven_idris_checksum_crc32_polynomial = bits32ToInt crc32Polynomial
 -- Adler-32
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_adler32 : String -> Int
 proven_idris_checksum_adler32 s =
   bits32ToInt (adler32 (stringToNats s))
 
-%export
+export
 proven_idris_checksum_verify_adler32 : String -> Int -> Int
 proven_idris_checksum_verify_adler32 s expected =
   encodeBool (verifyAdler32 (stringToNats s) (intToBits32 expected))
 
-%export
+export
 proven_idris_checksum_adler32_mod : Int
 proven_idris_checksum_adler32_mod = cast adler32Mod
 
@@ -98,27 +98,27 @@ proven_idris_checksum_adler32_mod = cast adler32Mod
 -- XOR and Sum Checksums
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_xor : String -> Int
 proven_idris_checksum_xor s =
   cast {to = Int} (xorChecksum (stringToBytes s))
 
-%export
+export
 proven_idris_checksum_sum : String -> Int
 proven_idris_checksum_sum s =
   cast (sumChecksum (stringToNats s))
 
-%export
+export
 proven_idris_checksum_twos_complement : String -> Int
 proven_idris_checksum_twos_complement s =
   cast (twosComplement (stringToNats s))
 
-%export
+export
 proven_idris_checksum_verify_xor : String -> Int -> Int
 proven_idris_checksum_verify_xor s expected =
   encodeBool (cast {to = Int} (xorChecksum (stringToBytes s)) == expected)
 
-%export
+export
 proven_idris_checksum_verify_sum : String -> Int -> Int
 proven_idris_checksum_verify_sum s expected =
   encodeBool (cast (sumChecksum (stringToNats s)) == expected)
@@ -127,24 +127,24 @@ proven_idris_checksum_verify_sum s expected =
 -- Luhn Algorithm
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_luhn_digit : String -> Int
 proven_idris_checksum_luhn_digit s =
   case luhnDigit s of
     Nothing => (-1)
     Just digit => cast digit
 
-%export
+export
 proven_idris_checksum_validate_luhn : String -> Int
 proven_idris_checksum_validate_luhn s =
   encodeBool (validateLuhn s)
 
-%export
+export
 proven_idris_checksum_luhn_with_check_digit : String -> Int -> String
 proven_idris_checksum_luhn_with_check_digit s checkDigit =
   s ++ show checkDigit
 
-%export
+export
 proven_idris_checksum_generate_luhn : String -> String
 proven_idris_checksum_generate_luhn s =
   case luhnDigit s of
@@ -155,17 +155,17 @@ proven_idris_checksum_generate_luhn s =
 -- ISBN Validation
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_validate_isbn10 : String -> Int
 proven_idris_checksum_validate_isbn10 s =
   encodeBool (validateISBN10 s)
 
-%export
+export
 proven_idris_checksum_validate_isbn13 : String -> Int
 proven_idris_checksum_validate_isbn13 s =
   encodeBool (validateISBN13 s)
 
-%export
+export
 proven_idris_checksum_validate_isbn : String -> Int
 proven_idris_checksum_validate_isbn s =
   let digits = filter isDigit (unpack s)
@@ -174,13 +174,13 @@ proven_idris_checksum_validate_isbn s =
        13 => encodeBool (validateISBN13 s)
        _ => 0
 
-%export
+export
 proven_idris_checksum_is_isbn10_format : String -> Int
 proven_idris_checksum_is_isbn10_format s =
   let chars = filter (\c => isDigit c || c == 'X' || c == 'x') (unpack s)
   in encodeBool (length chars == 10)
 
-%export
+export
 proven_idris_checksum_is_isbn13_format : String -> Int
 proven_idris_checksum_is_isbn13_format s =
   let digits = filter isDigit (unpack s)
@@ -190,12 +190,12 @@ proven_idris_checksum_is_isbn13_format s =
 -- Checksum Comparison
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_checksums_equal : Int -> Int -> Int
 proven_idris_checksum_checksums_equal csum1 csum2 =
   encodeBool (csum1 == csum2)
 
-%export
+export
 proven_idris_checksum_verify_checksum : Int -> Int -> Int
 proven_idris_checksum_verify_checksum calculated expected =
   encodeBool (calculated == expected)
@@ -204,23 +204,23 @@ proven_idris_checksum_verify_checksum calculated expected =
 -- Data Validation Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_has_digits : String -> Int
 proven_idris_checksum_has_digits s =
   encodeBool (any isDigit (unpack s))
 
-%export
+export
 proven_idris_checksum_all_digits : String -> Int
 proven_idris_checksum_all_digits s =
   let nonEmpty = not (null s)
   in encodeBool (nonEmpty && all isDigit (unpack s))
 
-%export
+export
 proven_idris_checksum_digit_count : String -> Int
 proven_idris_checksum_digit_count s =
   cast (length (filter isDigit (unpack s)))
 
-%export
+export
 proven_idris_checksum_is_valid_length_for_luhn : String -> Int
 proven_idris_checksum_is_valid_length_for_luhn s =
   let digitCount = length (filter isDigit (unpack s))
@@ -230,7 +230,7 @@ proven_idris_checksum_is_valid_length_for_luhn s =
 -- Checksum Format Helpers
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_to_hex : Int -> String
 proven_idris_checksum_to_hex csum =
   let hex = toHex (cast {to = Bits32} csum)
@@ -251,7 +251,7 @@ proven_idris_checksum_to_hex csum =
                      else chr (ord 'a' + cast (digit - 10))
           in go (n `div` 16) (strCons char acc)
 
-%export
+export
 proven_idris_checksum_from_hex : String -> Int
 proven_idris_checksum_from_hex s =
   cast {to = Int} (parseHex s 0)
@@ -274,15 +274,15 @@ proven_idris_checksum_from_hex s =
 -- Constant Values
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_luhn_mod : Int
 proven_idris_checksum_luhn_mod = 10
 
-%export
+export
 proven_idris_checksum_isbn10_length : Int
 proven_idris_checksum_isbn10_length = 10
 
-%export
+export
 proven_idris_checksum_isbn13_length : Int
 proven_idris_checksum_isbn13_length = 13
 
@@ -290,7 +290,7 @@ proven_idris_checksum_isbn13_length = 13
 -- Error Messages
 --------------------------------------------------------------------------------
 
-%export
+export
 proven_idris_checksum_friendly_error : String -> String
 proven_idris_checksum_friendly_error errorMsg =
   if isInfixOf "crc" (toLower errorMsg) || isInfixOf "crc32" (toLower errorMsg)
