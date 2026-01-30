@@ -288,6 +288,7 @@ modules = Proven
         , Proven.FFI.SafeCurrency
         , Proven.FFI.SafeHex
         , Proven.FFI.SafeTree
+        , Proven.FFI.SafeBuffer
         , Proven.FFI.SafeTree
         , Proven.FFI.SafeBuffer
         , Proven.FFI.SafePolicy
