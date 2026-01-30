@@ -70,5 +70,6 @@ import Proven.FFI.SafeCurrency
 import Proven.FFI.SafeHex
 import Proven.FFI.SafeTree
 import Proven.FFI.SafeBuffer
+import Proven.FFI.SafePolicy
 
 %default total
