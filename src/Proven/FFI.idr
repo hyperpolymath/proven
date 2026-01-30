@@ -30,5 +30,6 @@ import Proven.FFI.SafeUrl
 import Proven.FFI.SafeEnv
 import Proven.FFI.SafeArgs
 import Proven.FFI.SafeFile
+import Proven.FFI.SafeUUID
 
 %default total

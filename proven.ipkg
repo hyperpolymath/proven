@@ -284,6 +284,7 @@ modules = Proven
         , Proven.FFI.SafeEnv
         , Proven.FFI.SafeArgs
         , Proven.FFI.SafeFile
+        , Proven.FFI.SafeUUID
         -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
         -- , Proven.ECHIDNA.ProofTerm
         -- , Proven.ECHIDNA.Validator
