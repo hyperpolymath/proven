@@ -68,5 +68,6 @@ import Proven.FFI.SafeSchema
 import Proven.FFI.SafeUUID
 import Proven.FFI.SafeCurrency
 import Proven.FFI.SafeHex
+import Proven.FFI.SafeTree
 
 %default total
