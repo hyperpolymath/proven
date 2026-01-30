@@ -291,6 +291,7 @@ modules = Proven
         , Proven.FFI.SafeBuffer
         , Proven.FFI.SafePolicy
         , Proven.FFI.SafeProvenance
+        , Proven.FFI.SafeStateMachine
         , Proven.FFI.SafeTree
         , Proven.FFI.SafeBuffer
         , Proven.FFI.SafePolicy
