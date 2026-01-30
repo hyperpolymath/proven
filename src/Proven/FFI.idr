@@ -51,5 +51,6 @@ import Proven.FFI.SafeProbability
 import Proven.FFI.SafeUnit
 import Proven.FFI.SafeQueue
 import Proven.FFI.SafeBloom
+import Proven.FFI.SafeLRU
 
 %default total
