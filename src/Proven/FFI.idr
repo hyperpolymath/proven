@@ -71,5 +71,6 @@ import Proven.FFI.SafeHex
 import Proven.FFI.SafeTree
 import Proven.FFI.SafeBuffer
 import Proven.FFI.SafePolicy
+import Proven.FFI.SafeProvenance
 
 %default total
