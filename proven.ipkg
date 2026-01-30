@@ -310,6 +310,7 @@ modules = Proven
         , Proven.FFI.SafeCircuitBreaker
         , Proven.FFI.SafeRetry
         , Proven.FFI.SafeMonotonic
+        , Proven.FFI.SafeGraph
         -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
         -- , Proven.ECHIDNA.ProofTerm
         -- , Proven.ECHIDNA.Validator
