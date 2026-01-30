@@ -45,5 +45,6 @@ import Proven.FFI.SafeFloat
 import Proven.FFI.SafeColor
 import Proven.FFI.SafeVersion
 import Proven.FFI.SafeChecksum
+import Proven.FFI.SafeGeo
 
 %default total
