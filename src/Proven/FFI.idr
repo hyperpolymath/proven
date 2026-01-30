@@ -66,5 +66,6 @@ import Proven.FFI.SafeOrdering
 import Proven.FFI.SafeTensor
 import Proven.FFI.SafeSchema
 import Proven.FFI.SafeUUID
+import Proven.FFI.SafeCurrency
 
 %default total

@@ -320,6 +320,7 @@ modules = Proven
         , Proven.FFI.SafeSchema
         , Proven.FFI.SafeTensor
         , Proven.FFI.SafeUUID
+        , Proven.FFI.SafeCurrency
         -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
         -- , Proven.ECHIDNA.ProofTerm
         -- , Proven.ECHIDNA.Validator
