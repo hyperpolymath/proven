@@ -46,5 +46,6 @@ import Proven.FFI.SafeColor
 import Proven.FFI.SafeVersion
 import Proven.FFI.SafeChecksum
 import Proven.FFI.SafeGeo
+import Proven.FFI.SafeAngle
 
 %default total
