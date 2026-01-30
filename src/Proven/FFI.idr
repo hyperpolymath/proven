@@ -52,5 +52,6 @@ import Proven.FFI.SafeUnit
 import Proven.FFI.SafeQueue
 import Proven.FFI.SafeBloom
 import Proven.FFI.SafeLRU
+import Proven.FFI.SafeRateLimiter
 
 %default total
