@@ -57,5 +57,6 @@ import Proven.FFI.SafeCircuitBreaker
 import Proven.FFI.SafeRetry
 import Proven.FFI.SafeMonotonic
 import Proven.FFI.SafeGraph
+import Proven.FFI.SafeResource
 
 %default total
