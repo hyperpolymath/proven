@@ -43,5 +43,6 @@ import Proven.FFI.SafeLog
 import Proven.FFI.SafeCron
 import Proven.FFI.SafeFloat
 import Proven.FFI.SafeColor
+import Proven.FFI.SafeVersion
 
 %default total
