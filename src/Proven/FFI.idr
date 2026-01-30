@@ -19,6 +19,7 @@ import Proven.FFI.SafeContentType
 import Proven.FFI.SafeJWT
 import Proven.FFI.SafeSQL
 import Proven.FFI.SafeCommand
+import Proven.FFI.SafeCrypto
 import Proven.FFI.SafeNetwork
 import Proven.FFI.SafeUrl
 
