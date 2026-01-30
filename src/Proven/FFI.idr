@@ -49,5 +49,6 @@ import Proven.FFI.SafeGeo
 import Proven.FFI.SafeAngle
 import Proven.FFI.SafeProbability
 import Proven.FFI.SafeUnit
+import Proven.FFI.SafeQueue
 
 %default total
