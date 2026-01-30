@@ -1,9 +1,14 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
 ||| Proven FFI aggregation module
+|||
+||| This module re-exports all FFI functions from individual modules.
+||| Each FFI module exports Idris2 functions to the C ABI for consumption by Zig.
 module Proven.FFI
 
 import Proven.FFI.SafePath
 import Proven.FFI.SafeJson
+import Proven.FFI.SafeMath
 import Proven.FFI.SafeNetwork
 import Proven.FFI.SafeUrl
 

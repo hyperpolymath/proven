@@ -1,10 +1,10 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
 package proven
 
 version = 1.0.0
-authors = "Hyperpolymath"
-license = "PMPL-1.0"
+authors = "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
+license = "Apache-2.0"
 brief = "Verified safe operations - code that cannot crash"
 readme = "README.adoc"
 homepage = "https://github.com/hyperpolymath/proven"
@@ -258,17 +258,21 @@ modules = Proven
         , Proven.SafeProcess
         , Proven.SafeSignal
         , Proven.SafeTerminal
-        -- FFI (ECHIDNA integration) - temporarily excluded due to syntax issues
-        -- , Proven.FFI.Echidna
+        -- FFI exports (connect Idris2 to Zig/C ABI)
+        , Proven.FFI
+        , Proven.FFI.SafePath
+        , Proven.FFI.SafeJson
+        , Proven.FFI.SafeMath
+        , Proven.FFI.SafeNetwork
+        , Proven.FFI.SafeUrl
+        -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
+        -- , Proven.ECHIDNA.ProofTerm
+        -- , Proven.ECHIDNA.Validator
+        -- , Proven.ECHIDNA.Soundness
 
 depends = base >= 0.6.0
         , contrib
         , network
 
 opts = "--total"
-
--- ECHIDNA neurosymbolic theorem prover validation modules
-modules = Proven.ECHIDNA.ProofTerm,
-          Proven.ECHIDNA.Validator,
-          Proven.ECHIDNA.Soundness
 

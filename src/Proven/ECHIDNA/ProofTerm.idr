@@ -1,7 +1,8 @@
--- SPDX-License-Identifier: MIT OR Palimpsest-0.6
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
 -- ProofTerm.idr - Dependent-typed representation of proof terms
 
-module ProofTerm
+module Proven.ECHIDNA.ProofTerm
 
 -- AST for proof terms (dependent type theory)
 public export

@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: MIT OR Palimpsest-0.6
--- SPDX-FileCopyrightText: 2026 ECHIDNA Project Team
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
 
 ||| Formal soundness guarantees for ECHIDNA neurosymbolic theorem prover
 |||
