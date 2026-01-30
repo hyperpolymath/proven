@@ -37,5 +37,6 @@ import Proven.FFI.SafeTree
 import Proven.FFI.SafeBuffer
 import Proven.FFI.SafePolicy
 import Proven.FFI.SafeProvenance
+import Proven.FFI.SafeStateMachine
 
 %default total

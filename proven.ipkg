@@ -291,6 +291,7 @@ modules = Proven
         , Proven.FFI.SafeBuffer
         , Proven.FFI.SafePolicy
         , Proven.FFI.SafeProvenance
+        , Proven.FFI.SafeStateMachine
         -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
         -- , Proven.ECHIDNA.ProofTerm
         -- , Proven.ECHIDNA.Validator
