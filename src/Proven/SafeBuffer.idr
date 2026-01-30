@@ -32,8 +32,8 @@ record DynBuffer a where
 
 ||| Create an empty buffer filled with a default value
 public export
-empty : (size : Nat) -> (default : a) -> Buffer size a
-empty size def = MkBuffer (replicate size def)
+empty : (size : Nat) -> (defaultValue : a) -> Buffer size a
+empty size defaultValue = MkBuffer (replicate size defaultValue)
 
 ||| Get element at index (type-safe, no runtime check needed)
 public export

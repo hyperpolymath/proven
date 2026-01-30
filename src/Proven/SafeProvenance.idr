@@ -209,8 +209,7 @@ auditLog entry trail =
   if trailSealed trail
     then Nothing
     else let newHash = hashAuditEntry entry (trailHash trail)
-         in Just ({ trail with trailEntries := entry :: trailEntries trail,
-                                    trailHash := newHash })
+         in Just (record { trailEntries = entry :: trailEntries trail, trailHash = newHash } trail)
 
 ||| Seal audit trail (no more modifications)
 public export

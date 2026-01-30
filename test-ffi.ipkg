@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: Apache-2.0
+-- Minimal package to test FFI exports
+package test-ffi
+
+version = 1.0.0
+authors = "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
+license = "Apache-2.0"
+
+sourcedir = "src"
+builddir = "build-test"
+outputdir = "build-test/exec"
+
+modules = Proven.Core
+        , Proven.SafeTensor
+        , Proven.SafeFloat
+        , Proven.FFI.SafeTensor
+        , Proven.FFI.SafeHex
+
+depends = base >= 0.6.0
+
+opts = "--total"

@@ -1,0 +1,19 @@
+-- SPDX-License-Identifier: Apache-2.0
+-- Simplest possible FFI test
+package test-simple
+
+version = 1.0.0
+sourcedir = "src"
+builddir = "build-simple"
+
+modules = Proven.Core
+        , Proven.SafeFloat
+        , Proven.SafeTensor
+        , Proven.FFI.SafeTensor
+        , Main
+
+main = Main
+
+executable = test_ffi_exports
+
+depends = base >= 0.6.0

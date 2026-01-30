@@ -1,0 +1,1 @@
+(parameterize ([optimize-level 3] [compile-file-message #f]) (compile-program "/var/mnt/eclipse/repos/proven/build-simple/exec/test_ffi_exports_app/test_ffi_exports.ss"))
