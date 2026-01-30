@@ -29,5 +29,6 @@ import Proven.FFI.SafeNetwork
 import Proven.FFI.SafeUrl
 import Proven.FFI.SafeEnv
 import Proven.FFI.SafeArgs
+import Proven.FFI.SafeFile
 
 %default total
