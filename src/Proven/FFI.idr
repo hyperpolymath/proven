@@ -39,5 +39,6 @@ import Proven.FFI.SafePolicy
 import Proven.FFI.SafeProvenance
 import Proven.FFI.SafeStateMachine
 import Proven.FFI.SafeMarkdown
+import Proven.FFI.SafeLog
 
 %default total
