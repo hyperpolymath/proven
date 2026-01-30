@@ -24,6 +24,7 @@ import Proven.FFI.SafePassword
 import Proven.FFI.SafeRegex
 import Proven.FFI.SafeXML
 import Proven.FFI.SafeYAML
+import Proven.FFI.SafeTOML
 import Proven.FFI.SafeNetwork
 import Proven.FFI.SafeUrl
 
