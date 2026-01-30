@@ -41,5 +41,6 @@ import Proven.FFI.SafeStateMachine
 import Proven.FFI.SafeMarkdown
 import Proven.FFI.SafeLog
 import Proven.FFI.SafeCron
+import Proven.FFI.SafeFloat
 
 %default total
