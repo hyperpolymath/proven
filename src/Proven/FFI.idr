@@ -23,6 +23,7 @@ import Proven.FFI.SafeCrypto
 import Proven.FFI.SafePassword
 import Proven.FFI.SafeRegex
 import Proven.FFI.SafeXML
+import Proven.FFI.SafeYAML
 import Proven.FFI.SafeNetwork
 import Proven.FFI.SafeUrl
 
