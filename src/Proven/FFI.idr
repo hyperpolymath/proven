@@ -73,5 +73,6 @@ import Proven.FFI.SafeBuffer
 import Proven.FFI.SafePolicy
 import Proven.FFI.SafeProvenance
 import Proven.FFI.SafeStateMachine
+import Proven.FFI.SafeMarkdown
 
 %default total
