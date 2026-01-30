@@ -65,4 +65,5 @@ import Proven.FFI.SafeFiniteField
 import Proven.FFI.SafeOrdering
 
 %default total
+import Proven.FFI.SafeTensor
 import Proven.FFI.SafeSchema
