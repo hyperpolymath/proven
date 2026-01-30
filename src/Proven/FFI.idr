@@ -63,7 +63,8 @@ import Proven.FFI.SafeCapability
 import Proven.FFI.SafeConsensus
 import Proven.FFI.SafeFiniteField
 import Proven.FFI.SafeOrdering
-
-%default total
 import Proven.FFI.SafeTensor
 import Proven.FFI.SafeSchema
+import Proven.FFI.SafeUUID
+
+%default total
