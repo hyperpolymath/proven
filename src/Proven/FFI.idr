@@ -17,6 +17,7 @@ import Proven.FFI.SafeCookie
 import Proven.FFI.SafeHeader
 import Proven.FFI.SafeContentType
 import Proven.FFI.SafeJWT
+import Proven.FFI.SafeSQL
 import Proven.FFI.SafeNetwork
 import Proven.FFI.SafeUrl
 

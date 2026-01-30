@@ -271,6 +271,7 @@ modules = Proven
         , Proven.FFI.SafeHeader
         , Proven.FFI.SafeContentType
         , Proven.FFI.SafeJWT
+        , Proven.FFI.SafeSQL
         , Proven.FFI.SafeNetwork
         , Proven.FFI.SafeUrl
         -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
