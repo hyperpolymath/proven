@@ -65,3 +65,4 @@ import Proven.FFI.SafeFiniteField
 import Proven.FFI.SafeOrdering
 
 %default total
+import Proven.FFI.SafeSchema
