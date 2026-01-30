@@ -59,5 +59,6 @@ import Proven.FFI.SafeMonotonic
 import Proven.FFI.SafeGraph
 import Proven.FFI.SafeResource
 import Proven.FFI.SafeTransaction
+import Proven.FFI.SafeCapability
 
 %default total
