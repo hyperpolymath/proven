@@ -55,5 +55,6 @@ import Proven.FFI.SafeLRU
 import Proven.FFI.SafeRateLimiter
 import Proven.FFI.SafeCircuitBreaker
 import Proven.FFI.SafeRetry
+import Proven.FFI.SafeMonotonic
 
 %default total
