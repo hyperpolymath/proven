@@ -4,6 +4,8 @@
 ||| This module provides type-safe set operations using sorted lists
 ||| for guaranteed correctness and deterministic behavior.
 module Proven.SafeSet
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.List

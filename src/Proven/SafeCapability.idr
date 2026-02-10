@@ -10,6 +10,8 @@
 -- - Confinement guarantees
 
 module Proven.SafeCapability
+import Data.String
+import Data.List
 
 import Data.List
 import Data.List.Elem

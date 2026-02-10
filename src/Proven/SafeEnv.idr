@@ -155,7 +155,7 @@ validateName name =
         then Err (InvalidName name "name cannot be empty")
         else if isDigit (case unpack name of (c :: _) => c; [] => '0')
           then Err (InvalidName name "name cannot start with digit")
-          else Err (InvalidName name "name contains invalid characters")
+          else Err (InvalidName name "name isInfixOf invalid characters")
 
 ||| Check if value is within bounds
 public export

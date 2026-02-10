@@ -194,14 +194,14 @@ public export
 isText : String -> Bool
 isText = isTextContent
 
-||| Check if file likely contains text
+||| Check if file likely isInfixOf text
 public export
 isTextFile : String -> Bool
 isTextFile path = case extension path of
   Just ext => isTextExtension ext
   Nothing => False
 
-||| Check if file likely contains binary
+||| Check if file likely isInfixOf binary
 public export
 isBinaryFile : String -> Bool
 isBinaryFile path = case extension path of
@@ -375,7 +375,7 @@ friendlyError (PathTooLong path len max) =
 friendlyError (InvalidPath path reason) =
   "Invalid path '" ++ path ++ "': " ++ reason
 friendlyError (PathTraversal path) =
-  "Path traversal blocked: '" ++ path ++ "' contains '..' or dangerous characters"
+  "Path traversal blocked: '" ++ path ++ "' isInfixOf '..' or dangerous characters"
 friendlyError (NotFound path) =
   "File not found: " ++ path
 friendlyError (PermissionDenied path op) =

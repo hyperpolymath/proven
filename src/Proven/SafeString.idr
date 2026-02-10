@@ -81,15 +81,15 @@ public export
 isNotEmpty : String -> Bool
 isNotEmpty = not . isEmpty
 
-||| Check if string contains only whitespace
+||| Check if string isInfixOf only whitespace
 public export
 isBlank : String -> Bool
 isBlank s = all isSpace (unpack s)
 
-||| Check if string contains a substring
+||| Check if string isInfixOf a substring
 public export
-contains : (needle : String) -> (haystack : String) -> Bool
-contains needle haystack = isInfixOf needle haystack
+isInfixOf : (needle : String) -> (haystack : String) -> Bool
+isInfixOf needle haystack = isInfixOf needle haystack
 
 ||| Check if string starts with prefix
 public export
@@ -239,12 +239,12 @@ capitalize s = case strM s of
 -- Validation
 --------------------------------------------------------------------------------
 
-||| Check if string contains only ASCII characters
+||| Check if string isInfixOf only ASCII characters
 public export
 isAscii : String -> Bool
 isAscii s = all (\c => ord c < 128) (unpack s)
 
-||| Check if string contains only alphanumeric characters
+||| Check if string isInfixOf only alphanumeric characters
 public export
 isAlphaNum : String -> Bool
 isAlphaNum s = all isAlphaNum' (unpack s)
@@ -252,7 +252,7 @@ isAlphaNum s = all isAlphaNum' (unpack s)
     isAlphaNum' : Char -> Bool
     isAlphaNum' c = isAlpha c || isDigit c
 
-||| Check if string contains only digits
+||| Check if string isInfixOf only digits
 public export
 isDigits : String -> Bool
 isDigits s = isNotEmpty s && all isDigit (unpack s)

@@ -26,6 +26,8 @@
 |||   Err e => handleError e
 ||| ```
 module Proven.SafePipe
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Proven.SafePath
@@ -72,7 +74,7 @@ data PipeError
 ||| Result type for pipe operations
 public export
 PipeResult : Type -> Type
-PipeResult = Either PipeError
+PipeResult = Result PipeError
 
 --------------------------------------------------------------------------------
 -- FIFO Operations
@@ -270,7 +272,7 @@ public export
 friendlyError : PipeError -> String
 friendlyError (FifoExists path) = "FIFO already exists: " ++ path
 friendlyError (FifoCreationFailed path reason) = "Failed to create FIFO at " ++ path ++ ": " ++ reason
-friendlyError (PathTraversal path) = "Path contains traversal: " ++ path
+friendlyError (PathTraversal path) = "Path isInfixOf traversal: " ++ path
 friendlyError (InvalidPermissions perms) = "Invalid permissions: " ++ show perms
 friendlyError (PipeCreationFailed reason) = "Failed to create pipe: " ++ reason
 friendlyError BrokenPipe = "Broken pipe"

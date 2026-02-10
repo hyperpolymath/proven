@@ -4,6 +4,8 @@
 ||| This module provides a probabilistic set membership data structure
 ||| with guaranteed no false negatives.
 module Proven.SafeBloom
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.Vect
@@ -93,8 +95,8 @@ insert value bf =
 ||| Check if a value might be in the filter
 ||| Returns False if definitely not present, True if possibly present
 public export
-contains : String -> BloomFilter -> Bool
-contains value bf =
+isInfixOf : String -> BloomFilter -> Bool
+isInfixOf value bf =
   let indices = hashIndices bf.size bf.numHashes value
   in all (\idx => getAt idx bf.bits) indices
   where

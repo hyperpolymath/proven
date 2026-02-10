@@ -4,6 +4,8 @@
 ||| This module provides rational numbers (fractions) with automatic
 ||| normalization and safe operations that cannot crash.
 module Proven.SafeRational
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.List

@@ -4,6 +4,8 @@
 ||| This module provides decimal numbers suitable for financial calculations
 ||| where floating-point rounding errors are unacceptable.
 module Proven.SafeDecimal
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.List

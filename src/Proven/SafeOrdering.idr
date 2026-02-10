@@ -10,6 +10,8 @@
 -- - Total ordering from partial orders
 
 module Proven.SafeOrdering
+import Data.String
+import Data.List
 
 import Data.List
 import Data.Nat

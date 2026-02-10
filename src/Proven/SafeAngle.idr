@@ -4,6 +4,8 @@
 ||| This module provides safe angle operations including
 ||| normalization, unit conversion, and trigonometry.
 module Proven.SafeAngle
+import Data.String
+import Data.List
 
 import public Proven.Core
 import public Proven.SafeFloat

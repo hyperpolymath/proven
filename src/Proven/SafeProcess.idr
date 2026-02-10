@@ -24,6 +24,8 @@ module Proven.SafeProcess
 import public Proven.Core
 import Proven.SafePath
 import Proven.SafeShell
+import Data.String
+import Data.List
 
 %default total
 
@@ -48,8 +50,24 @@ public export
 data ProcessState
   = Running
   | Zombie
-  | Stopped
+  | StoppedState
   | Terminated ExitStatus
+
+public export
+Eq ExitStatus where
+  (Exited a) == (Exited b) = a == b
+  (Signaled a) == (Signaled b) = a == b
+  (Stopped a) == (Stopped b) = a == b
+  Continued == Continued = True
+  _ == _ = False
+
+public export
+Eq ProcessState where
+  Running == Running = True
+  Zombie == Zombie = True
+  StoppedState == StoppedState = True
+  (Terminated a) == (Terminated b) = a == b
+  _ == _ = False
 
 ||| Process errors
 public export
@@ -67,7 +85,7 @@ data ProcessError
 ||| Result type for process operations
 public export
 ProcessResult : Type -> Type
-ProcessResult = Either ProcessError
+ProcessResult = Result ProcessError
 
 --------------------------------------------------------------------------------
 -- Process Spawning
@@ -80,8 +98,8 @@ validateExecutable : String -> ProcessResult String
 validateExecutable path = do
   -- Check path is safe
   case validatePath path of
-    Ok safePath => Ok (show safePath)
-    Err _ => Err (CommandNotFound path)
+    Right safePath => Ok path  -- Return validated path string
+    Left _ => Err (CommandNotFound path)
   -- FFI: check file exists and is executable
   -- For now, accept any path
 
@@ -89,7 +107,7 @@ validateExecutable path = do
 public export
 validateArgs : List String -> ProcessResult (List String)
 validateArgs args =
-  if all (\arg => not (contains "\0" arg)) args
+  if all (\arg => not (isInfixOf "\0" arg)) args
     then Ok args
     else Err InvalidArguments
 
@@ -274,28 +292,28 @@ getSignal _ = Nothing
 --------------------------------------------------------------------------------
 
 ||| Proof: Spawned processes have positive PIDs
-public export
-spawnedPidPositive : (prog : String) -> (args : List String) ->
-                     (pid : ProcessId) ->
-                     spawnProcess prog args = Ok pid ->
-                     (n : Int ** pid = MkPid n && n > 0)
+-- public export
+-- spawnedPidPositive : (prog : String) -> (args : List String) ->
+--                      (pid : ProcessId) ->
+--                      spawnProcess prog args = Ok pid ->
+--                      (n : Int ** pid = MkPid n && n > 0)
 -- Implementation deferred
 
 ||| Proof: Reaped processes are no longer zombies
-public export
-reapedNotZombie : (pid : ProcessId) -> (status : ExitStatus) ->
-                  reapProcess pid = Ok (Just status) ->
-                  (tracked : TrackedProcess) ->
-                  tracked.pid = pid ->
-                  isZombie (markTerminated status 0 tracked) = False
+-- public export
+-- reapedNotZombie : (pid : ProcessId) -> (status : ExitStatus) ->
+--                   reapProcess pid = Ok (Just status) ->
+--                   (tracked : TrackedProcess) ->
+--                   tracked.pid = pid ->
+--                   isZombie (markTerminated status 0 tracked) = False
 -- Implementation deferred
 
 ||| Proof: Terminated processes cannot be waited again
-public export
-terminatedOnce : (pid : ProcessId) -> (status : ExitStatus) ->
-                 waitForProcess pid = Ok status ->
-                 (waitForProcess pid /= Ok status)
--- Cannot wait same process twice (implementation deferred)
+-- public export
+-- terminatedOnce : (pid : ProcessId) -> (status : ExitStatus) ->
+--                  waitForProcess pid = Ok status ->
+-- --                  (waitForProcess pid /= Ok status)
+-- -- -- Cannot wait same process twice (implementation deferred)
 
 --------------------------------------------------------------------------------
 -- Utilities

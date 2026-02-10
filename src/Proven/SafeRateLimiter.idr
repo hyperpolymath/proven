@@ -4,6 +4,8 @@
 ||| This module provides safe rate limiting implementations
 ||| including token bucket and sliding window algorithms.
 module Proven.SafeRateLimiter
+import Data.String
+import Data.List
 
 import public Proven.Core
 

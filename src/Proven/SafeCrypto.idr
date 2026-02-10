@@ -10,6 +10,8 @@
 |||
 ||| Note: Actual implementations require FFI to Zig crypto libraries
 module Proven.SafeCrypto
+import Data.String
+import Data.List
 
 import public Proven.Core
 import public Proven.SafeCrypto.Hash

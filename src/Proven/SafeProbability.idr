@@ -4,6 +4,8 @@
 ||| This module provides safe probability operations that ensure
 ||| values stay within valid ranges and handle edge cases.
 module Proven.SafeProbability
+import Data.String
+import Data.List
 
 import public Proven.Core
 import public Proven.SafeFloat

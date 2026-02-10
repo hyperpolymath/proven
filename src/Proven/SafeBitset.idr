@@ -4,6 +4,8 @@
 ||| This module provides bounded bitset operations with compile-time
 ||| and runtime bounds checking for safe bit manipulation.
 module Proven.SafeBitset
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.Bits

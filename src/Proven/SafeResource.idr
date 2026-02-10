@@ -4,6 +4,8 @@
 ||| This module provides patterns for safe resource management,
 ||| ensuring resources are properly acquired and released.
 module Proven.SafeResource
+import Data.String
+import Data.List
 
 import public Proven.Core
 

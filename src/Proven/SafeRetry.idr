@@ -4,6 +4,8 @@
 ||| This module provides configurable retry logic with various
 ||| backoff strategies for resilient error handling.
 module Proven.SafeRetry
+import Data.String
+import Data.List
 
 import public Proven.Core
 

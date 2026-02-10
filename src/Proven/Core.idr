@@ -4,6 +4,8 @@
 ||| This module provides the foundational types used throughout
 ||| the library, including error handling and result types.
 module Proven.Core
+import Data.String
+import Data.List
 
 import public Data.List
 import public Data.Nat

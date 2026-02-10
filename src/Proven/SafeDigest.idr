@@ -195,7 +195,7 @@ public export
 validateLength : HashAlgorithm -> String -> Bool
 validateLength alg hex = length hex == expectedLength alg
 
-||| Validate that string contains only hex characters
+||| Validate that string isInfixOf only hex characters
 public export
 isHexString : String -> Bool
 isHexString s = all isHexDigit (unpack s)

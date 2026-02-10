@@ -4,6 +4,8 @@
 ||| This module provides ACID-like transaction semantics
 ||| for safe state modifications with rollback support.
 module Proven.SafeTransaction
+import Data.String
+import Data.List
 
 import public Proven.Core
 

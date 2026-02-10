@@ -4,6 +4,8 @@
 ||| This module provides safe monetary calculations with
 ||| proper rounding, currency conversion, and overflow protection.
 module Proven.SafeCurrency
+import Data.String
+import Data.List
 
 import public Proven.Core
 

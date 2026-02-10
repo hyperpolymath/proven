@@ -24,6 +24,8 @@
 module Proven.SafeShell
 
 import public Proven.Core
+import Data.String
+import Data.List
 
 %default total
 
@@ -33,7 +35,7 @@ import public Proven.Core
 
 ||| Quote types in shell syntax
 public export
-data QuoteType = Single | Double | None
+data QuoteType = SingleQuote | DoubleQuote | NoQuote
 
 ||| Shell token types
 public export
@@ -66,7 +68,7 @@ data ShellError
 ||| Result type for shell operations
 public export
 ShellResult : Type -> Type
-ShellResult = Either ShellError
+ShellResult = Result ShellError
 
 --------------------------------------------------------------------------------
 -- Quote Handling
@@ -85,7 +87,7 @@ escapeForShell s =
     escapeSingleQuote '\'' = "'\\''"
     escapeSingleQuote c = singleton c
 
-||| Validate that string contains no shell metacharacters
+||| Validate that string isInfixOf no shell metacharacters
 public export
 containsMetachars : String -> Bool
 containsMetachars s =
@@ -127,7 +129,7 @@ validateVariable var =
 ||| Check for potential variable expansion in string
 public export
 containsVariables : String -> Bool
-containsVariables s = contains "$" s
+containsVariables s = isInfixOf "$" s
 
 --------------------------------------------------------------------------------
 -- Command Injection Detection
@@ -148,11 +150,11 @@ detectDangerousPatterns : String -> List DangerousPattern
 detectDangerousPatterns s =
   let chars = unpack s
   in catMaybes
-       [ if contains ";" s || contains "&&" s || contains "||" s then Just CommandChaining else Nothing
-       , if contains "&" s && not (contains "&&" s) then Just Backgrounding else Nothing
-       , if contains "$(" s || contains "`" s then Just SubshellExecution else Nothing
+       [ if isInfixOf ";" s || isInfixOf "&&" s || isInfixOf "||" s then Just CommandChaining else Nothing
+       , if isInfixOf "&" s && not (isInfixOf "&&" s) then Just Backgrounding else Nothing
+       , if isInfixOf "$(" s || isInfixOf "`" s then Just SubshellExecution else Nothing
        , if any (\c => c `elem` ['>', '<']) chars then Just Redirection else Nothing
-       , if contains "|" s && not (contains "||" s) then Just Piping else Nothing
+       , if isInfixOf "|" s && not (isInfixOf "||" s) then Just Piping else Nothing
        ]
 
 ||| Check if string is safe for direct execution (no injection vectors)
@@ -194,15 +196,15 @@ escapedHasNoUnquotedMeta : (s : String) -> (escaped : String) ->
                            (containsMetachars escaped = False)
 -- Implementation deferred (requires more complex proof infrastructure)
 
-||| Proof: Valid variable names match regex [a-zA-Z_][a-zA-Z0-9_]*
-public export
-validVarNameRegex : (var : String) ->
-                    isValidVarName var = True ->
-                    (head : Char ** tail : List Char **
-                     unpack var = head :: tail &&
-                     (isAlpha head || head == '_') = True &&
-                     all (\x => isAlphaNum x || x == '_') tail = True)
--- Implementation deferred
+-- ||| Proof: Valid variable names match regex [a-zA-Z_][a-zA-Z0-9_]*
+-- public export
+-- validVarNameRegex : (var : String) ->
+--                     isValidVarName var = True ->
+--                     (head : Char ** tail : List Char **
+--                      unpack var = head :: tail &&
+--                      (isAlpha head || head == '_') = True &&
+--                      all (\x => isAlphaNum x || x == '_') tail = True)
+-- -- Implementation deferred
 
 --------------------------------------------------------------------------------
 -- Utilities
@@ -211,9 +213,9 @@ validVarNameRegex : (var : String) ->
 ||| Get friendly error message
 public export
 friendlyError : ShellError -> String
-friendlyError (UnclosedQuote Single) = "Unclosed single quote"
-friendlyError (UnclosedQuote Double) = "Unclosed double quote"
-friendlyError (UnclosedQuote None) = "Unclosed quote"
+friendlyError (UnclosedQuote SingleQuote) = "Unclosed single quote"
+friendlyError (UnclosedQuote DoubleQuote) = "Unclosed double quote"
+friendlyError (UnclosedQuote NoQuote) = "Unclosed quote"
 friendlyError (InvalidVariable v) = "Invalid variable name: " ++ v
 friendlyError (InjectionDetected cmd) = "Potential command injection detected in: " ++ cmd
 friendlyError (InvalidRedirect r) = "Invalid redirection: " ++ r

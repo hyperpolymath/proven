@@ -333,9 +333,9 @@ isDepthError _ = False
 public export
 friendlyError : XMLError -> String
 friendlyError (ExternalEntityDetected _) =
-  "XML contains external entity references which are not allowed for security reasons."
+  "XML isInfixOf external entity references which are not allowed for security reasons."
 friendlyError (EntityExpansionLimitExceeded _ _) =
-  "XML contains too many entity expansions (possible entity bomb attack)."
+  "XML isInfixOf too many entity expansions (possible entity bomb attack)."
 friendlyError (NestingDepthExceeded _ _) =
   "XML nesting is too deep (possible attack or malformed document)."
 friendlyError DTDNotAllowed =

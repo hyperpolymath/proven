@@ -4,6 +4,8 @@
 ||| This module provides safe markdown generation with
 ||| proper escaping to prevent injection attacks.
 module Proven.SafeMarkdown
+import Data.String
+import Data.List
 
 import public Proven.Core
 

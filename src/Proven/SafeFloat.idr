@@ -4,6 +4,8 @@
 ||| This module provides safe floating-point operations that handle
 ||| NaN, infinity, and precision issues explicitly.
 module Proven.SafeFloat
+import Data.String
+import Data.List
 
 import public Proven.Core
 

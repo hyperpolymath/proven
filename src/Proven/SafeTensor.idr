@@ -11,6 +11,8 @@
 ||| - Safe matrix operations
 ||| - Type-safe tensor shapes using dependent types
 module Proven.SafeTensor
+import Data.String
+import Data.List
 
 import public Proven.Core
 import public Proven.SafeFloat

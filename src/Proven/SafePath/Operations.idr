@@ -7,9 +7,27 @@ module Proven.SafePath.Operations
 import Proven.Core
 import Proven.SafePath.Types
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
+
+--------------------------------------------------------------------------------
+-- Helper Functions
+--------------------------------------------------------------------------------
+
+||| Join list of strings with separator
+joinWith : String -> List String -> String
+joinWith sep [] = ""
+joinWith sep [x] = x
+joinWith sep (x :: xs) = x ++ sep ++ joinWith sep xs
+
+||| Check if path has Windows-style absolute prefix
+isWindowsAbs : String -> Bool
+isWindowsAbs path =
+  case unpack path of
+    (d :: ':' :: _) => isAlpha d
+    _ => False
 
 --------------------------------------------------------------------------------
 -- Segment Operations
@@ -35,7 +53,7 @@ sanitizeSegment seg =
   in if null cleaned then "_" else pack cleaned
   where
     isSafe : Char -> Bool
-    isSafe c = isAlphaNum c || c `elem` unpack "-_.~"
+    isSafe c = isAlphaNum c || elem c (unpack "-_.~")
 
 ||| Split path string into segments
 public export
@@ -44,13 +62,13 @@ splitPath s =
   let chars = unpack s
       -- Handle both Unix and Windows separators
       normalized = map (\c => if c == '\\' then '/' else c) chars
-  in filter (not . (== "")) (split '/' (pack normalized))
+  in filter (not . (== "")) (forget (split (== '/') (pack normalized)))
 
 ||| Join segments into path string
 public export
 joinSegments : List String -> String
 joinSegments [] = ""
-joinSegments segs = join "/" segs
+joinSegments segs = joinWith "/" segs
 
 --------------------------------------------------------------------------------
 -- Path Normalization Operations
@@ -88,15 +106,16 @@ resolveDotsInSegments segs isAbs = reverse (go segs [])
 
 ||| Full path normalization
 public export
+partial
 normalizePath : String -> String
 normalizePath s =
   prefixFor s ++ joinSegments (resolveDotsInSegments (splitPath s) (isAbs s))
 where
-  isAbs str = isPrefixOf "/" str || isWindowsAbs str
-  prefixFor str = if isAbs str then "/" else ""
-  isWindowsAbs : String -> Bool
-  isWindowsAbs str =
+  isWinAbs : String -> Bool
+  isWinAbs str =
     length str >= 2 && isAlpha (assert_total $ prim__strHead str) && prim__strIndex str 1 == ':'
+  isAbs str = isPrefixOf "/" str || isWinAbs str
+  prefixFor str = if isAbs str then "/" else ""
 
 --------------------------------------------------------------------------------
 -- Path Comparison Operations
@@ -104,16 +123,19 @@ where
 
 ||| Compare paths case-sensitively (Unix)
 public export
+partial
 pathEqSensitive : String -> String -> Bool
 pathEqSensitive p1 p2 = normalizePath p1 == normalizePath p2
 
 ||| Compare paths case-insensitively (Windows)
 public export
+partial
 pathEqInsensitive : String -> String -> Bool
 pathEqInsensitive p1 p2 = toLower (normalizePath p1) == toLower (normalizePath p2)
 
 ||| Check if path1 is parent of path2
 public export
+partial
 isParentOf : String -> String -> Bool
 isParentOf parent child =
   let normParent = splitPath (normalizePath parent)
@@ -122,6 +144,7 @@ isParentOf parent child =
 
 ||| Check if path1 is ancestor of path2
 public export
+partial
 isAncestorOf : String -> String -> Bool
 isAncestorOf ancestor descendant =
   let normAncestor = splitPath (normalizePath ancestor)
@@ -136,66 +159,86 @@ isAncestorOf ancestor descendant =
 public export
 getExtension : String -> Maybe String
 getExtension s =
-  let name = last (splitPath s)
-      parts = split '.' name
-  in case parts of
-       [] => Nothing
-       [_] => Nothing
-       _ => Just (last parts)
+  case splitPath s of
+    [] => Nothing
+    (seg :: segs) =>
+      let name = case segs of
+                   [] => seg
+                   _ => last (seg :: segs)
+          parts = forget (split (== '.') name)
+      in case parts of
+           [] => Nothing
+           [_] => Nothing
+           (p :: ps) => case ps of
+                          [] => Nothing
+                          _ => Just (last (p :: ps))
 
 ||| Get all extensions (for .tar.gz etc.)
 public export
 getAllExtensions : String -> List String
 getAllExtensions s =
-  let name = last (splitPath s)
-      parts = split '.' name
-  in case parts of
-       [] => []
-       [_] => []
-       (_ :: exts) => exts
+  case splitPath s of
+    [] => []
+    (seg :: segs) =>
+      let name = case segs of
+                   [] => seg
+                   _ => last (seg :: segs)
+          parts = forget (split (== '.') name)
+      in case parts of
+           [] => []
+           [_] => []
+           (_ :: exts) => exts
 
 ||| Change extension
 public export
 changeExtension : String -> String -> String
 changeExtension path newExt =
-  let segs = splitPath path
-  in case segs of
-       [] => ""
-       _ =>
-         let name = last segs
-             base = case split '.' name of
-                      [] => name
-                      [x] => x
-                      (x :: _) => x
-             newName = if newExt == "" then base else base ++ "." ++ newExt
-         in joinSegments (init segs ++ [newName])
+  case splitPath path of
+    [] => ""
+    (seg :: segs) =>
+      let name = case segs of
+                   [] => seg
+                   _ => last (seg :: segs)
+          base = case forget (split (== '.') name) of
+                   [] => name
+                   [x] => x
+                   (x :: _) => x
+          newName = if newExt == "" then base else base ++ "." ++ newExt
+          initSegs = init (seg :: segs)
+      in joinSegments (initSegs ++ [newName])
 
 ||| Add extension (doesn't replace existing)
 public export
 addExtension : String -> String -> String
 addExtension path ext =
-  let segs = splitPath path
-  in case segs of
-       [] => ""
-       _ =>
-         let name = last segs
-             newName = name ++ "." ++ ext
-         in joinSegments (init segs ++ [newName])
+  case splitPath path of
+    [] => ""
+    (seg :: segs) =>
+      let name = case segs of
+                   [] => seg
+                   _ => last (seg :: segs)
+          newName = name ++ "." ++ ext
+          initSegs = init (seg :: segs)
+      in joinSegments (initSegs ++ [newName])
 
 ||| Strip extension
 public export
 stripExtension : String -> String
 stripExtension path =
-  let segs = splitPath path
-  in case segs of
-       [] => ""
-       _ =>
-         let name = last segs
-             base = case split '.' name of
-                      [] => name
-                      [x] => x
-                      parts => join "." (init parts)
-         in joinSegments (init segs ++ [base])
+  case splitPath path of
+    [] => ""
+    (seg :: segs) =>
+      let name = case segs of
+                   [] => seg
+                   _ => last (seg :: segs)
+          base = case forget (split (== '.') name) of
+                   [] => name
+                   [x] => x
+                   (p :: ps) => case ps of
+                                  [] => p
+                                  _ => joinWith "." (init (p :: ps))
+          initSegs = init (seg :: segs)
+      in joinSegments (initSegs ++ [base])
 
 --------------------------------------------------------------------------------
 -- Safe Path Construction
@@ -203,6 +246,7 @@ stripExtension path =
 
 ||| Safely join two paths, preventing traversal
 public export
+partial
 safeJoinPaths : String -> String -> Maybe String
 safeJoinPaths base rel =
   let normBase = normalizePath base
@@ -216,6 +260,7 @@ safeJoinPaths base rel =
 
 ||| Create a contained path
 public export
+partial
 makeContainedPath : (base : String) -> (rel : String) -> Maybe (ContainedPath base)
 makeContainedPath base rel =
   case safeJoinPaths base rel of
@@ -224,6 +269,7 @@ makeContainedPath base rel =
 
 ||| Validate path string
 public export
+partial
 validatePath : String -> Either String ValidatedPath
 validatePath "" = Left "Empty path"
 validatePath s =
@@ -249,21 +295,22 @@ public export
 matchGlob : String -> String -> Bool
 matchGlob pattern str = matchGlobChars (unpack pattern) (unpack str)
   where
-    matchGlobChars : List Char -> List Char -> Bool
-    matchGlobChars [] [] = True
-    matchGlobChars [] _ = False
-    matchGlobChars ('*' :: ps) ss = matchStar ps ss
-    matchGlobChars ('?' :: ps) (_ :: ss) = matchGlobChars ps ss
-    matchGlobChars ('?' :: _) [] = False
-    matchGlobChars (p :: ps) (s :: ss) =
-      if p == s then matchGlobChars ps ss else False
-    matchGlobChars _ [] = False
+    mutual
+      matchStar : List Char -> List Char -> Bool
+      matchStar [] _ = True
+      matchStar ps [] = matchGlobChars ps []
+      matchStar ps (s :: ss) =
+        matchGlobChars ps (s :: ss) || matchStar ps ss
 
-    matchStar : List Char -> List Char -> Bool
-    matchStar [] _ = True
-    matchStar ps [] = matchGlobChars ps []
-    matchStar ps (s :: ss) =
-      matchGlobChars ps (s :: ss) || matchStar ps ss
+      matchGlobChars : List Char -> List Char -> Bool
+      matchGlobChars [] [] = True
+      matchGlobChars [] _ = False
+      matchGlobChars ('*' :: ps) ss = matchStar ps ss
+      matchGlobChars ('?' :: ps) (_ :: ss) = matchGlobChars ps ss
+      matchGlobChars ('?' :: _) [] = False
+      matchGlobChars (p :: ps) (s :: ss) =
+        if p == s then matchGlobChars ps ss else False
+      matchGlobChars _ [] = False
 
 ||| Match path against glob pattern (handles **)
 public export
@@ -273,6 +320,10 @@ matchPathGlob pattern path =
       pathSegs = splitPath path
   in matchSegments patSegs pathSegs
   where
+    tails : List a -> List (List a)
+    tails [] = [[]]
+    tails xs@(_ :: rest) = xs :: tails rest
+
     matchSegments : List String -> List String -> Bool
     matchSegments [] [] = True
     matchSegments [] _ = False
@@ -281,10 +332,6 @@ matchPathGlob pattern path =
     matchSegments (p :: ps) (s :: ss) =
       matchGlob p s && matchSegments ps ss
     matchSegments _ [] = False
-
-    tails : List a -> List (List a)
-    tails [] = [[]]
-    tails xs@(_ :: rest) = xs :: tails rest
 
 --------------------------------------------------------------------------------
 -- Common File Extensions

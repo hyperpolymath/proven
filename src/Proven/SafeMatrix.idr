@@ -4,6 +4,8 @@
 ||| This module provides type-safe matrix operations with dimension checking.
 ||| Operations that could fail (like inversion) return Maybe/Either types.
 module Proven.SafeMatrix
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.Vect

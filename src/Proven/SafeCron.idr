@@ -4,6 +4,8 @@
 ||| This module provides safe parsing and evaluation of cron
 ||| expressions for task scheduling.
 module Proven.SafeCron
+import Data.String
+import Data.List
 
 import public Proven.Core
 

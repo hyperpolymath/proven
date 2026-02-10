@@ -4,6 +4,8 @@
 ||| This module provides a Union-Find structure with path compression
 ||| and union by rank for efficient set operations.
 module Proven.SafeUnionFind
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.List

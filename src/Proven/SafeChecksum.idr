@@ -4,6 +4,8 @@
 ||| This module provides safe checksum calculations including
 ||| CRC32, Adler-32, and Luhn algorithm validation.
 module Proven.SafeChecksum
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.Bits

@@ -4,6 +4,8 @@
 ||| This module provides safe queue (FIFO) operations with
 ||| proper bounds checking and overflow handling.
 module Proven.SafeQueue
+import Data.String
+import Data.List
 
 import public Proven.Core
 

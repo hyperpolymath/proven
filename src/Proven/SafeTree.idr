@@ -4,6 +4,8 @@
 ||| This module provides various tree structures with safe
 ||| traversal and manipulation operations.
 module Proven.SafeTree
+import Data.String
+import Data.List
 
 import public Proven.Core
 

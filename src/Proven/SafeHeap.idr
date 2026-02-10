@@ -4,6 +4,8 @@
 ||| This module provides a min-heap with safe operations for
 ||| insertion, extraction, and queries.
 module Proven.SafeHeap
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.List
@@ -264,8 +266,8 @@ nSmallest n heap = take n (toSortedList heap)
 
 ||| Check if an element is in the heap
 public export
-contains : Eq a => a -> Heap a -> Bool
-contains x (MkHeap xs _) = any (== x) xs
+isInfixOf : Eq a => a -> Heap a -> Bool
+isInfixOf x (MkHeap xs _) = any (== x) xs
 
 --------------------------------------------------------------------------------
 -- Max Heap (by negating comparison)

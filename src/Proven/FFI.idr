@@ -5,6 +5,8 @@
 ||| This module re-exports all FFI functions from individual modules.
 ||| Each FFI module exports Idris2 functions to the C ABI for consumption by Zig.
 module Proven.FFI
+import Data.String
+import Data.List
 
 import Proven.FFI.SafePath
 import Proven.FFI.SafeJson

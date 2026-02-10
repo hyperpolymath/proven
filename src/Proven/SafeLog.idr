@@ -4,6 +4,8 @@
 ||| This module provides structured logging with levels,
 ||| safe string interpolation, and log filtering.
 module Proven.SafeLog
+import Data.String
+import Data.List
 
 import public Proven.Core
 

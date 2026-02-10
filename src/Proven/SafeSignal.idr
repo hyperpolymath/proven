@@ -24,6 +24,8 @@
 |||   Err e => handleError e
 ||| ```
 module Proven.SafeSignal
+import Data.String
+import Data.List
 
 import public Proven.Core
 
@@ -106,7 +108,7 @@ data SignalError
 ||| Result type for signal operations
 public export
 SignalResult : Type -> Type
-SignalResult = Either SignalError
+SignalResult = Result SignalError
 
 --------------------------------------------------------------------------------
 -- Signal Constants

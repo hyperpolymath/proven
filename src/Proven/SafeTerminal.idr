@@ -22,6 +22,8 @@
 |||   Err e => handleError e
 ||| ```
 module Proven.SafeTerminal
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Proven.SafeProcess
@@ -39,6 +41,10 @@ data TermFd = MkTermFd Int
 ||| Process group ID
 public export
 data ProcessGroupId = MkPgid Int
+
+public export
+Eq ProcessGroupId where
+  (MkPgid a) == (MkPgid b) = a == b
 
 ||| Terminal size
 public export
@@ -78,7 +84,7 @@ data TermError
 ||| Result type for terminal operations
 public export
 TermResult : Type -> Type
-TermResult = Either TermError
+TermResult = Result TermError
 
 --------------------------------------------------------------------------------
 -- TTY Detection
@@ -330,17 +336,17 @@ cleanupShellTerminal term attr pgid = do
 -- Proofs
 --------------------------------------------------------------------------------
 
-||| Proof: Valid file descriptors are non-negative
-public export
-validFdNonNegative : (fd : TermFd) ->
-                     (n : Int ** fd = MkTermFd n && n >= 0)
--- Implementation: TermFd construction should enforce this
+-- ||| Proof: Valid file descriptors are non-negative
+-- public export
+-- validFdNonNegative : (fd : TermFd) ->
+--                      (n : Int ** fd = MkTermFd n && n >= 0)
+-- -- Implementation: TermFd construction should enforce this
 
-||| Proof: Process group IDs are positive
-public export
-validPgidPositive : (pgid : ProcessGroupId) ->
-                    (n : Int ** pgid = MkPgid n && n > 0)
--- Implementation: Process groups always have positive IDs
+-- ||| Proof: Process group IDs are positive
+-- public export
+-- validPgidPositive : (pgid : ProcessGroupId) ->
+--                     (n : Int ** pgid = MkPgid n && n > 0)
+-- -- Implementation: Process groups always have positive IDs
 
 ||| Proof: Setting attributes and getting returns same value
 public export

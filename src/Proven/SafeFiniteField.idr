@@ -6,6 +6,8 @@
 |||
 ||| All operations are guaranteed to stay within the field.
 module Proven.SafeFiniteField
+import Data.String
+import Data.List
 
 import Proven.Core
 import Data.So

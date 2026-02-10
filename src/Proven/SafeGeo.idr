@@ -4,6 +4,8 @@
 ||| This module provides safe operations for geographic coordinates
 ||| including validation, distance calculation, and bounding boxes.
 module Proven.SafeGeo
+import Data.String
+import Data.List
 
 import public Proven.Core
 import public Proven.SafeFloat

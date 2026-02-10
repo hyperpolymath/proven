@@ -10,6 +10,8 @@
 -- - Paxos-style proposals
 
 module Proven.SafeConsensus
+import Data.String
+import Data.List
 
 import Data.List
 import Data.List.Elem

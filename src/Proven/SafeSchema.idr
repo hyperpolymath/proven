@@ -10,6 +10,8 @@
 -- - Data transformation correctness guarantees
 
 module Proven.SafeSchema
+import Data.String
+import Data.List
 
 import Data.List
 import Data.List.Elem

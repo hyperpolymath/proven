@@ -4,6 +4,8 @@
 ||| This module provides a circuit breaker for fault tolerance,
 ||| preventing cascading failures in distributed systems.
 module Proven.SafeCircuitBreaker
+import Data.String
+import Data.List
 
 import public Proven.Core
 

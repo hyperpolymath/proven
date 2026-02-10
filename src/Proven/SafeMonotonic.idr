@@ -4,6 +4,8 @@
 ||| This module provides monotonically increasing values that
 ||| can never decrease, useful for ordering and causality.
 module Proven.SafeMonotonic
+import Data.String
+import Data.List
 
 import public Proven.Core
 

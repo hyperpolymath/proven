@@ -4,6 +4,8 @@
 ||| This module provides interval operations with proper handling of
 ||| edge cases and support for interval analysis.
 module Proven.SafeInterval
+import Data.String
+import Data.List
 
 import public Proven.Core
 
@@ -76,13 +78,13 @@ midpoint (MkInterval lo hi) = (lo + hi) / 2
 
 ||| Check if a value is in the interval
 public export
-contains : Ord a => Interval a -> a -> Bool
-contains (MkInterval lo hi) x = lo <= x && x <= hi
+isInfixOf : Ord a => Interval a -> a -> Bool
+isInfixOf (MkInterval lo hi) x = lo <= x && x <= hi
 
-||| Check if one interval contains another
+||| Check if one interval isInfixOf another
 public export
 containsInterval : Ord a => Interval a -> Interval a -> Bool
-containsInterval outer (MkInterval lo hi) = contains outer lo && contains outer hi
+containsInterval outer (MkInterval lo hi) = isInfixOf outer lo && isInfixOf outer hi
 
 ||| Check if two intervals overlap
 public export
@@ -95,10 +97,10 @@ public export
 isPoint : Eq a => Interval a -> Bool
 isPoint (MkInterval lo hi) = lo == hi
 
-||| Check if interval contains zero
+||| Check if interval isInfixOf zero
 public export
 containsZero : Ord a => Num a => Interval a -> Bool
-containsZero = flip contains 0
+containsZero = flip isInfixOf 0
 
 --------------------------------------------------------------------------------
 -- Set Operations
@@ -154,7 +156,7 @@ mul (MkInterval lo1 hi1) (MkInterval lo2 hi2) =
     foldl1 f (x :: y :: xs) = foldl1 f (f x y :: xs)
     foldl1 _ [] = lo1 * lo2  -- Fallback (shouldn't happen)
 
-||| Division (fails if divisor interval contains zero)
+||| Division (fails if divisor interval isInfixOf zero)
 public export
 div : Fractional a => Ord a => Num a =>
       Interval a -> Interval a -> Maybe (Interval a)

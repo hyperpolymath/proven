@@ -413,11 +413,11 @@ isResourceLimitError _ = False
 public export
 friendlyError : YAMLError -> String
 friendlyError (DangerousTag tag) =
-  "YAML contains dangerous tag '" ++ tag ++ "' which could execute arbitrary code."
+  "YAML isInfixOf dangerous tag '" ++ tag ++ "' which could execute arbitrary code."
 friendlyError (AliasDepthExceeded depth limit) =
   "YAML alias expansion too deep (" ++ show depth ++ " > " ++ show limit ++ "). Possible alias bomb attack."
 friendlyError (CircularReference anchor) =
-  "YAML contains circular reference to anchor '" ++ anchor ++ "'."
+  "YAML isInfixOf circular reference to anchor '" ++ anchor ++ "'."
 friendlyError (NestingTooDeep depth limit) =
   "YAML nesting too deep (" ++ show depth ++ " > " ++ show limit ++ ")."
 friendlyError (KeyTooLong length limit) =

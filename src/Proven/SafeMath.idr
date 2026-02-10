@@ -5,6 +5,8 @@
 ||| like division by zero, overflow, and underflow without throwing exceptions.
 ||| All operations are total and return Option/Result types for failure cases.
 module Proven.SafeMath
+import Data.String
+import Data.List
 
 import public Proven.Core
 import public Proven.SafeMath.Nat

@@ -4,6 +4,8 @@
 ||| This module provides a counting semaphore with bounded permits
 ||| and safe acquire/release operations.
 module Proven.SafeSemaphore
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.List

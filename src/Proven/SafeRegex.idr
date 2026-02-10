@@ -33,6 +33,8 @@
 |||
 |||   Patterns with these issues are either rejected or given strict step limits.
 module Proven.SafeRegex
+import Data.String
+import Data.List
 
 import public Proven.SafeRegex.Types
 import public Proven.SafeRegex.Safety

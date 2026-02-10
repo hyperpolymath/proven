@@ -316,7 +316,7 @@ public export
 maskPassword : String -> String
 maskPassword pwd = replicate (length pwd) '*'
 
-||| Check if password contains username
+||| Check if password isInfixOf username
 public export
 containsUsername : String -> String -> Bool
 containsUsername pwd username =

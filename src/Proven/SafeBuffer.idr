@@ -4,6 +4,8 @@
 ||| This module provides safe buffer operations that prevent
 ||| buffer overflows and underflows through bounds checking.
 module Proven.SafeBuffer
+import Data.String
+import Data.List
 
 import public Proven.Core
 import Data.Vect

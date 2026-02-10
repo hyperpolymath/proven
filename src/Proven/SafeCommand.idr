@@ -99,7 +99,7 @@ isFlag s = case strM s of
   StrCons '-' _ => True
   _ => False
 
-||| Check if argument contains shell metacharacters
+||| Check if argument isInfixOf shell metacharacters
 public export
 containsShellMeta : String -> Bool
 containsShellMeta s = any (`elem` unpack s) shellMetaChars

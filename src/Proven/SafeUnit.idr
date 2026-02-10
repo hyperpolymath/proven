@@ -4,6 +4,8 @@
 ||| This module provides type-safe physical unit operations
 ||| preventing invalid unit combinations and conversions.
 module Proven.SafeUnit
+import Data.String
+import Data.List
 
 import public Proven.Core
 import public Proven.SafeFloat

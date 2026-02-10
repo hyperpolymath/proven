@@ -4,6 +4,8 @@
 ||| This module provides complex number operations with proper handling
 ||| of edge cases like division by zero and overflow.
 module Proven.SafeComplex
+import Data.String
+import Data.List
 
 import public Proven.Core
 

@@ -10,6 +10,8 @@
 -- - Zone boundaries (mutable/immutable/hybrid)
 
 module Proven.SafePolicy
+import Data.String
+import Data.List
 
 import Data.List
 import Data.Nat

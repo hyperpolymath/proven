@@ -4,6 +4,8 @@
 ||| This module provides type-safe state machines with
 ||| validated transitions and event handling.
 module Proven.SafeStateMachine
+import Data.String
+import Data.List
 
 import public Proven.Core
 

@@ -4,6 +4,8 @@
 ||| This module provides a bounded LRU cache with safe operations
 ||| that cannot overflow or corrupt cache state.
 module Proven.SafeLRU
+import Data.String
+import Data.List
 
 import public Proven.Core
 
@@ -82,8 +84,8 @@ peek key cache = map val (find (\e => e.key == key) cache.entries)
 
 ||| Check if a key exists in the cache
 public export
-contains : Eq k => k -> LRUCache k v -> Bool
-contains key cache = any (\e => e.key == key) cache.entries
+isInfixOf : Eq k => k -> LRUCache k v -> Bool
+isInfixOf key cache = any (\e => e.key == key) cache.entries
 
 ||| Find the least recently used entry
 findLRU : List (CacheEntry k v) -> Maybe (CacheEntry k v)

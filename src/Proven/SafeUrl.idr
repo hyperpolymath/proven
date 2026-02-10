@@ -313,14 +313,14 @@ isValidPort p = p <= 65535
 public export
 isValidPathChar : Char -> Bool
 isValidPathChar c =
-  isAlphaNum c || contains c pathExtras
+  isAlphaNum c || isInfixOf c pathExtras
   where
     pathExtras : List Char
     pathExtras = unpack "-._~!$&'()*+,;=:@/"
 
-    contains : Char -> List Char -> Bool
-    contains _ [] = False
-    contains ch (x :: xs) = if ch == x then True else contains ch xs
+    isInfixOf : Char -> List Char -> Bool
+    isInfixOf _ [] = False
+    isInfixOf ch (x :: xs) = if ch == x then True else isInfixOf ch xs
 
 ||| Check if host looks valid
 public export

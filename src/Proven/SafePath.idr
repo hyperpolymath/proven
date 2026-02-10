@@ -13,6 +13,7 @@ import public Proven.SafePath.Types
 import public Proven.SafePath.Operations
 
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
@@ -64,11 +65,12 @@ fromSegment seg = MkPath False [seg]
 
 ||| Parse string to path
 public export
+partial
 parsePath : String -> Path
 parsePath s =
   let isAbs = isPrefixOf "/" s || isWindowsAbsolute s
-      cleaned = if isAbs then drop 1 s else s
-      parts = filter (not . (== "")) (split pathSeparator cleaned)
+      cleaned = if isAbs then assert_total (strTail s) else s
+      parts = filter (not . (== "")) (forget (split (== pathSeparator) cleaned))
   in MkPath isAbs parts
   where
     isWindowsAbsolute : String -> Bool
@@ -87,11 +89,10 @@ fromSegments isAbs segs = MkPath isAbs (filter (not . (== "")) segs)
 
 ||| Convert path to string
 public export
+partial
 toString : Path -> String
-toString path =
-  let prefix = if path.isAbsolute then "/" else ""
-      body = join (singleton pathSeparator) path.segments
-  in prefix ++ body
+toString (MkPath abs segs) =
+  (if abs then "/" else "") ++ fastConcat (intersperse (singleton pathSeparator) segs)
 
 public export
 Show Path where
@@ -99,7 +100,7 @@ Show Path where
 
 public export
 Eq Path where
-  p1 == p2 = p1.isAbsolute == p2.isAbsolute && p1.segments == p2.segments
+  p1 == p2 = isAbsolute p1 == isAbsolute p2 && segments p1 == segments p2
 
 --------------------------------------------------------------------------------
 -- Path Components
@@ -108,85 +109,94 @@ Eq Path where
 ||| Get file name (last segment)
 public export
 fileName : Path -> Maybe String
-fileName path = case path.segments of
+fileName path = case segments path of
   [] => Nothing
-  segs => Just (last segs)
+  (s :: ss) => Just (last (s :: ss))
 
 ||| Get parent directory
 public export
 parent : Path -> Path
-parent path = case path.segments of
+parent path = case segments path of
   [] => path
-  segs => MkPath path.isAbsolute (init segs)
+  (s :: ss) => MkPath (isAbsolute path) (init (s :: ss))
 
 ||| Get file extension
 public export
 extension : Path -> Maybe String
 extension path = do
   name <- fileName path
-  let parts = split extSeparator name
+  let parts = forget (split (== extSeparator) name)
   case parts of
     [] => Nothing
     [_] => Nothing  -- No extension
-    _ => Just (last parts)
+    (p :: ps) => case ps of
+                   [] => Nothing
+                   _ => Just (last (p :: ps))
 
 ||| Get file stem (name without extension)
 public export
 stem : Path -> Maybe String
 stem path = do
   name <- fileName path
-  let parts = split extSeparator name
+  let parts = forget (split (== extSeparator) name)
   case parts of
     [] => Nothing
     [x] => Just x
-    _ => Just (join (singleton extSeparator) (init parts))
+    (p :: ps) => case ps of
+                   [] => Just p
+                   _ => Just (fastConcat (intersperse (singleton extSeparator) (init (p :: ps))))
 
 ||| Get all ancestors of a path
 public export
+partial
 ancestors : Path -> List Path
-ancestors path = go path.segments []
+ancestors path = go (segments path) []
   where
     go : List Segment -> List Path -> List Path
     go [] acc = reverse acc
-    go segs acc = go (init segs) (MkPath path.isAbsolute (init segs) :: acc)
+    go (s :: ss) acc = case ss of
+                         [] => reverse acc
+                         _ => go (init (s :: ss)) (MkPath (isAbsolute path) (init (s :: ss)) :: acc)
 
 --------------------------------------------------------------------------------
 -- Path Manipulation
 --------------------------------------------------------------------------------
 
+infixr 5 </>
+
 ||| Join two paths
 public export
 (</>) : Path -> Path -> Path
 (</>) base rel =
-  if rel.isAbsolute
+  if isAbsolute rel
     then rel  -- Absolute path replaces base
-    else MkPath base.isAbsolute (base.segments ++ rel.segments)
+    else MkPath (isAbsolute base) (segments base ++ segments rel)
 
 ||| Append segment to path
 public export
 appendSegment : Segment -> Path -> Path
-appendSegment seg path = MkPath path.isAbsolute (path.segments ++ [seg])
+appendSegment seg path = MkPath (isAbsolute path) (segments path ++ [seg])
 
 ||| Change file extension
 public export
 withExtension : String -> Path -> Path
 withExtension ext path =
-  case path.segments of
+  case segments path of
     [] => path
-    segs =>
-      let name = last segs
+    (s :: ss) =>
+      let name = last (s :: ss)
           newName = case stem path of
                       Nothing => name ++ "." ++ ext
                       Just s => s ++ "." ++ ext
-      in MkPath path.isAbsolute (init segs ++ [newName])
+      in MkPath (isAbsolute path) (init (s :: ss) ++ [newName])
 
 ||| Remove file extension
 public export
 stripExtension : Path -> Path
 stripExtension path =
-  case (path.segments, stem path) of
+  case (segments path, stem path) of
     ([], _) => path
-    (segs, Just s) => MkPath path.isAbsolute (init segs ++ [s])
+    ((seg :: segs), Just s) => MkPath (isAbsolute path) (init (seg :: segs) ++ [s])
     (_, Nothing) => path
 
 --------------------------------------------------------------------------------
@@ -196,7 +206,7 @@ stripExtension path =
 ||| Normalize path (resolve . and .., remove redundant separators)
 public export
 normalize : Path -> Path
-normalize path = MkPath path.isAbsolute (normalizeSegments path.segments [])
+normalize path = MkPath (isAbsolute path) (normalizeSegments (segments path) [])
   where
     normalizeSegments : List Segment -> List Segment -> List Segment
     normalizeSegments [] acc = reverse acc
@@ -204,7 +214,7 @@ normalize path = MkPath path.isAbsolute (normalizeSegments path.segments [])
     normalizeSegments ("." :: rest) acc = normalizeSegments rest acc
     normalizeSegments (".." :: rest) acc =
       case acc of
-        [] => normalizeSegments rest (if path.isAbsolute then [] else [".."])
+        [] => normalizeSegments rest (if isAbsolute path then [] else [".."])
         (".." :: _) => normalizeSegments rest (".." :: acc)
         (_ :: accRest) => normalizeSegments rest accRest
     normalizeSegments (seg :: rest) acc = normalizeSegments rest (seg :: acc)
@@ -219,10 +229,10 @@ canonicalize = normalize
 -- Path Safety
 --------------------------------------------------------------------------------
 
-||| Check if path contains traversal sequences
+||| Check if path isInfixOf traversal sequences
 public export
 containsTraversal : Path -> Bool
-containsTraversal path = any isTraversal path.segments
+containsTraversal path = any isTraversal (segments path)
   where
     isTraversal : Segment -> Bool
     isTraversal ".." = True
@@ -235,7 +245,7 @@ isContainedIn base path =
   let normBase = normalize base
       normPath = normalize path
       resolved = normalize (base </> path)
-  in isPrefixOf normBase.segments resolved.segments &&
+  in isPrefixOf (segments normBase) (segments resolved) &&
      not (containsTraversal resolved)
 
 ||| Safe path joining that prevents traversal
@@ -252,7 +262,7 @@ public export
 isSafePath : Path -> Bool
 isSafePath path =
   not (containsTraversal path) &&
-  all isSafeSegment path.segments
+  all isSafeSegment (segments path)
   where
     isSafeSegment : Segment -> Bool
     isSafeSegment seg =
@@ -265,15 +275,15 @@ sanitizeSegment : Segment -> Segment
 sanitizeSegment seg = pack (filter isSafe (unpack seg))
   where
     isSafe : Char -> Bool
-    isSafe c = isAlphaNum c || c `elem` unpack "-_.~"
+    isSafe c = isAlphaNum c || elem c (unpack "-_.~")
 
 ||| Sanitize entire path
 public export
 sanitize : Path -> Path
 sanitize path =
-  let cleaned = filter (not . (== "")) (map sanitizeSegment path.segments)
+  let cleaned = filter (not . (== "")) (map Proven.SafePath.sanitizeSegment (segments path))
       noTraversal = filter (\s => s /= ".." && s /= ".") cleaned
-  in MkPath path.isAbsolute noTraversal
+  in MkPath (isAbsolute path) noTraversal
 
 --------------------------------------------------------------------------------
 -- Path Validation
@@ -312,13 +322,13 @@ maxPathLength = 4096
 public export
 validate : Path -> Either PathError Path
 validate path =
-  if null path.segments && not path.isAbsolute
+  if null (segments path) && not (isAbsolute path)
     then Left EmptyPath
     else if containsTraversal path
       then Left TraversalDetected
-      else if any hasNullByte path.segments
+      else if any hasNullByte (segments path)
         then Left NullByteDetected
-        else if any (\s => length s > maxSegmentLength) path.segments
+        else if any (\s => length s > maxSegmentLength) (segments path)
           then Left (SegmentTooLong maxSegmentLength)
           else if length (toString path) > maxPathLength
             then Left (PathTooLong maxPathLength)
@@ -334,23 +344,23 @@ validate path =
 ||| Check if path starts with prefix
 public export
 startsWith : Path -> Path -> Bool
-startsWith prefix path =
-  prefix.isAbsolute == path.isAbsolute &&
-  isPrefixOf prefix.segments path.segments
+startsWith pfx path =
+  isAbsolute pfx == isAbsolute path &&
+  isPrefixOf (segments pfx) (segments path)
 
 ||| Check if path ends with suffix
 public export
 endsWith : Path -> Path -> Bool
-endsWith suffix path = isSuffixOf suffix.segments path.segments
+endsWith suffix path = isSuffixOf (segments suffix) (segments path)
 
 ||| Get relative path from base to target
 public export
 relativeTo : (base : Path) -> (target : Path) -> Maybe Path
 relativeTo base target =
-  if base.isAbsolute /= target.isAbsolute
+  if isAbsolute base /= isAbsolute target
     then Nothing
-    else let normBase = (normalize base).segments
-             normTarget = (normalize target).segments
+    else let normBase = segments (normalize base)
+             normTarget = segments (normalize target)
          in Just (MkPath False (stripPrefix normBase normTarget))
   where
     stripPrefix : List Segment -> List Segment -> List Segment

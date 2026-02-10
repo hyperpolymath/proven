@@ -4,6 +4,8 @@
 ||| This module provides safe graph operations with
 ||| bounds checking and cycle detection.
 module Proven.SafeGraph
+import Data.String
+import Data.List
 
 import public Proven.Core
 
