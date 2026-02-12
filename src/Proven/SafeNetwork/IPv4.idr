@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| IPv4 Address Types and Operations
 |||
 ||| Type-safe IPv4 address handling with validation and utilities.

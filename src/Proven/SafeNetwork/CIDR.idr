@@ -1,366 +1,212 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| CIDR Notation Handling
 |||
 ||| Type-safe CIDR (Classless Inter-Domain Routing) notation with validation.
+||| Provides network address calculation, containment checks, and subnet operations.
 module Proven.SafeNetwork.CIDR
 
-import Proven.Core
-import Proven.SafeNetwork.IPv4
-import Proven.SafeNetwork.IPv6
+import Data.Nat
 import Data.List
 import Data.String
-import Data.Bits
+import Data.Maybe
+import Proven.SafeNetwork.IPv4
 
 %default total
 
---------------------------------------------------------------------------------
--- CIDR Types
---------------------------------------------------------------------------------
-
-||| IPv4 CIDR notation
+||| Valid prefix lengths for IPv4 (0-32)
 public export
-record CIDR4 where
-  constructor MkCIDR4
-  network : IPv4
-  prefix : Nat
-  {auto validPrefix : prefix <= 32}
+data PrefixLength : Type where
+  MkPrefix : (n : Nat) -> {auto ok : LTE n 32} -> PrefixLength
 
-||| IPv6 CIDR notation
+||| Extract the numeric value
 public export
-record CIDR6 where
-  constructor MkCIDR6
-  network : IPv6
-  prefix : Nat
-  {auto validPrefix : prefix <= 128}
+prefixValue : PrefixLength -> Nat
+prefixValue (MkPrefix n) = n
 
-||| Generic CIDR (either IPv4 or IPv6)
+||| Smart constructor for prefix length
 public export
-data CIDR
-  = CIDR4Block CIDR4
-  | CIDR6Block CIDR6
+mkPrefix : Nat -> Maybe PrefixLength
+mkPrefix n = case isLTE n 32 of
+  Yes prf => Just (MkPrefix n)
+  No _ => Nothing
 
+||| CIDR block representation
 public export
-Show CIDR4 where
-  show (MkCIDR4 net pre) = show net ++ "/" ++ show pre
+record CIDRBlock where
+  constructor MkCIDR
+  network : (Nat, Nat, Nat, Nat)
+  prefix  : PrefixLength
 
+||| Show instance for PrefixLength
 public export
-Show CIDR6 where
-  show (MkCIDR6 net pre) = show net ++ "/" ++ show pre
+Show PrefixLength where
+  show (MkPrefix n) = show n
 
+||| Show instance for CIDRBlock
 public export
-Show CIDR where
-  show (CIDR4Block c) = show c
-  show (CIDR6Block c) = show c
+Show CIDRBlock where
+  show cidr =
+    let (a, b, c, d) = network cidr
+    in show a ++ "." ++ show b ++ "." ++ show c ++ "." ++ show d
+       ++ "/" ++ show (prefix cidr)
 
+||| Eq instance for PrefixLength
 public export
-Eq CIDR4 where
-  (MkCIDR4 n1 p1) == (MkCIDR4 n2 p2) = n1 == n2 && p1 == p2
+Eq PrefixLength where
+  MkPrefix n == MkPrefix m = n == m
 
+||| Eq instance for CIDRBlock
 public export
-Eq CIDR6 where
-  (MkCIDR6 n1 p1) == (MkCIDR6 n2 p2) = n1 == n2 && p1 == p2
+Eq CIDRBlock where
+  c1 == c2 = network c1 == network c2 && prefix c1 == prefix c2
 
---------------------------------------------------------------------------------
--- CIDR Parsing
---------------------------------------------------------------------------------
-
-||| Parse IPv4 CIDR notation
+||| Calculate the subnet mask from prefix length
 public export
-parseCIDR4 : String -> Maybe CIDR4
-parseCIDR4 s =
-  case split (== '/') s of
-    [ipStr, prefixStr] => do
-      ip <- parseIPv4 ipStr
-      prefix <- parsePositive prefixStr
-      if prefix <= 32
-        then Just (MkCIDR4 (normalizeNetwork4 ip prefix) prefix)
-        else Nothing
-    _ => Nothing
-  where
-    split : (Char -> Bool) -> String -> List String
-    split p str = go (unpack str) [] []
-      where
-        go : List Char -> List Char -> List String -> List String
-        go [] current acc = reverse (pack (reverse current) :: acc)
-        go (c :: cs) current acc =
-          if p c
-            then go cs [] (pack (reverse current) :: acc)
-            else go cs (c :: current) acc
+subnetMask : PrefixLength -> (Nat, Nat, Nat, Nat)
+subnetMask (MkPrefix 0)  = (0, 0, 0, 0)
+subnetMask (MkPrefix 8)  = (255, 0, 0, 0)
+subnetMask (MkPrefix 16) = (255, 255, 0, 0)
+subnetMask (MkPrefix 24) = (255, 255, 255, 0)
+subnetMask (MkPrefix 32) = (255, 255, 255, 255)
+subnetMask (MkPrefix n)  =
+  let totalBits = 32
+      hostBits = minus totalBits n
+      maskVal = minus (power 2 totalBits) (power 2 hostBits)
+      o1 = div maskVal (power 2 24)
+      o2 = div (mod maskVal (power 2 24)) (power 2 16)
+      o3 = div (mod maskVal (power 2 16)) (power 2 8)
+      o4 = mod maskVal (power 2 8)
+  in (o1, o2, o3, o4)
 
-    normalizeNetwork4 : IPv4 -> Nat -> IPv4
-    normalizeNetwork4 ip prefix = applyNetmask ip (prefixToMask prefix)
-
-||| Parse IPv6 CIDR notation
+||| Number of host addresses in a CIDR block
 public export
-parseCIDR6 : String -> Maybe CIDR6
-parseCIDR6 s =
-  case split (== '/') s of
-    [ipStr, prefixStr] => do
-      ip <- parseIPv6 ipStr
-      prefix <- parsePositive prefixStr
-      if prefix <= 128
-        then Just (MkCIDR6 ip prefix)  -- Should normalize
-        else Nothing
-    _ => Nothing
-  where
-    split : (Char -> Bool) -> String -> List String
-    split p str = go (unpack str) [] []
-      where
-        go : List Char -> List Char -> List String -> List String
-        go [] current acc = reverse (pack (reverse current) :: acc)
-        go (c :: cs) current acc =
-          if p c
-            then go cs [] (pack (reverse current) :: acc)
-            else go cs (c :: current) acc
+hostCount : PrefixLength -> Nat
+hostCount (MkPrefix n) =
+  if n >= 31
+    then power 2 (minus 32 n)
+    else minus (power 2 (minus 32 n)) 2
 
-||| Parse any CIDR notation
+||| Calculate network address (apply mask)
 public export
-parseCIDR : String -> Maybe CIDR
+networkAddress : CIDRBlock -> (Nat, Nat, Nat, Nat)
+networkAddress cidr =
+  let (a, b, c, d) = network cidr
+      (m1, m2, m3, m4) = subnetMask (prefix cidr)
+  in (min a m1, min b m2, min c m3, min d m4)
+
+||| Calculate broadcast address
+public export
+broadcastAddress : CIDRBlock -> (Nat, Nat, Nat, Nat)
+broadcastAddress cidr =
+  let (a, b, c, d) = networkAddress cidr
+      (m1, m2, m3, m4) = subnetMask (prefix cidr)
+      inv1 = minus 255 m1
+      inv2 = minus 255 m2
+      inv3 = minus 255 m3
+      inv4 = minus 255 m4
+  in (a + inv1, b + inv2, c + inv3, d + inv4)
+
+||| Convert IP tuple to a single Nat for comparison
+public export
+ipToNat : (Nat, Nat, Nat, Nat) -> Nat
+ipToNat (a, b, c, d) = a * 16777216 + b * 65536 + c * 256 + d
+
+||| Check if an IP address is contained in a CIDR block
+public export
+contains : CIDRBlock -> (Nat, Nat, Nat, Nat) -> Bool
+contains cidr ip =
+  let netAddr = ipToNat (networkAddress cidr)
+      bcastAddr = ipToNat (broadcastAddress cidr)
+      ipAddr = ipToNat ip
+  in ipAddr >= netAddr && ipAddr <= bcastAddr
+
+||| Check if one CIDR block is a subset of another
+public export
+isSubsetOf : CIDRBlock -> CIDRBlock -> Bool
+isSubsetOf sub super =
+  contains super (networkAddress sub) &&
+  contains super (broadcastAddress sub)
+
+||| Parse a CIDR string like "192.168.1.0/24"
+public export
+parseCIDR : String -> Maybe CIDRBlock
 parseCIDR s =
-  case parseCIDR4 s of
-    Just c => Just (CIDR4Block c)
-    Nothing => map CIDR6Block (parseCIDR6 s)
-
---------------------------------------------------------------------------------
--- CIDR Operations
---------------------------------------------------------------------------------
-
-||| Get netmask from CIDR4
-public export
-cidr4Netmask : CIDR4 -> IPv4
-cidr4Netmask (MkCIDR4 _ prefix) = prefixToMask prefix
-
-||| Get broadcast address from CIDR4
-public export
-cidr4Broadcast : CIDR4 -> IPv4
-cidr4Broadcast (MkCIDR4 net prefix) =
-  broadcastAddress net (prefixToMask prefix)
-
-||| Get first host address in CIDR4 block
-public export
-cidr4FirstHost : CIDR4 -> IPv4
-cidr4FirstHost (MkCIDR4 (MkIPv4 a b c d) prefix) =
-  if prefix == 32 then MkIPv4 a b c d
-  else if prefix == 31 then MkIPv4 a b c d  -- Point-to-point
-  else MkIPv4 a b c (d + 1)
-
-||| Get last host address in CIDR4 block
-public export
-cidr4LastHost : CIDR4 -> IPv4
-cidr4LastHost cidr =
-  let bc = cidr4Broadcast cidr
-  in if cidr.prefix >= 31
-       then bc
-       else case bc of
-              MkIPv4 a b c d => MkIPv4 a b c (d - 1)
-
-||| Count addresses in CIDR4 block
-public export
-cidr4Size : CIDR4 -> Nat
-cidr4Size (MkCIDR4 _ prefix) = power 2 (32 `minus` prefix)
+  case break (== '/') (unpack s) of
+    (ipChars, []) => Nothing
+    (ipChars, '/' :: prefixChars) =>
+      case parseIPv4 (pack ipChars) of
+        Nothing => Nothing
+        Just ip =>
+          case parseNat (pack prefixChars) of
+            Nothing => Nothing
+            Just n => case mkPrefix n of
+              Nothing => Nothing
+              Just pfx => Just (MkCIDR ip pfx)
+    _ => Nothing
   where
-    power : Nat -> Nat -> Nat
-    power _ 0 = 1
-    power b (S n) = b * power b n
+    parseIPv4 : String -> Maybe (Nat, Nat, Nat, Nat)
+    parseIPv4 s =
+      case split (== '.') s of
+        [a, b, c, d] =>
+          case (parsePositive a, parsePositive b, parsePositive c, parsePositive d) of
+            (Just a', Just b', Just c', Just d') =>
+              if a' <= 255 && b' <= 255 && c' <= 255 && d' <= 255
+                then Just (a', b', c', d')
+                else Nothing
+            _ => Nothing
+        _ => Nothing
 
-||| Count usable host addresses in CIDR4 block
+    parseNat : String -> Maybe Nat
+    parseNat s = parsePositive s
+
+||| First usable host address
 public export
-cidr4HostCount : CIDR4 -> Nat
-cidr4HostCount (MkCIDR4 _ 32) = 1
-cidr4HostCount (MkCIDR4 _ 31) = 2  -- Point-to-point link
-cidr4HostCount cidr = cidr4Size cidr `minus` 2  -- Exclude network and broadcast
-
---------------------------------------------------------------------------------
--- Address Containment
---------------------------------------------------------------------------------
-
-||| Check if IPv4 address is within CIDR4 block
-public export
-cidr4Contains : CIDR4 -> IPv4 -> Bool
-cidr4Contains (MkCIDR4 net prefix) ip =
-  let mask = prefixToMask prefix
-  in applyNetmask ip mask == applyNetmask net mask
-
-||| Check if CIDR4 block contains another block (supernet)
-public export
-cidr4ContainsBlock : CIDR4 -> CIDR4 -> Bool
-cidr4ContainsBlock outer inner =
-  outer.prefix <= inner.prefix &&
-  cidr4Contains outer inner.network
-
-||| Check if two CIDR4 blocks overlap
-public export
-cidr4Overlaps : CIDR4 -> CIDR4 -> Bool
-cidr4Overlaps c1 c2 =
-  cidr4ContainsBlock c1 c2 || cidr4ContainsBlock c2 c1
-
---------------------------------------------------------------------------------
--- Common CIDR Blocks
---------------------------------------------------------------------------------
-
-||| Private network: 10.0.0.0/8
-public export
-privateA : CIDR4
-privateA = MkCIDR4 (MkIPv4 10 0 0 0) 8
-
-||| Private network: 172.16.0.0/12
-public export
-privateB : CIDR4
-privateB = MkCIDR4 (MkIPv4 172 16 0 0) 12
-
-||| Private network: 192.168.0.0/16
-public export
-privateC : CIDR4
-privateC = MkCIDR4 (MkIPv4 192 168 0 0) 16
-
-||| Loopback: 127.0.0.0/8
-public export
-loopbackBlock : CIDR4
-loopbackBlock = MkCIDR4 (MkIPv4 127 0 0 0) 8
-
-||| Link-local: 169.254.0.0/16
-public export
-linkLocalBlock : CIDR4
-linkLocalBlock = MkCIDR4 (MkIPv4 169 254 0 0) 16
-
-||| Multicast: 224.0.0.0/4
-public export
-multicastBlock : CIDR4
-multicastBlock = MkCIDR4 (MkIPv4 224 0 0 0) 4
-
-||| Documentation: 192.0.2.0/24 (TEST-NET-1)
-public export
-testNet1 : CIDR4
-testNet1 = MkCIDR4 (MkIPv4 192 0 2 0) 24
-
-||| Documentation: 198.51.100.0/24 (TEST-NET-2)
-public export
-testNet2 : CIDR4
-testNet2 = MkCIDR4 (MkIPv4 198 51 100 0) 24
-
-||| Documentation: 203.0.113.0/24 (TEST-NET-3)
-public export
-testNet3 : CIDR4
-testNet3 = MkCIDR4 (MkIPv4 203 0 113 0) 24
-
---------------------------------------------------------------------------------
--- Subnet Calculations
---------------------------------------------------------------------------------
-
-||| Split CIDR4 block into two equal subnets
-public export
-cidr4Split : CIDR4 -> Maybe (CIDR4, CIDR4)
-cidr4Split (MkCIDR4 net prefix) =
-  if prefix >= 32
+firstHost : CIDRBlock -> Maybe (Nat, Nat, Nat, Nat)
+firstHost cidr =
+  if prefixValue (prefix cidr) >= 31
     then Nothing
-    else
-      let newPrefix = prefix + 1
-          first = MkCIDR4 net newPrefix
-          secondNet = integerToIPv4 (ipv4ToInteger net + cast (power 2 (32 `minus` newPrefix)))
-          second = MkCIDR4 secondNet newPrefix
-      in Just (first, second)
-  where
-    power : Nat -> Nat -> Nat
-    power _ 0 = 1
-    power b (S n) = b * power b n
+    else let (a, b, c, d) = networkAddress cidr
+         in Just (a, b, c, if d < 255 then S d else d)
 
-||| Merge two adjacent CIDR4 blocks into a supernet
+||| Last usable host address
 public export
-cidr4Merge : CIDR4 -> CIDR4 -> Maybe CIDR4
-cidr4Merge c1 c2 =
-  if c1.prefix /= c2.prefix || c1.prefix == 0
+lastHost : CIDRBlock -> Maybe (Nat, Nat, Nat, Nat)
+lastHost cidr =
+  if prefixValue (prefix cidr) >= 31
     then Nothing
-    else
-      let newPrefix = c1.prefix `minus` 1
-          mask = prefixToMask newPrefix
-          net1 = applyNetmask c1.network mask
-          net2 = applyNetmask c2.network mask
-      in if net1 == net2
-           then Just (MkCIDR4 net1 newPrefix)
-           else Nothing
+    else let (a, b, c, d) = broadcastAddress cidr
+         in Just (a, b, c, minus d 1)
 
-||| Get all subnets of a given size from a CIDR block
+||| Check if CIDR represents a private network (RFC 1918)
 public export
-cidr4Subnets : CIDR4 -> Nat -> List CIDR4
-cidr4Subnets cidr targetPrefix =
-  if targetPrefix < cidr.prefix || targetPrefix > 32
-    then []
-    else if targetPrefix == cidr.prefix
-           then [cidr]
-           else case cidr4Split cidr of
-                  Nothing => []
-                  Just (a, b) => cidr4Subnets a targetPrefix ++ cidr4Subnets b targetPrefix
+isPrivate : CIDRBlock -> Bool
+isPrivate cidr =
+  let (a, b, _, _) = networkAddress cidr
+  in a == 10 ||
+     (a == 172 && b >= 16 && b <= 31) ||
+     (a == 192 && b == 168)
 
---------------------------------------------------------------------------------
--- Address Iteration (Limited)
---------------------------------------------------------------------------------
-
-||| Get list of addresses in CIDR4 block (for small blocks only)
-||| Returns Nothing if block has more than maxCount addresses
+||| Check if CIDR represents a loopback network
 public export
-cidr4Addresses : CIDR4 -> (maxCount : Nat) -> Maybe (List IPv4)
-cidr4Addresses cidr maxCount =
-  let size = cidr4Size cidr
-  in if size > maxCount
-       then Nothing
-       else Just (generateAddresses cidr.network size)
-  where
-    generateAddresses : IPv4 -> Nat -> List IPv4
-    generateAddresses _ 0 = []
-    generateAddresses ip (S n) =
-      ip :: generateAddresses (integerToIPv4 (ipv4ToInteger ip + 1)) n
+isLoopback : CIDRBlock -> Bool
+isLoopback cidr =
+  let (a, _, _, _) = networkAddress cidr
+  in a == 127
 
-||| Get list of host addresses in CIDR4 block (for small blocks only)
+||| Check if CIDR represents a link-local network
 public export
-cidr4Hosts : CIDR4 -> (maxCount : Nat) -> Maybe (List IPv4)
-cidr4Hosts cidr maxCount =
-  if cidr.prefix >= 31
-    then cidr4Addresses cidr maxCount
-    else do
-      addrs <- cidr4Addresses cidr (maxCount + 2)
-      case addrs of
-        [] => Just []
-        [x] => Just []
-        (_ :: xs) => Just (init xs)  -- Remove first (network) and last (broadcast)
-  where
-    init : List a -> List a
-    init [] = []
-    init [x] = []
-    init (x :: xs) = x :: init xs
+isLinkLocal : CIDRBlock -> Bool
+isLinkLocal cidr =
+  let (a, b, _, _) = networkAddress cidr
+  in a == 169 && b == 254
 
---------------------------------------------------------------------------------
--- CIDR Validation
---------------------------------------------------------------------------------
-
-||| Check if CIDR4 network address is properly normalized
+||| Proof that a valid CIDR has prefix <= 32
 public export
-isNormalizedCIDR4 : CIDR4 -> Bool
-isNormalizedCIDR4 (MkCIDR4 net prefix) =
-  applyNetmask net (prefixToMask prefix) == net
+data ValidCIDR : CIDRBlock -> Type where
+  MkValidCIDR : (cidr : CIDRBlock) -> ValidCIDR cidr
 
-||| Normalize a CIDR4 block (set host bits to zero)
+||| Proof that an IP is within a CIDR block
 public export
-normalizeCIDR4 : CIDR4 -> CIDR4
-normalizeCIDR4 (MkCIDR4 net prefix) =
-  MkCIDR4 (applyNetmask net (prefixToMask prefix)) prefix
-
---------------------------------------------------------------------------------
--- CIDR Aggregation
---------------------------------------------------------------------------------
-
-||| Aggregate a list of CIDR4 blocks (simplify where possible)
-||| This is a simplified version - full aggregation is complex
-public export
-aggregateCIDR4 : List CIDR4 -> List CIDR4
-aggregateCIDR4 cidrs =
-  -- Sort by network address, then try to merge adjacent blocks
-  sortAndMerge (map normalizeCIDR4 cidrs)
-  where
-    sortAndMerge : List CIDR4 -> List CIDR4
-    sortAndMerge [] = []
-    sortAndMerge [x] = [x]
-    sortAndMerge (x :: y :: rest) =
-      case cidr4Merge x y of
-        Just merged => sortAndMerge (merged :: rest)
-        Nothing => x :: sortAndMerge (y :: rest)
-
+data IPInCIDR : CIDRBlock -> (Nat, Nat, Nat, Nat) -> Type where
+  MkIPInCIDR : contains cidr ip = True -> IPInCIDR cidr ip

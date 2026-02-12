@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| SafeRegex - Provably safe regular expressions with ReDoS protection
 |||
 ||| This module provides a safe regex library that:

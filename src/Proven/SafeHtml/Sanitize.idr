@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| HTML sanitization for XSS prevention
 |||
 ||| Provides functions to strip or neutralize dangerous HTML content
@@ -158,7 +159,9 @@ public export
 isDangerousAttr : String -> Bool
 isDangerousAttr name =
   let lower = toLower name
-  in lower `elem` dangerousAttrNames || isPrefixOf "on" lower
+      is_in_list = lower `elem` dangerousAttrNames
+      is_on_attr = isPrefixOf "on" lower
+  in is_in_list || is_on_attr
 
 ||| Check if tag is blacklisted
 public export

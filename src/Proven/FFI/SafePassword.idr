@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: Apache-2.0
--- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| FFI exports for SafePassword operations
 |||
 ||| This module exports password validation and hashing to the C ABI via Idris2's RefC backend.

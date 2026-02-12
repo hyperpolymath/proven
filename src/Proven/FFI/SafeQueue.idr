@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: Apache-2.0
--- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| FFI exports for SafeQueue operations
 |||
 ||| This module exports queue operations to the C ABI

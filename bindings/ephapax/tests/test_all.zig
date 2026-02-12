@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: Apache-2.0
 //! Test suite for Ephapax ↔ Proven FFI bindings
 
 const std = @import("std");

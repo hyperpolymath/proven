@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| SafeHeap - Safe binary heap (priority queue) implementation
 |||
 ||| This module provides a min-heap with safe operations for

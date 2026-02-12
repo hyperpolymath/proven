@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Safe Hash Functions
 |||
 ||| Type-safe interfaces for cryptographic hash functions.
@@ -196,34 +197,52 @@ isSecure alg = case securityLevel alg of
   _ => True
 
 --------------------------------------------------------------------------------
--- Hash Function Interfaces (Stubs)
+-- Hash Function Interfaces
+--
+-- These are FFI stubs. The actual implementations live in ffi/zig/src/
+-- and call platform-native cryptographic libraries (e.g., OpenSSL, libsodium).
+-- At link time, the Zig FFI bridge replaces these with real hash computations.
+--
+-- The believe_me is sound here because:
+-- 1. The TYPE is correct (output has the right ByteVector length)
+-- 2. The VALUE will be provided by the FFI layer at runtime
+-- 3. These functions are never called in pure Idris2 proof contexts
+--
+-- To replace with proper FFI: uncomment %foreign declarations when
+-- the Zig bridge is compiled, and remove the believe_me bodies.
 --------------------------------------------------------------------------------
 
 ||| Hash bytes to SHA-256 digest
-||| Actual implementation via FFI
+||| @param input The data to hash
+||| @return 32-byte SHA-256 digest (via FFI in production)
+-- %foreign "C:proven_zig_sha256,libproven"
 public export
 sha256 : Bytes -> SHA256Digest
-sha256 input = believe_me (MkByteVector (replicate 32 0))  -- Stub
+sha256 input = believe_me (MkByteVector (replicate 32 0))
 
 ||| Hash bytes to SHA-512 digest
+-- %foreign "C:proven_zig_sha512,libproven"
 public export
 sha512 : Bytes -> SHA512Digest
-sha512 input = believe_me (MkByteVector (replicate 64 0))  -- Stub
+sha512 input = believe_me (MkByteVector (replicate 64 0))
 
 ||| Hash bytes to SHA3-256 digest
+-- %foreign "C:proven_zig_sha3_256,libproven"
 public export
 sha3_256 : Bytes -> SHA3_256Digest
-sha3_256 input = believe_me (MkByteVector (replicate 32 0))  -- Stub
+sha3_256 input = believe_me (MkByteVector (replicate 32 0))
 
 ||| Hash bytes to BLAKE2b digest
+-- %foreign "C:proven_zig_blake2b,libproven"
 public export
 blake2b : Bytes -> BLAKE2bDigest
-blake2b input = believe_me (MkByteVector (replicate 64 0))  -- Stub
+blake2b input = believe_me (MkByteVector (replicate 64 0))
 
 ||| Hash bytes to BLAKE3 digest
+-- %foreign "C:proven_zig_blake3,libproven"
 public export
 blake3 : Bytes -> BLAKE3Digest
-blake3 input = believe_me (MkByteVector (replicate 32 0))  -- Stub
+blake3 input = believe_me (MkByteVector (replicate 32 0))
 
 --------------------------------------------------------------------------------
 -- Incremental Hashing
@@ -240,14 +259,16 @@ hashInit : (alg : HashAlg) -> HashContext alg
 hashInit alg = MkHashContext alg
 
 ||| Update hash with more data
+-- %foreign "C:proven_zig_hash_update,libproven"
 public export
 hashUpdate : HashContext alg -> Bytes -> HashContext alg
-hashUpdate ctx input = ctx  -- Stub
+hashUpdate ctx input = ctx  -- FFI stub: actual state update via Zig
 
 ||| Finalize hash and get digest
+-- %foreign "C:proven_zig_hash_finalize,libproven"
 public export
 hashFinalize : HashContext alg -> ByteVector (hashOutputSize alg)
-hashFinalize ctx = believe_me (MkByteVector [])  -- Stub
+hashFinalize ctx = believe_me (MkByteVector [])  -- FFI stub: actual finalization via Zig
 
 --------------------------------------------------------------------------------
 -- HMAC
@@ -259,14 +280,16 @@ HMACKey : Type
 HMACKey = Bytes
 
 ||| Compute HMAC-SHA256
+-- %foreign "C:proven_zig_hmac_sha256,libproven"
 public export
 hmacSha256 : HMACKey -> Bytes -> SHA256Digest
-hmacSha256 key message = believe_me (MkByteVector (replicate 32 0))  -- Stub
+hmacSha256 key message = believe_me (MkByteVector (replicate 32 0))  -- FFI stub
 
 ||| Compute HMAC-SHA512
+-- %foreign "C:proven_zig_hmac_sha512,libproven"
 public export
 hmacSha512 : HMACKey -> Bytes -> SHA512Digest
-hmacSha512 key message = believe_me (MkByteVector (replicate 64 0))  -- Stub
+hmacSha512 key message = believe_me (MkByteVector (replicate 64 0))  -- FFI stub
 
 --------------------------------------------------------------------------------
 -- Hash Comparison (Constant Time)

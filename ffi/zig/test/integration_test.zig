@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 //
 // integration_test.zig - Tests proven FFI with real Idris 2 RefC output

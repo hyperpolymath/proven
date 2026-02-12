@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: Apache-2.0
--- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| FFI exports for SafeArgs operations
 |||
 ||| This module exports CLI argument parsing utilities to the C ABI via Idris2's RefC backend.

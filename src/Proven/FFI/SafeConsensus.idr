@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: Apache-2.0
--- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| FFI exports for SafeConsensus operations
 |||
 ||| This module exports distributed consensus algorithm helpers to the C ABI

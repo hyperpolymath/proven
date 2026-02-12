@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| SafeSignal - Safe POSIX signal handling
 |||
 ||| This module provides safe signal operations including:
@@ -343,7 +344,7 @@ childSignals = [SIGCHLD]
 ||| Proof: Uncatchable signals cannot be caught
 public export
 uncatchableNotCatchable : (sig : Signal) ->
-                          sig `elem` uncatchableSignals = True ->
+                          sig `elem` Proven.SafeSignal.uncatchableSignals = True ->
                           canCatch sig = False
 -- Implementation: sig `elem` uncatchableSignals => not (sig `elem` uncatchableSignals) = False
 

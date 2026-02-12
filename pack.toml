@@ -1,10 +1,11 @@
-# SPDX-License-Identifier: MPL-2.0-or-later
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # pack.toml - Pack package manager configuration for proven
 
 [package]
 name = "proven"
-version = "1.0.0"
-authors = ["Hyperpolymath"]
+version = "1.1.0"
+authors = ["Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>"]
 brief = "Verified safe operations - code that cannot crash"
 langversion = ">= 0.6.0"
 

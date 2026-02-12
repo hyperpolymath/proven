@@ -1,5 +1,5 @@
 <?php
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 declare(strict_types=1);

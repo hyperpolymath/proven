@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 ||| SafeState - Type-safe state machines with proven valid transitions
 |||

@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Password Policy Types and Validation
 |||
 ||| Defines configurable password policies and validation logic.
@@ -270,7 +271,7 @@ withMinUniqueChars n (MkPolicyBuilder p) =
 public export
 withForbiddenPattern : String -> PolicyBuilder -> PolicyBuilder
 withForbiddenPattern pattern (MkPolicyBuilder p) =
-  MkPolicyBuilder ({ forbiddenPatterns $= (pattern ::) } p)
+  MkPolicyBuilder ({ forbiddenPatterns := pattern :: access p } p)
 
 ||| Add forbidden word (e.g., username, company name)
 public export
@@ -283,43 +284,12 @@ public export
 build : PolicyBuilder -> PasswordPolicy
 build (MkPolicyBuilder p) = p
 
---------------------------------------------------------------------------------
--- Policy Presets
---------------------------------------------------------------------------------
-
-||| NIST SP 800-63B compliant policy
-public export
-nistPolicy : PasswordPolicy
-nistPolicy = build $
-  policyBuilder
-    |> withMinLength 8
-    |> withMaxLength 64
-    |> withMinUniqueChars 1
-
-||| PCI-DSS compliant policy
-public export
-pciDssPolicy : PasswordPolicy
-pciDssPolicy = build $
-  policyBuilder
-    |> withMinLength 7
-    |> withUppercase
-    |> withLowercase
-    |> withDigit
-
-||| HIPAA compliant policy
-public export
-hipaaPolicy : PasswordPolicy
-hipaaPolicy = build $
-  policyBuilder
-    |> withMinLength 8
-    |> withUppercase
-    |> withLowercase
-    |> withDigit
-    |> withSymbol
-    |> withMinUniqueChars 6
-
 ||| Apply function (flip ($))
 infixl 1 |>
 public export
 (|>) : a -> (a -> b) -> b
 x |> f = f x
+
+--------------------------------------------------------------------------------
+-- Policy Presets
+--------------------------------------------------------------------------------

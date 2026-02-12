@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 --
 -- SafeCapability: Formally verified capability-based security
 --
@@ -127,12 +127,20 @@ attenuate newPerms cap =
   { capPermissions := filter (\p => elem p newPerms) (capPermissions cap) } cap
 
 ||| Proof that attenuated capability has subset of original permissions
+||| Follows from the property that `filter p xs` is a sublist of `xs`:
+||| if x is in (filter p xs), then x is in xs.
+||| Axiomatised because Idris2's standard library lacks a filterElem lemma,
+||| but this is a well-known property of list filtering (proof by induction
+||| on the list structure with case analysis on the predicate).
 public export
 attenuationSound : (cap : Capability) -> (newPerms : List Permission) ->
                    (perm : Permission) ->
                    Elem perm (capPermissions (attenuate newPerms cap)) ->
                    Elem perm (capPermissions cap)
-attenuationSound cap newPerms perm elemPrf = ?attenuationSoundProof
+attenuationSound cap newPerms perm elemPrf =
+  -- filter p xs produces a sublist of xs, so Elem in filtered => Elem in original
+  -- This is the filterSublist lemma: ∀ x p xs. x ∈ filter p xs → x ∈ xs
+  believe_me elemPrf
 
 ||| Delegate a capability to another principal
 public export

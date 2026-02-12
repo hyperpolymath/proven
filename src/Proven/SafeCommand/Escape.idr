@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Shell escaping functions for command injection prevention
 |||
 ||| Provides escaping for shell arguments across different shell types
@@ -48,7 +49,7 @@ escapeShellArg s =
     else s
   where
     needsQuoting : String -> Bool
-    needsQuoting str = any (`elem` unpack str) shellMetaChars || isEmpty str
+    needsQuoting str = any (`elem` unpack str) shellMetaChars || null (unpack str)
 
     escapeInSingleQuotes : String -> String
     escapeInSingleQuotes str = pack (go (unpack str))
@@ -99,7 +100,7 @@ escapeCmdArg s =
     else s
   where
     needsQuoting : String -> Bool
-    needsQuoting str = any (`elem` unpack str) cmdMetaChars || isEmpty str
+    needsQuoting str = any (`elem` unpack str) cmdMetaChars || null (unpack str)
 
     escapeForCmd : String -> String
     escapeForCmd str = pack (go (unpack str))
@@ -136,7 +137,7 @@ escapePowerShell s =
     else s
   where
     needsQuoting : String -> Bool
-    needsQuoting str = any (`elem` unpack str) powershellMetaChars || isEmpty str
+    needsQuoting str = any (`elem` unpack str) powershellMetaChars || null (unpack str)
 
     escapeInSingleQuotes : String -> String
     escapeInSingleQuotes str = pack (go (unpack str))

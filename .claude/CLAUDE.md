@@ -41,12 +41,12 @@
 
 **ALL files must use:**
 ```
-Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 SPDX-License-Identifier: Apache-2.0
 ```
 
 **NEVER use:**
-- "Hyperpolymath" as author (organization name, not person)
+- "Hyperpolymath" alone as author (must be "Jonathan D.A. Jewell (hyperpolymath)")
 - `PMPL-1.0` license (deprecated, use Apache-2.0)
 - Missing or incorrect email addresses
 

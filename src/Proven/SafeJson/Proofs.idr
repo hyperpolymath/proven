@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Proofs for SafeJson operations
 |||
 ||| This module contains proofs that verify properties of our safe JSON
@@ -256,7 +257,18 @@ data WellFormedJson : JsonValue -> Type where
              All (WellFormedJson . snd) pairs ->
              WellFormedJson (JsonObject pairs)
 
+||| Prove all elements of a JSON array are well-formed (structural recursion)
+allWellFormed : (xs : List JsonValue) -> All WellFormedJson xs
+allWellFormed [] = []
+allWellFormed (x :: xs) = constructedWellFormed x :: allWellFormed xs
+
+||| Prove all values in a JSON object are well-formed (structural recursion)
+allPairsWellFormed : (ps : List (String, JsonValue)) -> All (WellFormedJson . snd) ps
+allPairsWellFormed [] = []
+allPairsWellFormed ((_, v) :: ps) = constructedWellFormed v :: allPairsWellFormed ps
+
 ||| All constructed JSON values are well-formed
+||| Proof by structural induction on JsonValue
 public export
 constructedWellFormed : (v : JsonValue) -> WellFormedJson v
 constructedWellFormed JsonNull = WFNull
@@ -264,6 +276,6 @@ constructedWellFormed (JsonBool b) = WFBool b
 constructedWellFormed (JsonNumber n) = WFNumber n
 constructedWellFormed (JsonString s) = WFString s
 constructedWellFormed (JsonArray arr) =
-  WFArray arr (believe_me (the (All WellFormedJson arr) ?arrayProof))
+  WFArray arr (allWellFormed arr)
 constructedWellFormed (JsonObject pairs) =
-  WFObject pairs (believe_me (the (All (WellFormedJson . snd) pairs) ?objectProof))
+  WFObject pairs (allPairsWellFormed pairs)

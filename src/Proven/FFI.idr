@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: Apache-2.0
--- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Proven FFI aggregation module
 |||
 ||| This module re-exports all FFI functions from individual modules.
@@ -8,6 +8,7 @@ module Proven.FFI
 import Data.String
 import Data.List
 
+-- Core domain modules
 import Proven.FFI.SafePath
 import Proven.FFI.SafeJson
 import Proven.FFI.SafeMath
@@ -67,14 +68,21 @@ import Proven.FFI.SafeFiniteField
 import Proven.FFI.SafeOrdering
 import Proven.FFI.SafeTensor
 import Proven.FFI.SafeSchema
-import Proven.FFI.SafeUUID
-import Proven.FFI.SafeCurrency
-import Proven.FFI.SafeHex
-import Proven.FFI.SafeTree
-import Proven.FFI.SafeBuffer
-import Proven.FFI.SafePolicy
-import Proven.FFI.SafeProvenance
-import Proven.FFI.SafeStateMachine
-import Proven.FFI.SafeMarkdown
+
+-- New modules (v1.1.0)
+import Proven.FFI.SafeGit
+import Proven.FFI.SafeDocker
+import Proven.FFI.SafeDNS
+import Proven.FFI.SafeSSH
+import Proven.FFI.SafeI18n
+import Proven.FFI.SafeTemplate
+import Proven.FFI.SafeArchive
+import Proven.FFI.SafeCert
+import Proven.FFI.SafeOAuth
+import Proven.FFI.SafeWebhook
+import Proven.FFI.SafeBibTeX
+import Proven.FFI.SafeMCP
+import Proven.FFI.SafeML
+import Proven.FFI.SafePhone
 
 %default total

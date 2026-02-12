@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 --
 -- SafeProvenance: Formally verified change tracking and audit trails
 --
@@ -10,9 +10,8 @@
 -- - Tamper detection
 
 module Proven.SafeProvenance
-import Data.String
-import Data.List
 
+import Data.String
 import Data.List
 import Data.Nat
 import Data.Maybe
@@ -211,7 +210,8 @@ auditLog entry trail =
   if trailSealed trail
     then Nothing
     else let newHash = hashAuditEntry entry (trailHash trail)
-         in Just (record { trailEntries = entry :: trailEntries trail, trailHash = newHash } trail)
+         in Just ({ trailEntries := entry :: trailEntries trail,
+                    trailHash := newHash } trail)
 
 ||| Seal audit trail (no more modifications)
 public export
@@ -223,15 +223,15 @@ public export
 verifyAuditTrail : AuditTrail -> Bool
 verifyAuditTrail trail = verifyRec (trailEntries trail) (trailHash trail)
   where
+    computePrevHash : List AuditEntry -> Hash
+    computePrevHash [] = 0
+    computePrevHash (e :: es) = hashAuditEntry e (computePrevHash es)
+
     verifyRec : List AuditEntry -> Hash -> Bool
     verifyRec [] expectedHash = expectedHash == 0
     verifyRec (e :: es) expectedHash =
-      let computedHash = hashAuditEntry e (computePrevHash es)
-      in computedHash == expectedHash && verifyRec es (computePrevHash es)
-
-computePrevHash : List AuditEntry -> Hash
-computePrevHash [] = 0
-computePrevHash (e :: es) = hashAuditEntry e (computePrevHash es)
+      let computed = hashAuditEntry e (computePrevHash es)
+      in computed == expectedHash && verifyRec es (computePrevHash es)
 
 ||| Proof of audit trail integrity
 public export
@@ -349,7 +349,7 @@ public export
 causallyPrecedes : EntityId -> EntityId -> CausalityGraph -> Bool
 causallyPrecedes a b graph =
   elem b (findEffects a graph) ||
-  any' (\mid => causallyPrecedes mid b graph) (findEffects a graph)
+  any (\mid => causallyPrecedes mid b graph) (findEffects a graph)
 
 ||| Proof of causal relationship
 public export

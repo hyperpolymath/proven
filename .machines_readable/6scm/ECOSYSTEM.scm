@@ -1,5 +1,5 @@
-; SPDX-License-Identifier: MPL-2.0-or-later
-; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;; SPDX-License-Identifier: Apache-2.0
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;; ECOSYSTEM.scm - proven ecosystem relationships
 ;; How this project relates to and integrates with other projects
 
@@ -186,7 +186,7 @@
   │                       proven (Idris 2)                          │
   │  SafeMath │ SafeString │ SafeJson │ SafeUrl │ SafeEmail │ ...  │
   │  SafeUUID │ SafeCurrency │ SafePhone │ SafeHex │ SafeHeader    │
-  │  SafeCookie │ SafeContentType │ 87 verified modules            │
+  │  SafeCookie │ SafeContentType │ 104 verified modules           │
   └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼

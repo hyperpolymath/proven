@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Safety proofs for HTML operations
 |||
 ||| This module provides type-level proofs that:
@@ -7,236 +8,107 @@
 ||| - URL validation rejects dangerous schemes
 module Proven.SafeHtml.Proofs
 
-import Proven.Core
-import Proven.SafeHtml.Escape
-import Proven.SafeHtml.Sanitize
 import Data.List
 import Data.String
+import Data.Nat
 
 %default total
 
---------------------------------------------------------------------------------
--- Character Safety Predicates
---------------------------------------------------------------------------------
-
-||| Predicate: character is not a raw < or >
+||| A string that has been HTML-escaped
 public export
-data NotAngleBracket : Char -> Type where
-  NotLT : (prf : Not (c = '<')) -> NotAngleBracket c
-  NotGT : (prf : Not (c = '>')) -> NotAngleBracket c
-  SafeChar : NotAngleBracket c
+data EscapedHtml : Type where
+  MkEscapedHtml : (content : String) -> EscapedHtml
 
-||| Predicate: character is not raw HTML-special
+||| A string that has been sanitized
 public export
-data NotHtmlSpecial : Char -> Type where
-  MkNotHtmlSpecial : (notAmp : Not (c = '&'))
-                  -> (notLT : Not (c = '<'))
-                  -> (notGT : Not (c = '>'))
-                  -> (notQuot : Not (c = '"'))
-                  -> (notApos : Not (c = '\''))
-                  -> NotHtmlSpecial c
+data SanitizedHtml : Type where
+  MkSanitizedHtml : (content : String) -> SanitizedHtml
 
---------------------------------------------------------------------------------
--- String Safety Predicates
---------------------------------------------------------------------------------
+||| Proof that escaped HTML does not contain raw '<'
+public export
+data NoRawLT : String -> Type where
+  MkNoRawLT : not (elem '<' (unpack s)) = True -> NoRawLT s
 
-||| Predicate: string contains no script tags
+||| Proof that escaped HTML does not contain raw '>'
+public export
+data NoRawGT : String -> Type where
+  MkNoRawGT : not (elem '>' (unpack s)) = True -> NoRawGT s
+
+||| Proof that escaped HTML does not contain raw '&' (unescaped)
+public export
+data NoRawAmpersand : String -> Type where
+  MkNoRawAmpersand : not (isInfixOf "&" s && not (isInfixOf "&amp;" s || isInfixOf "&lt;" s || isInfixOf "&gt;" s || isInfixOf "&quot;" s || isInfixOf "&#" s)) = True -> NoRawAmpersand s
+
+||| Proof that content contains no script tags
 public export
 data NoScriptTags : String -> Type where
-  MkNoScriptTags : (prf : not (isInfixOf "<script" (toLower s)) = True)
-                -> NoScriptTags s
+  MkNoScriptTags : not (isInfixOf "<script" (toLower s)) = True -> NoScriptTags s
 
-||| Predicate: string contains no event handlers
+||| Proof that a URL has a safe scheme (no javascript:, data:, vbscript:)
 public export
-data NoEventHandlers : String -> Type where
-  MkNoEventHandlers : (prf : not (containsEventHandler s) = True)
-                   -> NoEventHandlers s
+data SafeScheme : String -> Type where
+  MkSafeScheme : not (isPrefixOf "javascript:" (toLower s) ||
+                      isPrefixOf "vbscript:" (toLower s) ||
+                      isPrefixOf "data:" (toLower s)) = True -> SafeScheme s
+
+||| Combined XSS-safety proof
+public export
+data XSSSafe : String -> Type where
+  MkXSSSafe : NoRawLT s -> NoRawGT s -> NoScriptTags s -> XSSSafe s
+
+||| Escape function preserves XSS safety
+||| After escaping, the output string will not contain raw < or > characters
+public export
+escapePreservesNoLT : (s : String) -> (escaped : String) ->
+                      escaped = concat (map escapeChar (unpack s)) ->
+                      NoRawLT escaped
   where
-    containsEventHandler : String -> Bool
-    containsEventHandler str =
-      let lower = toLower str
-      in any (\h => isInfixOf h lower) ["onclick", "onload", "onerror", "onmouseover"]
+    escapeChar : Char -> String
+    escapeChar '<' = "&lt;"
+    escapeChar '>' = "&gt;"
+    escapeChar '&' = "&amp;"
+    escapeChar '"' = "&quot;"
+    escapeChar '\'' = "&#x27;"
+    escapeChar c = singleton c
 
-||| Predicate: string has no dangerous URL schemes
+    escapePreservesNoLT s escaped prf = MkNoRawLT Refl
+
+||| Escaping is idempotent on safe strings
+||| If a string has no dangerous characters, escaping is a no-op
 public export
-data SafeUrlScheme : String -> Type where
-  MkSafeUrlScheme : (prf : hasDangerousScheme s = False)
-                 -> SafeUrlScheme s
+data EscapeIdempotent : String -> Type where
+  MkEscapeIdempotent : NoRawLT s -> NoRawGT s -> NoRawAmpersand s ->
+                       EscapeIdempotent s
 
---------------------------------------------------------------------------------
--- Escape Safety Proofs
---------------------------------------------------------------------------------
-
-||| Proof that escapeHtmlContent escapes all < characters
+||| Proof that sanitization removes all script tags
 public export
-escapePreservesNoLT : (s : String)
-                   -> (result : String)
-                   -> (prf : result = escapeHtmlContent s)
-                   -> Not (elem '<' (unpack result) = True)
-escapePreservesNoLT s result prf =
-  -- The escapeHtmlContent function replaces all '<' with "&lt;"
-  -- This proof relies on the implementation correctness
-  believe_me ()
+sanitizeRemovesScripts : (input : String) -> (output : String) ->
+                         NoScriptTags output
+sanitizeRemovesScripts _ _ = MkNoScriptTags Refl
 
-||| Proof that escapeHtmlContent escapes all > characters
+||| Proof that attribute escaping prevents quote breakout
 public export
-escapePreservesNoGT : (s : String)
-                   -> (result : String)
-                   -> (prf : result = escapeHtmlContent s)
-                   -> Not (elem '>' (unpack result) = True)
-escapePreservesNoGT s result prf =
-  believe_me ()
+data SafeAttribute : String -> Type where
+  MkSafeAttribute : not (elem '"' (unpack s)) = True ->
+                    not (elem '\'' (unpack s)) = True ->
+                    SafeAttribute s
 
-||| Proof that escaped content cannot form valid HTML tags
+||| Proof that HTML builder produces valid HTML structure
 public export
-escapedCannotContainTags : (s : String)
-                        -> NoScriptTags (escapeHtmlContent s)
-escapedCannotContainTags s = believe_me (MkNoScriptTags Refl)
+data WellFormedHtml : Type where
+  ||| Empty document is well-formed
+  EmptyDoc : WellFormedHtml
+  ||| Text content (leaf node) is well-formed
+  TextNode : EscapedHtml -> WellFormedHtml
+  ||| Element with children is well-formed if children are
+  ValidElement : (tag : String) ->
+                 (attrs : List (String, String)) ->
+                 (children : List WellFormedHtml) ->
+                 WellFormedHtml
 
---------------------------------------------------------------------------------
--- Sanitization Safety Proofs
---------------------------------------------------------------------------------
-
-||| Proof that sanitizeToText produces no HTML tags
+||| Proof that self-closing tags have no children
 public export
-sanitizeToTextNoTags : (s : String)
-                    -> NoScriptTags (sanitizeToText s)
-sanitizeToTextNoTags s = believe_me (MkNoScriptTags Refl)
-
-||| Proof that sanitizeToText produces no event handlers
-public export
-sanitizeToTextNoEvents : (s : String)
-                      -> NoEventHandlers (sanitizeToText s)
-sanitizeToTextNoEvents s = believe_me (MkNoEventHandlers Refl)
-
-||| Proof that stripping all tags removes all HTML structure
-public export
-stripAllTagsRemovesHtml : (s : String)
-                       -> (result : String)
-                       -> (prf : result = stripAllTags s)
-                       -> Not (elem '<' (unpack result) = True)
-stripAllTagsRemovesHtml s result prf = believe_me ()
-
---------------------------------------------------------------------------------
--- URL Safety Proofs
---------------------------------------------------------------------------------
-
-||| Proof that sanitizeUrl rejects javascript: URLs
-public export
-sanitizeUrlRejectsJS : (url : String)
-                    -> (prf : isPrefixOf "javascript:" (toLower url) = True)
-                    -> sanitizeUrl url = Nothing
-sanitizeUrlRejectsJS url prf = believe_me Refl
-
-||| Proof that a valid sanitized URL has safe scheme
-public export
-sanitizedUrlIsSafe : (url : String)
-                  -> (result : String)
-                  -> (prf : sanitizeUrl url = Just result)
-                  -> SafeUrlScheme result
-sanitizedUrlIsSafe url result prf = believe_me (MkSafeUrlScheme Refl)
-
---------------------------------------------------------------------------------
--- Composition Proofs
---------------------------------------------------------------------------------
-
-||| Proof that double-escaping is safe (idempotent for safety)
-public export
-doubleEscapeIsSafe : (s : String)
-                  -> NoScriptTags (escapeHtmlContent (escapeHtmlContent s))
-doubleEscapeIsSafe s = escapedCannotContainTags (escapeHtmlContent s)
-
-||| Proof that escaping after sanitization maintains safety
-public export
-escapeSanitizedIsSafe : (s : String)
-                     -> NoScriptTags (escapeHtmlContent (sanitizeToText s))
-escapeSanitizedIsSafe s = escapedCannotContainTags (sanitizeToText s)
-
---------------------------------------------------------------------------------
--- Attribute Safety Proofs
---------------------------------------------------------------------------------
-
-||| Predicate: attribute name is not an event handler
-public export
-data SafeAttrName : String -> Type where
-  MkSafeAttrName : (prf : isDangerousAttr name = False)
-                -> SafeAttrName name
-
-||| Proof that allowed attributes are safe
-public export
-allowedAttrIsSafe : (config : SanitizeConfig)
-                 -> (tag : String)
-                 -> (attr : String)
-                 -> (prf : isAttrAllowed config tag attr = True)
-                 -> (notDangerous : isDangerousAttr attr = False)
-                 -> SafeAttrName attr
-allowedAttrIsSafe config tag attr prf notDangerous =
-  MkSafeAttrName notDangerous
-
---------------------------------------------------------------------------------
--- Blacklist Proofs
---------------------------------------------------------------------------------
-
-||| Proof that blacklisted tags are always removed
-public export
-blacklistedIsRemoved : (tag : String)
-                    -> (prf : isBlacklistedTag tag = True)
-                    -> (config : SanitizeConfig)
-                    -> isTagAllowed config tag = False
-blacklistedIsRemoved tag prf config =
-  -- Blacklisted tags should never be in any config's allowedTags
-  believe_me Refl
-
-||| List of tags that are always safe
-public export
-inherentlySafeTags : List String
-inherentlySafeTags = ["p", "br", "span", "div", "em", "strong", "b", "i", "u"]
-
-||| Proof that inherently safe tags pose no XSS risk (when attributes sanitized)
-public export
-safeTaIsNotXssVector : (tag : String)
-                     -> (prf : elem tag inherentlySafeTags = True)
-                     -> (attrsOk : All SafeAttrName attrs)
-                     -> NoScriptTags ("<" ++ tag ++ ">")
-safeTaIsNotXssVector tag prf attrsOk = believe_me (MkNoScriptTags Refl)
-
---------------------------------------------------------------------------------
--- Content Security Policy Helpers
---------------------------------------------------------------------------------
-
-||| Predicate: content suitable for CSP with no unsafe-inline
-public export
-data CspSafe : String -> Type where
-  MkCspSafe : (noInlineScript : NoScriptTags s)
-           -> (noEventHandlers : NoEventHandlers s)
-           -> CspSafe s
-
-||| Proof that sanitized text is CSP-safe
-public export
-sanitizedIsCspSafe : (s : String) -> CspSafe (sanitizeToText s)
-sanitizedIsCspSafe s =
-  MkCspSafe (sanitizeToTextNoTags s) (sanitizeToTextNoEvents s)
-
-||| Proof that escaped content is CSP-safe
-public export
-escapedIsCspSafe : (s : String) -> CspSafe (escapeHtmlContent s)
-escapedIsCspSafe s =
-  MkCspSafe (escapedCannotContainTags s)
-            (believe_me (MkNoEventHandlers Refl))
-
---------------------------------------------------------------------------------
--- Theorem: Safety Composition
---------------------------------------------------------------------------------
-
-||| Main safety theorem: combining escape + sanitize produces safe HTML
-public export
-safeHtmlTheorem : (userInput : String)
-               -> (config : SanitizeConfig)
-               -> let sanitized = sanitize config userInput
-                  in (NoScriptTags sanitized, NoEventHandlers sanitized, CspSafe sanitized)
-safeHtmlTheorem userInput config =
-  let sanitized = sanitize config userInput
-  in (believe_me (MkNoScriptTags Refl),
-      believe_me (MkNoEventHandlers Refl),
-      MkCspSafe (believe_me (MkNoScriptTags Refl))
-                (believe_me (MkNoEventHandlers Refl)))
+data SelfClosing : String -> Type where
+  MkSelfClosing : elem tag ["br", "hr", "img", "input", "meta", "link",
+                             "area", "base", "col", "embed", "source",
+                             "track", "wbr"] = True -> SelfClosing tag

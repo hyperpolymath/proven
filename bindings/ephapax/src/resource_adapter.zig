@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: Apache-2.0
 //! SafeResource adapter for Ephapax
 
 const std = @import("std");

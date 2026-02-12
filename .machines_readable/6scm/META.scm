@@ -1,11 +1,11 @@
-; SPDX-License-Identifier: MPL-2.0-or-later
-; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;; SPDX-License-Identifier: Apache-2.0
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;; META.scm - proven meta-level information
 ;; Architecture decisions, design rationale, development practices
 
 (define meta
   `((metadata
-     (version . "1.0")
+     (version . "1.1")
      (schema-version . "1.0")
      (media-type . "application/meta+scheme"))
 
@@ -41,7 +41,7 @@
        (context . "Need to expose Idris 2 code to Python, Rust, JS, Go, and more")
        (decision . "Use Zig for FFI bridge - pure Zig ABI, no runtime, no C required")
        (consequences
-        ("Single FFI layer serves all 12 target languages"
+        ("Single FFI layer serves all 89 target languages"
          "Zig's safety features complement Idris proofs"
          "Fast compilation, small binaries"
          "Cross-platform builds including WASM"
@@ -187,7 +187,7 @@
        major platforms including WASM, 4) Safety features that complement our
        verified code, 5) Bidirectional callback system for cross-language calls.
        The Zig layer translates between Idris's representations and target
-       language conventions, supporting 12 target languages.")
+       language conventions, supporting 89 target languages.")
 
      (why-alib-reference-implementation
       "proven serves as the reference implementation for aggregate-library (aLib)

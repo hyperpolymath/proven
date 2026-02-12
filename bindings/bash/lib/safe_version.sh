@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: PMPL-1.0
+# SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 # safe_version.sh - Safe semantic version parsing for POSIX shells

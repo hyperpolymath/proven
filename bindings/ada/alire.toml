@@ -1,14 +1,14 @@
 name = "proven"
-description = "Formally verified safe operations (Idris2 → Zig → Ada bindings)"
+description = "Formally verified safe operations (Idris2 -> Zig -> Ada bindings)"
 version = "0.9.0"
 
 authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
 maintainers = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
 maintainers-logins = ["hyperpolymath"]
 
-licenses = "PMPL-1.0-or-later"
+licenses = "BSD-3-Clause"
 website = "https://github.com/hyperpolymath/proven"
-tags = ["formal-verification", "idris2", "safety", "cryptography", "oci"]
+tags = ["formal-verif", "idris2", "safety", "cryptography", "oci"]
 
 # Ada bindings only - Idris2 and Zig FFI are in parent directories
 # This makes the Ada library available to other Alire projects

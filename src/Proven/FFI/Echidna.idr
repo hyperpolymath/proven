@@ -1,5 +1,5 @@
--- SPDX-FileCopyrightText: 2025 Proven Contributors
--- SPDX-License-Identifier: MIT
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+-- SPDX-License-Identifier: Apache-2.0
 
 ||| ECHIDNA FFI Bindings
 |||

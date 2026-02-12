@@ -1,0 +1,5 @@
+external:LIBRARY_TYPE=static
+external:PROVEN_LIBRARY_TYPE=default
+profile:proven=RELEASE
+switches:proven=-O3,-fdata-sections,-ffunction-sections,-gnatW8,-gnatn
+version:gnat_native=15.2.1

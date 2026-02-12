@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 // Package proven provides safety-first utility functions with formal verification guarantees.

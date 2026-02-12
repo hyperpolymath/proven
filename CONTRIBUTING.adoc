@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MPL-2.0-or-later
+// SPDX-License-Identifier: Apache-2.0
 = Contributing to bulletproof-core
 
 Thank you for your interest in contributing!

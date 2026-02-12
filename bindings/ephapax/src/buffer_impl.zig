@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: Apache-2.0
 //! Pure Zig implementation of SafeBuffer
 
 const std = @import("std");

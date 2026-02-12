@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Safe escaping functions for various contexts
 |||
 ||| This module provides escaping functions to prevent injection attacks
@@ -97,8 +98,31 @@ escapeJS s = pack (go (unpack s))
     go ('>' :: cs) = '\\' :: 'x' :: '3' :: 'E' :: go cs
     go (c :: cs) = c :: go cs
 
+padLeft : Nat -> Char -> String -> String
+padLeft n pad s =
+  let len = length s in
+  if len >= n
+    then s
+    else pack (unpack (replicate (minus n len) pad) ++ unpack s)
+
+partial
+unicodeEscape : Char -> String
+unicodeEscape c = "\\u" ++ Proven.SafeString.Escape.padLeft 4 '0' (toHex (cast (ord c)))
+  where
+    partial toHex : Nat -> String
+    toHex n = pack (toHexHelper n [])
+      where
+        hexDigit : Nat -> Char
+        hexDigit d = if d < 10 then chr (ord '0' + cast d) else chr (ord 'a' + cast d - 10)
+
+        toHexHelper : Nat -> List Char -> List Char
+        toHexHelper 0 [] = ['0']
+        toHexHelper 0 acc = acc
+        toHexHelper m acc = toHexHelper (m `div` 16) (hexDigit (m `mod` 16) :: acc)
+
 ||| Escape for JSON string values
 public export
+partial
 escapeJSON : String -> String
 escapeJSON s = pack (go (unpack s))
   where
@@ -115,20 +139,6 @@ escapeJSON s = pack (go (unpack s))
       if ord c < 0x20
         then unpack (unicodeEscape c) ++ go cs
         else c :: go cs
-
-    unicodeEscape : Char -> String
-    unicodeEscape c = "\\u" ++ padLeft 4 '0' (toHex (cast (ord c)))
-
-    toHex : Nat -> String
-    toHex n = pack (toHexHelper n [])
-      where
-        hexDigit : Nat -> Char
-        hexDigit d = if d < 10 then chr (ord '0' + cast d) else chr (ord 'a' + cast d - 10)
-
-        toHexHelper : Nat -> List Char -> List Char
-        toHexHelper 0 [] = ['0']
-        toHexHelper 0 acc = acc
-        toHexHelper m acc = toHexHelper (m `div` 16) (hexDigit (m `mod` 16) :: acc)
 
 --------------------------------------------------------------------------------
 -- URL Escaping

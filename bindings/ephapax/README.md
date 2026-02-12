@@ -131,7 +131,7 @@ zig build
 
 ```ephapax
 // examples/lru_cache.eph
-// SPDX-License-Identifier: MPL-2.0-or-later
+// SPDX-License-Identifier: Apache-2.0
 
 // Import proven library via FFI
 @ffi("libephapax_proven.so")

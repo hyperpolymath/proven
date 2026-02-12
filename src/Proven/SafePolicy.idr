@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 --
 -- SafePolicy: Formally verified policy enforcement
 --
@@ -10,9 +10,8 @@
 -- - Zone boundaries (mutable/immutable/hybrid)
 
 module Proven.SafePolicy
-import Data.String
-import Data.List
 
+import Data.String
 import Data.List
 import Data.Nat
 import Data.Maybe
@@ -193,8 +192,10 @@ public export
 findConflicts : Policy -> List (PolicyRule, PolicyRule)
 findConflicts policy =
   let rules = policyRules policy
-  in [(r1, r2) | r1 <- rules, r2 <- rules,
-      ruleName r1 /= ruleName r2, rulesConflict r1 r2]
+  in do r1 <- rules
+        r2 <- rules
+        guard (ruleName r1 /= ruleName r2 && rulesConflict r1 r2)
+        pure (r1, r2)
 
 ||| Policy composition - combine policies
 public export

@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| HTML-specific escaping functions
 |||
 ||| Provides escaping for HTML content, attributes, and special contexts
@@ -137,6 +138,7 @@ toNumericEntity c = "&#" ++ show (ord c) ++ ";"
 
 ||| Convert character to hex entity
 public export
+partial
 toHexEntity : Char -> String
 toHexEntity c = "&#x" ++ toHex (ord c) ++ ";"
   where

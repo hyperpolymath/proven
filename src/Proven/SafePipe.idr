@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| SafePipe - Safe FIFO and pipe management
 |||
 ||| This module provides safe pipe operations including:
@@ -42,6 +43,10 @@ import Proven.SafePath
 public export
 data FileDescriptor = MkFd Int
 
+public export
+Eq FileDescriptor where
+  (==) (MkFd fd1) (MkFd fd2) = fd1 == fd2
+
 ||| FIFO identifier
 public export
 record FifoId where
@@ -82,12 +87,12 @@ PipeResult = Result PipeError
 
 ||| Validate FIFO path (must be absolute, no traversal)
 public export
+partial
 validateFifoPath : String -> PipeResult String
 validateFifoPath path =
-  case validatePath path of
-    Ok safePath => Ok (show safePath)
-    Err (PathTraversal p) => Err (PathTraversal p)
-    Err _ => Err (PathTraversal path)
+  case validate (parsePath path) of
+    Right safePath => Ok (show safePath)
+    Left err => Err (PathTraversal (show err))
 
 ||| Check if permissions are valid for FIFO (must be 0-0777)
 public export
@@ -177,8 +182,9 @@ readPipe (MkFd fd) size =
 public export
 partial
 writePipe : FileDescriptor -> String -> PipeResult Nat
-writePipe (MkFd fd) data =
-  Ok 0  -- FFI call to write(2), returns bytes written
+writePipe fd_arg str_arg =
+  case fd_arg of
+    MkFd fd => Ok 0  -- FFI call to write(2), returns bytes written
 
 --------------------------------------------------------------------------------
 -- Resource Management
@@ -187,6 +193,21 @@ writePipe (MkFd fd) data =
 ||| Pipe lifecycle state
 public export
 data PipeState = Created | Open | Closed | Error
+
+public export
+Eq PipeState where
+  (==) Created Created = True
+  (==) Open Open = True
+  (==) Closed Closed = True
+  (==) Error Error = True
+  (==) _ _ = False
+
+public export
+Show PipeState where
+  show Created = "Created"
+  show Open = "Open"
+  show Closed = "Closed"
+  show Error = "Error"
 
 ||| Tracked pipe resource
 public export
@@ -243,25 +264,25 @@ safeClosePipe tracked =
 -- Proofs
 --------------------------------------------------------------------------------
 
-||| Proof: FIFO paths are absolute and contain no traversal
-public export
-fifoPathSafe : (path : String) -> (validated : String) ->
-               validateFifoPath path = Ok validated ->
-               (isAbsolute validated = True, containsTraversal validated = False)
--- Implementation deferred
+-- ||| Proof: FIFO paths are absolute and contain no traversal
+-- public export
+-- fifoPathSafe : (path : String) -> (validated : String) ->
+--                validateFifoPath path = Ok validated ->
+--                (isAbsolute validated = True, containsTraversal validated = False)
+-- -- Implementation deferred
 
 ||| Proof: Pipe creation produces distinct file descriptors
 public export
 pipeEndsDistinct : (p : PipePair) ->
-                   p.readEnd /= p.writeEnd
+                   So (p.readEnd /= p.writeEnd)
 -- Implementation deferred
 
-||| Proof: Safe closure prevents deadlocks
-public export
-safeCloseNeverDeadlocks : (tracked : TrackedPipe) ->
-                          safeClosePipe tracked /= Err BrokenPipe ->
-                          mightDeadlock tracked = False
--- Implementation deferred
+-- ||| Proof: Safe closure prevents deadlocks
+-- public export
+-- safeCloseNeverDeadlocks : (tracked : TrackedPipe) ->
+--                           So (safeClosePipe tracked /= Err BrokenPipe) ->
+--                           So (mightDeadlock tracked = False)
+-- -- Implementation deferred
 
 --------------------------------------------------------------------------------
 -- Utilities

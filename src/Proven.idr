@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Proven Core - Verified Safe Operations
 |||
 ||| This module re-exports all Safe modules for convenient access.
@@ -63,6 +64,7 @@
 ||| @ SafeCron Cron expressions with frequency limits
 ||| @ SafeBibTeX BibTeX parsing with LaTeX injection prevention
 ||| @ SafeMCP Model Context Protocol with prompt injection detection
+||| @ SafeML Machine learning safety primitives with numerical stability
 module Proven
 
 import public Proven.Core
@@ -125,5 +127,12 @@ import public Proven.SafeWebhook
 import public Proven.SafeCron
 import public Proven.SafeBibTeX
 import public Proven.SafeMCP
-import Proven.FFI
+import public Proven.SafeFloat
+import public Proven.SafeDecimal
+import public Proven.SafeRational
+import public Proven.SafeComplex
+import public Proven.SafeCSV
+import public Proven.SafeDigest
+import public Proven.SafeRegistry
+import public Proven.SafeML
 import Proven.FFI

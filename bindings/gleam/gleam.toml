@@ -1,5 +1,5 @@
-# SPDX-License-Identifier: MPL-2.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 name = "proven"
 version = "1.0.0"

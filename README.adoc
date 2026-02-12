@@ -6,19 +6,17 @@
 
 *Mathematically proven safe operations.* Code that **cannot crash**, verified with Idris2 dependent types and totality checking.
 
-image:https://img.shields.io/badge/version-1.0.0-blue[Version 1.0.0]
-image:https://img.shields.io/badge/License-MPL_2.0-blue.svg[MPL-2.0-or-later,link="https://opensource.org/licenses/MPL-2.0"]
-image:https://img.shields.io/badge/modules-90-blue[90 Modules]
+image:https://img.shields.io/badge/version-1.1.0-blue[Version 1.1.0]
+image:https://img.shields.io/badge/License-Apache_2.0-blue.svg[Apache-2.0,link="https://opensource.org/licenses/Apache-2.0"]
+image:https://img.shields.io/badge/modules-104-blue[104 Modules]
 image:https://img.shields.io/badge/bindings-89_targets-orange[89 Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
 image:https://img.shields.io/badge/Idris-Inside-blueviolet?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJMMyA3djEwbDkgNSA5LTVWN2wtOS01em0wIDJsNyA0djhsLTcgNC03LTRWOGw3LTR6Ii8+PC9zdmc+[Idris Inside]
 image:https://img.shields.io/badge/build-passing-brightgreen[Build Status]
 
-== License & Philosophy
+== License
 
-This project must declare **MPL-2.0-or-later** for platform/tooling compatibility.
-
-Philosophy: **Palimpsest**. The Palimpsest-MPL (PMPL) text is provided in `license/PMPL-1.0.txt`, and the canonical source is the palimpsest-license repository.
+This project is licensed under **Apache-2.0**. See link:LICENSE[LICENSE].
 
 WARNING: **proven** is an **Idris2 library with FFI bindings**, not a native implementation in your language. All computation happens in Idris2 with mathematical proofs. Language bindings call this verified code via FFI.
 
@@ -80,13 +78,13 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | Category | Modules
 
 | *Core Safety*
-| <<SafeMath>> • <<SafeString>> • <<SafeFloat>> • <<SafeBuffer>> • <<SafeArgs>>
+| <<SafeMath>> • <<SafeString>> • <<SafeFloat>> • <<SafeBuffer>> • <<SafeArgs>> • <<SafeCalculator>>
 
 | *Data Formats*
-| <<SafeJson>> • <<SafeXML>> • <<SafeYAML>> • <<SafeTOML>> • <<SafeHtml>> • <<SafeBase64>> • <<SafeHex>> • <<SafeMarkdown>> • <<SafeBibTeX>> • <<SafeArchive>> • <<SafeTemplate>>
+| <<SafeJson>> • <<SafeXML>> • <<SafeYAML>> • <<SafeTOML>> • <<SafeHtml>> • <<SafeBase64>> • <<SafeHex>> • <<SafeMarkdown>> • <<SafeBibTeX>> • <<SafeArchive>> • <<SafeTemplate>> • <<SafeCSV>>
 
 | *Web & Network*
-| <<SafeUrl>> • <<SafeEmail>> • <<SafeNetwork>> • <<SafeHeader>> • <<SafeCookie>> • <<SafeContentType>> • <<SafePhone>> • <<SafeDNS>> • <<SafeWebhook>> • <<SafeHTTP>>
+| <<SafeUrl>> • <<SafeEmail>> • <<SafeNetwork>> • <<SafeHeader>> • <<SafeCookie>> • <<SafeContentType>> • <<SafePhone>> • <<SafeDNS>> • <<SafeWebhook>>
 
 | *Security & Auth*
 | <<SafeCrypto>> • <<SafePassword>> • <<SafeJWT>> • <<SafeCapability>> • <<SafePolicy>> • <<SafeCert>> • <<SafeOAuth>> • <<SafeSSH>> • <<SafeDigest>>
@@ -98,7 +96,7 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | <<SafeRegex>> • <<SafeSQL>> • <<SafeCommand>> • <<SafePath>> • <<SafeSchema>>
 
 | *System & I/O*
-| <<SafeFile>> • <<SafeEnv>> • <<SafeDateTime>> • <<SafeCurrency>> • <<SafeUUID>> • <<SafeLog>> • <<SafeCron>>
+| <<SafeFile>> • <<SafeEnv>> • <<SafeDateTime>> • <<SafeCurrency>> • <<SafeUUID>> • <<SafeLog>> • <<SafeCron>> • <<SafeShell>> • <<SafePipe>> • <<SafeProcess>> • <<SafeSignal>> • <<SafeTerminal>> • <<SafeSemaphore>>
 
 | *Advanced/Distributed*
 | <<SafeStateMachine>> • <<SafeGraph>> • <<SafeTree>> • <<SafeTransaction>> • <<SafeConsensus>> • <<SafeOrdering>>
@@ -107,13 +105,13 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | <<SafeResource>> • <<SafeProvenance>> • <<SafeTensor>> • <<SafeML>>
 
 | *Mathematics & Physics*
-| <<SafeAngle>> • <<SafeProbability>> • <<SafeUnit>> • <<SafeFiniteField>>
+| <<SafeAngle>> • <<SafeProbability>> • <<SafeUnit>> • <<SafeFiniteField>> • <<SafeDecimal>> • <<SafeRational>> • <<SafeComplex>>
 
 | *Distributed Systems*
 | <<SafeMonotonic>> • <<SafeRateLimiter>> • <<SafeCircuitBreaker>> • <<SafeRetry>>
 
 | *Data Structures*
-| <<SafeQueue>> • <<SafeBloom>> • <<SafeLRU>>
+| <<SafeQueue>> • <<SafeBloom>> • <<SafeLRU>> • <<SafeSet>> • <<SafeHeap>> • <<SafeMatrix>> • <<SafeBitset>> • <<SafeInterval>> • <<SafeUnionFind>>
 
 | *Domain Values*
 | <<SafeColor>> • <<SafeGeo>> • <<SafeVersion>> • <<SafeChecksum>>
@@ -132,7 +130,7 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | Metric | Count | Notes
 
 | Core Modules
-| 90
+| 104
 | Idris 2 verified implementations
 
 | Binding Targets
@@ -245,7 +243,7 @@ This isn’t marketing fluff. Here’s what makes proven different from regular 
 
 * Every function in proven is written in Idris 2, a language with dependent types.
 * The compiler literally proves your code is correct before it runs.
-* All 74 modules and 89 binding targets are complete as of v1.0.0.
+* All 104 modules and 89 binding targets are complete as of v1.1.0.
 
 === Understanding Dependent Types (In 2 Minutes)
 
@@ -1818,9 +1816,9 @@ Notable additions beyond traditional languages:
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                 Idris 2 Verified Core (v1.0.0)                  │
+│                 Idris 2 Verified Core (v1.1.0)                  │
 │                                                                 │
-│  • 74 modules with dependent types: compiler PROVES code        │
+│  • 104 modules with dependent types: compiler PROVES code       │
 │    is correct                                                   │
 │  • Total functions: every input produces valid output           │
 │  • No runtime exceptions: impossible by construction            │
@@ -1913,9 +1911,20 @@ Crashes are a choice. Choose otherwise.
 
 == Roadmap
 
-=== v1.0.0 (Current Release)
+=== v1.1.0 (Current Release)
 
-* ✅ All 60 core modules with dependent type proofs
+* ✅ 104 core modules with dependent type proofs (expanded from 74 in v1.0.0)
+* ✅ 14 new FFI exports for Zig bridge layer
+* ✅ SPDX headers standardised to Apache-2.0 across all files
+* ✅ Proof fixes: SafeCapability, ECHIDNA/Soundness, SafeFloat
+* ✅ SafeCert FFI hostname matching aligned with source module
+* ✅ SafeML FFI parsePositive replaced with scalar building blocks
+* ✅ ipkg duplicate module entries cleaned up
+* ✅ All TODO stubs converted to documentation notes
+
+=== v1.0.0
+
+* ✅ Initial release with 74 core modules and dependent type proofs
 * ✅ 89 binding targets via Zig FFI (languages, platforms, exotic paradigms)
 * ✅ Complete test suite with fuzzing
 * ✅ Security audit passed
@@ -1981,7 +1990,7 @@ Especially needed:
 
 == License
 
-This project is licensed under the https://github.com/hyperpolymath/palimpsest-license[Palimpsest-MPL-1.0]. See link:LICENSE[LICENSE].
+This project is licensed under https://opensource.org/licenses/Apache-2.0[Apache-2.0]. See link:LICENSE[LICENSE].
 
 == Security
 

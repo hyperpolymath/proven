@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| Timezone Handling
 |||
 ||| Safe timezone operations and common timezone definitions.
@@ -239,6 +240,21 @@ public export
 isValidTimezone : String -> Bool
 isValidTimezone name = name `elem` knownTimezones
 
+parsePositive : String -> Maybe Nat
+parsePositive s = case parseInteger s of
+  Just i => if i > 0 then Just (cast i) else Nothing
+  Nothing => Nothing
+
+split : (Char -> Bool) -> String -> List String
+split p s = go (unpack s) [] []
+  where
+    go : List Char -> List Char -> List String -> List String
+    go [] current acc = reverse (pack (reverse current) :: acc)
+    go (c :: cs) current acc =
+      if p c
+        then go cs [] (pack (reverse current) :: acc)
+        else go cs (c :: current) acc
+
 ||| Parse timezone from string
 public export
 parseTimezone : String -> Maybe Timezone
@@ -250,16 +266,9 @@ parseTimezone s =
     then Just (Named s)
     else parseOffset s
   where
-    parseOffset : String -> Maybe Timezone
-    parseOffset str =
-      case unpack str of
-        ('+' :: rest) => parseOffsetValue 1 (pack rest)
-        ('-' :: rest) => parseOffsetValue (-1) (pack rest)
-        _ => Nothing
-
     parseOffsetValue : Integer -> String -> Maybe Timezone
     parseOffsetValue sign str =
-      case split (== ':') str of
+      case Proven.SafeDateTime.Zones.split (== ':') str of
         [hourStr, minStr] =>
           case (parsePositive hourStr, parsePositive minStr) of
             (Just h, Just m) =>
@@ -275,15 +284,12 @@ parseTimezone s =
             Nothing => Nothing
         _ => Nothing
 
-    split : (Char -> Bool) -> String -> List String
-    split p s = go (unpack s) [] []
-      where
-        go : List Char -> List Char -> List String -> List String
-        go [] current acc = reverse (pack (reverse current) :: acc)
-        go (c :: cs) current acc =
-          if p c
-            then go cs [] (pack (reverse current) :: acc)
-            else go cs (c :: current) acc
+    parseOffset : String -> Maybe Timezone
+    parseOffset str =
+      case unpack str of
+        ('+' :: rest) => parseOffsetValue 1 (pack rest)
+        ('-' :: rest) => parseOffsetValue (-1) (pack rest)
+        _ => Nothing
 
 --------------------------------------------------------------------------------
 -- Timezone Abbreviations

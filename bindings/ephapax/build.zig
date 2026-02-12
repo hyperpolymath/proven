@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: Apache-2.0
 // Zig build file for Ephapax ↔ Proven FFI bindings
 
 const std = @import("std");

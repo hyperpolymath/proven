@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 Hyperpolymath
 
 # safe_uuid.sh - Safe UUID operations for Bash

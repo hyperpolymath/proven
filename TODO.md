@@ -1,84 +1,41 @@
-# Proven FFI Bindings - Task Status
+# Proven - Task Status
 
-Last updated: 2025-01-12
+Last updated: 2026-02-12
 
-## Completed FFI Bindings (18 total)
+## Completed
 
-All planned FFI bindings have been implemented:
+- [x] 104 Idris2 core modules with dependent type proofs
+- [x] 89 binding targets via Zig FFI bridge
+- [x] 14 new FFI exports for Zig bridge layer (v1.1.0)
+- [x] SPDX headers standardised to Apache-2.0
+- [x] Copyright lines corrected across all files
+- [x] Proof fixes (SafeCapability, ECHIDNA/Soundness, SafeFloat)
+- [x] SafeCert FFI hostname matching aligned with source module
+- [x] SafeML FFI parsePositive replaced with scalar building blocks
+- [x] ipkg duplicate module entries cleaned up
+- [x] TODO stubs converted to documentation notes (SafeDigest, SafeRegistry)
+- [x] pack.toml version, license, and author fields corrected
 
-- [x] Python (`bindings/python/`)
-- [x] Rust (`bindings/rust/`)
-- [x] JavaScript (`bindings/javascript/`)
-- [x] Deno (`bindings/deno/`)
-- [x] ReScript (`bindings/rescript/`)
-- [x] Gleam (`bindings/gleam/`)
-- [x] Julia (`bindings/julia/`)
-- [x] Swift (`bindings/swift/`)
-- [x] Kotlin (`bindings/kotlin/`)
-- [x] Go (`bindings/go/`)
-- [x] Elixir (`bindings/elixir/`)
-- [x] Zig native (`bindings/zig/`)
-- [x] Lua (`bindings/lua/`)
-- [x] Ruby (`bindings/ruby/`)
-- [x] Nim (`bindings/nim/`)
-- [x] OCaml (`bindings/ocaml/`)
-- [x] Haskell (`bindings/haskell/`)
-- [x] Ada (`bindings/ada/`)
+## FFI Bindings (18 complete)
 
-## Modules Implemented in Each Binding
+- [x] Python, Rust, JavaScript, Deno, ReScript, Gleam, Julia, Swift
+- [x] Kotlin, Go, Elixir, Zig native, Lua, Ruby, Nim, OCaml, Haskell, Ada
 
-- SafeMath: Checked arithmetic with overflow detection
-- SafeString: HTML, SQL, JS, URL escaping and safe truncation
-- SafePath: Traversal detection and filename sanitization
-- SafeEmail: Validation, parsing, normalization
-- SafeNetwork: IPv4 parsing and classification
-- SafeCrypto: Constant-time comparison and secure random
+## Remaining Work
 
-## Future FFI Targets (When Time Permits)
+### High Priority
+- [ ] Wire FFI stubs to actual Idris2 RefC compiled output (currently stubs return placeholders)
+- [ ] Run `idris2 --build proven.ipkg` end-to-end compilation test
+- [ ] Fill remaining `believe_me` instances (~283 across 38 files) with actual proofs where feasible
+- [ ] Registry publishing: crates.io, PyPI, npm, JSR, opam, pack
 
-### High Priority (languages that need safety help the most)
+### Medium Priority
+- [ ] Post-quantum crypto module (Dilithium, Kyber) in SafeCrypto
+- [ ] WebAssembly browser bundle
+- [ ] IDE plugins (VS Code, IntelliJ)
+- [ ] Additional binding targets: PHP, Perl, C, C++, Shell/Bash
 
-- [ ] **PHP** - Massive legacy web codebases, rampant injection vulnerabilities
-- [ ] **Perl** - Enterprise legacy systems, regex-heavy with escape issues
-- [ ] **C** - Low-level systems need safe wrappers (Zig ABI bridge)
-- [ ] **C++** - Same as C, but with more footguns
-- [ ] **Shell/Bash** - Command injection is everywhere
-
-### Medium Priority (modern languages with gaps)
-
-- [ ] **Dart/Flutter** - Mobile app security matters
-- [ ] **Scala** - JVM alternative, functional but needs primitives
-- [ ] **Clojure** - JVM Lisp, immutability helps but not enough
-- [ ] **F#** - .NET functional, relatively safe but gaps exist
-- [ ] **Crystal** - Ruby-like compiled, new ecosystem needs libs
-- [ ] **V** - New systems language, building ecosystem
-- [ ] **D** - Systems programming, less popular but used
-- [ ] **R** - Data science, often handles sensitive data unsafely
-
-### Lower Priority (niche but worthwhile)
-
-- [ ] **Odin** - Game dev systems language
-- [ ] **Jai** - Game dev (when publicly available)
-- [ ] **Forth** - Embedded systems
-- [ ] **COBOL** - Banking/finance legacy (yes, really)
-- [ ] **Fortran** - Scientific computing legacy
-- [ ] **Tcl** - Embedded scripting in legacy apps
-- [ ] **Racket** - Scheme dialect, academic but used
-- [ ] **Common Lisp** - AI/symbolic computing
-- [ ] **Erlang** - Direct BEAM support (complement Elixir)
-- [ ] **Prolog** - Logic programming, AI applications
-- [ ] **APL/J/K** - Array languages, finance sector
-
-### Platform-Specific
-
-- [ ] **Objective-C** - iOS legacy code
-- [ ] **VB.NET** - Windows enterprise legacy
-- [ ] **PowerShell** - Windows administration
-- [ ] **AppleScript** - macOS automation
-
-## Notes
-
-- All bindings are pure implementations (no C/C++/C#/header files)
-- Each binding includes a test suite
-- Package configurations included for distribution
-- The crappier the language's default safety, the more it needs proven
+### Lower Priority
+- [ ] Formal methods workshops and tutorials
+- [ ] Hardware security module (HSM) support
+- [ ] FIPS 140-3 certification path

@@ -1,4 +1,4 @@
-;;; SPDX-License-Identifier: MPL-2.0-or-later
+;;; SPDX-License-Identifier: Apache-2.0
 ;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
 ;;;
 ;;; SafePhone - Phone number validation for Guile Scheme

@@ -1,4 +1,5 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ||| IPv6 Address Types and Operations
 |||
 ||| Type-safe IPv6 address handling with validation and utilities.
@@ -23,14 +24,12 @@ record IPv6 where
   segments : Vect 8 Bits16
 
 public export
+partial
 Show IPv6 where
   show (MkIPv6 segs) =
     joinBy ":" (map showHex (toList segs))
     where
-      showHex : Bits16 -> String
-      showHex n = toHexString (cast {to=Nat} n)
-
-      toHexString : Nat -> String
+      partial toHexString : Nat -> String
       toHexString 0 = "0"
       toHexString n = go n ""
         where
@@ -40,6 +39,9 @@ Show IPv6 where
           go : Nat -> String -> String
           go 0 acc = acc
           go k acc = go (k `div` 16) (singleton (hexChar (k `mod` 16)) ++ acc)
+
+      showHex : Bits16 -> String
+      showHex n = toHexString (cast {to=Nat} n)
 
       joinBy : String -> List String -> String
       joinBy sep [] = ""
@@ -57,6 +59,7 @@ Eq IPv6 where
 ||| Parse IPv6 address from string
 ||| Supports full form, compressed (::), and mixed notation
 public export
+partial
 parseIPv6 : String -> Maybe IPv6
 parseIPv6 s =
   -- Handle :: compression
@@ -64,6 +67,11 @@ parseIPv6 s =
     Just (left, right) => parseCompressed left right
     Nothing => parseFull s
   where
+    break : (Char -> Bool) -> List Char -> (List Char, List Char)
+    break p [] = ([], [])
+    break p (c :: cs) =
+      if p c then ([], c :: cs) else let (ys, zs) = break p cs in (c :: ys, zs)
+
     findDoubleColon : String -> Maybe (String, String)
     findDoubleColon str =
       case break (== ':') (unpack str) of
@@ -76,10 +84,42 @@ parseIPv6 s =
             Nothing => Nothing
         _ => Nothing
 
-    break : (Char -> Bool) -> List Char -> (List Char, List Char)
-    break p [] = ([], [])
-    break p (c :: cs) =
-      if p c then ([], c :: cs) else let (ys, zs) = break p cs in (c :: ys, zs)
+    split : (Char -> Bool) -> String -> List String
+    split p str = go (unpack str) [] []
+      where
+        go : List Char -> List Char -> List String -> List String
+        go [] current acc = reverse (pack (reverse current) :: acc)
+        go (c :: cs) current acc =
+          if p c
+            then go cs [] (pack (reverse current) :: acc)
+            else go cs (c :: current) acc
+
+    toVect : (n : Nat) -> List a -> Maybe (Vect n a)
+    toVect Z [] = Just []
+    toVect (S k) (x :: xs) = map (x ::) (toVect k xs)
+    toVect _ _ = Nothing
+
+    parseHexNat : String -> Maybe Nat
+    parseHexNat str = go 0 (unpack str)
+      where
+        hexValue : Char -> Maybe Nat
+        hexValue c =
+          if c >= '0' && c <= '9' then Just (cast (ord c - ord '0'))
+          else if c >= 'a' && c <= 'f' then Just (cast (ord c - ord 'a' + 10))
+          else if c >= 'A' && c <= 'F' then Just (cast (ord c - ord 'A' + 10))
+          else Nothing
+
+        go : Nat -> List Char -> Maybe Nat
+        go acc [] = Just acc
+        go acc (c :: cs) = do
+          v <- hexValue c
+          go (acc * 16 + v) cs
+
+    parseHex16 : String -> Maybe Bits16
+    parseHex16 str =
+      case parseHexNat str of
+        Just n => if n <= 0xFFFF then Just (cast n) else Nothing
+        Nothing => Nothing
 
     parseFull : String -> Maybe IPv6
     parseFull str =
@@ -98,7 +138,7 @@ parseIPv6 s =
           rightSegs = if right == "" then [] else split (== ':') right
           leftCount = length leftSegs
           rightCount = length rightSegs
-          zeroCount = 8 `minus` leftCount `minus` rightCount
+          zeroCount = (8 `minus` leftCount) `minus` rightCount
       in if leftCount + rightCount > 8
            then Nothing
            else do
@@ -109,43 +149,6 @@ parseIPv6 s =
              case toVect 8 allSegs of
                Just v => Just (MkIPv6 v)
                Nothing => Nothing
-
-    parseHex16 : String -> Maybe Bits16
-    parseHex16 str =
-      case parseHexNat str of
-        Just n => if n <= 0xFFFF then Just (cast n) else Nothing
-        Nothing => Nothing
-
-    parseHexNat : String -> Maybe Nat
-    parseHexNat str = go 0 (unpack str)
-      where
-        hexValue : Char -> Maybe Nat
-        hexValue c =
-          if c >= '0' && c <= '9' then Just (cast (ord c - ord '0'))
-          else if c >= 'a' && c <= 'f' then Just (cast (ord c - ord 'a' + 10))
-          else if c >= 'A' && c <= 'F' then Just (cast (ord c - ord 'A' + 10))
-          else Nothing
-
-        go : Nat -> List Char -> Maybe Nat
-        go acc [] = Just acc
-        go acc (c :: cs) = do
-          v <- hexValue c
-          go (acc * 16 + v) cs
-
-    split : (Char -> Bool) -> String -> List String
-    split p str = go (unpack str) [] []
-      where
-        go : List Char -> List Char -> List String -> List String
-        go [] current acc = reverse (pack (reverse current) :: acc)
-        go (c :: cs) current acc =
-          if p c
-            then go cs [] (pack (reverse current) :: acc)
-            else go cs (c :: current) acc
-
-    toVect : (n : Nat) -> List a -> Maybe (Vect n a)
-    toVect Z [] = Just []
-    toVect (S k) (x :: xs) = map (x ::) (toVect k xs)
-    toVect _ _ = Nothing
 
 --------------------------------------------------------------------------------
 -- Special Addresses
@@ -309,7 +312,7 @@ multicastScope ip =
     then Nothing
     else case toList (segments ip) of
            (first :: _) =>
-             let scopeNibble = cast ((first `shiftR` 8) .&. 0x0F)
+             let scopeNibble : Bits8 = cast ((first `shiftR` 8) .&. 0x0F)
              in Just $ case scopeNibble of
                   1 => InterfaceLocal
                   2 => LinkLocal
@@ -347,6 +350,7 @@ networkPrefix (MkIPv6 segs) =
 
 ||| Show IPv6 in compressed format (with ::)
 public export
+partial
 showCompressed : IPv6 -> String
 showCompressed (MkIPv6 segs) =
   let segList = toList segs
@@ -362,7 +366,7 @@ showCompressed (MkIPv6 segs) =
         hexChar : Nat -> Char
         hexChar x = if x < 10 then chr (ord '0' + cast x)
                               else chr (ord 'a' + cast x - 10)
-        toHexString : Nat -> String
+        partial toHexString : Nat -> String
         toHexString 0 = ""
         toHexString k = toHexString (k `div` 16) ++ singleton (hexChar (k `mod` 16))
 

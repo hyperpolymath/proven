@@ -1,9 +1,9 @@
 -- SPDX-License-Identifier: Apache-2.0
--- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 package proven
 
-version = 1.0.0
-authors = "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
+version = 1.1.0
+authors = "Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>"
 license = "Apache-2.0"
 brief = "Verified safe operations - code that cannot crash"
 readme = "README.adoc"
@@ -88,150 +88,143 @@ modules = Proven
         , Proven.SafeCommand.Escape
         , Proven.SafeCommand.Builder
         , Proven.SafeCommand.Proofs
-        -- SafeSQL (v0.5.0)
+        -- SafeSQL
         , Proven.SafeSQL
         , Proven.SafeSQL.Types
         , Proven.SafeSQL.Params
         , Proven.SafeSQL.Proofs
-        -- SafeJWT (v0.5.0)
+        -- SafeJWT
         , Proven.SafeJWT
         , Proven.SafeJWT.Decode
         , Proven.SafeJWT.Validate
         , Proven.SafeJWT.Proofs
-        -- SafeBase64 (v0.5.0)
+        -- SafeBase64
         , Proven.SafeBase64
         , Proven.SafeBase64.Types
         , Proven.SafeBase64.Encode
         , Proven.SafeBase64.Decode
         , Proven.SafeBase64.Proofs
-        -- SafeXML (v0.5.0)
+        -- SafeXML
         , Proven.SafeXML
         , Proven.SafeXML.Types
         , Proven.SafeXML.Builder
         , Proven.SafeXML.Proofs
-        -- SafeYAML (v0.5.0)
+        -- SafeYAML
         , Proven.SafeYAML
         , Proven.SafeYAML.Types
         , Proven.SafeYAML.Proofs
-        -- SafeTOML (v0.5.0)
+        -- SafeTOML
         , Proven.SafeTOML
         , Proven.SafeTOML.Types
         , Proven.SafeTOML.Parser
         , Proven.SafeTOML.Proofs
-        -- SafeEnv (v0.7.0)
+        -- SafeEnv
         , Proven.SafeEnv
         , Proven.SafeEnv.Types
         , Proven.SafeEnv.Access
         , Proven.SafeEnv.Proofs
-        -- SafeArgs (v0.7.0)
+        -- SafeArgs
         , Proven.SafeArgs
         , Proven.SafeArgs.Types
         , Proven.SafeArgs.Parser
         , Proven.SafeArgs.Proofs
-        -- SafeFile (v0.7.0)
+        -- SafeFile
         , Proven.SafeFile
         , Proven.SafeFile.Types
         , Proven.SafeFile.Operations
         , Proven.SafeFile.Proofs
-        -- SafeHeader (v0.8.0)
+        -- SafeHeader
         , Proven.SafeHeader
         , Proven.SafeHeader.Types
         , Proven.SafeHeader.Parser
         , Proven.SafeHeader.Proofs
-        -- SafeCookie (v0.8.0)
+        -- SafeCookie
         , Proven.SafeCookie
         , Proven.SafeCookie.Types
         , Proven.SafeCookie.Parser
         , Proven.SafeCookie.Proofs
-        -- SafeContentType (v0.8.0)
+        -- SafeContentType
         , Proven.SafeContentType
         , Proven.SafeContentType.Parser
         , Proven.SafeContentType.Proofs
-        -- SafeUUID (v0.6.0 - no subdir)
+        -- Standalone validated types
         , Proven.SafeUUID
-        -- SafeCurrency (v0.6.0 - no subdir)
         , Proven.SafeCurrency
-        -- SafePhone (v0.6.0 - no subdir)
-        -- SafeHex (v0.6.0 - no subdir)
+        , Proven.SafePhone
         , Proven.SafeHex
-        -- SafeTree (v0.9.0 - tree-navigator integration)
+        -- Tree & buffer modules
         , Proven.SafeTree
-        -- SafeBuffer (v0.9.0 - memory-safe buffers)
         , Proven.SafeBuffer
-        -- SafePolicy (v0.9.0 - policy enforcement)
+        -- Policy & audit
         , Proven.SafePolicy
-        -- SafeProvenance (v0.9.0 - audit trails)
         , Proven.SafeProvenance
-        -- SafeStateMachine (v0.9.0 - tma-mark2 integration)
+        -- State machines
         , Proven.SafeStateMachine
-        -- SafeMarkdown (v1.0.0 - markdown with XSS prevention)
+        -- Format safety
         , Proven.SafeMarkdown
-        -- SafeGit (v1.0.0 - git operations with command injection prevention)
-        -- SafeDocker (v1.0.0 - docker operations with security validation)
-        -- SafeDNS (v1.0.0 - DNS records with homograph detection)
-        -- SafeSSH (v1.0.0 - SSH key handling with weak algorithm detection)
-        -- SafeLog (v1.0.0 - structured logging with PII redaction)
         , Proven.SafeLog
-        -- SafeI18n (v1.0.0 - internationalization with injection prevention)
-        -- SafeTemplate (v1.0.0 - template rendering with SSTI prevention)
-        -- SafeArchive (v1.0.0 - archive handling with Zip Slip prevention)
-        -- SafeCert (v1.0.0 - X.509 certificate handling with validation)
-        -- SafeOAuth (v1.0.0 - OAuth 2.0/OIDC with CSRF prevention)
-        -- SafeWebhook (v1.0.0 - webhook handling with signature verification)
-        -- SafeCron (v1.0.0 - cron expressions with frequency limits)
         , Proven.SafeCron
-        -- SafeBibTeX (v1.0.0 - BibTeX parsing with LaTeX injection prevention)
-        -- SafeMCP (v1.0.0 - MCP handling with prompt injection detection)
-        -- SafeFloat (v1.0.0 - floating-point with NaN/Infinity handling)
+        -- Numeric safety
         , Proven.SafeFloat
-        -- SafeColor (v1.0.0 - color handling with WCAG contrast)
+        , Proven.SafeDecimal
+        , Proven.SafeRational
+        , Proven.SafeComplex
+        -- Domain values
         , Proven.SafeColor
-        -- SafeVersion (v1.0.0 - semantic versioning)
         , Proven.SafeVersion
-        -- SafeChecksum (v1.0.0 - checksums and validation algorithms)
         , Proven.SafeChecksum
-        -- SafeGeo (v1.0.0 - geographic coordinates and distance)
         , Proven.SafeGeo
-        -- SafeAngle (v1.0.0 - angle conversions and normalization)
         , Proven.SafeAngle
-        -- SafeProbability (v1.0.0 - probability distributions)
+        -- Mathematics & physics
         , Proven.SafeProbability
-        -- SafeUnit (v1.0.0 - physical units with dimension checking)
         , Proven.SafeUnit
-        -- SafeQueue (v1.0.0 - bounded FIFO queues)
-        , Proven.SafeQueue
-        -- SafeBloom (v1.0.0 - bloom filters)
-        , Proven.SafeBloom
-        -- SafeLRU (v1.0.0 - LRU cache)
-        , Proven.SafeLRU
-        -- SafeRateLimiter (v1.0.0 - rate limiting algorithms)
-        , Proven.SafeRateLimiter
-        -- SafeCircuitBreaker (v1.0.0 - circuit breaker pattern)
-        , Proven.SafeCircuitBreaker
-        -- SafeRetry (v1.0.0 - retry with backoff strategies)
-        , Proven.SafeRetry
-        -- SafeMonotonic (v1.0.0 - monotonic counters and clocks)
-        , Proven.SafeMonotonic
-        -- SafeGraph (v1.0.0 - graph data structures)
-        , Proven.SafeGraph
-        -- SafeResource (v1.0.0 - resource lifecycle management)
-        , Proven.SafeResource
-        -- SafeTransaction (v1.0.0 - ACID-like transactions)
-        , Proven.SafeTransaction
-        -- SafeCapability (v1.0.0 - capability-based security)
-        , Proven.SafeCapability
-        -- SafeConsensus (v1.0.0 - distributed consensus)
-        , Proven.SafeConsensus
-        -- SafeFiniteField (v1.0.0 - finite field arithmetic)
         , Proven.SafeFiniteField
-        -- SafeML (v1.0.0 - machine learning primitives)
-        -- SafeOrdering (v1.0.0 - total and partial orderings)
+        -- Data structures
+        , Proven.SafeQueue
+        , Proven.SafeBloom
+        , Proven.SafeLRU
+        , Proven.SafeSet
+        , Proven.SafeHeap
+        , Proven.SafeMatrix
+        , Proven.SafeBitset
+        , Proven.SafeInterval
+        , Proven.SafeUnionFind
+        -- Distributed systems
+        , Proven.SafeRateLimiter
+        , Proven.SafeCircuitBreaker
+        , Proven.SafeRetry
+        , Proven.SafeMonotonic
+        -- Advanced
+        , Proven.SafeGraph
+        , Proven.SafeResource
+        , Proven.SafeTransaction
+        , Proven.SafeCapability
+        , Proven.SafeConsensus
         , Proven.SafeOrdering
-        -- SafeSchema (v1.0.0 - schema validation)
         , Proven.SafeSchema
-        -- SafeTensor (v1.0.0 - tensor operations)
         , Proven.SafeTensor
-        -- Shell-specific modules (v1.1.0 - for valence-shell integration)
+        -- Data formats
+        , Proven.SafeCSV
+        , Proven.SafeDigest
+        , Proven.SafeRegistry
+        -- Concurrency primitives
+        , Proven.SafeSemaphore
+        , Proven.SafeCalculator
+        -- New v1.1.0 modules
+        , Proven.SafeGit
+        , Proven.SafeDocker
+        , Proven.SafeDNS
+        , Proven.SafeSSH
+        , Proven.SafeI18n
+        , Proven.SafeTemplate
+        , Proven.SafeArchive
+        , Proven.SafeCert
+        , Proven.SafeOAuth
+        , Proven.SafeWebhook
+        , Proven.SafeBibTeX
+        , Proven.SafeMCP
+        , Proven.SafeML
+        -- Shell-specific modules (for valence-shell integration)
         , Proven.SafeShell
         , Proven.SafePipe
         , Proven.SafeProcess
@@ -272,12 +265,6 @@ modules = Proven
         , Proven.FFI.SafeProvenance
         , Proven.FFI.SafeStateMachine
         , Proven.FFI.SafeMarkdown
-        , Proven.FFI.SafeTree
-        , Proven.FFI.SafeBuffer
-        , Proven.FFI.SafePolicy
-        , Proven.FFI.SafeProvenance
-        , Proven.FFI.SafeStateMachine
-        , Proven.FFI.SafeMarkdown
         , Proven.FFI.SafeLog
         , Proven.FFI.SafeCron
         , Proven.FFI.SafeFloat
@@ -304,17 +291,27 @@ modules = Proven
         , Proven.FFI.SafeOrdering
         , Proven.FFI.SafeSchema
         , Proven.FFI.SafeTensor
-        , Proven.FFI.SafeUUID
-        , Proven.FFI.SafeCurrency
-        , Proven.FFI.SafeHex
-        -- ECHIDNA neurosymbolic theorem prover validation modules (temporarily excluded due to syntax issues)
-        -- , Proven.ECHIDNA.ProofTerm
-        -- , Proven.ECHIDNA.Validator
-        -- , Proven.ECHIDNA.Soundness
+        , Proven.FFI.SafeGit
+        , Proven.FFI.SafeDocker
+        , Proven.FFI.SafeDNS
+        , Proven.FFI.SafeSSH
+        , Proven.FFI.SafeI18n
+        , Proven.FFI.SafeTemplate
+        , Proven.FFI.SafeArchive
+        , Proven.FFI.SafeCert
+        , Proven.FFI.SafeOAuth
+        , Proven.FFI.SafeWebhook
+        , Proven.FFI.SafeBibTeX
+        , Proven.FFI.SafeMCP
+        , Proven.FFI.SafeML
+        , Proven.FFI.SafePhone
+        -- ECHIDNA neurosymbolic theorem prover validation
+        , Proven.ECHIDNA.ProofTerm
+        , Proven.ECHIDNA.Validator
+        , Proven.ECHIDNA.Soundness
 
 depends = base >= 0.6.0
         , contrib
         , network
 
 opts = "--total"
-

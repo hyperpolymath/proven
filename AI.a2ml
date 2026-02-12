@@ -2,14 +2,28 @@
 # AI Assistant Instructions
 
 ## Repository Focus
-- `proven` is treated as a Rhodium Standard Repository; obey the Rhodium policies, maintain `.bot_directives`, and keep `.machines_readable/6scm/` authoritative.
+- `proven` is a formally verified safety library: 104 Idris2 modules with dependent type proofs, Zig FFI bridge, 89 language binding targets.
+- Treated as a Rhodium Standard Repository; obey the Rhodium policies, maintain `.bot_directives`, and keep `.machines_readable/6scm/` authoritative.
+- License: Apache-2.0. Copyright: Jonathan D.A. Jewell (hyperpolymath).
 - Prefer to keep generated files out of source control, and regenerate them with the documented commands before committing.
+
+## Architecture (CRITICAL)
+- ALL computation happens in Idris2 (`src/Proven/`). Bindings MUST NOT reimplement logic.
+- Zig FFI bridge (`ffi/zig/`) is a pure ABI layer with no safety logic.
+- Language bindings (`bindings/`) are thin wrappers that call Idris via FFI only.
+- See `.claude/CLAUDE.md` for detailed constraints and common mistakes.
 
 ## Workflow
 1. Inspect `.machines_readable/6scm/STATE.scm` for blockers and next actions.
 2. Respect any constraints listed inside `.machines_readable/6scm/AGENTIC.scm` when tooling changes are requested.
 3. After finishing edits, update STATE with your outcomes and commit with a concise, imperative message.
 
+## Current State (v1.1.0)
+- 104 core Idris2 modules with dependent types and totality checking
+- 14 FFI exports in Zig bridge layer
+- ~283 `believe_me` instances across 38 files (FFI stubs and axiomatised lemmas)
+- 18 language bindings complete, 71 remaining targets scaffolded
+
 ## Delivery Promises
 - Mention in summaries whether STATE, `contractiles/`, or `.bot_directives/` changed.
-- Keep this file in sync with the repository’s status; update it if the governance changes.
+- Keep this file in sync with the repository's status; update it if the governance changes.
