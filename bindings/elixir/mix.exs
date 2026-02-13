@@ -38,6 +38,9 @@ defmodule Proven.MixProject do
 
   defp deps do
     [
+      # JSON support (optional — used by SafeJson if available)
+      {:jason, "~> 1.4", optional: true},
+
       # NIF bindings via Rustler
       {:rustler, "~> 0.35.0", optional: true},
       {:rustler_precompiled, "~> 0.8", optional: true},
