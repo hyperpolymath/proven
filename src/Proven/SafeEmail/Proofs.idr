@@ -29,6 +29,23 @@ parseDeterministic s = Refl
 ||| Parsing without @ fails
 public export
 parseNoAtFails : parseEmail "noatsign" = Nothing
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 parseNoAtFails = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -45,6 +62,23 @@ public export
 errorMakesInvalid : (issue : ValidationIssue) ->
                     issue.severity = Error ->
                     (addIssue issue validResult).isValid = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 errorMakesInvalid issue prf = believe_me Refl
 
 ||| Warning doesn't make result invalid
@@ -52,6 +86,23 @@ public export
 warningKeepsValid : (issue : ValidationIssue) ->
                     issue.severity = Warning ->
                     (addIssue issue validResult).isValid = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 warningKeepsValid issue prf = believe_me Refl
 
 ||| Combining valid results is valid
@@ -74,6 +125,23 @@ data ContainsAt : String -> Type where
 ||| If email parses successfully, it contained @
 public export
 parsedContainsAt : (s : String) -> isJust (parseEmail s) = True -> ContainsAt s
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 parsedContainsAt s prf = MkContainsAt s (believe_me Refl)
 
 ||| Local part length bound
@@ -99,6 +167,23 @@ data ValidTotalLength : String -> Type where
 public export
 normalizeIdempotent : (email : ParsedEmail) ->
                       toLower email.domain = toLower (toLower email.domain)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 normalizeIdempotent email = believe_me Refl  -- By toLower idempotence
 
 ||| Normalized emails with same local and domain are equal
@@ -130,6 +215,23 @@ sanitizeRemovesNewlines : (s : String) ->
       where
         isHeaderSafe : Char -> Bool
         isHeaderSafe c = c /= '\n' && c /= '\r' && c /= '\0'
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 sanitizeRemovesNewlines s = MkNoNewlines (sanitizeForHeader s) (believe_me Refl)
 
 --------------------------------------------------------------------------------
@@ -140,6 +242,23 @@ sanitizeRemovesNewlines s = MkNoNewlines (sanitizeForHeader s) (believe_me Refl)
 public export
 filterValidCorrect : (emails : List String) ->
                      all (\e => (validateEmailFull e).isValid) (filterValid emails) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 filterValidCorrect emails = believe_me Refl
 
 ||| Unique emails removes duplicates
@@ -150,6 +269,23 @@ uniqueNoDuplicates : (emails : List ParsedEmail) ->
     uniqueEmails : List ParsedEmail -> List ParsedEmail
     uniqueEmails = nubBy (\e1, e2 => toLower (e1.localPart ++ "@" ++ e1.domain) ==
                                      toLower (e2.localPart ++ "@" ++ e2.domain))
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 uniqueNoDuplicates emails = believe_me ()  -- By definition of nubBy
 
 --------------------------------------------------------------------------------
@@ -170,6 +306,23 @@ typoCheckFindsKnown : checkCommonTypos "gmial.com" = addIssue
                         (MkValidationIssue Warning "W010"
                           "Possible typo - did you mean gmail.com?")
                         validResult
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 typoCheckFindsKnown = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -181,6 +334,23 @@ public export
 validLocalNoStartDot : (local : String) ->
                        (validateLocalPart local).isValid = True ->
                        isPrefixOf "." local = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 validLocalNoStartDot local prf = believe_me Refl
 
 ||| Valid local part doesn't end with dot
@@ -188,6 +358,23 @@ public export
 validLocalNoEndDot : (local : String) ->
                      (validateLocalPart local).isValid = True ->
                      isSuffixOf "." local = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 validLocalNoEndDot local prf = believe_me Refl
 
 ||| Valid domain has at least one label
@@ -195,6 +382,23 @@ public export
 validDomainHasLabel : (domain : String) ->
                       (validateDomain domain).isValid = True ->
                       length (split '.' domain) >= 1
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 validDomainHasLabel domain prf = believe_me ()
 
 --------------------------------------------------------------------------------
@@ -206,6 +410,23 @@ public export
 comprehensiveCatchesRFC : (s : String) ->
                           (validateEmailFull s).isValid = False ->
                           (validateComprehensive s).isValid = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 comprehensiveCatchesRFC s prf = believe_me Refl
 
 ||| Valid email passes comprehensive validation
@@ -213,4 +434,21 @@ public export
 validPassesComprehensive : (s : String) ->
                            (validateEmailFull s).isValid = True ->
                            hasErrors (validateComprehensive s) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 validPassesComprehensive s prf = believe_me Refl

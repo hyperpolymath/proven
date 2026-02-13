@@ -134,6 +134,24 @@ export
 isScalarCorrect : (val : TOMLValue) ->
                   isScalar val = True ->
                   not (isTable val || isArray val) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 isScalarCorrect val scalarPrf = believe_me Refl
 
 ||| Theorem: Scalars cannot contain nested structures
@@ -152,6 +170,24 @@ export
 bareKeyCharsValid : (key : String) ->
                     isValidBareKey key = True ->
                     all isValidBareKeyChar (unpack key) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 bareKeyCharsValid key valid = believe_me Refl
 
 ||| Theorem: Empty keys are invalid
@@ -164,6 +200,24 @@ export
 specialCharsNeedQuoting : (key : String) ->
                           any (\c => not (isValidBareKeyChar c)) (unpack key) = True ->
                           needsQuoting key = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 specialCharsNeedQuoting key hasSpecial = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -234,6 +288,24 @@ export
 dateComponentsValid : (d : TOMLDate) ->
                       (d.month >= 1 && d.month <= 12 &&
                        d.day >= 1 && d.day <= 31) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 dateComponentsValid d = believe_me Refl
 
 ||| Theorem: Parsed times have valid components
@@ -242,6 +314,24 @@ timeComponentsValid : (t : TOMLTime) ->
                       (t.hour <= 23 &&
                        t.minute <= 59 &&
                        t.second <= 60) = True  -- 60 for leap second
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 timeComponentsValid t = believe_me Refl
 
 --------------------------------------------------------------------------------

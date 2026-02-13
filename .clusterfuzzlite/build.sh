@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Build script for ClusterFuzzLite fuzzing
 
-cd $SRC/proven/fuzz/zig
+cd "$SRC"/proven/fuzz/zig
 
 # Build fuzz targets with Zig
 # Note: Zig produces native binaries compatible with libFuzzer

@@ -36,6 +36,24 @@ public export
 unreservedNotEncoded : (c : Char) ->
                        isAlphaNum c = True ->
                        percentEncode c = singleton c
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 unreservedNotEncoded c prf = believe_me Refl
 
 ||| Empty string encodes to empty string
@@ -48,6 +66,24 @@ public export
 encodePreservesAlphaNum : (s : String) ->
                           all isAlphaNum (unpack s) = True ->
                           urlEncode s = s
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 encodePreservesAlphaNum s prf = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -64,12 +100,48 @@ public export
 decodeUnreservedIdentity : (s : String) ->
                            all isAlphaNum (unpack s) = True ->
                            urlDecode s = Just s
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 decodeUnreservedIdentity s prf = believe_me Refl
 
 ||| Encode then decode is identity for valid strings
 public export
 encodeDecodeIdentity : (s : String) ->
                        urlDecode (urlEncode s) = Just s
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 encodeDecodeIdentity s = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -97,18 +169,72 @@ addParamIncreasesCount key val qb = Refl
 public export
 setGetIdentity : (key, val : String) -> (qs : QueryString) ->
                  getParam key (setParam key val qs) = Just val
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 setGetIdentity key val qs = believe_me Refl
 
 ||| Removing a parameter means it no longer exists
 public export
 removeHasNot : (key : String) -> (qs : QueryString) ->
                hasParam key (removeAllParams key qs) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 removeHasNot key qs = believe_me Refl
 
 ||| Filtering preserves only specified keys
 public export
 filterPreservesOnly : (keys : List String) -> (qs : QueryString) ->
                       all (\(k, _) => k `elem` keys) (filterParams keys qs) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 filterPreservesOnly keys qs = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -119,18 +245,72 @@ filterPreservesOnly keys qs = believe_me Refl
 public export
 parseIntValid : (key : String) ->
                 getIntParam key [(key, "42")] = Just 42
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 parseIntValid key = believe_me Refl
 
 ||| Parsing bool "true" succeeds
 public export
 parseBoolTrue : (key : String) ->
                 getBoolParam key [(key, "true")] = Just True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 parseBoolTrue key = believe_me Refl
 
 ||| Parsing bool "false" succeeds
 public export
 parseBoolFalse : (key : String) ->
                  getBoolParam key [(key, "false")] = Just False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 parseBoolFalse key = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -148,6 +328,24 @@ public export
 mergeEmptyLeft : (qs : QueryString) ->
                  mergeQueryStrings [] qs = qs
 mergeEmptyLeft [] = Refl
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 mergeEmptyLeft ((k, v) :: rest) = believe_me Refl
 
 ||| Append is associative
@@ -155,6 +353,24 @@ public export
 appendAssociative : (qs1, qs2, qs3 : QueryString) ->
                     appendQueryStrings (appendQueryStrings qs1 qs2) qs3 =
                     appendQueryStrings qs1 (appendQueryStrings qs2 qs3)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 appendAssociative qs1 qs2 qs3 = believe_me Refl  -- By list append associativity
 
 --------------------------------------------------------------------------------
@@ -182,6 +398,24 @@ public export
 validateSafe : (url : ParsedURL) -> Maybe (SafeURL url)
 validateSafe url =
   if isSafeScheme url
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
     then Just (MkSafeURL url (believe_me ()))
     else Nothing
 
@@ -206,5 +440,23 @@ public export
 validatePort : (p : Nat) -> Maybe (ValidPort p)
 validatePort p =
   if p <= 65535
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
     then Just (MkValidPort p (believe_me ()))
     else Nothing

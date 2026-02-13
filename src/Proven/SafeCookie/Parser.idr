@@ -30,6 +30,24 @@ validateName opts name =
          then Err (NameTooLong name len)
          else case find (not . isValidNameChar) (unpack name) of
                 Just c => Err (InvalidNameChar name c)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
                 Nothing => Ok (MkCookieName name (believe_me Refl))
 
 ||| Validate name with default options
@@ -50,6 +68,24 @@ validateValue opts name value =
        then Err (ValueTooLong name len)
        else if hasInjectionChar value
          then Err (CookieInjection name value)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
          else Ok (MkCookieValue value (believe_me Refl))
 
 ||| Validate value with default options

@@ -100,12 +100,40 @@ data IsEscapedValue : SQLDialect -> SQLValue -> Type where
 export
 escapeStringQuotesSafe : (d : SQLDialect) -> (s : String) ->
                          NoUnescapedQuotes (escapeString d s)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 escapeStringQuotesSafe d s = believe_me (QuotesEscaped (escapeString d s) Refl)
 
 ||| Theorem: ValidIdentifier strings contain only safe characters
 export
 identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = True) ->
                       IsSafeIdentifier s
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 identifierCharsSafe s prf = believe_me (MkSafeIdent s Refl Refl Refl)
 
 ||| Theorem: Parameterized queries separate data from code
@@ -114,6 +142,20 @@ identifierCharsSafe s prf = believe_me (MkSafeIdent s Refl Refl Refl)
 ||| because parameters are bound separately from the query structure.
 export
 parameterizedQueriesSafe : (q : ParameterizedQuery) -> IsParameterized q
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 parameterizedQueriesSafe q = believe_me (MkParameterized q Refl)
 
 ||| Theorem: All SQLValue types are safely escapable
@@ -129,6 +171,20 @@ allValuesSafe d (SQLBlob bs) = BlobEncoded d bs
 allValuesSafe d (SQLDate y m day) = DateSafe
 allValuesSafe d (SQLTime h m s) = TimeSafe
 allValuesSafe d (SQLTimestamp y mo day h mi s) = TimestampSafe
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 allValuesSafe d (SQLRaw _) = believe_me NullSafe -- Raw is trusted, user responsibility
 
 --------------------------------------------------------------------------------
@@ -194,6 +250,20 @@ combinePreservesSafety : (q1 : ParameterizedQuery) -> (q2 : ParameterizedQuery) 
                          InjectionSafe q1 -> InjectionSafe q2 ->
                          InjectionSafe (combineQueries q1 q2)
 combinePreservesSafety q1 q2 safe1 safe2 =
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
   believe_me (SafeByParameterization (combineQueries q1 q2)
                (parameterizedQueriesSafe (combineQueries q1 q2))
                (\v, _ => allValuesSafe q1.dialect v))
@@ -204,6 +274,20 @@ addParamPreservesSafety : (q : ParameterizedQuery) -> (v : SQLValue) ->
                           InjectionSafe q ->
                           InjectionSafe (addParam v q)
 addParamPreservesSafety q v safe =
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
   believe_me (SafeByParameterization (addParam v q)
                (parameterizedQueriesSafe (addParam v q))
                (\val, _ => allValuesSafe q.dialect val))

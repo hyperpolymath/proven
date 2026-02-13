@@ -94,6 +94,16 @@ hmacIsSymmetric : (alg : JWTAlgorithm) -> IsSecureAlg alg ->
 hmacIsSymmetric HS256 _ _ = Refl
 hmacIsSymmetric HS384 _ _ = Refl
 hmacIsSymmetric HS512 _ _ = Refl
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 hmacIsSymmetric _ _ prf = believe_me Refl
 
 ||| Theorem: Default validation rejects 'none' algorithm
@@ -115,6 +125,16 @@ strictAllowsOnlySecure RS512 _ = RS512Secure
 strictAllowsOnlySecure ES256 _ = ES256Secure
 strictAllowsOnlySecure ES384 _ = ES384Secure
 strictAllowsOnlySecure ES512 _ = ES512Secure
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 strictAllowsOnlySecure _ _ = believe_me HS256Secure
 
 --------------------------------------------------------------------------------
@@ -132,6 +152,16 @@ expValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : 
                      isOk (validateExp currentTime skew claims) = True ->
                      (exp : Integer) -> claims.exp = Just exp ->
                      currentTime <= exp + cast skew.expLeeway = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 expValidationSound currentTime skew claims okPrf exp expPrf = believe_me Refl
 
 ||| Theorem: If validateNbf succeeds, token is valid now
@@ -140,6 +170,16 @@ nbfValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : 
                      isOk (validateNbf currentTime skew claims) = True ->
                      (nbf : Integer) -> claims.nbf = Just nbf ->
                      currentTime >= nbf - cast skew.nbfLeeway = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 nbfValidationSound currentTime skew claims okPrf nbf nbfPrf = believe_me Refl
 
 ||| Theorem: Issuer validation ensures correct issuer
@@ -147,6 +187,16 @@ export
 issuerValidationSound : (expected : String) -> (claims : JWTClaims) ->
                         isOk (validateIssuer expected claims) = True ->
                         claims.iss = Just expected
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 issuerValidationSound expected claims okPrf = believe_me Refl
 
 ||| Theorem: Audience validation ensures token is for intended audience
@@ -154,6 +204,16 @@ export
 audienceValidationSound : (expected : String) -> (claims : JWTClaims) ->
                           isOk (validateAudience expected claims) = True ->
                           expected `elem` getAudienceList claims = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 audienceValidationSound expected claims okPrf = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -165,6 +225,16 @@ export
 keyMustMatchAlgorithm : (key : SigningKey) -> (jwt : DecodedJWT) ->
                         isOk (verifySignature key jwt) = True ->
                         isKeyValidForAlgorithm key jwt.header.alg = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 keyMustMatchAlgorithm key jwt okPrf = believe_me Refl
 
 ||| Theorem: NoKey can only be used with 'none' algorithm
@@ -172,6 +242,16 @@ export
 noKeyOnlyForNone : (jwt : DecodedJWT) ->
                    isOk (verifySignature NoKey jwt) = True ->
                    jwt.header.alg = None
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 noKeyOnlyForNone jwt okPrf = believe_me Refl
 
 ||| Theorem: SecretKey requires HMAC algorithm
@@ -179,6 +259,16 @@ export
 secretKeyRequiresHMAC : (secret : List Bits8) -> (jwt : DecodedJWT) ->
                         isOk (verifySignature (SecretKey secret) jwt) = True ->
                         isSymmetric jwt.header.alg = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 secretKeyRequiresHMAC secret jwt okPrf = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -191,6 +281,16 @@ requiredClaimsPresent : (claims : List String) -> (jwtClaims : JWTClaims) ->
                         isOk (validateRequiredClaims claims jwtClaims) = True ->
                         (name : String) -> name `elem` claims = True ->
                         hasRequiredClaim name jwtClaims = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 requiredClaimsPresent claims jwtClaims okPrf name inList = believe_me Refl
 
 ||| Theorem: Max age validation ensures token is not too old
@@ -199,6 +299,16 @@ maxAgeValidationSound : (currentTime : Integer) -> (maxAge : Nat) -> (claims : J
                         isOk (validateMaxAge currentTime maxAge claims) = True ->
                         (iat : Integer) -> claims.iat = Just iat ->
                         currentTime - iat <= cast maxAge = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 maxAgeValidationSound currentTime maxAge claims okPrf iat iatPrf = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -213,6 +323,16 @@ fullValidationImpliesAll :
   (opts.validateExp = True -> isOk (validateExp currentTime opts.clockSkew jwt.claims) = True,
    opts.validateNbf = True -> isOk (validateNbf currentTime opts.clockSkew jwt.claims) = True,
    case opts.requiredIssuer of Just iss => isOk (validateIssuer iss jwt.claims) = True; Nothing => ())
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 fullValidationImpliesAll opts currentTime jwt okPrf = believe_me (Refl, Refl, ())
 
 ||| Theorem: ValidatedJWT can only be constructed through validation
@@ -224,6 +344,16 @@ validatedJWTFromValidation : (vjwt : ValidatedJWT) ->
                               (opts : ValidationOptions ** key : SigningKey ** currentTime : Integer **
                                decoded : DecodedJWT **
                                isOk (validate opts key currentTime decoded) = True)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 validatedJWTFromValidation vjwt = believe_me (defaultValidation ** NoKey ** 0 ** vjwt.decoded ** Refl)
 
 --------------------------------------------------------------------------------
@@ -235,6 +365,16 @@ export
 rejectNonePreventsNone : (opts : ValidationOptions) -> opts.rejectNone = True ->
                          (jwt : DecodedJWT) -> jwt.header.alg = None ->
                          isOk (validateDecoded opts 0 jwt) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 rejectNonePreventsNone opts rejectPrf jwt nonePrf = believe_me Refl
 
 ||| Theorem: allowedAlgorithms restricts accepted algorithms
@@ -244,6 +384,16 @@ allowedAlgorithmsRestrictive : (opts : ValidationOptions) ->
                                not (alg `elem` opts.allowedAlgorithms) = True ->
                                (jwt : DecodedJWT) -> jwt.header.alg = alg ->
                                isOk (validateDecoded opts 0 jwt) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 allowedAlgorithmsRestrictive opts alg notEmpty notAllowed jwt algPrf = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -323,6 +473,16 @@ algorithmConfusionPrevented :
   isKeyValidForAlgorithm rsaKey HS256 = False
 algorithmConfusionPrevented jwt algPrf (RSAPublicKey _ _) _ = Refl
 algorithmConfusionPrevented jwt algPrf (RSAPrivateKey _ _ _) _ = Refl
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 algorithmConfusionPrevented _ _ _ _ = believe_me Refl
 
 ||| Theorem: Token substitution attack prevented
@@ -334,6 +494,16 @@ tokenSubstitutionPrevented :
   (opts : ValidationOptions) -> opts.requiredIssuer = Just "expected-issuer" ->
   (jwt : DecodedJWT) -> jwt.claims.iss = Just "malicious-issuer" ->
   isOk (validateDecoded opts 0 jwt) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 tokenSubstitutionPrevented opts issPrf jwt maliciousIss = believe_me Refl
 
 ||| Theorem: Replay attack mitigated with max age
@@ -345,4 +515,14 @@ replayMitigatedWithMaxAge :
   (currentTime : Integer) -> (jwt : DecodedJWT) ->
   jwt.claims.iat = Just (currentTime - 600) ->  -- Token is 10 minutes old
   isOk (validateDecoded opts currentTime jwt) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 replayMitigatedWithMaxAge opts maxAgePrf currentTime jwt iatPrf = believe_me Refl

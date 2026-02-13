@@ -27,12 +27,30 @@ boundedQuantifierFinite : (q : Quantifier) -> (prf : isBounded q = True) -> (n :
 boundedQuantifierFinite q prf =
   case q.maxCount of
     Just n => (n ** Refl)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
     Nothing => absurd (believe_me prf)  -- isBounded would be False
 
 ||| Proof that step counter always increases
 public export
 stepIncreases : (steps : Nat) -> (maxSteps : Nat) -> (steps < maxSteps = True) ->
                 (S steps <= maxSteps = True)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 stepIncreases steps maxSteps prf = believe_me prf
 
 ||| Proof that matching with fuel eventually terminates
@@ -41,6 +59,15 @@ public export
 matchingTerminates : (fuel : Nat) -> (r : Regex) ->
                      Either (steps : Nat ** steps <= fuel = True)
                             (steps : Nat ** steps > fuel = True)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 matchingTerminates fuel r = Left (fuel ** believe_me Refl)
 
 --------------------------------------------------------------------------------
@@ -54,6 +81,15 @@ nestedQuantifiersExponential : (r : Regex) ->
                                 determineComplexity r = Exponential
 nestedQuantifiersExponential r prf =
   -- By definition of determineComplexity, nested quantifiers -> Exponential
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
   believe_me Refl
 
 ||| Proof that overlapping alternatives with quantifiers imply exponential complexity
@@ -65,6 +101,15 @@ overlappingAltsExponential : (r : Regex) ->
                               (determineComplexity r = Quadratic)
 overlappingAltsExponential r overlapPrf quantPrf =
   -- By definition, overlapping + quantifiers -> at least Quadratic
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
   Left (believe_me Refl)
 
 ||| Proof that quantified empty patterns imply at least quadratic complexity
@@ -73,6 +118,15 @@ quantifiedEmptyQuadratic : (r : Regex) ->
                            hasQuantifiedEmpty r = True ->
                            (determineComplexity r = Quadratic) `Either`
                            (determineComplexity r = Exponential)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 quantifiedEmptyQuadratic r prf = Left (believe_me Refl)
 
 ||| Proof that linear regexes have no exponential patterns
@@ -84,6 +138,15 @@ linearNoExponentialPatterns : (r : Regex) ->
                                 hasQuantifiedEmpty r = False)
 linearNoExponentialPatterns r prf =
   -- If complexity is Linear, then no exponential patterns exist
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
   (believe_me Refl, Left (believe_me Refl), believe_me Refl)
 
 --------------------------------------------------------------------------------
@@ -128,6 +191,15 @@ smallInputAlwaysSafe : (sr : SafeRegex) -> (input : String) ->
                        isInputSafe sr input = True
 smallInputAlwaysSafe sr input prf =
   -- 50 <= minimum maxSafeInputLength (which is 50 for Unbounded)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
   believe_me prf
 
 ||| Proof that linear complexity allows very large inputs
@@ -135,6 +207,15 @@ public export
 linearAllowsLargeInput : (sr : SafeRegex) ->
                          sr.complexity.level = Linear ->
                          maxSafeInputLength sr = 10000000
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 linearAllowsLargeInput sr prf = believe_me Refl
 
 ||| Proof that exponential complexity restricts input size
@@ -142,6 +223,15 @@ public export
 exponentialRestrictsInput : (sr : SafeRegex) ->
                             sr.complexity.level = Exponential ->
                             maxSafeInputLength sr = 100
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 exponentialRestrictsInput sr prf = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -151,6 +241,15 @@ exponentialRestrictsInput sr prf = believe_me Refl
 ||| Proof that Any matches any non-newline character
 public export
 anyMatchesNonNewline : (c : Char) -> (c /= '\n' = True) -> matchesClass c Any = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 anyMatchesNonNewline c prf = believe_me prf
 
 ||| Proof that Digit only matches 0-9
@@ -158,18 +257,45 @@ public export
 digitOnlyDigits : (c : Char) ->
                   matchesClass c Digit = True ->
                   (c >= '0' = True, c <= '9' = True)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 digitOnlyDigits c prf = (believe_me prf, believe_me prf)
 
 ||| Proof that Negate inverts matching
 public export
 negateInverts : (c : Char) -> (cls : CharClass) ->
                 matchesClass c (Negate cls) = not (matchesClass c cls)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 negateInverts c cls = believe_me Refl
 
 ||| Proof that Union is logical OR
 public export
 unionIsOr : (c : Char) -> (cls1 : CharClass) -> (cls2 : CharClass) ->
             matchesClass c (Union cls1 cls2) = (matchesClass c cls1 || matchesClass c cls2)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 unionIsOr c cls1 cls2 = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -180,12 +306,39 @@ unionIsOr c cls1 cls2 = believe_me Refl
 public export
 sameClassOverlaps : (cls : CharClass) -> classesOverlap cls cls = True
 sameClassOverlaps Any = Refl
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 sameClassOverlaps (Char _) = believe_me Refl
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 sameClassOverlaps (Range _ _) = believe_me Refl
 sameClassOverlaps Digit = Refl
 sameClassOverlaps Word = Refl
 sameClassOverlaps Space = Refl
 sameClassOverlaps (Negate _) = Refl
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 sameClassOverlaps (Union _ _) = believe_me Refl
 
 ||| Proof that Any overlaps with everything
@@ -198,6 +351,15 @@ public export
 disjointRangesNoOverlap : (f1, t1, f2, t2 : Char) ->
                           (t1 < f2 = True) ->
                           classesOverlap (Range f1 t1) (Range f2 t2) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 disjointRangesNoOverlap f1 t1 f2 t2 prf = believe_me prf
 
 --------------------------------------------------------------------------------
@@ -248,6 +410,15 @@ linearStepLimitScales : (analysis : ComplexityAnalysis) ->
                         (inputSize1, inputSize2 : Nat) ->
                         (inputSize1 < inputSize2 = True) ->
                         calculateStepLimit analysis inputSize1 < calculateStepLimit analysis inputSize2 = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 linearStepLimitScales analysis prf s1 s2 ltPrf = believe_me ltPrf
 
 ||| Proof that exponential step limits are capped
@@ -256,6 +427,15 @@ exponentialStepLimitCapped : (analysis : ComplexityAnalysis) ->
                              (analysis.level = Exponential) ->
                              (inputSize : Nat) ->
                              calculateStepLimit analysis inputSize <= 1000000 = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 exponentialStepLimitCapped analysis prf inputSize = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -278,6 +458,15 @@ public export
 capturePositionsValid : (result : MatchResult) ->
                         (result.matched = True) ->
                         All (\c => c.start <= c.end = True) result.captures
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 capturePositionsValid result prf = believe_me []
 
 --------------------------------------------------------------------------------
@@ -291,6 +480,15 @@ seqPreservesSafety : (r1, r2 : Regex) ->
                      isKnownSafe r2 = True ->
                      hasNestedQuantifiers (Seq r1 r2) = False ->
                      isKnownSafe (Seq r1 r2) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 seqPreservesSafety r1 r2 prf1 prf2 noPrf = believe_me Refl
 
 ||| Proof that non-overlapping alternatives preserve safety
@@ -300,6 +498,15 @@ altPreservesSafety : (r1, r2 : Regex) ->
                      isKnownSafe r2 = True ->
                      regexesOverlap r1 r2 = False ->
                      isKnownSafe (Alt r1 r2) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 altPreservesSafety r1 r2 prf1 prf2 noPrf = believe_me Refl
 
 ||| Proof that bounded quantifiers preserve safety
@@ -309,6 +516,15 @@ boundedQuantPreservesSafety : (r : Regex) -> (q : Quantifier) ->
                               isBounded q = True ->
                               hasNestedQuantifiers (Quant r q) = False ->
                               isKnownSafe (Quant r q) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 boundedQuantPreservesSafety r q prfR prfQ prfNest = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -331,6 +547,15 @@ complexityTransitive Linear Quadratic Exponential _ _ = Refl
 complexityTransitive Linear Quadratic Unbounded _ _ = Refl
 complexityTransitive Linear Exponential Unbounded _ _ = Refl
 complexityTransitive Quadratic Exponential Unbounded _ _ = Refl
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 complexityTransitive a b c p1 p2 = believe_me Refl
 
 ||| Proof that complexity comparison is reflexive for EQ

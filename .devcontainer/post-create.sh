@@ -16,6 +16,7 @@ curl -L "https://github.com/zigtools/zls/releases/download/${ZLS_VERSION}/zls-x8
 sudo mv zls /usr/local/bin/
 
 echo "==> Installing Deno..."
+# WARNING: Pipe-to-shell is unsafe — download and verify first
 curl -fsSL https://deno.land/install.sh | sh
 echo 'export DENO_INSTALL="$HOME/.deno"' >> ~/.zshrc
 echo 'export PATH="$DENO_INSTALL/bin:$PATH"' >> ~/.zshrc

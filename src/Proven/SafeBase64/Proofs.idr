@@ -67,18 +67,42 @@ data RoundtripSuccess : Base64Variant -> List Bits8 -> Type where
 export
 standardAlphabetValid : (c : Char) -> c `elem` unpack standardAlphabet = True ->
                         isValidBase64Char Standard c = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 standardAlphabetValid c inAlpha = believe_me Refl
 
 ||| Theorem: URL-safe alphabet characters are valid URL-safe Base64
 export
 urlSafeAlphabetValid : (c : Char) -> c `elem` unpack urlSafeAlphabet = True ->
                        isValidBase64Char URLSafe c = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 urlSafeAlphabetValid c inAlpha = believe_me Refl
 
 ||| Theorem: Encoded output contains only valid characters
 export
 encodeOutputValid : (variant : Base64Variant) -> (bytes : List Bits8) ->
                     ValidBase64Output variant (encodeBytesToString variant bytes)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 encodeOutputValid variant bytes = believe_me (MkValidBase64Output variant (encodeBytesToString variant bytes))
 
 --------------------------------------------------------------------------------
@@ -95,18 +119,42 @@ paddedLengthCorrect n = Refl
 export
 paddedLengthMultipleOf4 : (variant : Base64Variant) -> usesPadding variant = True ->
                           (n : Nat) -> (encodedLength variant n) `mod` 4 = 0
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 paddedLengthMultipleOf4 variant padded n = believe_me Refl
 
 ||| Theorem: Decoded length is at most 3/4 of encoded length
 export
 decodedLengthBound : (encodedLen : Nat) ->
                      decodedLength encodedLen <= (encodedLen * 3) `div` 4 + 1 = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 decodedLengthBound encodedLen = believe_me Refl
 
 ||| Theorem: Encoding increases length (for non-empty input)
 export
 encodingIncreasesLength : (variant : Base64Variant) -> (n : Nat) -> n > 0 = True ->
                           encodedLength variant n >= n = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 encodingIncreasesLength variant n positive = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -119,24 +167,56 @@ encodingIncreasesLength variant n positive = believe_me Refl
 export
 roundtripCorrect : (variant : Base64Variant) -> (bytes : List Bits8) ->
                    decode variant (encodeBytesToString variant bytes) = Ok bytes
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 roundtripCorrect variant bytes = believe_me Refl
 
 ||| Theorem: Roundtrip works for empty input
 export
 roundtripEmpty : (variant : Base64Variant) ->
                  decode variant (encodeBytesToString variant []) = Ok []
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 roundtripEmpty variant = believe_me Refl
 
 ||| Theorem: Roundtrip works for single byte
 export
 roundtripSingleByte : (variant : Base64Variant) -> (b : Bits8) ->
                       decode variant (encodeBytesToString variant [b]) = Ok [b]
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 roundtripSingleByte variant b = believe_me Refl
 
 ||| Theorem: Roundtrip works for string encoding
 export
 roundtripString : (variant : Base64Variant) -> (s : String) ->
                   decodeToString variant (encodeStringToString variant s) = Ok s
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 roundtripString variant s = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -148,6 +228,14 @@ export
 variantsEqualLength : (bytes : List Bits8) ->
                       length (unpack (encodeBytesToString Standard bytes)) =
                       length (unpack (encodeBytesToString URLSafe bytes))
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 variantsEqualLength bytes = believe_me Refl
 
 ||| Theorem: URL-safe without padding is shorter by padding count
@@ -156,6 +244,14 @@ noPadShorter : (bytes : List Bits8) ->
                let standardLen = length (unpack (encodeBytesToString Standard bytes))
                    noPadLen = length (unpack (encodeBytesToString URLSafeNoPad bytes))
                in noPadLen <= standardLen = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 noPadShorter bytes = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -180,6 +276,14 @@ invalidCharDetected : (variant : Base64Variant) -> (input : String) ->
                       not (isValidBase64Char variant c) = True ->
                       not (isPaddingChar c) = True ->
                       isOk (decode variant input) = False
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 invalidCharDetected variant input c pos inInput notValid notPad = believe_me Refl
 
 ||| Theorem: Padding in wrong position is detected
@@ -194,6 +298,14 @@ invalidPaddingDetected : (input : String) ->
     index' _ [] = Nothing
     index' Z (x :: _) = Just x
     index' (S k) (_ :: xs) = index' k xs
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 invalidPaddingDetected input pos notEnd hasPad = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -206,6 +318,14 @@ mimeLineBreaksCorrect : (bytes : List Bits8) ->
                         let encoded = encodeBytesToString MIME bytes
                             lines = split (== '\n') encoded
                         in all (\l => length (unpack l) <= mimeLineLength + 1) lines = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 mimeLineBreaksCorrect bytes = believe_me Refl
 
 ||| Theorem: MIME decoding ignores whitespace
@@ -216,6 +336,14 @@ mimeIgnoresWhitespace : (encoded : String) -> (withWs : String) ->
   where
     stripWhitespace : String -> String
     stripWhitespace s = pack (filter (not . isBase64Whitespace) (unpack s))
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 mimeIgnoresWhitespace encoded withWs eq = believe_me Refl
 
 --------------------------------------------------------------------------------
@@ -227,6 +355,14 @@ export
 urlSafeContainsNoUnsafe : (bytes : List Bits8) ->
                           let encoded = encodeBytesToString URLSafe bytes
                           in all (\c => c /= '+' && c /= '/') (unpack encoded) = True
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 urlSafeContainsNoUnsafe bytes = believe_me Refl
 
 ||| Theorem: Standard encoding may contain URL-unsafe characters
@@ -235,6 +371,14 @@ standardMayContainUnsafe : (bytes : List Bits8) ->
                            ('+' `elem` unpack (encodeBytesToString Standard bytes) = True) `Either`
                            ('/' `elem` unpack (encodeBytesToString Standard bytes) = True) `Either`
                            (all (\c => c /= '+' && c /= '/') (unpack (encodeBytesToString Standard bytes)) = True)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 standardMayContainUnsafe bytes = believe_me (Right (Right Refl))
 
 --------------------------------------------------------------------------------
@@ -245,6 +389,14 @@ standardMayContainUnsafe bytes = believe_me (Right (Right Refl))
 export
 threeToFourRatio : (n : Nat) -> (n `mod` 3 = 0) = True ->
                    encodedLength Standard n = (n `div` 3) * 4
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 threeToFourRatio n divisible = believe_me Refl
 
 ||| Theorem: Padding count matches input length mod 3
@@ -260,6 +412,14 @@ paddingMatchesRemainder : (variant : Base64Variant) -> usesPadding variant = Tru
   where
     countPadding : String -> Nat
     countPadding s = length (filter (== '=') (unpack s))
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 paddingMatchesRemainder variant padded n = believe_me (Refl, Refl, Refl)
 
 --------------------------------------------------------------------------------
@@ -273,6 +433,14 @@ segmentedRoundtrip : (variant : Base64Variant) -> (bytes1 : List Bits8) -> (byte
                          enc2 = encodeBytesToString variant bytes2
                      in (decode variant enc1 = Ok bytes1,
                          decode variant enc2 = Ok bytes2)
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
+-- PROOF_TODO: Replace believe_me with actual proof
 segmentedRoundtrip variant bytes1 bytes2 = (believe_me Refl, believe_me Refl)
 
 ||| Theorem: Encoding preserves byte order
