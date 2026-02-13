@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+= Hardening Rules for Proven Code
+Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+:toc:
+
+== Overview
+
+All code admitted into `proven/` (and especially `domain-specific/`) must be *hardened*: unbreakable within the constraints of its language. Code that does not meet this standard is rejected.
+
+== Admission Criteria
+
+=== Tier 1 — Preferred (provably correct)
+
+[cols="1,3"]
+|===
+|Language |Requirement
+
+|**Idris2**
+|Dependent types proving correctness. No `believe_me`, `assert_total`, `assert_smaller`, `unsafePerformIO`. All proofs completed (no holes).
+
+|**Coq/Lean**
+|No `Admitted` (Coq), no `sorry` (Lean), no `native_decide`. All lemmas proven.
+|===
+
+=== Tier 2 — Admitted if maximally hardened
+
+[cols="1,3"]
+|===
+|Language |Requirement
+
+|**Rust**
+|No `unsafe` without `// SAFETY:` justification and formal argument. No `transmute` (except FFI with proof of layout compatibility). All arithmetic checked (`SafeMath` or `checked_*`). No `unwrap()` on user-facing paths — use `?` or explicit error handling. No `panic!` in library code. Clippy clean at `pedantic` level.
+
+|**Ada/SPARK**
+|SPARK mode enabled where possible. Runtime checks enabled. No `Unchecked_Conversion` without formal justification. All contracts (pre/post/invariant) specified.
+
+|**Haskell**
+|No `unsafeCoerce`, `unsafePerformIO`, `undefined`, `error`. Total functions only. `-Wall -Werror` clean. QuickCheck properties for all public API.
+
+|**OCaml**
+|No `Obj.magic`, `Obj.repr`, `Obj.obj`. Pattern matches exhaustive. No `assert false` as control flow.
+
+|**Zig**
+|Comptime verification where possible. No `@ptrCast` without alignment proof. Safety checks enabled (not `ReleaseFast`). No `undefined` as initialiser in production code.
+|===
+
+=== Tier 3 — Rejected (cannot be hardened)
+
+These languages *cannot* produce code that meets the hardening standard:
+
+- Python, JavaScript, TypeScript, Go, Java, Kotlin, PHP, Ruby, Perl
+- Any language without static types AND without formal verification tooling
+- Any language where the standard library routinely uses unchecked operations
+
+Code in these languages is *not admitted* regardless of how carefully written.
+
+=== Exception: FFI Boundaries
+
+At FFI boundaries (e.g. Zig implementing an Idris2-defined ABI), the FFI code is admitted if:
+
+1. The ABI is formally specified in Idris2
+2. The FFI implementation has integration tests covering all ABI contracts
+3. Memory layout is verified (compile-time assertions or property tests)
+4. The FFI code has zero `unsafe` beyond what the FFI mechanism requires
+
+== Directory Structure
+
+----
+proven/
+├── src/              # Core Idris2 library (Tier 1)
+├── domain-specific/  # Hardened specialist modules
+│   ├── concat/       # Idris2 — CLI pipeline, config, routing, scheduling
+│   ├── http/         # Idris2 + Ada + Zig FFI — HTTP primitives
+│   ├── provenance-utils/  # Idris2 — provenance tracking
+│   └── tui/          # Rust — terminal UI with SafeMath
+├── bindings/         # Language bindings (Tier 2 only)
+├── ffi/zig/          # Zig FFI bridge (Tier 2)
+└── tests/            # Property tests and proofs
+----
+
+== Review Checklist
+
+Before admitting code:
+
+. [ ] Language is Tier 1 or Tier 2
+. [ ] No banned patterns for that language (see DANGEROUS PATTERNS below)
+. [ ] All proofs complete (no holes, no `sorry`, no `Admitted`)
+. [ ] All arithmetic is checked (no silent overflow)
+. [ ] All error paths handled (no panics, no `undefined`, no `error`)
+. [ ] Tests cover edge cases (overflow, empty input, null, max values)
+. [ ] Clippy/warnings clean at strictest level
+. [ ] No dependencies with known CVEs
+
+== Dangerous Patterns (BANNED)
+
+|===
+|Language |Banned Pattern |Why
+
+|Idris2 |`believe_me` |Bypasses type checker entirely
+|Idris2 |`assert_total` |Hides non-termination
+|Idris2 |`assert_smaller` |Lies about termination proof
+|Haskell |`unsafeCoerce` |Runtime type cast, can segfault
+|Haskell |`unsafePerformIO` |Breaks referential transparency
+|Haskell |`undefined`/`error` |Guaranteed crash
+|Rust |`transmute` |Reinterprets memory unsafely
+|Rust |`unsafe` (unjustified) |Manual memory management
+|OCaml |`Obj.magic` |Unsafe type cast
+|Coq |`Admitted` |Assumes unproven lemma
+|Lean |`sorry` |Assumes unproven lemma
+|===

@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-FileCopyrightText: 2025 Hyperpolymath
+
+[package]
+name = "proven-tui"
+version = "0.1.0"
+edition = "2024"
+authors = ["Hyperpolymath <hyperpolymath@proton.me>"]
+description = "Terminal UI for exploring and using Proven safety primitives"
+license = "PMPL-1.0"
+repository = "https://github.com/hyperpolymath/proven-tui"
+keywords = ["tui", "safety", "verified", "formal-methods", "terminal"]
+categories = ["command-line-interface", "development-tools"]
+
+[dependencies]
+# TUI framework
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Proven safety primitives - eating our own dog food
+proven = "0.9"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Serialization for config
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# CLI argument parsing
+clap = { version = "4", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+pretty_assertions = "1"
+
+[[bin]]
+name = "proven-tui"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

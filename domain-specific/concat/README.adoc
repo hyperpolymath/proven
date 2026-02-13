@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-FileCopyrightText: 2025 Hyperpolymath
+= proven-concat
+:toc: macro
+:toc-title: Contents
+:toclevels: 3
+
+Composable "concat blocks" built from the https://github.com/hyperpolymath/proven[proven] library.
+
+== Overview
+
+`proven-concat` is a catalog of safe, reusable compositions of `proven` modules. The goal is to make it trivial to assemble a project "base" (CLI tools, API cores, router logic, config loaders, etc.) by concatenating verified components with minimal glue.
+
+Think of it as "unbreakable gist parts" you can combine to get a working, safe core fast.
+
+== What it is (and is not)
+
+* It is a curated set of compositions ("concat blocks") built from `proven` modules.
+* It is not a server framework or runtime. You plug these cores into your preferred runtime (Idris net libs, FFI, or `proven-io`).
+
+== Concat Blocks (by category)
+
+* Input and CLI: `SafeArgs`, `SafeEnv`, `SafePath`, `SafeFile`, `SafeCommand`
+* Data formats: `SafeJson`, `SafeYAML`, `SafeTOML`, `SafeCSV`, `SafeXML`, `SafeHtml`, `SafeMarkdown`
+* Web/API core: `SafeHTTP`, `SafeHeader`, `SafeUrl`, `SafeCookie`, `SafeContentType`, `SafeJWT`, `SafeOAuth`, `SafeRateLimiter`, `SafeWebhook`
+* Networking/security: `SafeNetwork`, `SafeDNS`, `SafeCert`, `SafeSSH`, `SafePassword`, `SafeCrypto`, `SafeChecksum`
+* State and storage: `SafeStateMachine`, `SafeTransaction`, `SafeQueue`, `SafeLRU`, `SafeBloom`
+* Scheduling/resilience: `SafeCron`, `SafeRetry`, `SafeCircuitBreaker`
+* Misc utilities: `SafeSchema`, `SafeTemplate`, `SafeLog`, `SafeUUID`, `SafeDateTime`
+
+== Ready-made Compositions (examples)
+
+* `safe-config-loader`: `SafeArgs` + `SafeEnv` + `SafePath` + `SafeFile` + (JSON/TOML/YAML) + `SafeSchema`
+* `safe-webhook-core`: `SafeHTTP` + `SafeHeader` + `SafeUrl` + `SafeContentType` + `SafeJson` + `SafeJWT` + `SafeRateLimiter` + `SafeLog`
+* `safe-router-table`: `SafeUrl` + `SafeRegex` + `SafeHeader` + `SafeContentType`
+* `safe-cli-pipeline`: `SafeArgs` + `SafeCSV`/`SafeJson` + `SafeFile` + `SafeChecksum` + `SafeLog`
+* `safe-scheduler-core`: `SafeCron` + `SafeRetry` + `SafeCircuitBreaker` + `SafeRateLimiter`
+
+See link:docs/concat-catalog.adoc[docs/concat-catalog.adoc] for the full catalog and notes.
+
+== Where to Start
+
+* Catalog overview: link:docs/concat-catalog.adoc[docs/concat-catalog.adoc]
+* Core registry: link:docs/core-registry.adoc[docs/core-registry.adoc]
+* Runtime adapters: link:docs/runtime-adapters.adoc[docs/runtime-adapters.adoc]
+* Minimal glue stubs: link:docs/glue/minimal-idris-stubs.adoc[docs/glue/minimal-idris-stubs.adoc]
+* Harness patterns: link:docs/harnesses/example-harness-patterns.adoc[docs/harnesses/example-harness-patterns.adoc]
+* Core skeletons: `src/ProvenConcat/ConfigLoader.idr`, `src/ProvenConcat/WebhookCore.idr`,
+  `src/ProvenConcat/RouterTable.idr`, `src/ProvenConcat/CLIPipeline.idr`, `src/ProvenConcat/SchedulerCore.idr`
+
+== Next Steps (Suggested)
+
+* Implement real logic in the four remaining core modules (Webhook/Router/CLI/Scheduler).
+* Replace placeholder types in `ConfigLoader` with concrete schema-validated types.
+* Add `proven-concat.ipkg` exports and a minimal build/test harness.
+
+== Release Milestones (Initial)
+
+=== v0.0.1 - Scaffold
+* Repository identity set (name, README, STATE, roadmap)
+* Initial concat catalog document
+* Enumerate core `proven` modules by category
+
+=== v0.1.0 - Recipes
+* 5-10 concrete concat recipes with minimal glue
+* Runtime attachment notes (how to plug into IO)
+* Example: config loader core and webhook core
+
+=== v1.0.0 - Stable Catalog
+* Full coverage of `proven` modules with intent tags
+* 3-5 mini-program cores with usage notes
+* Clear compatibility/versioning policy
+
+=== v10.0 - Ecosystem Standard
+* Auto-generated catalog from `proven` metadata
+* Community contribution process and validation checks
+* Long-term stability guarantees for core recipes
+
+== License
+
+link:LICENSE[PMPL-1.0] (Palimpsest-MPL-1.0)
+
+== Related
+
+* https://github.com/hyperpolymath/proven[proven] - Core verified safety library
+* https://github.com/hyperpolymath/proven-io[proven-io] - Safe I/O operations

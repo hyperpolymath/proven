@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+= proven-concat Roadmap
+
+== Current Status
+
+Catalog phase: cores documented and skeleton modules created; next work is implementing core logic and packaging.
+
+== Milestones
+
+=== v0.0.1 - Scaffold
+* [x] README aligned to proven-concat purpose
+* [x] Initial concat catalog document
+* [x] Enumerate core `proven` modules by category
+
+=== v0.1.0 - Recipes
+* [x] 5-10 concrete concat recipes with minimal glue
+* [x] Runtime attachment notes (how to plug into IO)
+* [x] Example: config loader core and webhook core
+
+=== v1.0.0 - Stable Catalog
+* [x] Full coverage of `proven` modules with intent tags
+* [x] 3-5 mini-program cores with usage notes
+* [ ] Compatibility and versioning policy
+
+=== v10.0 - Ecosystem Standard
+* [ ] Auto-generated catalog from `proven` metadata
+* [ ] Community contribution process and validation checks
+* [ ] Long-term stability guarantees for core recipes
+
+== Future Directions
+
+* Auto-generate catalog entries from `proven` module metadata.

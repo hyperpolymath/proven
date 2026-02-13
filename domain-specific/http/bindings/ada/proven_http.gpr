@@ -1,0 +1,60 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+--
+-- Proven HTTP - Ada/SPARK Bindings
+--
+-- Build configuration for proven-http library
+
+project Proven_HTTP is
+
+   for Languages use ("Ada");
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Library_Dir use "lib";
+   for Library_Name use "proven_http";
+   for Library_Kind use "static";
+
+   type Build_Type is ("debug", "release");
+   Build : Build_Type := external ("BUILD", "debug");
+
+   package Compiler is
+      case Build is
+         when "debug" =>
+            for Default_Switches ("Ada") use (
+               "-gnatwa",        -- All warnings
+               "-gnatyyM",       -- Style checks
+               "-gnaty3abcdefhiklmnoprst",  -- More style
+               "-gnatVa",        -- Validity checking
+               "-gnateE",        -- Extra exception info
+               "-gnata",         -- Assertions enabled
+               "-g",             -- Debug info
+               "-O0"             -- No optimization
+            );
+
+         when "release" =>
+            for Default_Switches ("Ada") use (
+               "-gnatwa",        -- All warnings
+               "-gnatyyM",       -- Style checks
+               "-gnaty3abcdefhiklmnoprst",
+               "-gnatVa",        -- Validity checking
+               "-gnatp",         -- Suppress checks (after proof)
+               "-gnatn",         -- Inlining
+               "-O2",            -- Optimization
+               "-flto"           -- Link-time optimization
+            );
+      end case;
+   end Compiler;
+
+   package Binder is
+      for Default_Switches ("Ada") use ("-Es");
+   end Binder;
+
+   package Prove is
+      for Proof_Switches ("Ada") use (
+         "--level=2",          -- Medium proof level
+         "--timeout=10",       -- 10 seconds per proof
+         "--counterexamples=on",  -- Show counterexamples
+         "--prover=cvc5,z3,altergo"  -- Use multiple provers
+      );
+   end Prove;
+
+end Proven_HTTP;

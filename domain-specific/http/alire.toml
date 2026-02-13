@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: MPL-2.0-or-later
+name = "proven_http"
+description = "Formally verified HTTP utilities with Ada/SPARK bindings"
+version = "0.1.0"
+authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+maintainers = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+maintainers-logins = ["hyperpolymath"]
+licenses = "PMPL-1.0-or-later"
+website = "https://github.com/hyperpolymath/proven-http"
+tags = ["http", "url", "verification", "formal-methods", "spark", "idris2", "zig"]
+
+[build-switches]
+"*".ada_compiler_switches = [
+   "-gnatwa",       # All warnings
+   "-gnatyyM",      # Style checks
+   "-gnatVa",       # Validity checking
+   "-gnatn",        # Inlining
+   "-O2"            # Optimization
+]
+
+[[depends-on]]
+# No Ada dependencies (standalone library)
+
+[gpr-externals]
+BUILD = ["debug", "release"]
+
+[gpr-set-externals]
+BUILD = "release"
+
+[gpr-set-externals.'case(development)']
+BUILD = "debug"
+
+[environment]
+# Add Zig FFI library to link path when built
+# export LD_LIBRARY_PATH="$CRATE_ROOT/ffi/zig/zig-out/lib:$LD_LIBRARY_PATH"
+
+[origin]
+url = "https://github.com/hyperpolymath/proven-http.git"
+commit = "initial"
