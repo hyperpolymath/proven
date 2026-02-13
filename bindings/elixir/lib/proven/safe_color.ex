@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.SafeColor do
   @moduledoc """
@@ -13,6 +13,11 @@ defmodule Proven.SafeColor do
   @type rgba :: {0..255, 0..255, 0..255, float()}
   @type hsl :: {float(), float(), float()}
   @type color_result :: {:ok, rgb()} | {:error, atom()}
+
+  defguardp is_valid_rgb(r, g, b)
+            when is_integer(r) and r >= 0 and r <= 255 and
+                 is_integer(g) and g >= 0 and g <= 255 and
+                 is_integer(b) and b >= 0 and b <= 255
 
   @doc """
   Parse a hex color string to RGB.
@@ -235,10 +240,6 @@ defmodule Proven.SafeColor do
   end
 
   # Private helpers
-  defguardp is_valid_rgb(r, g, b)
-            when is_integer(r) and r >= 0 and r <= 255 and
-                 is_integer(g) and g >= 0 and g <= 255 and
-                 is_integer(b) and b >= 0 and b <= 255
 
   defp parse_rgb(r_hex, g_hex, b_hex) do
     with {:ok, r} <- parse_hex_byte(r_hex),
