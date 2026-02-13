@@ -25,9 +25,7 @@ defmodule Proven.SafeCrypto do
   def constant_time_compare(a, b) when is_binary(b), do: constant_time_compare(to_string(a), b)
   def constant_time_compare(a, b), do: constant_time_compare(to_string(a), to_string(b))
 
-  @doc """
-  Fallback constant-time comparison for older OTP versions.
-  """
+  # Fallback constant-time comparison for older OTP versions.
   @spec constant_time_compare_fallback(binary(), binary()) :: boolean()
   defp constant_time_compare_fallback(a, b) when byte_size(a) != byte_size(b), do: false
 

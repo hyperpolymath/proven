@@ -216,7 +216,9 @@ defmodule Proven.SafePhone do
   """
   @spec format_national(PhoneNumber.t() | String.t(), keyword()) ::
           {:ok, String.t()} | {:error, :invalid_phone | :missing_country_code}
-  def format_national(%PhoneNumber{country_code: "1", national_number: national}, opts \\ []) do
+  def format_national(phone, opts \\ [])
+
+  def format_national(%PhoneNumber{country_code: "1", national_number: national}, opts) do
     # NANP formatting (US, Canada)
     separator = Keyword.get(opts, :separator, "-")
 

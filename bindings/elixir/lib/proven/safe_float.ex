@@ -100,7 +100,7 @@ defmodule Proven.SafeFloat do
   Returns `{:ok, result}` or `{:error, :division_by_zero}`.
   """
   @spec safe_div(float(), float()) :: float_result()
-  def safe_div(_numerator, 0.0), do: {:error, :division_by_zero}
+  def safe_div(_numerator, +0.0), do: {:error, :division_by_zero}
   def safe_div(numerator, denominator) when is_float(numerator) and is_float(denominator) do
     result = numerator / denominator
     validate(result)

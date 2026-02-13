@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.SafeJson do
   @moduledoc """
@@ -8,6 +8,8 @@ defmodule Proven.SafeJson do
   Provides validated JSON parsing and serialization with protection against
   common attacks like deeply nested structures and oversized payloads.
   """
+
+  import Kernel, except: [get_in: 2]
 
   @max_depth 64
   @max_size 10_485_760  # 10 MB
