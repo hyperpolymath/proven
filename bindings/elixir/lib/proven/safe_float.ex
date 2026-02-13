@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.SafeFloat do
   @moduledoc """
@@ -45,8 +45,7 @@ defmodule Proven.SafeFloat do
   """
   @spec is_infinity?(float()) :: boolean()
   def is_infinity?(value) when is_float(value) do
-    value == :math.pow(10, 309) or value == -:math.pow(10, 309) or
-      abs(value) > 1.7976931348623157e308
+    abs(value) > 1.7976931348623157e308
   end
 
   @doc """

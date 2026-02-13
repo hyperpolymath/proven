@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.SafeCurrency do
   @moduledoc """
@@ -9,6 +9,8 @@ defmodule Proven.SafeCurrency do
   to avoid floating-point precision issues. All monetary calculations
   are checked for overflow and currency compatibility.
   """
+
+  import Kernel, except: [abs: 1]
 
   defmodule Money do
     @moduledoc """
@@ -223,7 +225,7 @@ defmodule Proven.SafeCurrency do
   @spec divide(Money.t(), number()) ::
           {:ok, Money.t()} | {:error, :division_by_zero}
   def divide(_money, 0), do: {:error, :division_by_zero}
-  def divide(_money, 0.0), do: {:error, :division_by_zero}
+  def divide(_money, +0.0), do: {:error, :division_by_zero}
 
   def divide(%Money{amount: amount, currency: currency, exponent: exp}, divisor)
       when is_number(divisor) do
