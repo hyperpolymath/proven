@@ -1,10 +1,10 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: PMPL-1.0-or-later
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 package proven
 
 version = 1.1.0
 authors = "Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>"
-license = "Apache-2.0"
+license = "PMPL-1.0-or-later"
 brief = "Verified safe operations - code that cannot crash"
 readme = "README.adoc"
 homepage = "https://github.com/hyperpolymath/proven"

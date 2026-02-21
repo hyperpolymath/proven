@@ -1,6 +1,6 @@
 (lang dune 3.0)
 
-; SPDX-License-Identifier: Apache-2.0
+; SPDX-License-Identifier: PMPL-1.0-or-later
 ; SPDX-FileCopyrightText: 2025 Hyperpolymath
 (name proven)
 (version 0.9.1)
@@ -8,9 +8,9 @@
 (generate_opam_files true)
 
 (source (github hyperpolymath/proven))
-(license Apache-2.0)
-(authors "Hyperpolymath")
-(maintainers "hyperpolymath")
+(license PMPL-1.0-or-later)
+(authors "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>")
+(maintainers "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>")
 
 (package
  (name proven)

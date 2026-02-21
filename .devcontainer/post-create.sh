@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: PMPL-1.0-or-later
 # Post-create script for devcontainer setup
 
 set -euo pipefail

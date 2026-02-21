@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! Main FFI module for Ephapax ↔ Proven bindings
 //!
 //! Pure Zig implementation - no C files, no headers

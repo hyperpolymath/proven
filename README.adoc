@@ -7,7 +7,7 @@
 *Mathematically proven safe operations.* Code that **cannot crash**, verified with Idris2 dependent types and totality checking.
 
 image:https://img.shields.io/badge/version-1.1.0-blue[Version 1.1.0]
-image:https://img.shields.io/badge/License-Apache_2.0-blue.svg[Apache-2.0,link="https://opensource.org/licenses/Apache-2.0"]
+image:https://img.shields.io/badge/License-PMPL_1.0--or--later-blue.svg[PMPL-1.0-or-later,link="https://github.com/hyperpolymath/proven/blob/main/LICENSE"]
 image:https://img.shields.io/badge/modules-104-blue[104 Modules]
 image:https://img.shields.io/badge/bindings-89_targets-orange[89 Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
@@ -16,7 +16,7 @@ image:https://img.shields.io/badge/build-passing-brightgreen[Build Status]
 
 == License
 
-This project is licensed under **Apache-2.0**. See link:LICENSE[LICENSE].
+This project is licensed under **PMPL-1.0-or-later**. See link:LICENSE[LICENSE].
 
 WARNING: **proven** is an **Idris2 library with FFI bindings**, not a native implementation in your language. All computation happens in Idris2 with mathematical proofs. Language bindings call this verified code via FFI.
 
@@ -1915,7 +1915,7 @@ Crashes are a choice. Choose otherwise.
 
 * ✅ 104 core modules with dependent type proofs (expanded from 74 in v1.0.0)
 * ✅ 14 new FFI exports for Zig bridge layer
-* ✅ SPDX headers standardised to Apache-2.0 across all files
+* ✅ SPDX headers standardised to PMPL-1.0-or-later across all files
 * ✅ Proof fixes: SafeCapability, ECHIDNA/Soundness, SafeFloat
 * ✅ SafeCert FFI hostname matching aligned with source module
 * ✅ SafeML FFI parsePositive replaced with scalar building blocks
@@ -1990,7 +1990,7 @@ Especially needed:
 
 == License
 
-This project is licensed under https://opensource.org/licenses/Apache-2.0[Apache-2.0]. See link:LICENSE[LICENSE].
+This project is licensed under PMPL-1.0-or-later. See link:LICENSE[LICENSE].
 
 == Security
 

@@ -7,7 +7,7 @@ Last updated: 2026-02-12
 - [x] 104 Idris2 core modules with dependent type proofs
 - [x] 89 binding targets via Zig FFI bridge
 - [x] 14 new FFI exports for Zig bridge layer (v1.1.0)
-- [x] SPDX headers standardised to Apache-2.0
+- [x] SPDX headers standardised to PMPL-1.0-or-later
 - [x] Copyright lines corrected across all files
 - [x] Proof fixes (SafeCapability, ECHIDNA/Soundness, SafeFloat)
 - [x] SafeCert FFI hostname matching aligned with source module

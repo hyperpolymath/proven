@@ -1,5 +1,5 @@
 ---------------------------- MODULE Proven ----------------------------
-(* SPDX-License-Identifier: Apache-2.0                                *)
+(* SPDX-License-Identifier: PMPL-1.0-or-later                                *)
 (* Proven - Formally verified safety primitives for TLA+              *)
 (*                                                                     *)
 (* TLA+ is a formal specification language used by Amazon Web Services *)

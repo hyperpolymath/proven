@@ -42,12 +42,12 @@
 **ALL files must use:**
 ```
 Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: PMPL-1.0-or-later
 ```
 
 **NEVER use:**
 - "Hyperpolymath" alone as author (must be "Jonathan D.A. Jewell (hyperpolymath)")
-- `PMPL-1.0` license (deprecated, use Apache-2.0)
+- Apache-2.0 license (this project uses PMPL-1.0-or-later)
 - Missing or incorrect email addresses
 
 ## File Structure
@@ -74,7 +74,7 @@ Before submitting to **any** external repository:
 
 1. ✅ Run hypatia scan: `./hypatia-v2 . --severity=critical --severity=high`
    - Expected: 0 findings (excluding test code)
-2. ✅ Verify license headers: All files have Apache-2.0 SPDX
+2. ✅ Verify license headers: All files have PMPL-1.0-or-later SPDX
 3. ✅ Author attribution: Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
 4. ✅ Tests pass: `dune test` or language-specific test command
 5. ✅ Build succeeds: `idris2 --build proven.ipkg`

@@ -24,7 +24,7 @@ All notable changes to **proven** are documented here.
 - ipkg: removed duplicate module entries
 
 ### Changed
-- SPDX license headers standardised to Apache-2.0 across all 245+ source files
+- SPDX license headers standardised to PMPL-1.0-or-later across all 245+ source files
 - Copyright lines updated to "Jonathan D.A. Jewell (hyperpolymath)" format
 - All TODO stubs in SafeDigest and SafeRegistry converted to documentation notes
 - pack.toml version, license, and author fields corrected

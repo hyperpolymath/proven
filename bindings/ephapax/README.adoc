@@ -266,7 +266,7 @@ cargo add ephapax-proven-sys
 ## 📜 License
 
 All three repositories use:
-**SPDX-License-Identifier: Apache-2.0
+**SPDX-License-Identifier: PMPL-1.0-or-later
 
 Built on Mozilla Public License 2.0-or-later (MPL-2.0-or-later).
 

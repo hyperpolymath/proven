@@ -1,5 +1,5 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: PMPL-1.0-or-later
 
 ||| ECHIDNA FFI Bindings
 |||

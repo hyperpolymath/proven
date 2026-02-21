@@ -1,5 +1,5 @@
 K9!
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: PMPL-1.0-or-later
 # K9 Kennel-level template: Pure data configuration
 # Security Level: Kennel (data-only, no execution)
 # No signature required - safe for any use

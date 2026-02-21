@@ -1,11 +1,11 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: PMPL-1.0-or-later
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 name = "proven"
 version = "1.0.0"
 description = "Code that cannot crash - verified safety functions"
 
-licences = ["Apache-2.0"]  # PMPL-1.0 (Apache-based) - see LICENSE file
+licences = ["PMPL-1.0-or-later"]
 repository = { type = "github", user = "hyperpolymath", repo = "proven" }
 
 target = "javascript"

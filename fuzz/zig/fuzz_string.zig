@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 //! Fuzz targets for SafeString operations
 //! Tests string handling for buffer overflows and encoding issues

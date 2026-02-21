@@ -85,7 +85,7 @@ let value = match json["key"].as_str() {
 ## Additional Issues (From opam PR Review)
 
 ### 1. License Compliance ✅ FIXED
-- Changed from `PMPL-1.0` (non-SPDX) to `Apache-2.0` (SPDX-compliant)
+- Changed from `PMPL-1.0` to `PMPL-1.0-or-later` (corrected license identifier)
 - **Note:** Line 1 of SafeCron.res still says `PMPL-1.0` - needs update
 
 ### 2. RFC 5321 Compliance Claims ❌ NOT IMPLEMENTED
@@ -101,7 +101,7 @@ let value = match json["key"].as_str() {
 
 ### Phase 1: CRITICAL (Must Do Before Re-Submission) ⏱️ 15 mins
 1. Fix 5 `getExn` calls in Proven_SafeCron.res
-2. Update license header in Proven_SafeCron.res (`PMPL-1.0` → `Apache-2.0`)
+2. Update license header in Proven_SafeCron.res (`PMPL-1.0` → `PMPL-1.0-or-later`)
 3. Test that cron parsing doesn't crash on malformed input
 
 ### Phase 2: HIGH PRIORITY (Should Do) ⏱️ 2-3 hours

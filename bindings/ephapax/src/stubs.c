@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // Temporary C stub implementations for testing FFI
 // TODO: Replace with actual Idris2-compiled proven library
 

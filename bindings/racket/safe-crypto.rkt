@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; SPDX-License-Identifier: Apache-2.0
+;; SPDX-License-Identifier: PMPL-1.0-or-later
 ;; SPDX-FileCopyrightText: 2025 Hyperpolymath
 ;;
 ;; Proven SafeCrypto - Cryptographic operations for Racket

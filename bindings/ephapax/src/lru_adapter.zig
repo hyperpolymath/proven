@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! SafeLRU adapter for Ephapax
 //!
 //! This adapter provides FFI bindings to Idris2's proven SafeLRU module.

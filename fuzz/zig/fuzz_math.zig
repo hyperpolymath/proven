@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // SPDX-FileCopyrightText: 2025 Hyperpolymath
 //! Fuzz targets for SafeMath operations
 //! Tests integer operations for crashes and unexpected behavior

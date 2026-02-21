@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: PMPL-1.0-or-later
 # EMERGENCY: Delete ALL reimplementation files from bindings
 #
 # This is a one-time nuclear cleanup. After this, proven-cleaner.sh will

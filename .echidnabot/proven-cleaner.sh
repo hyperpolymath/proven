@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: PMPL-1.0-or-later
 # proven Architecture Enforcer - Auto-delete non-FFI code from bindings
 #
 # This script is run by echidnabot daily to ensure NO logic exists in language

@@ -1,10 +1,10 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: PMPL-1.0-or-later
 -- Minimal package to test FFI exports
 package test-ffi
 
 version = 1.0.0
 authors = "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
-license = "Apache-2.0"
+license = "PMPL-1.0-or-later"
 
 sourcedir = "src"
 builddir = "build-test"
