@@ -1,0 +1,242 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- | FFI declarations to libproven C ABI.
+--
+-- Error-Lang uses ReScript compiler -> Zig FFI -> Idris2 ABI.
+-- All foreign function declarations map to the libproven shared library
+-- which is compiled from Idris 2 source with dependent types and totality
+-- checking. NO safety logic is reimplemented in Error-Lang.
+--
+-- Architecture:
+--   Error-Lang (.err)
+--     |  @foreign("C", ...)
+--     v
+--   libproven.so (Zig FFI layer)
+--     |  Zig -> Idris2 RefC calls
+--     v
+--   Idris 2 (dependent types, totality checking)
+
+module Proven.FFI
+
+-- ============================================================================
+-- Result types matching the C ABI structs
+-- ============================================================================
+
+-- IntResult: struct { int32 status; int64 value; }
+@repr("C")
+type IntResult = {
+  status : Int32,
+  value  : Int64,
+}
+
+-- BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+type BoolResult = {
+  status : Int32,
+  value  : Int32,
+}
+
+-- StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+type StringResult = {
+  status : Int32,
+  ptr    : Ptr[Byte],
+  len    : USize,
+}
+
+-- FloatResult: struct { int32 status; double value; }
+@repr("C")
+type FloatResult = {
+  status : Int32,
+  value  : Float64,
+}
+
+-- ============================================================================
+-- Lifecycle
+-- ============================================================================
+
+@foreign("C", "proven_init")
+extern fn proven_init() -> Int32
+
+@foreign("C", "proven_deinit")
+extern fn proven_deinit() -> Void
+
+@foreign("C", "proven_is_initialized")
+extern fn proven_is_initialized() -> Bool
+
+-- ============================================================================
+-- Memory management
+-- ============================================================================
+
+@foreign("C", "proven_free_string")
+extern fn proven_free_string(ptr : Ptr[Byte]) -> Void
+
+-- ============================================================================
+-- Version info
+-- ============================================================================
+
+@foreign("C", "proven_ffi_abi_version")
+extern fn proven_ffi_abi_version() -> UInt32
+
+@foreign("C", "proven_version_major")
+extern fn proven_version_major() -> UInt32
+
+@foreign("C", "proven_version_minor")
+extern fn proven_version_minor() -> UInt32
+
+@foreign("C", "proven_version_patch")
+extern fn proven_version_patch() -> UInt32
+
+@foreign("C", "proven_module_count")
+extern fn proven_module_count() -> UInt32
+
+-- ============================================================================
+-- SafeMath
+-- ============================================================================
+
+@foreign("C", "proven_math_add_checked")
+extern fn proven_math_add_checked(a : Int64, b : Int64) -> IntResult
+
+@foreign("C", "proven_math_sub_checked")
+extern fn proven_math_sub_checked(a : Int64, b : Int64) -> IntResult
+
+@foreign("C", "proven_math_mul_checked")
+extern fn proven_math_mul_checked(a : Int64, b : Int64) -> IntResult
+
+@foreign("C", "proven_math_div")
+extern fn proven_math_div(a : Int64, b : Int64) -> IntResult
+
+@foreign("C", "proven_math_mod")
+extern fn proven_math_mod(a : Int64, b : Int64) -> IntResult
+
+@foreign("C", "proven_math_abs_safe")
+extern fn proven_math_abs_safe(n : Int64) -> IntResult
+
+@foreign("C", "proven_math_clamp")
+extern fn proven_math_clamp(lo : Int64, hi : Int64, value : Int64) -> Int64
+
+@foreign("C", "proven_math_pow_checked")
+extern fn proven_math_pow_checked(base : Int64, exp : UInt32) -> IntResult
+
+-- ============================================================================
+-- SafeString
+-- ============================================================================
+
+@foreign("C", "proven_string_is_valid_utf8")
+extern fn proven_string_is_valid_utf8(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@foreign("C", "proven_string_escape_sql")
+extern fn proven_string_escape_sql(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@foreign("C", "proven_string_escape_html")
+extern fn proven_string_escape_html(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@foreign("C", "proven_string_escape_js")
+extern fn proven_string_escape_js(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeEmail
+-- ============================================================================
+
+@foreign("C", "proven_email_is_valid")
+extern fn proven_email_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+-- ============================================================================
+-- SafeUrl
+-- ============================================================================
+
+@foreign("C", "proven_url_parse")
+extern fn proven_url_parse(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@foreign("C", "proven_url_free")
+extern fn proven_url_free(components : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafePath
+-- ============================================================================
+
+@foreign("C", "proven_path_has_traversal")
+extern fn proven_path_has_traversal(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@foreign("C", "proven_path_sanitize_filename")
+extern fn proven_path_sanitize_filename(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeCrypto
+-- ============================================================================
+
+@foreign("C", "proven_crypto_constant_time_eq")
+extern fn proven_crypto_constant_time_eq(
+  ptr1 : Ptr[Byte], len1 : USize,
+  ptr2 : Ptr[Byte], len2 : USize,
+) -> BoolResult
+
+@foreign("C", "proven_crypto_random_bytes")
+extern fn proven_crypto_random_bytes(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeJson
+-- ============================================================================
+
+@foreign("C", "proven_json_is_valid")
+extern fn proven_json_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@foreign("C", "proven_json_get_type")
+extern fn proven_json_get_type(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeFloat
+-- ============================================================================
+
+@foreign("C", "proven_float_div")
+extern fn proven_float_div(a : Float64, b : Float64) -> FloatResult
+
+@foreign("C", "proven_float_is_finite")
+extern fn proven_float_is_finite(x : Float64) -> Bool
+
+@foreign("C", "proven_float_is_nan")
+extern fn proven_float_is_nan(x : Float64) -> Bool
+
+@foreign("C", "proven_float_sqrt")
+extern fn proven_float_sqrt(x : Float64) -> FloatResult
+
+@foreign("C", "proven_float_ln")
+extern fn proven_float_ln(x : Float64) -> FloatResult
+
+-- ============================================================================
+-- SafeHex
+-- ============================================================================
+
+@foreign("C", "proven_hex_encode")
+extern fn proven_hex_encode(ptr : Ptr[Byte], len : USize, uppercase : Bool) -> StringResult
+
+@foreign("C", "proven_hex_decode")
+extern fn proven_hex_decode(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@foreign("C", "proven_hex_free")
+extern fn proven_hex_free(result : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafeChecksum
+-- ============================================================================
+
+@foreign("C", "proven_checksum_crc32")
+extern fn proven_checksum_crc32(ptr : Ptr[Byte], len : USize) -> IntResult
+
+@foreign("C", "proven_checksum_verify_crc32")
+extern fn proven_checksum_verify_crc32(ptr : Ptr[Byte], len : USize, expected : UInt32) -> BoolResult
+
+-- ============================================================================
+-- SafeNetwork
+-- ============================================================================
+
+@foreign("C", "proven_network_parse_ipv4")
+extern fn proven_network_parse_ipv4(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+-- ============================================================================
+-- SafeCalculator
+-- ============================================================================
+
+@foreign("C", "proven_calculator_eval")
+extern fn proven_calculator_eval(ptr : Ptr[Byte], len : USize) -> FloatResult

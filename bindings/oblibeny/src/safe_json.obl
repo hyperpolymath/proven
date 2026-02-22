@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/* SafeJson - Validace a detekce typu JSON pres libproven FFI.
+ *
+ * Oblibeny typ Vysledek<T, Ch> dela validaci JSON expresivni: navratovy
+ * typ presne zachycuje, zda je JSON platny a jaky ma korenovy typ.
+ * Chyby parsovani jsou typovane, ne vyjimky.
+ *
+ * Veskere vypocty provadi Idris 2 pres Zig FFI vrstvu.
+ * ZADNA logika JSON neni reimplementovana v Oblibeny.
+ */
+
+modul Proven.SafeJson
+
+import Proven.FFI
+import Proven (ProvenChyba, Výsledek, Neúspěch, Úspěch, bool_vysledek_prevod, float_vysledek_prevod)
+
+// ============================================================================
+// Typy JSON odpovidajici C ABI enumu
+// ============================================================================
+
+// Typy hodnot JSON vracene Idris 2 parserem JSON.
+typ TypJson =
+  | JsonNull
+  | JsonBool
+  | JsonCislo
+  | JsonRetezec
+  | JsonPole
+  | JsonObjekt
+  | JsonNeplatny
+
+// Prevede surovy C ABI kod typu na TypJson.
+fn int_na_typ_json(kod : Int32) -> TypJson =
+  match kod with
+  | 0  => JsonNull
+  | 1  => JsonBool
+  | 2  => JsonCislo
+  | 3  => JsonRetezec
+  | 4  => JsonPole
+  | 5  => JsonObjekt
+  | _  => JsonNeplatny
+
+// ============================================================================
+// Validace JSON
+// ============================================================================
+
+// Zkontroluje, zda je retezec platny JSON.
+// Vraci Uspech(true) pokud platny, Uspech(false) pokud ne.
+// Deleguje na proven_json_is_valid v libproven.
+fn je_platný_json(vstup : String) -> Výsledek<Bool, ProvenChyba> =
+  let bajty = string_to_utf8(vstup)
+  bool_vysledek_prevod(
+    FFI.proven_json_is_valid(bajty.ptr, bajty.len)
+  )
+
+// Ziska typ hodnoty JSON na korenove urovni.
+// Vraci JsonNeplatny pokud retezec neni platny JSON.
+// Deleguje na proven_json_get_type v libproven.
+fn typ_json(vstup : String) -> TypJson =
+  let bajty = string_to_utf8(vstup)
+  int_na_typ_json(FFI.proven_json_get_type(bajty.ptr, bajty.len))
+
+// Validuje JSON a vrati typ v jednom kroku.
+// Vraci Neuspech(ChybaParsovani) pokud vstup neni platny JSON.
+// Kombinuje proven_json_is_valid a proven_json_get_type z libproven.
+fn validovat_json(vstup : String) -> Výsledek<TypJson, ProvenChyba> =
+  match je_platný_json(vstup) with
+  | Úspěch(true)  => Úspěch(typ_json(vstup))
+  | Úspěch(false) => Neúspěch(ChybaParsovani)
+  | Neúspěch(e)   => Neúspěch(e)
+
+// ============================================================================
+// Bezpecne vyhodnoceni vyrazu
+// ============================================================================
+
+// Bezpecne vyhodnoti aritmeticky vyraz v retezci.
+// Podporuje +, -, *, /, zavorky, zaporna a desetinna cisla.
+// Vraci Neuspech(ChybaParsovani) pro neplatne vyrazy.
+// Vraci Neuspech(DeleniNulou) pro deleni nulou.
+// Deleguje na proven_calculator_eval v libproven.
+fn vyhodnotit_výraz(výraz : String) -> Výsledek<Float64, ProvenChyba> =
+  let bajty = string_to_utf8(výraz)
+  float_vysledek_prevod(
+    FFI.proven_calculator_eval(bajty.ptr, bajty.len)
+  )
+
+// ============================================================================
+// Oblibeny specificke: typovana validace JSON
+// ============================================================================
+
+// Validovany typ retezce JSON. Lze zkonstruovat pouze pres funkci
+// validace, coz zarucuje, ze JSON byl parsovan Idris 2 overenym
+// validatorem JSON.
+typ OvěřenýJson = private OvěřenýJson(String, TypJson)
+
+// Ziska puvodni retezec JSON.
+fn overeny_json_retezec(json : OvěřenýJson) -> String =
+  match json with
+  | OvěřenýJson(s, _) => s
+
+// Ziska korenovy typ overeneho JSON.
+fn overeny_json_typ(json : OvěřenýJson) -> TypJson =
+  match json with
+  | OvěřenýJson(_, t) => t
+
+// Vytvori OverenyJson hodnotu, vraci chybu pokud validace selze.
+fn vytvoř_ověřený_json(vstup : String) -> Výsledek<OvěřenýJson, ProvenChyba> =
+  match validovat_json(vstup) with
+  | Úspěch(t)  => Úspěch(OvěřenýJson(vstup, t))
+  | Neúspěch(e) => Neúspěch(e)

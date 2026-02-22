@@ -1,302 +1,137 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Proven Safety Primitives for AssemblyScript
+ * Proven Safety Primitives for AssemblyScript (WASM)
  *
- * Type-safe operations that compile to efficient WebAssembly.
- * AssemblyScript's TypeScript-like syntax with strict typing
- * makes it ideal for expressing Proven's safety guarantees.
+ * This is the main entry point for the Proven AssemblyScript binding.
+ * All computation is delegated to the formally verified libproven library
+ * via WASM host function imports. The AssemblyScript code only provides
+ * type-safe wrappers and data marshaling.
+ *
+ * Architecture:
+ *   AssemblyScript wrapper (this) -> WASM host imports -> libproven.so
+ *   (data marshaling only)          (host runtime)       (Idris 2 verified)
+ *
+ * The WASM host environment must provide all functions declared in the
+ * "proven" import module (see ffi.ts for the complete list).
  */
 
+// Re-export common types
+export { ProvenStatus, Result, Option } from "./common";
+export {
+  RESULT_BUF,
+  readIntResult,
+  readBoolResult,
+  readFloatResult,
+  readStringResult,
+  encodeString,
+  encodedPtr,
+  encodedLen,
+} from "./common";
+
+// Re-export domain modules
+export { SafeMath } from "./safe_math";
+export { SafeString } from "./safe_string";
+export { SafePath } from "./safe_path";
+export { SafeEmail } from "./safe_email";
+
+// Re-export all FFI declarations for advanced users who want direct access
+export * from "./ffi";
+
 // ============================================================================
-// RESULT TYPE
+// LIFECYCLE
 // ============================================================================
 
-@unmanaged
-export class Result<T, E> {
-  constructor(
-    public readonly ok: bool,
-    public readonly value: T,
-    public readonly error: E
-  ) {}
+import {
+  proven_init as _proven_init,
+  proven_deinit as _proven_deinit,
+  proven_is_initialized as _proven_is_initialized,
+} from "./ffi";
+import { ProvenStatus } from "./common";
 
-  static Ok<T, E>(value: T): Result<T, E> {
-    // @ts-ignore: null for error in Ok case
-    return new Result<T, E>(true, value, changetype<E>(0));
-  }
+/**
+ * Initialize the Proven runtime (includes Idris 2 runtime).
+ * Must be called before any other Proven function.
+ * Safe to call multiple times.
+ *
+ * Delegates to proven_init().
+ *
+ * @returns ProvenStatus.Ok on success, error code otherwise.
+ */
+export function init(): ProvenStatus {
+  return _proven_init() as ProvenStatus;
+}
 
-  static Err<T, E>(error: E): Result<T, E> {
-    // @ts-ignore: null for value in Err case
-    return new Result<T, E>(false, changetype<T>(0), error);
-  }
+/**
+ * Cleanup the Proven runtime.
+ * Call when done using Proven functions.
+ *
+ * Delegates to proven_deinit().
+ */
+export function deinit(): void {
+  _proven_deinit();
+}
 
-  isOk(): bool {
-    return this.ok;
-  }
-
-  isErr(): bool {
-    return !this.ok;
-  }
-
-  unwrap(): T {
-    assert(this.ok, "Called unwrap on Err");
-    return this.value;
-  }
-
-  unwrapOr(defaultValue: T): T {
-    return this.ok ? this.value : defaultValue;
-  }
+/**
+ * Check if the Proven runtime is initialized.
+ *
+ * Delegates to proven_is_initialized().
+ *
+ * @returns true if initialized.
+ */
+export function isInitialized(): bool {
+  return _proven_is_initialized() != 0;
 }
 
 // ============================================================================
-// ERROR CODES
+// VERSION INFORMATION
 // ============================================================================
 
-export const enum ErrorCode {
-  None = 0,
-  Overflow = 1,
-  DivisionByZero = 2,
-  OutOfBounds = 3,
-  InvalidInput = 4,
-  ParseError = 5,
+import {
+  proven_version_major as _proven_version_major,
+  proven_version_minor as _proven_version_minor,
+  proven_version_patch as _proven_version_patch,
+  proven_ffi_abi_version as _proven_ffi_abi_version,
+  proven_module_count as _proven_module_count,
+} from "./ffi";
+
+/**
+ * Get major version number of libproven.
+ * Delegates to proven_version_major().
+ */
+export function versionMajor(): u32 {
+  return _proven_version_major();
 }
 
-// ============================================================================
-// SAFE MATH
-// ============================================================================
-
-export namespace SafeMath {
-  /**
-   * Safe addition with overflow detection.
-   */
-  export function add(a: i64, b: i64): Result<i64, ErrorCode> {
-    const result = a + b;
-
-    // Overflow if: same signs for a,b but different sign for result
-    const aSign = a >> 63;
-    const bSign = b >> 63;
-    const resultSign = result >> 63;
-
-    if (aSign == bSign && aSign != resultSign) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.Overflow);
-    }
-
-    return Result.Ok<i64, ErrorCode>(result);
-  }
-
-  /**
-   * Safe addition for i32.
-   */
-  export function add32(a: i32, b: i32): Result<i32, ErrorCode> {
-    const result = <i64>a + <i64>b;
-
-    if (result < <i64>i32.MIN_VALUE || result > <i64>i32.MAX_VALUE) {
-      return Result.Err<i32, ErrorCode>(ErrorCode.Overflow);
-    }
-
-    return Result.Ok<i32, ErrorCode>(<i32>result);
-  }
-
-  /**
-   * Safe subtraction with overflow detection.
-   */
-  export function sub(a: i64, b: i64): Result<i64, ErrorCode> {
-    const result = a - b;
-
-    // Overflow if: different signs for a,b and result sign differs from a
-    const aSign = a >> 63;
-    const bSign = b >> 63;
-    const resultSign = result >> 63;
-
-    if (aSign != bSign && aSign != resultSign) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.Overflow);
-    }
-
-    return Result.Ok<i64, ErrorCode>(result);
-  }
-
-  /**
-   * Safe multiplication with overflow detection.
-   */
-  export function mul(a: i64, b: i64): Result<i64, ErrorCode> {
-    if (a == 0 || b == 0) {
-      return Result.Ok<i64, ErrorCode>(0);
-    }
-
-    const result = a * b;
-
-    // Check for overflow by division
-    if (result / a != b) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.Overflow);
-    }
-
-    // Special case: MIN_VALUE * -1
-    if (a == i64.MIN_VALUE && b == -1) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.Overflow);
-    }
-
-    return Result.Ok<i64, ErrorCode>(result);
-  }
-
-  /**
-   * Safe division (no divide by zero).
-   */
-  export function div(a: i64, b: i64): Result<i64, ErrorCode> {
-    if (b == 0) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.DivisionByZero);
-    }
-
-    // MIN_VALUE / -1 overflows
-    if (a == i64.MIN_VALUE && b == -1) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.Overflow);
-    }
-
-    return Result.Ok<i64, ErrorCode>(a / b);
-  }
-
-  /**
-   * Safe modulo (no divide by zero).
-   */
-  export function mod(a: i64, b: i64): Result<i64, ErrorCode> {
-    if (b == 0) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.DivisionByZero);
-    }
-
-    return Result.Ok<i64, ErrorCode>(a % b);
-  }
-
-  /**
-   * Safe absolute value.
-   */
-  export function abs(a: i64): Result<i64, ErrorCode> {
-    if (a == i64.MIN_VALUE) {
-      return Result.Err<i64, ErrorCode>(ErrorCode.Overflow);
-    }
-
-    return Result.Ok<i64, ErrorCode>(a < 0 ? -a : a);
-  }
-
-  /**
-   * Clamp value to range [min, max].
-   */
-  export function clamp(value: i64, min: i64, max: i64): i64 {
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
-  }
-
-  /**
-   * Check if value is in range [min, max].
-   */
-  export function inRange(value: i64, min: i64, max: i64): bool {
-    return value >= min && value <= max;
-  }
+/**
+ * Get minor version number of libproven.
+ * Delegates to proven_version_minor().
+ */
+export function versionMinor(): u32 {
+  return _proven_version_minor();
 }
 
-// ============================================================================
-// SAFE VALIDATION
-// ============================================================================
-
-export namespace SafeValidation {
-  /**
-   * Validate port number (1-65535).
-   */
-  export function isValidPort(port: i32): bool {
-    return port >= 1 && port <= 65535;
-  }
-
-  /**
-   * Validate port with Result.
-   */
-  export function validatePort(port: i32): Result<i32, ErrorCode> {
-    if (port < 1 || port > 65535) {
-      return Result.Err<i32, ErrorCode>(ErrorCode.InvalidInput);
-    }
-    return Result.Ok<i32, ErrorCode>(port);
-  }
-
-  /**
-   * Validate percentage (0-100).
-   */
-  export function isValidPercentage(value: i32): bool {
-    return value >= 0 && value <= 100;
-  }
-
-  /**
-   * Validate positive number.
-   */
-  export function isPositive(value: i64): bool {
-    return value > 0;
-  }
-
-  /**
-   * Validate non-negative number.
-   */
-  export function isNonNegative(value: i64): bool {
-    return value >= 0;
-  }
+/**
+ * Get patch version number of libproven.
+ * Delegates to proven_version_patch().
+ */
+export function versionPatch(): u32 {
+  return _proven_version_patch();
 }
 
-// ============================================================================
-// SAFE MEMORY
-// ============================================================================
-
-export namespace SafeMemory {
-  /**
-   * Bounds-checked array access.
-   */
-  export function getAt<T>(arr: T[], index: i32): Result<T, ErrorCode> {
-    if (index < 0 || index >= arr.length) {
-      return Result.Err<T, ErrorCode>(ErrorCode.OutOfBounds);
-    }
-    return Result.Ok<T, ErrorCode>(arr[index]);
-  }
-
-  /**
-   * Bounds-checked array write.
-   */
-  export function setAt<T>(arr: T[], index: i32, value: T): Result<bool, ErrorCode> {
-    if (index < 0 || index >= arr.length) {
-      return Result.Err<bool, ErrorCode>(ErrorCode.OutOfBounds);
-    }
-    arr[index] = value;
-    return Result.Ok<bool, ErrorCode>(true);
-  }
-
-  /**
-   * Safe slice with bounds checking.
-   */
-  export function slice<T>(arr: T[], start: i32, end: i32): Result<T[], ErrorCode> {
-    const safeStart = max(0, min(start, arr.length));
-    const safeEnd = max(safeStart, min(end, arr.length));
-    return Result.Ok<T[], ErrorCode>(arr.slice(safeStart, safeEnd));
-  }
+/**
+ * Get the FFI ABI version for compatibility checking.
+ * Delegates to proven_ffi_abi_version().
+ */
+export function ffiAbiVersion(): u32 {
+  return _proven_ffi_abi_version();
 }
 
-// ============================================================================
-// COMMON SAFE VALUES
-// ============================================================================
-
-export namespace CommonPorts {
-  export const HTTP: i32 = 80;
-  export const HTTPS: i32 = 443;
-  export const SSH: i32 = 22;
-  export const DNS: i32 = 53;
-  export const MYSQL: i32 = 3306;
-  export const POSTGRES: i32 = 5432;
-  export const REDIS: i32 = 6379;
-}
-
-// ============================================================================
-// VERSION
-// ============================================================================
-
-export function version(): string {
-  return "0.9.0";
-}
-
-export function versionPacked(): i32 {
-  // major << 16 | minor << 8 | patch
-  return 0x000900;
+/**
+ * Get total module count in libproven.
+ * Delegates to proven_module_count().
+ */
+export function moduleCount(): u32 {
+  return _proven_module_count();
 }

@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/// SafeJson -- Affine wrappers around libproven JSON validation FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Results are affine (consumed at most once).
+/// Provides safe JSON validation without parser panics.
+
+module Proven.SafeJson
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// JSON value type enumeration.
+type JsonType =
+  | JsonNull
+  | JsonBool
+  | JsonNumber
+  | JsonString
+  | JsonArray
+  | JsonObject
+  | JsonInvalid
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI BoolResult into a Result[Bool, ProvenError].
+fn bool_result_to_result(result: BoolResult) -> Result[Bool, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value != 0)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Convert an integer type code to a JsonType enum.
+fn int_to_json_type(code: Int) -> JsonType / Pure {
+  match code {
+    0  => JsonNull,
+    1  => JsonBool,
+    2  => JsonNumber,
+    3  => JsonString,
+    4  => JsonArray,
+    5  => JsonObject,
+    _  => JsonInvalid
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Check if a string is valid JSON.
+/// Delegates to proven_json_is_valid via FFI.
+fn is_valid(input: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(input);
+  bool_result_to_result(extern_proven_json_is_valid(ptr, len))
+}
+
+/// Get the JSON value type of the root element.
+/// Delegates to proven_json_get_type via FFI.
+fn get_type(input: ref String) -> JsonType / Pure {
+  let (ptr, len) = string_to_raw(input);
+  int_to_json_type(extern_proven_json_get_type(ptr, len))
+}
+
+/// Validate JSON and return the input if valid.
+fn validate(input: ref String) -> Result[String, own ProvenError] / Pure {
+  match is_valid(input) {
+    Err(e) => Err(e),
+    Ok(false) => Err(ProvenError {
+      code: -7,
+      message: "invalid JSON"
+    }),
+    Ok(true) => Ok(string_clone(input))
+  }
+}
+
+/// Check if a JSON string represents a JSON object at the root level.
+fn is_object(input: ref String) -> Bool / Pure {
+  match get_type(input) {
+    JsonObject => true,
+    _ => false
+  }
+}
+
+/// Check if a JSON string represents a JSON array at the root level.
+fn is_array(input: ref String) -> Bool / Pure {
+  match get_type(input) {
+    JsonArray => true,
+    _ => false
+  }
+}

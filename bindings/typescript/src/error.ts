@@ -1,8 +1,18 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Status codes from Proven operations.
+ * Error types and status codes for the Proven FFI layer.
+ *
+ * These mirror the status codes from libproven (Idris 2 + Zig).
+ * This file provides TypeScript type definitions only -- no reimplemented logic.
+ *
+ * @module
+ */
+
+/**
+ * Status codes from Proven FFI operations.
+ * Maps to integer values returned by the C ABI.
  */
 export type ProvenStatus =
   | 'ok'
@@ -19,7 +29,10 @@ export type ProvenStatus =
   | 'not_implemented';
 
 /**
- * Map raw status codes to ProvenStatus.
+ * Map raw integer status codes from libproven to ProvenStatus strings.
+ *
+ * @param code - The integer status code from the FFI layer.
+ * @returns The corresponding ProvenStatus string.
  */
 export function statusFromCode(code: number): ProvenStatus {
   switch (code) {
@@ -53,7 +66,7 @@ export function statusFromCode(code: number): ProvenStatus {
 }
 
 /**
- * Error thrown by Proven operations.
+ * Error thrown by Proven operations when an FFI call returns a non-OK status.
  */
 export class ProvenError extends Error {
   readonly status: ProvenStatus;

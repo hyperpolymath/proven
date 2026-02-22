@@ -1,18 +1,24 @@
-# SPDX-License-Identifier: PMPL-1.0
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
 Gem::Specification.new do |spec|
   spec.name = "proven"
-  spec.version = "0.9.0"
-  spec.authors = ["Hyperpolymath"]
-  spec.email = ["info@hyperpolymath.com"]
+  spec.version = "1.0.0"
+  spec.authors = ["Jonathan D.A. Jewell"]
+  spec.email = ["jonathan.jewell@open.ac.uk"]
 
-  spec.summary = "Safety-first utility functions with formal verification guarantees"
+  spec.summary = "FFI bindings to libproven - formally verified safety functions (Idris 2)"
   spec.description = <<~DESC
-    Proven provides safe operations for math, strings, paths, email,
-    network addresses, and cryptographic comparisons. All functions
-    are designed to never crash and return nil on invalid input.
+    Proven provides safe operations for math, strings, paths, email, network
+    addresses, cryptographic comparisons, UUID, currency, phone numbers, hex
+    encoding, colors, angles, unit conversions, datetime, JSON, and URLs.
+
+    This gem is a thin FFI wrapper using Ruby's Fiddle (stdlib). ALL computation
+    happens in Idris 2 via the Zig FFI bridge (libproven.so). No safety logic
+    is reimplemented in Ruby.
+
+    Requires libproven shared library (build from ffi/zig/ with: zig build).
   DESC
   spec.homepage = "https://github.com/hyperpolymath/proven"
   spec.license = "PMPL-1.0"
@@ -25,5 +31,6 @@ Gem::Specification.new do |spec|
   spec.files = Dir.glob("lib/**/*.rb") + ["proven.gemspec"]
   spec.require_paths = ["lib"]
 
-  spec.add_development_dependency "rspec", "~> 3.0"
+  # No external gem dependencies - uses Ruby stdlib Fiddle for FFI.
+  # libproven.so must be available at runtime (system lib or local build).
 end

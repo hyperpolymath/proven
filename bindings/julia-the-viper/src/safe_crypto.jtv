@@ -1,0 +1,140 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- safe_crypto.jtv - Cryptographic operations for Julia the Viper
+--
+-- Control-plane module: Cryptographic operations are delegated to
+-- libproven's formally verified Idris 2 core via the FFI bridge.
+-- No cryptographic algorithms are reimplemented in JTV.
+--
+-- All crypto operations are Control-plane (side-effectful: random bytes
+-- modify system state, hex encoding allocates memory via FFI).
+--
+-- @module
+
+module Proven.SafeCrypto
+
+import Proven.FFI (
+    proven_crypto_constant_time_eq,
+    proven_crypto_random_bytes,
+    proven_hex_encode,
+    proven_hex_decode,
+    proven_hex_free,
+    proven_checksum_crc32,
+    proven_checksum_verify_crc32,
+    proven_free_string,
+    STATUS_OK
+)
+import Proven (DataResult, Ok, Err, ProvenError)
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Constant-Time Comparison
+-- ---------------------------------------------------------------------------
+
+-- Compare two byte sequences in constant time (timing-attack resistant).
+-- Returns true if equal, false otherwise.
+-- Delegates to proven_crypto_constant_time_eq via FFI.
+fn constant_time_eq(a: *u8, a_len: usize, b: *u8, b_len: usize) -> DataResult<bool>:
+    let result = proven_crypto_constant_time_eq(a, a_len, b, b_len)
+    if result.status == STATUS_OK:
+        return Ok(result.value != 0)
+    else:
+        return Err({ code: result.status, message: "Constant-time comparison FFI error" })
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Secure Random Bytes
+-- ---------------------------------------------------------------------------
+
+-- Generate cryptographically secure random bytes.
+-- Fills the provided buffer with random data.
+-- Returns true on success, or error on failure.
+-- Delegates to proven_crypto_random_bytes via FFI.
+fn random_bytes(buf: *u8, len: usize) -> DataResult<bool>:
+    let status = proven_crypto_random_bytes(buf, len)
+    if status == 0:
+        return Ok(true)
+    else:
+        return Err({ code: status, message: "Random bytes generation failed" })
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Hex Encoding / Decoding
+-- ---------------------------------------------------------------------------
+
+-- Hex-encode a byte string (lowercase).
+-- Returns the hex-encoded string, or error on failure.
+-- Delegates to proven_hex_encode via FFI.
+fn hex_encode(data: *u8, len: usize) -> DataResult<[u8]>:
+    let result = proven_hex_encode(data, len, false)
+    if result.status == STATUS_OK:
+        let encoded = copy_ffi_string(result.ptr, result.len)
+        proven_free_string(result.ptr)
+        return Ok(encoded)
+    else:
+        return Err({ code: result.status, message: "Hex encode failed" })
+
+-- Hex-encode a byte string (uppercase).
+-- Returns the uppercase hex-encoded string, or error on failure.
+-- Delegates to proven_hex_encode via FFI.
+fn hex_encode_upper(data: *u8, len: usize) -> DataResult<[u8]>:
+    let result = proven_hex_encode(data, len, true)
+    if result.status == STATUS_OK:
+        let encoded = copy_ffi_string(result.ptr, result.len)
+        proven_free_string(result.ptr)
+        return Ok(encoded)
+    else:
+        return Err({ code: result.status, message: "Hex encode (upper) failed" })
+
+-- Hex-decode a hex string into raw bytes.
+-- Returns the decoded byte array, or error on failure.
+-- Delegates to proven_hex_decode via FFI.
+fn hex_decode(data: *u8, len: usize) -> DataResult<[u8]>:
+    let result = proven_hex_decode(data, len)
+    if result != null:
+        -- Extract data from the opaque result
+        let decoded = extract_hex_result(result)
+        proven_hex_free(result)
+        return Ok(decoded)
+    else:
+        return Err({ code: -6, message: "Hex decode failed" })
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Checksum Operations
+-- ---------------------------------------------------------------------------
+
+-- Compute CRC32 checksum of a byte string.
+-- Returns the CRC32 value as an integer, or error on failure.
+-- Delegates to proven_checksum_crc32 via FFI.
+fn crc32(data: *u8, len: usize) -> DataResult<i64>:
+    let result = proven_checksum_crc32(data, len)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "CRC32 computation failed" })
+
+-- Verify CRC32 checksum of a byte string against an expected value.
+-- Returns true if the checksum matches, false otherwise.
+-- Delegates to proven_checksum_verify_crc32 via FFI.
+fn verify_crc32(data: *u8, len: usize, expected: u32) -> DataResult<bool>:
+    let result = proven_checksum_verify_crc32(data, len, expected)
+    if result.status == STATUS_OK:
+        return Ok(result.value != 0)
+    else:
+        return Err({ code: result.status, message: "CRC32 verification failed" })
+
+-- ---------------------------------------------------------------------------
+-- Helpers
+-- ---------------------------------------------------------------------------
+
+fn copy_ffi_string(ptr: *u8, len: usize) -> [u8]:
+    let mut buf: [u8; len] = zeroed()
+    memcpy(buf, ptr, len)
+    return buf
+
+fn extract_hex_result(result: *void) -> [u8]:
+    -- Extract the data pointer and length from the opaque hex decode result.
+    -- The result struct layout is: { i32 status, *u8 data, usize len }
+    let data_ptr: *u8 = read_ptr(result, 8)
+    let data_len: usize = read_usize(result, 16)
+    let mut buf: [u8; data_len] = zeroed()
+    memcpy(buf, data_ptr, data_len)
+    return buf

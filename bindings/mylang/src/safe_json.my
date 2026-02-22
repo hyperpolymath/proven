@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// | SafeJson - JSON validation and type detection via libproven FFI.
+//
+// MyLang's Result type makes JSON validation expressive: the return type
+// precisely captures whether JSON is valid and what root type the document
+// has. Parse failures are typed errors, not exceptions.
+//
+// All computation is performed in Idris 2 via the Zig FFI layer.
+// NO JSON logic is reimplemented in MyLang.
+
+module Proven.SafeJson
+
+import Proven.FFI
+import Proven (ProvenError, Result, bool_result_to_proven, float_result_to_proven)
+
+// ============================================================================
+// JSON types matching the C ABI enum
+// ============================================================================
+
+// | JSON value types as returned by the Idris 2 JSON parser.
+type JsonType = enum {
+  JsonNull,
+  JsonBool,
+  JsonNumber,
+  JsonString,
+  JsonArray,
+  JsonObject,
+  JsonInvalid,
+}
+
+// | Convert a raw C ABI type code to a JsonType.
+fn int_to_json_type(code : i32) -> JsonType =
+  match code {
+    0 => JsonType::JsonNull,
+    1 => JsonType::JsonBool,
+    2 => JsonType::JsonNumber,
+    3 => JsonType::JsonString,
+    4 => JsonType::JsonArray,
+    5 => JsonType::JsonObject,
+    _ => JsonType::JsonInvalid,
+  }
+
+// ============================================================================
+// JSON validation
+// ============================================================================
+
+// | Check if a string is valid JSON.
+// Returns Ok(true) if valid, Ok(false) if not.
+// Delegates to proven_json_is_valid in libproven.
+fn is_valid_json(input : String) -> Result<bool, ProvenError> =
+  let bytes = string_to_utf8(input)
+  bool_result_to_proven(
+    FFI.proven_json_is_valid(bytes.ptr, bytes.len)
+  )
+
+// | Get the JSON value type at the root level.
+// Returns JsonInvalid if the string is not valid JSON.
+// Delegates to proven_json_get_type in libproven.
+fn json_type(input : String) -> JsonType =
+  let bytes = string_to_utf8(input)
+  int_to_json_type(FFI.proven_json_get_type(bytes.ptr, bytes.len))
+
+// | Validate JSON and return the type in one step.
+// Returns Err(ParseFailure) if the input is not valid JSON.
+// Combines proven_json_is_valid and proven_json_get_type from libproven.
+fn validate_json(input : String) -> Result<JsonType, ProvenError> =
+  match is_valid_json(input) {
+    Result::Ok(true)  => Result::Ok(json_type(input)),
+    Result::Ok(false) => Result::Err(ProvenError::ParseFailure),
+    Result::Err(e)    => Result::Err(e),
+  }
+
+// ============================================================================
+// Safe expression evaluation
+// ============================================================================
+
+// | Safely evaluate an arithmetic expression string.
+// Supports +, -, *, /, parentheses, negative and decimal numbers.
+// Returns Err(ParseFailure) for invalid expressions.
+// Returns Err(DivByZero) for division by zero.
+// Delegates to proven_calculator_eval in libproven.
+fn eval_expression(expr : String) -> Result<f64, ProvenError> =
+  let bytes = string_to_utf8(expr)
+  float_result_to_proven(
+    FFI.proven_calculator_eval(bytes.ptr, bytes.len)
+  )
+
+// ============================================================================
+// MyLang specific: validated JSON type
+// ============================================================================
+
+// | A validated JSON string type. Can only be constructed through the
+// validate function, ensuring the JSON has been parsed by the Idris 2
+// verified JSON validator.
+type ValidatedJson = struct private {
+  raw      : String,
+  json_typ : JsonType,
+}
+
+// | Get the original JSON string.
+fn validated_json_string(json : ValidatedJson) -> String =
+  json.raw
+
+// | Get the root type of the validated JSON.
+fn validated_json_type(json : ValidatedJson) -> JsonType =
+  json.json_typ
+
+// | Create a ValidatedJson value, returning an error if validation fails.
+fn make_validated_json(input : String) -> Result<ValidatedJson, ProvenError> =
+  match validate_json(input) {
+    Result::Ok(t)  => Result::Ok(ValidatedJson { raw: input, json_typ: t }),
+    Result::Err(e) => Result::Err(e),
+  }

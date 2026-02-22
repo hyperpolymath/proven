@@ -1,1 +1,21 @@
-contents of Trustfile here
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Trust contractile for proven
+# The authoritative Trustfile is at the repository root: Trustfile.a2ml
+# This file provides the contractile-level trust verification commands.
+version: 1
+trust:
+  trustfile: "../../Trustfile.a2ml"
+  verification:
+    - name: trustfile-exists
+      run: "test -f Trustfile.a2ml"
+    - name: trustfile-valid
+      run: "a2ml validate Trustfile.a2ml"
+    - name: trustfile-not-expired
+      run: "bash -c 'grep Expires Trustfile.a2ml | head -1'"
+    - name: signatures-present
+      run: "grep -q 'SIGNATURE_BLOCK' Trustfile.a2ml"
+  crypto:
+    algorithms:
+      primary: "Ed448+Dilithium5"
+      fallback: "SPHINCS+"
+    hashing: ["SHA3-512", "SHAKE256", "BLAKE3"]

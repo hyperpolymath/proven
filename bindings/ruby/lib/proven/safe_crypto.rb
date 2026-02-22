@@ -1,69 +1,61 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
-require "openssl"
-require "securerandom"
+# Safe cryptographic operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
 
 module Proven
-  # Cryptographic safety operations with constant-time guarantees.
   module SafeCrypto
     class << self
-      # Compare two strings in constant time to prevent timing attacks.
-      # Uses OpenSSL's constant-time comparison when available.
+      # Compare two byte strings in constant time (timing-safe).
+      # Returns nil on error.
       #
       # @param a [String]
       # @param b [String]
-      # @return [Boolean]
+      # @return [Boolean, nil]
       def constant_time_compare(a, b)
-        # OpenSSL.fixed_length_secure_compare requires same length
-        return false unless a.bytesize == b.bytesize
-        return true if a.empty? && b.empty?
-
-        if OpenSSL.respond_to?(:fixed_length_secure_compare)
-          OpenSSL.fixed_length_secure_compare(a, b)
-        else
-          # Fallback for older Ruby
-          constant_time_compare_fallback(a, b)
-        end
+        return nil if a.nil? || b.nil?
+        ptr_a, len_a = FFI.str_to_ptr(a)
+        ptr_b, len_b = FFI.str_to_ptr(b)
+        result = FFI.invoke_bool_result(
+          "proven_crypto_constant_time_eq",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T,
+           Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          [ptr_a, len_a, ptr_b, len_b]
+        )
+        return nil unless result
+        status, val = result
+        status == FFI::STATUS_OK ? val : nil
       end
 
-      # Securely zero a string (in-place modification).
-      # Note: Due to Ruby's string mutability rules, this creates a new zeroed string.
+      # Fill a buffer with cryptographically secure random bytes.
+      # Returns nil on error.
       #
-      # @param length [Integer]
-      # @return [String]
-      def secure_zero(length)
-        "\x00" * length
-      end
-
-      # Generate cryptographically secure random bytes.
-      #
-      # @param n [Integer]
-      # @return [String]
+      # @param n [Integer] number of bytes
+      # @return [String, nil] binary string of random bytes
       def random_bytes(n)
-        SecureRandom.random_bytes(n)
+        return nil if n.nil? || n < 0
+        return "".b if n.zero?
+        buf = Fiddle::Pointer.malloc(n, Fiddle::RUBY_FREE)
+        status = FFI.invoke_i32(
+          "proven_crypto_random_bytes",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          [buf, n]
+        )
+        return nil unless status == FFI::STATUS_OK
+        buf.to_str(n).dup
       end
 
       # Generate a cryptographically secure random hex string.
+      # Returns nil on error.
       #
-      # @param n [Integer] number of random bytes (output will be 2n hex chars)
-      # @return [String]
+      # @param n [Integer] number of random bytes (output = 2n hex chars)
+      # @return [String, nil]
       def random_hex(n)
-        SecureRandom.hex(n)
-      end
-
-      private
-
-      # Fallback constant-time comparison for older Ruby versions.
-      def constant_time_compare_fallback(a, b)
-        return false unless a.bytesize == b.bytesize
-
-        result = 0
-        a.bytes.zip(b.bytes).each do |x, y|
-          result |= x ^ y
-        end
-        result.zero?
+        bytes = random_bytes(n)
+        return nil if bytes.nil?
+        bytes.unpack1("H*")
       end
     end
   end

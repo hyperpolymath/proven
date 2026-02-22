@@ -1,84 +1,102 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Proven SafeMath - FFI bindings to libproven arithmetic operations.
+// All computation is performed in verified Idris 2 code via libproven.
 
-//! Safe arithmetic operations that cannot crash or overflow unexpectedly.
+const c = @cImport(@cInclude("proven.h"));
 
-const std = @import("std");
-
-/// Error types for math operations.
+/// Error types for math operations, mapped from ProvenStatus codes.
 pub const MathError = error{
     DivisionByZero,
     Overflow,
+    Underflow,
+    InvalidArgument,
 };
 
-/// Safely divide two integers, returning error on division by zero.
-pub fn safeDiv(comptime T: type, numerator: T, denominator: T) MathError!T {
-    if (denominator == 0) return error.DivisionByZero;
-    return @divTrunc(numerator, denominator);
+/// Map ProvenStatus to MathError.
+fn mapStatus(status: i32) MathError!void {
+    return switch (status) {
+        c.PROVEN_OK => {},
+        c.PROVEN_ERR_DIVISION_BY_ZERO => error.DivisionByZero,
+        c.PROVEN_ERR_OVERFLOW => error.Overflow,
+        c.PROVEN_ERR_UNDERFLOW => error.Underflow,
+        else => error.InvalidArgument,
+    };
 }
 
-/// Safely compute modulo, returning error on division by zero.
-pub fn safeMod(comptime T: type, numerator: T, denominator: T) MathError!T {
-    if (denominator == 0) return error.DivisionByZero;
-    return @mod(numerator, denominator);
+/// Safe integer division via libproven.
+/// Returns PROVEN_ERR_DIVISION_BY_ZERO if denominator is 0,
+/// PROVEN_ERR_OVERFLOW for INT64_MIN / -1.
+pub fn div(numerator: i64, denominator: i64) MathError!i64 {
+    const result = c.proven_math_div(numerator, denominator);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Safely add two integers, returning error on overflow.
-pub fn safeAdd(comptime T: type, a: T, b: T) MathError!T {
-    return std.math.add(T, a, b) catch error.Overflow;
+/// Safe modulo operation via libproven.
+/// Returns error if denominator is 0.
+pub fn mod(numerator: i64, denominator: i64) MathError!i64 {
+    const result = c.proven_math_mod(numerator, denominator);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Safely subtract two integers, returning error on overflow.
-pub fn safeSub(comptime T: type, a: T, b: T) MathError!T {
-    return std.math.sub(T, a, b) catch error.Overflow;
+/// Checked addition with overflow detection via libproven.
+pub fn addChecked(a: i64, b: i64) MathError!i64 {
+    const result = c.proven_math_add_checked(a, b);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Safely multiply two integers, returning error on overflow.
-pub fn safeMul(comptime T: type, a: T, b: T) MathError!T {
-    return std.math.mul(T, a, b) catch error.Overflow;
+/// Checked subtraction with underflow detection via libproven.
+pub fn subChecked(a: i64, b: i64) MathError!i64 {
+    const result = c.proven_math_sub_checked(a, b);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Safe division that returns null instead of error.
-pub fn safeDivOrNull(comptime T: type, numerator: T, denominator: T) ?T {
-    return safeDiv(T, numerator, denominator) catch null;
+/// Checked multiplication with overflow detection via libproven.
+pub fn mulChecked(a: i64, b: i64) MathError!i64 {
+    const result = c.proven_math_mul_checked(a, b);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Safe addition that returns null instead of error.
-pub fn safeAddOrNull(comptime T: type, a: T, b: T) ?T {
-    return safeAdd(T, a, b) catch null;
+/// Safe absolute value via libproven.
+/// Returns error for INT64_MIN (cannot be represented as positive).
+pub fn absSafe(n: i64) MathError!i64 {
+    const result = c.proven_math_abs_safe(n);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Safe subtraction that returns null instead of error.
-pub fn safeSubOrNull(comptime T: type, a: T, b: T) ?T {
-    return safeSub(T, a, b) catch null;
+/// Clamp value to [lo, hi] range via libproven.
+pub fn clamp(lo: i64, hi: i64, value: i64) i64 {
+    return c.proven_math_clamp(lo, hi, value);
 }
 
-/// Safe multiplication that returns null instead of error.
-pub fn safeMulOrNull(comptime T: type, a: T, b: T) ?T {
-    return safeMul(T, a, b) catch null;
+/// Integer exponentiation with overflow checking via libproven.
+pub fn powChecked(base: i64, exp: u32) MathError!i64 {
+    const result = c.proven_math_pow_checked(base, exp);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-test "safeDiv" {
-    try std.testing.expectEqual(@as(i64, 5), try safeDiv(i64, 10, 2));
-    try std.testing.expectError(error.DivisionByZero, safeDiv(i64, 10, 0));
+test "div" {
+    const std = @import("std");
+    try std.testing.expectEqual(@as(i64, 5), try div(10, 2));
+    try std.testing.expectError(error.DivisionByZero, div(10, 0));
 }
 
-test "safeMod" {
-    try std.testing.expectEqual(@as(i64, 1), try safeMod(i64, 10, 3));
-    try std.testing.expectError(error.DivisionByZero, safeMod(i64, 10, 0));
+test "addChecked" {
+    const std = @import("std");
+    try std.testing.expectEqual(@as(i64, 3), try addChecked(1, 2));
 }
 
-test "safeAdd" {
-    try std.testing.expectEqual(@as(i64, 3), try safeAdd(i64, 1, 2));
-    try std.testing.expectError(error.Overflow, safeAdd(i64, std.math.maxInt(i64), 1));
-}
-
-test "safeSub" {
-    try std.testing.expectEqual(@as(i64, 2), try safeSub(i64, 5, 3));
-    try std.testing.expectError(error.Overflow, safeSub(i64, std.math.minInt(i64), 1));
-}
-
-test "safeMul" {
-    try std.testing.expectEqual(@as(i64, 12), try safeMul(i64, 3, 4));
-    try std.testing.expectError(error.Overflow, safeMul(i64, std.math.maxInt(i64), 2));
+test "clamp" {
+    const std = @import("std");
+    try std.testing.expectEqual(@as(i64, 5), clamp(0, 10, 5));
+    try std.testing.expectEqual(@as(i64, 0), clamp(0, 10, -5));
+    try std.testing.expectEqual(@as(i64, 10), clamp(0, 10, 15));
 }

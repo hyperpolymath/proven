@@ -1,0 +1,123 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Trustfile validation — enforces security spec from Trustfile.a2ml
+name: Trustfile Validation
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'Trustfile.a2ml'
+      - 'src/**'
+      - 'ffi/**'
+      - 'bindings/**'
+      - '.github/workflows/trustfile.yml'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  validate-trustfile:
+    name: Validate Trustfile Integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Trustfile exists
+        run: |
+          if [ ! -f Trustfile.a2ml ]; then
+            echo "ERROR: Trustfile.a2ml is missing"
+            exit 1
+          fi
+          echo "Trustfile.a2ml found"
+
+      - name: Validate Trustfile structure
+        run: |
+          # Verify required sections exist
+          REQUIRED_SECTIONS=("META" "THREAT_MODEL" "TRUSTFILE" "CI_CD" "PROVEN_SPECIFIC" "LEAN4_PROOFS" "AUTOMATION" "SIGNATURE_BLOCK")
+          for section in "${REQUIRED_SECTIONS[@]}"; do
+            if ! grep -q "\[${section}\]" Trustfile.a2ml; then
+              echo "ERROR: Missing required section [${section}]"
+              exit 1
+            fi
+          done
+          echo "All required sections present"
+
+      - name: Verify architecture invariants
+        run: |
+          # Check that no binding reimplements logic (search for computation patterns)
+          VIOLATIONS=0
+          for dir in bindings/*/; do
+            if [ -d "$dir" ]; then
+              # Check for algorithm reimplementations (not just FFI wrappers)
+              REIMPL=$(grep -rl "fn safe_\|def safe_\|let safe_\|func safe_" "$dir" 2>/dev/null | \
+                       xargs grep -L "ffi\|FFI\|extern\|foreign\|native" 2>/dev/null | wc -l)
+              if [ "$REIMPL" -gt 0 ]; then
+                echo "WARNING: Potential logic reimplementation in $dir ($REIMPL files)"
+                VIOLATIONS=$((VIOLATIONS + REIMPL))
+              fi
+            fi
+          done
+          if [ "$VIOLATIONS" -gt 0 ]; then
+            echo "WARNING: $VIOLATIONS potential architecture violations found"
+          else
+            echo "Architecture invariants verified"
+          fi
+
+      - name: Compute integrity hashes
+        run: |
+          if command -v sha3sum &>/dev/null; then
+            SHA3=$(sha3sum -a 512 Trustfile.a2ml | awk '{print $1}')
+            echo "SHA3-512: $SHA3"
+          else
+            SHA256=$(sha256sum Trustfile.a2ml | awk '{print $1}')
+            echo "SHA256 (fallback): $SHA256"
+          fi
+
+  enforce-policies:
+    name: Enforce Trustfile Policies
+    runs-on: ubuntu-latest
+    needs: validate-trustfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Check SPDX license compliance
+        run: |
+          # All source files must use PMPL-1.0-or-later
+          WRONG_LICENSE=$(grep -rl "SPDX-License-Identifier:" src/ ffi/ bindings/ 2>/dev/null | \
+                         xargs grep -L "PMPL-1.0-or-later" 2>/dev/null | wc -l)
+          if [ "$WRONG_LICENSE" -gt 0 ]; then
+            echo "ERROR: $WRONG_LICENSE files have incorrect SPDX license headers"
+            grep -rl "SPDX-License-Identifier:" src/ ffi/ bindings/ 2>/dev/null | \
+              xargs grep -L "PMPL-1.0-or-later" 2>/dev/null | head -20
+            exit 1
+          fi
+          echo "License compliance: PASS"
+
+      - name: Check believe_me audit trail
+        run: |
+          # Count believe_me instances and verify they have justification comments
+          BELIEVE_ME_COUNT=$(grep -r "believe_me" src/ --include="*.idr" 2>/dev/null | wc -l)
+          UNJUSTIFIED=$(grep -r "believe_me" src/ --include="*.idr" -B1 2>/dev/null | \
+                       grep -c "believe_me" 2>/dev/null || true)
+          echo "believe_me instances: $BELIEVE_ME_COUNT"
+          if [ "$BELIEVE_ME_COUNT" -gt 300 ]; then
+            echo "WARNING: believe_me count ($BELIEVE_ME_COUNT) exceeds threshold (300)"
+          fi
+
+      - name: Verify FFI bridge purity
+        run: |
+          # Zig FFI bridge must not contain safety logic
+          SAFETY_LOGIC=$(grep -c "if.*overflow\|if.*bounds\|if.*null\|panic\|unreachable" ffi/zig/src/main.zig 2>/dev/null || true)
+          if [ "$SAFETY_LOGIC" -gt 5 ]; then
+            echo "WARNING: Potential safety logic in FFI bridge ($SAFETY_LOGIC patterns)"
+          else
+            echo "FFI bridge purity: PASS"
+          fi

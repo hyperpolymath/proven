@@ -1,14 +1,27 @@
 # Proven C++ Bindings
 
-Modern C++ wrapper for the Proven library (Zig implementation).
+Thin, header-only C++ wrapper for the Proven library (Idris2 core, Zig FFI bridge).
 
-## Features
+All computation is performed by the formally verified Idris2 core. This binding
+provides only RAII lifetime management, `std::optional` error handling, and C++
+type safety. **No logic is reimplemented in C++.**
 
-- RAII memory management (no manual `free()` calls)
-- `std::optional` returns instead of error codes
-- `std::string_view` for zero-copy string passing
-- Exception-based error handling (optional)
-- Header-only - just include and use
+## Architecture
+
+```
+C++ headers (this binding)
+    |
+    v  extern "C" calls
+libproven.so / libproven.a  (Zig FFI bridge)
+    |
+    v  calls compiled Idris2 RefC
+Idris2 core  (formally verified with dependent types)
+```
+
+## Requirements
+
+- C++17 or later
+- libproven (built from `ffi/zig/`)
 
 ## Installation
 
@@ -18,15 +31,18 @@ cd ffi/zig
 zig build
 ```
 
-2. Add include paths:
+2. Include and link:
 ```bash
--I/path/to/proven/bindings/cpp/include
--I/path/to/proven/bindings/c/include
+g++ -std=c++17 -o myapp myapp.cpp \
+    -I/path/to/proven/bindings/cpp/include \
+    -L/path/to/proven/ffi/zig/zig-out/lib \
+    -lproven
 ```
 
-3. Link against libproven:
-```bash
--lproven
+Or with CMake:
+```cmake
+add_subdirectory(bindings/cpp)
+target_link_libraries(myapp proven_cpp)
 ```
 
 ## Usage
@@ -36,167 +52,73 @@ zig build
 #include <iostream>
 
 int main() {
-    // RAII runtime - automatically initializes and cleans up
-    proven::Runtime runtime;
+    proven::Runtime runtime;  // RAII init/deinit
+    if (!runtime.is_ok()) return 1;
 
-    // Safe math with optional returns
+    // Safe math (delegates to Idris2)
     auto result = proven::SafeMath::div(10, 0);
     if (!result) {
-        std::cout << "Division by zero safely handled\n";
+        std::cout << "Division by zero handled\n";
     }
 
-    // With default value
     int64_t val = proven::SafeMath::div_or(42, 10, 0);  // returns 42
 
-    // Overflow detection
-    auto sum = proven::SafeMath::add_checked(INT64_MAX, 1);
-    if (!sum) {
-        std::cout << "Overflow detected\n";
-    }
-
-    // String escaping
+    // String escaping (delegates to Idris2)
     auto html = proven::SafeString::escape_html("<script>evil</script>");
     if (html) {
-        std::cout << "Safe HTML: " << *html << "\n";
+        std::cout << "Safe: " << *html << "\n";
     }
 
-    // Path traversal detection
+    // Path traversal detection (delegates to Idris2)
     if (proven::SafePath::has_traversal("../../../etc/passwd")) {
         std::cout << "Attack detected!\n";
     }
 
-    // Email validation
-    if (proven::SafeEmail::is_valid("user@example.com")) {
-        std::cout << "Valid email\n";
-    }
-
-    // IP address parsing and classification
-    auto ip = proven::SafeNetwork::parse_ipv4("192.168.1.1");
-    if (ip && ip->is_private()) {
-        std::cout << "Private IP: " << ip->to_string() << "\n";
-    }
-
-    // Cryptographic operations
-    auto bytes = proven::SafeCrypto::random_bytes(32);
-    if (bytes) {
-        // Use random bytes...
-    }
-
-    // Constant-time comparison (timing-safe)
-    if (proven::SafeCrypto::constant_time_compare(secret, input)) {
-        // Tokens match
+    // Float safety (delegates to Idris2)
+    auto sq = proven::SafeFloat::sqrt(-1.0);
+    if (!sq) {
+        std::cout << "Negative sqrt handled\n";
     }
 
     // Version info
-    auto version = proven::Version::get();
-    std::cout << "Proven v" << version.to_string() << "\n";
+    auto ver = proven::LibVersion::get();
+    std::cout << "Proven v" << ver.to_string() << "\n";
 
     return 0;
 }  // Runtime automatically cleaned up
 ```
 
-## Compilation
+## File Structure
 
-```bash
-# C++17 or later required
-g++ -std=c++17 -o myapp myapp.cpp \
-    -I/path/to/proven/bindings/cpp/include \
-    -I/path/to/proven/bindings/c/include \
-    -L/path/to/proven/ffi/zig/zig-out/lib \
-    -lproven
-
-# Or with pkg-config (if configured)
-g++ -std=c++17 -o myapp myapp.cpp $(pkg-config --cflags --libs proven)
+```
+include/proven/
+    ffi.hpp            All extern "C" declarations (single source of truth)
+    proven.hpp         Umbrella include + Runtime + ProvenString + LibVersion
+    safe_math.hpp      SafeMath (checked arithmetic)
+    safe_string.hpp    SafeString (escaping, UTF-8 validation)
+    safe_path.hpp      SafePath (traversal detection, filename sanitization)
+    safe_crypto.hpp    SafeCrypto (constant-time compare, random bytes)
+    safe_email.hpp     SafeEmail (email validation)
+    safe_network.hpp   SafeNetwork + IPv4Address (IP parsing/classification)
+    safe_url.hpp       SafeUrl + ParsedUrl (URL parsing with RAII)
+    safe_uuid.hpp      SafeUuid + Uuid (UUID generation/parsing)
+    safe_json.hpp      SafeJson (JSON validation, type detection)
+    safe_float.hpp     SafeFloat (safe div, sqrt, ln)
+    safe_version.hpp   SafeVersion + SemVer (semantic version parsing)
+    safe_color.hpp     SafeColor + RGB + HSL (color parsing/conversion)
+    safe_angle.hpp     Degrees + Radians (angle conversion/normalization)
+CMakeLists.txt         CMake build configuration
 ```
 
-## API Overview
+## Design Principles
 
-### Runtime Management
-
-```cpp
-proven::Runtime runtime;           // RAII initialization
-proven::Runtime::is_initialized(); // Check status
-proven::Runtime::abi_version();    // Get ABI version
-```
-
-### SafeMath
-
-```cpp
-proven::SafeMath::div(a, b)         // -> std::optional<int64_t>
-proven::SafeMath::div_or(def, a, b) // -> int64_t
-proven::SafeMath::mod(a, b)         // -> std::optional<int64_t>
-proven::SafeMath::add_checked(a, b) // -> std::optional<int64_t>
-proven::SafeMath::sub_checked(a, b) // -> std::optional<int64_t>
-proven::SafeMath::mul_checked(a, b) // -> std::optional<int64_t>
-proven::SafeMath::abs_safe(n)       // -> std::optional<int64_t>
-proven::SafeMath::clamp(lo, hi, v)  // -> int64_t
-proven::SafeMath::pow_checked(b, e) // -> std::optional<int64_t>
-```
-
-### SafeString
-
-```cpp
-proven::SafeString::is_valid_utf8(data)  // -> bool
-proven::SafeString::escape_sql(str)      // -> std::optional<std::string>
-proven::SafeString::escape_html(str)     // -> std::optional<std::string>
-proven::SafeString::escape_js(str)       // -> std::optional<std::string>
-```
-
-### SafePath
-
-```cpp
-proven::SafePath::has_traversal(path)      // -> bool
-proven::SafePath::is_safe(path)            // -> bool
-proven::SafePath::sanitize_filename(name)  // -> std::optional<std::string>
-```
-
-### SafeEmail
-
-```cpp
-proven::SafeEmail::is_valid(email)  // -> bool
-```
-
-### SafeNetwork
-
-```cpp
-proven::SafeNetwork::parse_ipv4(str)    // -> std::optional<IPv4Address>
-proven::SafeNetwork::is_valid_ipv4(str) // -> bool
-
-// IPv4Address methods
-ip[0], ip[1], ip[2], ip[3]  // Access octets
-ip.is_private()              // RFC 1918 check
-ip.is_loopback()             // 127.0.0.0/8 check
-ip.to_string()               // "192.168.1.1"
-```
-
-### SafeCrypto
-
-```cpp
-proven::SafeCrypto::constant_time_compare(a, b)  // -> bool
-proven::SafeCrypto::random_bytes(count)          // -> std::optional<std::string>
-proven::SafeCrypto::random_bytes_into(buf, len)  // -> bool
-```
-
-## Exception Handling
-
-The `proven::Error` exception is thrown only during runtime initialization
-if it fails. All other operations return `std::optional` or `bool`.
-
-```cpp
-try {
-    proven::Runtime runtime;
-    // ...
-} catch (const proven::Error& e) {
-    std::cerr << "Proven error: " << e.what() << "\n";
-    std::cerr << "Status: " << static_cast<int>(e.status()) << "\n";
-}
-```
-
-## Requirements
-
-- C++17 or later
-- Proven library (libproven.so or libproven.a)
+1. **FFI-only**: Every operation calls libproven. Zero reimplemented logic.
+2. **Header-only**: No .cpp files needed. Just add include path and link.
+3. **RAII**: All FFI-allocated resources freed automatically.
+4. **No exceptions**: All fallible operations return `std::optional`.
+   Runtime init failure is reported via `Runtime::is_ok()`.
+5. **C++17 minimum**: Uses `std::optional`, `std::string_view`.
 
 ## License
 
-PMPL-1.0
+PMPL-1.0-or-later

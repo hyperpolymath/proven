@@ -1,15 +1,18 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeGeo - Geographic coordinates and distance calculations.
 
 Provides safe geographic operations with coordinate validation.
+All computation is delegated to the Idris core via FFI.
 """
 
+import ctypes
 from typing import Optional, Tuple
 from dataclasses import dataclass
-import math
+
+from .core import ProvenStatus, get_lib
 
 
 @dataclass(frozen=True)
@@ -37,12 +40,17 @@ class Coordinate:
         return (self.latitude, self.longitude)
 
     def to_radians(self) -> Tuple[float, float]:
-        """Get as (lat_rad, lon_rad) tuple."""
-        return (math.radians(self.latitude), math.radians(self.longitude))
+        """Get as (lat_rad, lon_rad) tuple via FFI."""
+        lib = get_lib()
+        lat_r = lib.proven_angle_deg_to_rad(self.latitude)
+        lon_r = lib.proven_angle_deg_to_rad(self.longitude)
+        lat_val = lat_r.value if lat_r.status == ProvenStatus.OK else 0.0
+        lon_val = lon_r.value if lon_r.status == ProvenStatus.OK else 0.0
+        return (lat_val, lon_val)
 
     def distance_to(self, other: "Coordinate") -> float:
         """
-        Calculate great-circle distance to another coordinate.
+        Calculate great-circle distance to another coordinate via FFI.
 
         Uses Haversine formula. Returns distance in kilometers.
 
@@ -56,7 +64,7 @@ class Coordinate:
 
     def bearing_to(self, other: "Coordinate") -> float:
         """
-        Calculate initial bearing to another coordinate.
+        Calculate initial bearing to another coordinate via FFI.
 
         Args:
             other: Target coordinate
@@ -68,7 +76,7 @@ class Coordinate:
 
     def destination(self, bearing_deg: float, distance_km: float) -> "Coordinate":
         """
-        Calculate destination point given bearing and distance.
+        Calculate destination point given bearing and distance via FFI.
 
         Args:
             bearing_deg: Bearing in degrees
@@ -77,7 +85,7 @@ class Coordinate:
         Returns:
             Destination coordinate
         """
-        return destination(self, bearing_deg, distance_km)
+        return destination_point(self, bearing_deg, distance_km)
 
 
 @dataclass
@@ -144,7 +152,7 @@ EARTH_RADIUS_KM = 6371.0
 
 def haversine_distance(a: Coordinate, b: Coordinate) -> float:
     """
-    Calculate great-circle distance using Haversine formula.
+    Calculate great-circle distance using Haversine formula via FFI.
 
     Args:
         a: First coordinate
@@ -159,21 +167,16 @@ def haversine_distance(a: Coordinate, b: Coordinate) -> float:
         >>> haversine_distance(nyc, london)
         5570.222...
     """
-    lat1, lon1 = a.to_radians()
-    lat2, lon2 = b.to_radians()
-
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-
-    a_hav = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    c = 2 * math.asin(math.sqrt(a_hav))
-
-    return EARTH_RADIUS_KM * c
+    lib = get_lib()
+    result = lib.proven_geo_haversine(a.latitude, a.longitude, b.latitude, b.longitude)
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 def bearing(from_coord: Coordinate, to_coord: Coordinate) -> float:
     """
-    Calculate initial bearing from one coordinate to another.
+    Calculate initial bearing from one coordinate to another via FFI.
 
     Args:
         from_coord: Starting coordinate
@@ -182,23 +185,19 @@ def bearing(from_coord: Coordinate, to_coord: Coordinate) -> float:
     Returns:
         Bearing in degrees (0-360, 0 = North)
     """
-    lat1, lon1 = from_coord.to_radians()
-    lat2, lon2 = to_coord.to_radians()
-
-    dlon = lon2 - lon1
-
-    x = math.sin(dlon) * math.cos(lat2)
-    y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
-
-    bearing_rad = math.atan2(x, y)
-    bearing_deg = math.degrees(bearing_rad)
-
-    return (bearing_deg + 360) % 360
+    lib = get_lib()
+    result = lib.proven_geo_bearing(
+        from_coord.latitude, from_coord.longitude,
+        to_coord.latitude, to_coord.longitude,
+    )
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
-def destination(start: Coordinate, bearing_deg: float, distance_km: float) -> Coordinate:
+def destination_point(start: Coordinate, bearing_deg: float, distance_km: float) -> Coordinate:
     """
-    Calculate destination point given bearing and distance.
+    Calculate destination point given bearing and distance via FFI.
 
     Args:
         start: Starting coordinate
@@ -208,30 +207,28 @@ def destination(start: Coordinate, bearing_deg: float, distance_km: float) -> Co
     Returns:
         Destination coordinate
     """
-    lat1, lon1 = start.to_radians()
-    bearing_rad = math.radians(bearing_deg)
-    angular_distance = distance_km / EARTH_RADIUS_KM
-
-    lat2 = math.asin(
-        math.sin(lat1) * math.cos(angular_distance)
-        + math.cos(lat1) * math.sin(angular_distance) * math.cos(bearing_rad)
+    lib = get_lib()
+    out_lat = ctypes.c_double(0.0)
+    out_lon = ctypes.c_double(0.0)
+    status = lib.proven_geo_destination(
+        start.latitude, start.longitude,
+        bearing_deg, distance_km,
+        ctypes.byref(out_lat), ctypes.byref(out_lon),
     )
+    if status != ProvenStatus.OK:
+        return start
+    return Coordinate(out_lat.value, out_lon.value)
 
-    lon2 = lon1 + math.atan2(
-        math.sin(bearing_rad) * math.sin(angular_distance) * math.cos(lat1),
-        math.cos(angular_distance) - math.sin(lat1) * math.sin(lat2),
-    )
 
-    # Normalize longitude to -180 to 180
-    lon2_deg = math.degrees(lon2)
-    lon2_deg = ((lon2_deg + 180) % 360) - 180
-
-    return Coordinate(math.degrees(lat2), lon2_deg)
+# Keep backward compatible name
+destination = destination_point
 
 
 def midpoint(a: Coordinate, b: Coordinate) -> Coordinate:
     """
-    Calculate midpoint between two coordinates.
+    Calculate midpoint between two coordinates via FFI.
+
+    Uses destination at half the distance along the bearing.
 
     Args:
         a: First coordinate
@@ -240,28 +237,18 @@ def midpoint(a: Coordinate, b: Coordinate) -> Coordinate:
     Returns:
         Midpoint coordinate
     """
-    lat1, lon1 = a.to_radians()
-    lat2, lon2 = b.to_radians()
-
-    bx = math.cos(lat2) * math.cos(lon2 - lon1)
-    by = math.cos(lat2) * math.sin(lon2 - lon1)
-
-    lat3 = math.atan2(
-        math.sin(lat1) + math.sin(lat2),
-        math.sqrt((math.cos(lat1) + bx) ** 2 + by ** 2),
-    )
-    lon3 = lon1 + math.atan2(by, math.cos(lat1) + bx)
-
-    return Coordinate(math.degrees(lat3), math.degrees(lon3))
+    dist = haversine_distance(a, b)
+    bear = bearing(a, b)
+    return destination_point(a, bear, dist / 2.0)
 
 
 class SafeGeo:
-    """Safe geographic utilities."""
+    """Safe geographic utilities via FFI."""
 
     @staticmethod
     def parse_coordinate(lat: float, lon: float) -> Optional[Coordinate]:
         """
-        Safely parse a coordinate.
+        Safely parse a coordinate via FFI.
 
         Args:
             lat: Latitude
@@ -270,6 +257,10 @@ class SafeGeo:
         Returns:
             Coordinate, or None if invalid
         """
+        lib = get_lib()
+        result = lib.proven_geo_validate_coord(lat, lon)
+        if result.status != ProvenStatus.OK or not result.value:
+            return None
         try:
             return Coordinate(lat, lon)
         except ValueError:
@@ -278,7 +269,7 @@ class SafeGeo:
     @staticmethod
     def distance(lat1: float, lon1: float, lat2: float, lon2: float) -> Optional[float]:
         """
-        Safely calculate distance between two points.
+        Safely calculate distance between two points via FFI.
 
         Args:
             lat1, lon1: First point
@@ -287,8 +278,8 @@ class SafeGeo:
         Returns:
             Distance in km, or None if coordinates invalid
         """
-        c1 = SafeGeo.parse_coordinate(lat1, lon1)
-        c2 = SafeGeo.parse_coordinate(lat2, lon2)
-        if c1 is None or c2 is None:
+        lib = get_lib()
+        result = lib.proven_geo_haversine(lat1, lon1, lat2, lon2)
+        if result.status != ProvenStatus.OK:
             return None
-        return haversine_distance(c1, c2)
+        return result.value

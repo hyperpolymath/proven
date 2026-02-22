@@ -1,191 +1,82 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-with Interfaces.C; use Interfaces.C;
+with Proven.FFI;
+with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
-with Ada.Unchecked_Deallocation;
 
 package body Proven.Safe_Registry is
 
-   ---------------------------------------------------------------------------
-   --  FFI Bindings to Zig/Idris2
-   ---------------------------------------------------------------------------
-
-   type C_Image_Reference is record
-      Registry      : chars_ptr;
-      Registry_Len  : size_t;
-      Repository    : chars_ptr;
-      Repository_Len: size_t;
-      Tag           : chars_ptr;
-      Tag_Len       : size_t;
-      Digest        : chars_ptr;
-      Digest_Len    : size_t;
-   end record
-   with Convention => C;
-
-   type C_Status is new int
-   with Convention => C;
-
-   type C_Image_Ref_Result is record
-      Status    : C_Status;
-      Reference : C_Image_Reference;
-   end record
-   with Convention => C;
-
-   function proven_registry_parse
-     (Input : chars_ptr; Len : size_t) return C_Image_Ref_Result
-   with Import => True,
-        Convention => C,
-        External_Name => "proven_registry_parse";
-
-   procedure proven_free_string (Ptr : chars_ptr)
-   with Import => True,
-        Convention => C,
-        External_Name => "proven_free_string";
-
-   ---------------------------------------------------------------------------
-   --  Helper Functions
-   ---------------------------------------------------------------------------
-
-   function To_Ada_String (Ptr : chars_ptr; Len : size_t) return String is
+   function Safe_Value (Ptr : chars_ptr; Len : size_t) return String is
    begin
-      if Ptr = Null_Ptr then
+      if Ptr = Null_Ptr or else Len = 0 then
          return "";
       end if;
-      declare
-         Str : constant String := Value (Ptr, Len);
-      begin
-         return Str;
-      end;
-   end To_Ada_String;
+      return Value (Ptr, Len);
+   end Safe_Value;
 
-   ---------------------------------------------------------------------------
-   --  Public API Implementation
-   ---------------------------------------------------------------------------
+   procedure Copy_To_Field
+     (Source : String;
+      Target : out String;
+      Last   : out Natural)
+   is
+      Len : constant Natural := Natural'Min (Source'Length, Max_Component_Len);
+   begin
+      Target := (others => ' ');
+      Last := Len;
+      if Len > 0 then
+         Target (1 .. Len) := Source (Source'First .. Source'First + Len - 1);
+      end if;
+   end Copy_To_Field;
 
    function Parse (Reference : String) return Parse_Result is
-      C_Ref : constant chars_ptr := New_String (Reference);
-      Result : constant C_Image_Ref_Result :=
-        proven_registry_parse (C_Ref, Reference'Length);
+      C_Ref  : chars_ptr := New_String (Reference);
+      Result : FFI.Image_Ref_Result;
    begin
+      Result := FFI.Registry_Parse (C_Ref, Reference'Length);
       Free (C_Ref);
 
-      if Result.Status /= 0 then
-         return (Valid => False);
+      if Result.Status /= FFI.PROVEN_OK then
+         return (Success => False, Error_Code => Integer (Result.Status));
       end if;
 
       declare
-         Ada_Ref : Image_Reference;
+         Ref : Image_Reference;
+         Registry_Str : constant String :=
+            Safe_Value (Result.Reference.Registry,
+                        Result.Reference.Registry_Len);
+         Repo_Str : constant String :=
+            Safe_Value (Result.Reference.Repository,
+                        Result.Reference.Repository_Len);
+         Tag_Str : constant String :=
+            Safe_Value (Result.Reference.Tag,
+                        Result.Reference.Tag_Len);
+         Digest_Str : constant String :=
+            Safe_Value (Result.Reference.Digest,
+                        Result.Reference.Digest_Len);
       begin
-         Ada_Ref.Registry := To_Unbounded_String (
-            To_Ada_String (Result.Reference.Registry, Result.Reference.Registry_Len));
-         Ada_Ref.Repository := To_Unbounded_String (
-            To_Ada_String (Result.Reference.Repository, Result.Reference.Repository_Len));
-         Ada_Ref.Tag := To_Unbounded_String (
-            To_Ada_String (Result.Reference.Tag, Result.Reference.Tag_Len));
-         Ada_Ref.Digest := To_Unbounded_String (
-            To_Ada_String (Result.Reference.Digest, Result.Reference.Digest_Len));
+         Copy_To_Field (Registry_Str, Ref.Registry, Ref.Registry_Last);
+         Copy_To_Field (Repo_Str, Ref.Repository, Ref.Repository_Last);
+         Copy_To_Field (Tag_Str, Ref.Tag, Ref.Tag_Last);
+         Copy_To_Field (Digest_Str, Ref.Digest, Ref.Digest_Last);
 
          --  Free C strings
          if Result.Reference.Registry /= Null_Ptr then
-            proven_free_string (Result.Reference.Registry);
+            FFI.Proven_Free_String (Result.Reference.Registry);
          end if;
          if Result.Reference.Repository /= Null_Ptr then
-            proven_free_string (Result.Reference.Repository);
+            FFI.Proven_Free_String (Result.Reference.Repository);
          end if;
          if Result.Reference.Tag /= Null_Ptr then
-            proven_free_string (Result.Reference.Tag);
+            FFI.Proven_Free_String (Result.Reference.Tag);
          end if;
          if Result.Reference.Digest /= Null_Ptr then
-            proven_free_string (Result.Reference.Digest);
+            FFI.Proven_Free_String (Result.Reference.Digest);
          end if;
 
-         return (Valid => True, Reference => Ada_Ref);
+         return (Success => True, Reference => Ref);
       end;
    end Parse;
-
-   function To_String (Ref : Image_Reference) return String is
-      Result : Unbounded_String;
-   begin
-      --  Build: [registry/]repository[:tag][@digest]
-      if Length (Ref.Registry) > 0 and then
-         To_String (Ref.Registry) /= Default_Registry
-      then
-         Append (Result, Ref.Registry);
-         Append (Result, "/");
-      end if;
-
-      Append (Result, Ref.Repository);
-
-      if Length (Ref.Tag) > 0 and then
-         To_String (Ref.Tag) /= Default_Tag
-      then
-         Append (Result, ":");
-         Append (Result, Ref.Tag);
-      end if;
-
-      if Length (Ref.Digest) > 0 then
-         Append (Result, "@");
-         Append (Result, Ref.Digest);
-      end if;
-
-      return To_String (Result);
-   end To_String;
-
-   function To_Canonical (Ref : Image_Reference) return String is
-      Normalized : Image_Reference := Ref;
-   begin
-      --  Apply defaults
-      if Length (Normalized.Registry) = 0 then
-         Normalized.Registry := To_Unbounded_String (Default_Registry);
-      end if;
-      if Length (Normalized.Tag) = 0 then
-         Normalized.Tag := To_Unbounded_String (Default_Tag);
-      end if;
-      return To_String (Normalized);
-   end To_Canonical;
-
-   function Has_Registry (Ref : Image_Reference) return Boolean is
-   begin
-      return Length (Ref.Registry) > 0;
-   end Has_Registry;
-
-   function Has_Tag (Ref : Image_Reference) return Boolean is
-   begin
-      return Length (Ref.Tag) > 0;
-   end Has_Tag;
-
-   function Has_Digest (Ref : Image_Reference) return Boolean is
-   begin
-      return Length (Ref.Digest) > 0;
-   end Has_Digest;
-
-   function Get_Registry (Ref : Image_Reference) return String is
-   begin
-      if Length (Ref.Registry) > 0 then
-         return To_String (Ref.Registry);
-      else
-         return Default_Registry;
-      end if;
-   end Get_Registry;
-
-   function Get_Repository (Ref : Image_Reference) return String is
-   begin
-      return To_String (Ref.Repository);
-   end Get_Repository;
-
-   function Get_Tag (Ref : Image_Reference) return String is
-   begin
-      if Length (Ref.Tag) > 0 then
-         return To_String (Ref.Tag);
-      else
-         return Default_Tag;
-      end if;
-   end Get_Tag;
-
-   function Get_Digest (Ref : Image_Reference) return String is
-   begin
-      return To_String (Ref.Digest);
-   end Get_Digest;
 
 end Proven.Safe_Registry;

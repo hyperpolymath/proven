@@ -1,46 +1,44 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Cryptographic safety operations delegated to libproven FFI.
+///
+/// Provides timing-safe comparison and secure random byte generation
+/// via the formally verified Idris 2 core.
 
-/// Cryptographic safety operations with constant-time guarantees.
+import CProven
+
 public enum SafeCrypto {
-    /// Compare two byte arrays in constant time to prevent timing attacks.
-    public static func constantTimeCompare(_ a: [UInt8], _ b: [UInt8]) -> Bool {
-        guard a.count == b.count else { return false }
-        guard !a.isEmpty else { return true }
-
-        var result: UInt8 = 0
-        for i in 0..<a.count {
-            result |= a[i] ^ b[i]
+    /// Constant-time byte comparison to prevent timing attacks.
+    public static func constantTimeCompare(_ a: [UInt8], _ b: [UInt8]) -> Result<Bool, ProvenError> {
+        a.withUnsafeBufferPointer { aBuf in
+            b.withUnsafeBufferPointer { bBuf in
+                let result = proven_crypto_constant_time_eq(
+                    aBuf.baseAddress, aBuf.count,
+                    bBuf.baseAddress, bBuf.count
+                )
+                if let error = ProvenError.fromStatus(result.status) {
+                    return .failure(error)
+                }
+                return .success(result.value)
+            }
         }
-        return result == 0
     }
 
-    /// Compare two Data objects in constant time to prevent timing attacks.
-    public static func constantTimeCompare(_ a: Data, _ b: Data) -> Bool {
-        constantTimeCompare([UInt8](a), [UInt8](b))
+    /// Constant-time string comparison to prevent timing attacks.
+    public static func constantTimeCompare(_ a: String, _ b: String) -> Result<Bool, ProvenError> {
+        constantTimeCompare(Array(a.utf8), Array(b.utf8))
     }
 
-    /// Compare two strings in constant time to prevent timing attacks.
-    public static func constantTimeCompare(_ a: String, _ b: String) -> Bool {
-        constantTimeCompare([UInt8](a.utf8), [UInt8](b.utf8))
-    }
-
-    /// Securely zero out a byte array to prevent data leakage.
-    public static func secureZero(_ data: inout [UInt8]) {
-        for i in 0..<data.count {
-            data[i] = 0
+    /// Fill a buffer with cryptographically secure random bytes.
+    public static func randomBytes(count: Int) -> Result<[UInt8], ProvenError> {
+        var buffer = [UInt8](repeating: 0, count: count)
+        let status = buffer.withUnsafeMutableBufferPointer { buf in
+            proven_crypto_random_bytes(buf.baseAddress, buf.count)
         }
-        // Prevent optimizer from removing the zeroing
-        withUnsafePointer(to: &data) { _ in }
-    }
-
-    /// Securely zero out a Data object to prevent data leakage.
-    public static func secureZero(_ data: inout Data) {
-        data.withUnsafeMutableBytes { buffer in
-            guard let ptr = buffer.baseAddress else { return }
-            memset(ptr, 0, buffer.count)
+        if let error = ProvenError.fromStatus(status) {
+            return .failure(error)
         }
+        return .success(buffer)
     }
 }

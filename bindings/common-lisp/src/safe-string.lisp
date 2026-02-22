@@ -1,96 +1,31 @@
-;;;; SPDX-License-Identifier: PMPL-1.0
-;;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;;; SPDX-License-Identifier: PMPL-1.0-or-later
+;;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;;
-;;;; Proven SafeString - XSS prevention for Common Lisp
+;;;; SafeString - Thin CFFI wrapper for libproven string operations.
 
 (in-package #:proven)
 
-;;; Escape HTML special characters
-(defun escape-html (input)
-  "Escape HTML special characters in INPUT string."
-  (with-output-to-string (out)
-    (loop for char across input
-          do (case char
-               (#\& (write-string "&amp;" out))
-               (#\< (write-string "&lt;" out))
-               (#\> (write-string "&gt;" out))
-               (#\" (write-string "&quot;" out))
-               (#\' (write-string "&#x27;" out))
-               (otherwise (write-char char out))))))
+(defcfun ("proven_string_is_valid_utf8" %string-is-valid-utf8) (:struct bool-result) (ptr :pointer) (len :size))
+(defcfun ("proven_string_escape_sql" %string-escape-sql) (:struct string-result) (ptr :pointer) (len :size))
+(defcfun ("proven_string_escape_html" %string-escape-html) (:struct string-result) (ptr :pointer) (len :size))
+(defcfun ("proven_string_escape_js" %string-escape-js) (:struct string-result) (ptr :pointer) (len :size))
 
-;;; Escape SQL single quotes
-(defun escape-sql (input)
-  "Escape SQL single quotes by doubling them."
-  (with-output-to-string (out)
-    (loop for char across input
-          do (if (char= char #\')
-                 (write-string "''" out)
-                 (write-char char out)))))
+(defun string-is-valid-utf8 (str)
+  "Check if STR is valid UTF-8. Returns (values bool ok-p)."
+  (with-foreign-string-buf (ptr len str)
+    (extract-bool-result (%string-is-valid-utf8 ptr len))))
 
-;;; Escape JavaScript special characters
-(defun escape-js (input)
-  "Escape JavaScript special characters in INPUT string."
-  (with-output-to-string (out)
-    (loop for char across input
-          do (case char
-               (#\\ (write-string "\\\\" out))
-               (#\" (write-string "\\\"" out))
-               (#\' (write-string "\\'" out))
-               (#\Newline (write-string "\\n" out))
-               (#\Return (write-string "\\r" out))
-               (#\Tab (write-string "\\t" out))
-               (#\< (write-string "\\u003C" out))
-               (#\> (write-string "\\u003E" out))
-               (#\/ (write-string "\\/" out))
-               (otherwise (write-char char out))))))
+(defun string-escape-sql (str)
+  "Escape STR for SQL. Returns (values escaped-string t) or (values nil nil)."
+  (with-foreign-string-buf (ptr len str)
+    (extract-string-result (%string-escape-sql ptr len))))
 
-;;; Check if character is alphanumeric
-(defun alpha-num-p (char)
-  "Return T if CHAR is alphanumeric."
-  (or (alpha-char-p char)
-      (digit-char-p char)))
+(defun string-escape-html (str)
+  "Escape STR for HTML. Returns (values escaped-string t) or (values nil nil)."
+  (with-foreign-string-buf (ptr len str)
+    (extract-string-result (%string-escape-html ptr len))))
 
-;;; Sanitize to alphanumeric + underscore + hyphen
-(defun sanitize-default (input)
-  "Remove all characters except alphanumeric, underscore, and hyphen."
-  (remove-if-not (lambda (c)
-                   (or (alpha-num-p c)
-                       (char= c #\_)
-                       (char= c #\-)))
-                 input))
-
-;;; URL encode
-(defun url-encode (input)
-  "URL-encode the INPUT string."
-  (with-output-to-string (out)
-    (loop for char across input
-          do (cond
-               ((or (alpha-num-p char)
-                    (member char '(#\- #\_ #\. #\~)))
-                (write-char char out))
-               (t
-                (format out "%~2,'0X" (char-code char)))))))
-
-;;; Convert to URL-safe slug
-(defun slugify (input)
-  "Convert INPUT to a URL-safe slug."
-  (let* ((lower (string-downcase input))
-         (cleaned (remove-if-not (lambda (c)
-                                   (or (alpha-num-p c)
-                                       (char= c #\Space)
-                                       (char= c #\-)))
-                                 lower)))
-    ;; Replace spaces with hyphens
-    (let ((result (substitute #\- #\Space cleaned)))
-      ;; Collapse multiple hyphens
-      (with-output-to-string (out)
-        (let ((prev-hyphen nil))
-          (loop for char across result
-                do (cond
-                     ((char= char #\-)
-                      (unless prev-hyphen
-                        (write-char char out)
-                        (setf prev-hyphen t)))
-                     (t
-                      (write-char char out)
-                      (setf prev-hyphen nil)))))))))
+(defun string-escape-js (str)
+  "Escape STR for JavaScript. Returns (values escaped-string t) or (values nil nil)."
+  (with-foreign-string-buf (ptr len str)
+    (extract-string-result (%string-escape-js ptr len))))

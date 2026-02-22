@@ -1,13 +1,12 @@
 #lang info
 
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 (define collection "proven")
-(define version "0.4.0")
-(define module-count 38)
+(define version "1.0.0")
 (define deps '("base"))
 (define build-deps '("scribble-lib" "racket-doc"))
-(define pkg-desc "Safe, validated operations library for Racket")
-(define pkg-authors '("Hyperpolymath"))
+(define pkg-desc "FFI bindings to libproven verified safety library")
+(define pkg-authors '("Jonathan D.A. Jewell"))
 (define license 'PMPL-1.0)

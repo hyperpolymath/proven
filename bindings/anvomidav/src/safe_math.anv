@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+#= | SafeMath - Overflow-checked arithmetic via libproven FFI.
+ =
+ = Anvomidav's result<T, E> type captures arithmetic errors precisely:
+ = each arithmetic operation returns result<Int64, ProvenError> where the
+ = error variant describes the failure (Overflow, Underflow, DivByZero).
+ =
+ = All computation is performed in Idris 2 via the Zig FFI layer.
+ = NO arithmetic logic is reimplemented in Anvomidav.
+=#
+
+module Proven.SafeMath
+
+import Proven.FFI
+import Proven (ProvenError, result, int_result_to_proven)
+
+# ============================================================================
+# Checked arithmetic operations
+# ============================================================================
+
+# | Safely add two integers with overflow detection.
+# Returns err(Overflow) if the result would exceed Int64 range.
+# Delegates to proven_math_add_checked in libproven.
+proc safe_add(a : Int64, b : Int64) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_add_checked(a, b))
+
+# | Safely subtract two integers with underflow detection.
+# Returns err(Underflow) if the result would go below Int64 range.
+# Delegates to proven_math_sub_checked in libproven.
+proc safe_sub(a : Int64, b : Int64) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_sub_checked(a, b))
+
+# | Safely multiply two integers with overflow detection.
+# Returns err(Overflow) if the result would exceed Int64 range.
+# Delegates to proven_math_mul_checked in libproven.
+proc safe_mul(a : Int64, b : Int64) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_mul_checked(a, b))
+
+# | Safely divide two integers.
+# Returns err(DivByZero) if the denominator is zero.
+# Returns err(Overflow) for INT64_MIN / -1.
+# Delegates to proven_math_div in libproven.
+proc safe_div(a : Int64, b : Int64) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_div(a, b))
+
+# | Safe modulo operation.
+# Returns err(DivByZero) if the denominator is zero.
+# Delegates to proven_math_mod in libproven.
+proc safe_mod(a : Int64, b : Int64) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_mod(a, b))
+
+# | Safe absolute value.
+# Returns err(Overflow) for INT64_MIN (cannot be represented as positive Int64).
+# Delegates to proven_math_abs_safe in libproven.
+proc safe_abs(n : Int64) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_abs_safe(n))
+
+# | Safe negation. Equivalent to safe_sub(0, n).
+# Returns err(Overflow) if negation of INT64_MIN.
+# Delegates to proven_math_sub_checked in libproven.
+proc safe_negate(n : Int64) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_sub_checked(0, n))
+
+# | Clamp a value to [lo, hi] range.
+# This operation cannot fail.
+# Delegates to proven_math_clamp in libproven.
+proc clamp(lo : Int64, hi : Int64, value : Int64) -> Int64 =
+  FFI.proven_math_clamp(lo, hi, value)
+
+# | Safe integer exponentiation with overflow checking.
+# Returns err(Overflow) if the result would exceed Int64 range.
+# Delegates to proven_math_pow_checked in libproven.
+proc safe_pow(base : Int64, exp : UInt32) -> result<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_pow_checked(base, exp))
+
+# | Check if a value falls within [lo, hi].
+# This is a convenience proc built on clamp.
+proc in_range(value : Int64, lo : Int64, hi : Int64) -> Bool =
+  value == clamp(lo, hi, value)

@@ -1,26 +1,30 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Proven - Safe, validated operations library for D.
+ * Proven - FFI bindings to libproven for D.
  *
- * Provides 38 type-safe modules for common operations with overflow checking,
- * XSS prevention, path traversal protection, email validation, IP classification,
- * cryptographic operations, UUID handling, currency/money operations,
- * phone number parsing, hexadecimal encoding, and much more.
+ * All computation is performed in formally verified Idris 2 code, exposed
+ * via a Zig FFI bridge as a stable C ABI (libproven). This D package is a
+ * thin wrapper that marshals data to and from the C interface. No safety
+ * logic is reimplemented in D.
  *
- * Version: 0.4.0
- * Module Count: 38
+ * Link against libproven.so (or libproven.a) at build time.
+ *
+ * Version: 0.9.0
+ * Module Count: 41
  */
 module proven;
 
-/// Library version
-enum VERSION = "0.4.0";
+pragma(lib, "proven");
 
-/// Total number of modules in this library
-enum MODULE_COUNT = 38;
+/// Library version (matches libproven)
+enum VERSION = "0.9.0";
 
-// Core modules (11)
+/// Total number of modules in the library
+enum MODULE_COUNT = 41;
+
+// Core modules
 public import proven.safe_math;
 public import proven.safe_string;
 public import proven.safe_path;
@@ -33,43 +37,10 @@ public import proven.safe_currency;
 public import proven.safe_phone;
 public import proven.safe_hex;
 
-// Data modules (7)
+// Data modules
 public import proven.safe_json;
 public import proven.safe_datetime;
 public import proven.safe_float;
 public import proven.safe_version;
 public import proven.safe_color;
 public import proven.safe_angle;
-public import proven.safe_unit;
-
-// Data structure modules (5)
-public import proven.safe_buffer;
-public import proven.safe_queue;
-public import proven.safe_bloom;
-public import proven.safe_lru;
-public import proven.safe_graph;
-
-// Resilience modules (4)
-public import proven.safe_rate_limiter;
-public import proven.safe_circuit_breaker;
-public import proven.safe_retry;
-public import proven.safe_monotonic;
-
-// State modules (2)
-public import proven.safe_state_machine;
-public import proven.safe_calculator;
-
-// Algorithm modules (4)
-public import proven.safe_geo;
-public import proven.safe_probability;
-public import proven.safe_checksum;
-public import proven.safe_tensor;
-
-// Security modules (2)
-public import proven.safe_password;
-public import proven.safe_ml;
-
-// HTTP modules (3)
-public import proven.safe_header;
-public import proven.safe_cookie;
-public import proven.safe_content_type;

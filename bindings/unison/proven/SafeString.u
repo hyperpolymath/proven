@@ -1,0 +1,41 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{{
+SafeString -- Safe string operations for security-sensitive contexts.
+
+All computation is performed in verified Idris 2 code via proven-cli.
+Returns Optional on error.
+}}
+
+-- Check if a string contains valid UTF-8 bytes.
+proven.string.isValidUtf8 : '{IO} Text -> Boolean
+proven.string.isValidUtf8 value =
+  match proven.runCli ["string", "is-valid-utf8", value] with
+    Some output ->
+      match proven.parseBoolResult output with
+        Some b -> b
+        None -> false
+    None -> false
+
+-- Escape single quotes for SQL strings. Returns None on error.
+-- Note: Use parameterized queries when possible.
+proven.string.escapeSql : '{IO} Text -> Optional Text
+proven.string.escapeSql value =
+  match proven.runCli ["string", "escape-sql", value] with
+    Some output -> proven.parseStringResult output
+    None -> None
+
+-- Escape HTML special characters to prevent XSS attacks. Returns None on error.
+proven.string.escapeHtml : '{IO} Text -> Optional Text
+proven.string.escapeHtml value =
+  match proven.runCli ["string", "escape-html", value] with
+    Some output -> proven.parseStringResult output
+    None -> None
+
+-- Escape JavaScript special characters. Returns None on error.
+proven.string.escapeJs : '{IO} Text -> Optional Text
+proven.string.escapeJs value =
+  match proven.runCli ["string", "escape-js", value] with
+    Some output -> proven.parseStringResult output
+    None -> None

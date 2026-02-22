@@ -1,99 +1,83 @@
-// SPDX-License-Identifier: PMPL-1.0
-/**
- * Safe string operations with injection prevention.
- */
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Safe string operations with injection prevention.
+ * SafeString - String operations that cannot crash.
+ *
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
+ *
+ * @module
+ */
+
+import { getLib, ProvenStatus, readAndFreeString, statusToError } from './ffi.ts';
+import { err, ok, type Result } from './result.ts';
+
+/**
+ * Safe string operations backed by formally verified Idris 2 code.
  */
 export class SafeString {
   /**
-   * Escape HTML special characters.
+   * Check if a byte sequence is valid UTF-8.
    *
-   * @example
-   * ```ts
-   * const escaped = SafeString.escapeHtml("<script>alert('xss')</script>");
-   * // "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"
-   * ```
+   * @param input - Input string or bytes.
+   * @returns Result containing a boolean or an error string.
    */
-  static escapeHtml(s: string): string {
-    return s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
+  static isValidUtf8(input: string | Uint8Array): Result<boolean> {
+    const symbols = getLib();
+    const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input;
+    const result = symbols.proven_string_is_valid_utf8(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
   }
 
-  /** Escape SQL single quotes. */
-  static escapeSql(s: string): string {
-    return s.replace(/'/g, "''");
+  /**
+   * Escape a string for safe use in SQL queries (single-quote escaping).
+   *
+   * @param str - Input string.
+   * @returns Result containing the escaped string or an error.
+   */
+  static escapeSql(str: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(str);
+    const result = symbols.proven_string_escape_sql(bytes, bytes.length);
+    const status = result[0];
+    if (status !== ProvenStatus.OK) return err(statusToError(status));
+    const escaped = readAndFreeString(result[1], Number(result[2]));
+    if (escaped === null) return err('Null string returned');
+    return ok(escaped);
   }
 
-  /** Escape JavaScript special characters. */
-  static escapeJs(s: string): string {
-    return s
-      .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\\'")
-      .replace(/"/g, '\\"')
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')
-      .replace(/\t/g, '\\t');
+  /**
+   * Escape a string for safe use in HTML (prevents XSS).
+   *
+   * @param str - Input string.
+   * @returns Result containing the escaped string or an error.
+   */
+  static escapeHtml(str: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(str);
+    const result = symbols.proven_string_escape_html(bytes, bytes.length);
+    const status = result[0];
+    if (status !== ProvenStatus.OK) return err(statusToError(status));
+    const escaped = readAndFreeString(result[1], Number(result[2]));
+    if (escaped === null) return err('Null string returned');
+    return ok(escaped);
   }
 
-  /** URL encode a string. */
-  static urlEncode(s: string): string {
-    return encodeURIComponent(s);
-  }
-
-  /** URL decode a string. */
-  static urlDecode(s: string): string {
-    return decodeURIComponent(s);
-  }
-
-  /** Escape shell special characters (wraps in single quotes). */
-  static escapeShell(s: string): string {
-    return "'" + s.replace(/'/g, "'\\''") + "'";
-  }
-
-  /** Check if a string contains potential injection patterns. */
-  static detectInjection(s: string): boolean {
-    const patterns = [
-      '<script',
-      'javascript:',
-      'onerror=',
-      'onclick=',
-      'onload=',
-      'eval(',
-      'expression(',
-      'vbscript:',
-      'data:',
-      'SELECT ',
-      'INSERT ',
-      'UPDATE ',
-      'DELETE ',
-      'DROP ',
-      'UNION ',
-      '--',
-      '/*',
-      '*/',
-      '; ',
-      "' OR ",
-      '" OR ',
-    ];
-
-    const lower = s.toLowerCase();
-    return patterns.some((p) => lower.includes(p.toLowerCase()));
-  }
-
-  /** Truncate a string to a maximum length, respecting word boundaries. */
-  static truncate(s: string, maxLength: number, suffix = '...'): string {
-    if (s.length <= maxLength) return s;
-    const truncated = s.slice(0, maxLength - suffix.length);
-    const lastSpace = truncated.lastIndexOf(' ');
-    if (lastSpace > 0) {
-      return truncated.slice(0, lastSpace) + suffix;
-    }
-    return truncated + suffix;
+  /**
+   * Escape a string for safe use in JavaScript string literals.
+   *
+   * @param str - Input string.
+   * @returns Result containing the escaped string or an error.
+   */
+  static escapeJs(str: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(str);
+    const result = symbols.proven_string_escape_js(bytes, bytes.length);
+    const status = result[0];
+    if (status !== ProvenStatus.OK) return err(statusToError(status));
+    const escaped = readAndFreeString(result[1], Number(result[2]));
+    if (escaped === null) return err('Null string returned');
+    return ok(escaped);
   }
 }

@@ -1,0 +1,116 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- ffi.jtv - FFI declarations for libproven (Rust/Zig C ABI interop)
+--
+-- Julia the Viper uses Rust as its interpreter backend. FFI calls go through
+-- the Rust runtime which loads libproven.so via the C ABI.
+--
+-- Control-plane: Manages FFI lifecycle (init, deinit, error handling).
+-- Data-plane: NOT used here -- FFI calls are side-effectful (Control only).
+
+module Proven.FFI
+
+-- ---------------------------------------------------------------------------
+-- C ABI Result Types (mapped from libproven)
+-- ---------------------------------------------------------------------------
+
+-- IntResult: { i32 status, i64 value }
+-- BoolResult: { i32 status, i32 value }
+-- StringResult: { i32 status, *u8 ptr, i32 len }
+-- FloatResult: { i32 status, f64 value }
+
+-- Status codes from libproven C ABI.
+const STATUS_OK: i32 = 0
+const STATUS_ERR_NULL_POINTER: i32 = -1
+const STATUS_ERR_INVALID_ARGUMENT: i32 = -2
+const STATUS_ERR_OVERFLOW: i32 = -3
+const STATUS_ERR_UNDERFLOW: i32 = -4
+const STATUS_ERR_DIVISION_BY_ZERO: i32 = -5
+const STATUS_ERR_PARSE_FAILURE: i32 = -6
+const STATUS_ERR_VALIDATION_FAILED: i32 = -7
+const STATUS_ERR_OUT_OF_BOUNDS: i32 = -8
+const STATUS_ERR_ENCODING_ERROR: i32 = -9
+const STATUS_ERR_ALLOCATION_FAILED: i32 = -10
+const STATUS_ERR_NOT_IMPLEMENTED: i32 = -99
+
+-- ---------------------------------------------------------------------------
+-- FFI Function Declarations (extern "C" linking to libproven)
+-- ---------------------------------------------------------------------------
+
+-- Runtime lifecycle
+extern "C" {
+    fn proven_init() -> i32;
+    fn proven_deinit() -> void;
+    fn proven_is_initialized() -> bool;
+    fn proven_ffi_abi_version() -> u32;
+    fn proven_free_string(ptr: *u8) -> void;
+}
+
+-- SafeMath (8 functions)
+extern "C" {
+    fn proven_math_add_checked(a: i64, b: i64) -> IntResult;
+    fn proven_math_sub_checked(a: i64, b: i64) -> IntResult;
+    fn proven_math_mul_checked(a: i64, b: i64) -> IntResult;
+    fn proven_math_div(a: i64, b: i64) -> IntResult;
+    fn proven_math_mod(a: i64, b: i64) -> IntResult;
+    fn proven_math_abs_safe(n: i64) -> IntResult;
+    fn proven_math_clamp(lo: i64, hi: i64, value: i64) -> i64;
+    fn proven_math_pow_checked(base: i64, exp: u32) -> IntResult;
+}
+
+-- SafeString (4 functions)
+extern "C" {
+    fn proven_string_is_valid_utf8(ptr: *u8, len: usize) -> BoolResult;
+    fn proven_string_escape_sql(ptr: *u8, len: usize) -> StringResult;
+    fn proven_string_escape_html(ptr: *u8, len: usize) -> StringResult;
+    fn proven_string_escape_js(ptr: *u8, len: usize) -> StringResult;
+}
+
+-- SafeCrypto (2 functions)
+extern "C" {
+    fn proven_crypto_constant_time_eq(
+        a: *u8, a_len: usize, b: *u8, b_len: usize
+    ) -> BoolResult;
+    fn proven_crypto_random_bytes(buf: *u8, len: usize) -> i32;
+}
+
+-- SafeJson (2 functions)
+extern "C" {
+    fn proven_json_is_valid(ptr: *u8, len: usize) -> BoolResult;
+    fn proven_json_get_type(ptr: *u8, len: usize) -> i32;
+}
+
+-- SafeEmail (1 function)
+extern "C" {
+    fn proven_email_is_valid(ptr: *u8, len: usize) -> BoolResult;
+}
+
+-- SafeFloat (5 functions)
+extern "C" {
+    fn proven_float_div(a: f64, b: f64) -> FloatResult;
+    fn proven_float_is_finite(v: f64) -> bool;
+    fn proven_float_is_nan(v: f64) -> bool;
+    fn proven_float_sqrt(v: f64) -> FloatResult;
+    fn proven_float_ln(v: f64) -> FloatResult;
+}
+
+-- SafeAngle (4 functions)
+extern "C" {
+    fn proven_angle_deg_to_rad(deg: f64) -> f64;
+    fn proven_angle_rad_to_deg(rad: f64) -> f64;
+    fn proven_angle_normalize_degrees(deg: f64) -> f64;
+    fn proven_angle_normalize_radians(rad: f64) -> f64;
+}
+
+-- SafeUnit (2 functions)
+extern "C" {
+    fn proven_unit_convert_length(value: f64, from: i32, to: i32) -> FloatResult;
+    fn proven_unit_convert_temp(value: f64, from: i32, to: i32) -> FloatResult;
+}
+
+-- SafeChecksum (2 functions)
+extern "C" {
+    fn proven_checksum_crc32(ptr: *u8, len: usize) -> IntResult;
+    fn proven_checksum_verify_crc32(ptr: *u8, len: usize, expected: u32) -> BoolResult;
+}

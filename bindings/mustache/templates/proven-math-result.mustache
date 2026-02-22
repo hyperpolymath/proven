@@ -1,0 +1,79 @@
+{{! SPDX-License-Identifier: PMPL-1.0-or-later }}
+{{! Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> }}
+{{!
+  Proven Safety Library - Math Result Display Template
+
+  Renders the result of a safe math operation performed via proven-cli.
+
+  Expected context (static mode):
+    {
+      "operation": "add",
+      "operands": [
+        { "label": "a", "value": 100 },
+        { "label": "b", "value": 200 }
+      ],
+      "result": 300,
+      "success": true,
+      "error": null,
+      "overflow_checked": true,
+      "timestamp": "2026-02-22T14:00:00Z"
+    }
+
+  Error context example:
+    {
+      "operation": "div",
+      "operands": [
+        { "label": "a", "value": 42 },
+        { "label": "b", "value": 0 }
+      ],
+      "result": null,
+      "success": false,
+      "error": "Division by zero",
+      "overflow_checked": true,
+      "timestamp": "2026-02-22T14:00:00Z"
+    }
+
+  Lambda mode (requires proven-helpers.js or proven-helpers.rb):
+    Context includes callable lambdas:
+      proven_safe_add, proven_safe_sub, proven_safe_mul, proven_safe_div,
+      proven_version_compare, proven_parse_color
+}}
+--- Proven Safe Math -----------------------------------------------------------
+
+  Operation:  {{ operation }}
+  Operands:
+{{# operands }}
+    {{ label }} = {{ value }}
+{{/ operands }}
+
+{{# success }}
+  Result:     {{ result }}
+  Status:     OK
+{{/ success }}
+{{^ success }}
+  Error:      {{ error }}
+  Status:     FAILED
+{{/ success }}
+
+{{# overflow_checked }}
+  [overflow-checked: yes]
+{{/ overflow_checked }}
+{{^ overflow_checked }}
+  [overflow-checked: no]
+{{/ overflow_checked }}
+
+  Timestamp:  {{ timestamp }}
+
+{{!
+  Lambda-powered live math sections.
+  When a lambda provider is active, these sections invoke proven-cli at
+  render time. The enclosed text is the argument string (space-separated).
+}}
+{{# proven_safe_add }}10 20{{/ proven_safe_add }}
+{{# proven_safe_sub }}100 42{{/ proven_safe_sub }}
+{{# proven_safe_mul }}6 7{{/ proven_safe_mul }}
+{{# proven_safe_div }}100 3{{/ proven_safe_div }}
+{{# proven_version_compare }}1.2.3 2.0.0{{/ proven_version_compare }}
+{{# proven_parse_color }}#FF5733{{/ proven_parse_color }}
+
+--------------------------------------------------------------------------------

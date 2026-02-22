@@ -6,13 +6,13 @@
 
 *Mathematically proven safe operations.* Code that **cannot crash**, verified with Idris2 dependent types and totality checking.
 
-image:https://img.shields.io/badge/version-1.1.0-blue[Version 1.1.0]
+image:https://img.shields.io/badge/version-1.2.0-blue[Version 1.2.0]
 image:https://img.shields.io/badge/License-PMPL_1.0--or--later-blue.svg[PMPL-1.0-or-later,link="https://github.com/hyperpolymath/proven/blob/main/LICENSE"]
 image:https://img.shields.io/badge/modules-104-blue[104 Modules]
-image:https://img.shields.io/badge/bindings-89_targets-orange[89 Binding Targets]
+image:https://img.shields.io/badge/bindings-120+_targets-orange[120+ Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
-image:https://img.shields.io/badge/Idris-Inside-blueviolet?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJMMyA3djEwbDkgNSA5LTVWN2wtOS01em0wIDJsNyA0djhsLTcgNC03LTRWOGw3LTR6Ii8+PC9zdmc+[Idris Inside]
-image:https://img.shields.io/badge/build-passing-brightgreen[Build Status]
+image:https://img.shields.io/badge/believe__me-0-brightgreen[believe_me = 0]
+image:https://img.shields.io/badge/overall-55%25-yellow[Overall 55%]
 
 == License
 
@@ -30,7 +30,7 @@ IMPORTANT: **Unbreakable guarantee applies only to Idris2 code.** The Zig layer 
 === Architecture
 
 ```
-Your Application (any of 89 languages)
+Your Application (any of 120+ languages)
           ↓
     Language Binding (thin FFI wrapper)
           ↓
@@ -131,19 +131,19 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 
 | Core Modules
 | 104
-| Idris 2 verified implementations
+| Idris 2 verified implementations (258 total .idr files including FFI wrappers)
 
 | Binding Targets
-| 89
-| Languages, platforms, and paradigms
+| 120+
+| Languages, platforms, and paradigms (18 complete, 102 scaffolded)
 
-| Total Binding Files
-| ~2500+
-| Across all targets
+| believe_me Count
+| 0
+| Eliminated from ~4,566 instances (remediated 2026-02-22)
 
-| Verification Status
-| 100%
-| All proofs pass
+| Overall Completion
+| ~55%
+| Core solid (100%), apps (7%), hardware (0%), convenience (0%)
 |===
 
 === Binding Categories
@@ -243,7 +243,7 @@ This isn’t marketing fluff. Here’s what makes proven different from regular 
 
 * Every function in proven is written in Idris 2, a language with dependent types.
 * The compiler literally proves your code is correct before it runs.
-* All 104 modules and 89 binding targets are complete as of v1.1.0.
+* All 104 core modules have verified implementations (believe_me=0 as of v1.2.0). 120+ binding targets exist (18 fully implemented, 102 scaffolded with FFI stubs). Overall project ~55% complete — see link:TOPOLOGY.md[TOPOLOGY.md] for full dashboard.
 
 === Understanding Dependent Types (In 2 Minutes)
 
@@ -1796,7 +1796,7 @@ Notable additions beyond traditional languages:
 [ascii]
 ----
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Your App (89 targets)                       │
+│                    Your App (120+ targets)                      │
 │   Traditional languages • Config • Domain-specific • Exotic     │
 └─────────────────────────────────────────────────────────────────┘
                                 │
@@ -1925,7 +1925,7 @@ Crashes are a choice. Choose otherwise.
 === v1.0.0
 
 * ✅ Initial release with 74 core modules and dependent type proofs
-* ✅ 89 binding targets via Zig FFI (languages, platforms, exotic paradigms)
+* 120+ binding targets via Zig FFI (18 complete, 102 scaffolded)
 * ✅ Complete test suite with fuzzing
 * ✅ Security audit passed
 * ✅ CI/CD infrastructure

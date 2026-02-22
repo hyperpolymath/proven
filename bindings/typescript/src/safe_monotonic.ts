@@ -1,376 +1,112 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-export interface Result<T> {
-  ok: boolean;
-  value?: T;
-  error?: string;
-}
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * MonotonicCounter is a counter that can only increase.
+ * SafeMonotonic - Typed wrapper for monotonically increasing sequences.
+ *
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * @module
+ */
+
+import {
+  MonotonicCounter as JsMonotonicCounter,
+  MonotonicTimestamp as JsMonotonicTimestamp,
+  MonotonicId as JsMonotonicId,
+  MonotonicSequence as JsMonotonicSequence,
+  SafeMonotonic as JsSafeMonotonic,
+} from '../../javascript/src/safe_monotonic.js';
+
+/** Result type returned by monotonic operations. */
+export type Result<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * Typed wrapper around the FFI-backed MonotonicCounter.
+ *
+ * Every method calls through to the JavaScript FFI wrapper, which in turn
+ * calls the formally verified Idris 2 code via the Zig FFI bridge.
  */
 export class MonotonicCounter {
-  private value: number;
-  private readonly max: number;
+  /** The underlying JS FFI monotonic counter instance. */
+  readonly #inner: InstanceType<typeof JsMonotonicCounter>;
 
-  constructor(initial: number = 0, max: number = Number.MAX_SAFE_INTEGER) {
-    this.value = Math.max(0, Math.floor(initial));
-    this.max = max;
+  /** Private constructor -- use MonotonicCounter.create() instead. */
+  private constructor(inner: InstanceType<typeof JsMonotonicCounter>) {
+    this.#inner = inner;
   }
 
   /**
-   * Increment by 1.
+   * Create a monotonic counter via FFI.
+   * Delegates to proven_monotonic_create.
+   *
+   * @param initial - Initial value.
+   * @param maxValue - Maximum value before wrapping.
+   * @returns Result with the MonotonicCounter instance, or error.
    */
-  increment(): Result<number> {
-    return this.incrementBy(1);
+  static create(initial: number | bigint, maxValue: number | bigint): Result<MonotonicCounter> {
+    const result = JsSafeMonotonic.counter(
+      initial,
+      maxValue,
+    ) as Result<InstanceType<typeof JsMonotonicCounter>>;
+    if (!result.ok) return result;
+    return { ok: true, value: new MonotonicCounter(result.value) };
   }
 
   /**
-   * Increment by a specific amount.
-   */
-  incrementBy(amount: number): Result<number> {
-    if (amount < 0) {
-      return { ok: false, error: 'Cannot decrement monotonic counter' };
-    }
-
-    const newValue = this.value + amount;
-    if (newValue > this.max) {
-      return { ok: false, error: `Would exceed maximum value ${this.max}` };
-    }
-
-    this.value = newValue;
-    return { ok: true, value: this.value };
-  }
-
-  /**
-   * Get current value.
-   */
-  get(): number {
-    return this.value;
-  }
-
-  /**
-   * Compare with another value.
-   */
-  compare(other: number): number {
-    if (this.value < other) return -1;
-    if (this.value > other) return 1;
-    return 0;
-  }
-
-  /**
-   * Check if greater than another value.
-   */
-  isGreaterThan(other: number): boolean {
-    return this.value > other;
-  }
-
-  /**
-   * Check if at maximum.
-   */
-  isAtMax(): boolean {
-    return this.value >= this.max;
-  }
-}
-
-/**
- * MonotonicTimestamp represents a timestamp that can only move forward.
- */
-export class MonotonicTimestamp {
-  private timestamp: number;
-  private readonly getNow: () => number;
-
-  constructor(initial?: number, getNow: () => number = Date.now) {
-    this.getNow = getNow;
-    this.timestamp = initial ?? this.getNow();
-  }
-
-  /**
-   * Update to current time if later.
-   */
-  update(): number {
-    const now = this.getNow();
-    if (now > this.timestamp) {
-      this.timestamp = now;
-    }
-    return this.timestamp;
-  }
-
-  /**
-   * Try to set a specific timestamp (must be >= current).
-   */
-  trySet(newTimestamp: number): Result<number> {
-    if (newTimestamp < this.timestamp) {
-      return { ok: false, error: `Cannot go backwards from ${this.timestamp} to ${newTimestamp}` };
-    }
-    this.timestamp = newTimestamp;
-    return { ok: true, value: this.timestamp };
-  }
-
-  /**
-   * Get current timestamp.
-   */
-  get(): number {
-    return this.timestamp;
-  }
-
-  /**
-   * Get as Date object.
-   */
-  toDate(): Date {
-    return new Date(this.timestamp);
-  }
-
-  /**
-   * Get as ISO string.
-   */
-  toISOString(): string {
-    return new Date(this.timestamp).toISOString();
-  }
-
-  /**
-   * Get milliseconds since a reference time.
-   */
-  since(reference: number): number {
-    return this.timestamp - reference;
-  }
-
-  /**
-   * Check if this timestamp is after another.
-   */
-  isAfter(other: number): boolean {
-    return this.timestamp > other;
-  }
-}
-
-/**
- * MonotonicID generates IDs that are guaranteed to be monotonically increasing.
- */
-export class MonotonicID {
-  private lastTimestamp: number = 0;
-  private sequence: number = 0;
-  private readonly machineId: number;
-  private readonly sequenceBits: number = 12;
-  private readonly machineBits: number = 10;
-  private readonly maxSequence: number;
-  private readonly getNow: () => number;
-
-  constructor(machineId: number = 0, getNow: () => number = Date.now) {
-    this.machineId = machineId & ((1 << this.machineBits) - 1);
-    this.maxSequence = (1 << this.sequenceBits) - 1;
-    this.getNow = getNow;
-  }
-
-  /**
-   * Generate the next ID.
-   */
-  next(): Result<bigint> {
-    let timestamp = this.getNow();
-
-    if (timestamp < this.lastTimestamp) {
-      return { ok: false, error: 'Clock moved backwards' };
-    }
-
-    if (timestamp === this.lastTimestamp) {
-      this.sequence = (this.sequence + 1) & this.maxSequence;
-      if (this.sequence === 0) {
-        // Wait for next millisecond
-        while (timestamp <= this.lastTimestamp) {
-          timestamp = this.getNow();
-        }
-      }
-    } else {
-      this.sequence = 0;
-    }
-
-    this.lastTimestamp = timestamp;
-
-    // Format: timestamp (42 bits) | machine (10 bits) | sequence (12 bits)
-    const id =
-      (BigInt(timestamp) << BigInt(this.machineBits + this.sequenceBits)) |
-      (BigInt(this.machineId) << BigInt(this.sequenceBits)) |
-      BigInt(this.sequence);
-
-    return { ok: true, value: id };
-  }
-
-  /**
-   * Generate next ID as string.
-   */
-  nextString(): Result<string> {
-    const result = this.next();
-    if (!result.ok) {
-      return { ok: false, error: result.error };
-    }
-    return { ok: true, value: result.value!.toString() };
-  }
-
-  /**
-   * Extract timestamp from an ID.
-   */
-  extractTimestamp(id: bigint): number {
-    return Number(id >> BigInt(this.machineBits + this.sequenceBits));
-  }
-
-  /**
-   * Extract machine ID from an ID.
-   */
-  extractMachineId(id: bigint): number {
-    return Number((id >> BigInt(this.sequenceBits)) & BigInt((1 << this.machineBits) - 1));
-  }
-
-  /**
-   * Extract sequence from an ID.
-   */
-  extractSequence(id: bigint): number {
-    return Number(id & BigInt(this.maxSequence));
-  }
-}
-
-/**
- * MonotonicSequence generates sequential numbers.
- */
-export class MonotonicSequence {
-  private current: number;
-  private readonly step: number;
-  private readonly max: number;
-
-  constructor(start: number = 0, step: number = 1, max: number = Number.MAX_SAFE_INTEGER) {
-    this.current = start;
-    this.step = Math.max(1, step);
-    this.max = max;
-  }
-
-  /**
-   * Get the next value.
+   * Get the next value (atomically increments).
+   * Delegates to proven_monotonic_next via FFI.
+   *
+   * @returns Result with the next counter value, or error.
    */
   next(): Result<number> {
-    const value = this.current;
-    const nextValue = this.current + this.step;
-
-    if (nextValue > this.max) {
-      return { ok: false, error: `Would exceed maximum value ${this.max}` };
-    }
-
-    this.current = nextValue;
-    return { ok: true, value };
+    return this.#inner.next() as Result<number>;
   }
 
   /**
-   * Peek at the next value without consuming.
+   * Close and free the native counter.
+   * Delegates to proven_monotonic_free via FFI.
    */
-  peek(): number {
-    return this.current;
-  }
-
-  /**
-   * Skip n values.
-   */
-  skip(n: number): Result<number> {
-    const skipAmount = n * this.step;
-    const newValue = this.current + skipAmount;
-
-    if (newValue > this.max) {
-      return { ok: false, error: `Would exceed maximum value ${this.max}` };
-    }
-
-    this.current = newValue;
-    return { ok: true, value: this.current };
-  }
-
-  /**
-   * Get the current value.
-   */
-  get(): number {
-    return this.current;
+  close(): void {
+    this.#inner.close();
   }
 }
 
 /**
- * MonotonicVersion represents a monotonically increasing version.
+ * Monotonic timestamp (placeholder).
+ * Will wrap a counter with clock source when the Idris implementation
+ * is complete.
  */
-export class MonotonicVersion {
-  private major: number;
-  private minor: number;
-  private patch: number;
+export class MonotonicTimestamp extends JsMonotonicTimestamp {}
 
-  constructor(major: number = 0, minor: number = 0, patch: number = 0) {
-    this.major = Math.max(0, Math.floor(major));
-    this.minor = Math.max(0, Math.floor(minor));
-    this.patch = Math.max(0, Math.floor(patch));
-  }
+/**
+ * Monotonic ID generator (placeholder).
+ * Will be wired when the Idris implementation is complete.
+ */
+export class MonotonicId extends JsMonotonicId {}
 
+/**
+ * Monotonic sequence (placeholder).
+ * Will be wired when the Idris implementation is complete.
+ */
+export class MonotonicSequence extends JsMonotonicSequence {}
+
+/**
+ * SafeMonotonic namespace.
+ * All operations delegate to the JavaScript FFI binding.
+ */
+export class SafeMonotonic {
   /**
-   * Parse a version string.
+   * Create a monotonic counter.
+   * Delegates to proven_monotonic_create via FFI.
+   *
+   * @param initial - Initial value.
+   * @param maxValue - Maximum value.
+   * @returns Result with the MonotonicCounter instance, or error.
    */
-  static parse(version: string): Result<MonotonicVersion> {
-    const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
-    if (!match) {
-      return { ok: false, error: 'Invalid version format' };
-    }
-    return {
-      ok: true,
-      value: new MonotonicVersion(parseInt(match[1]), parseInt(match[2]), parseInt(match[3])),
-    };
-  }
-
-  /**
-   * Bump major version.
-   */
-  bumpMajor(): MonotonicVersion {
-    return new MonotonicVersion(this.major + 1, 0, 0);
-  }
-
-  /**
-   * Bump minor version.
-   */
-  bumpMinor(): MonotonicVersion {
-    return new MonotonicVersion(this.major, this.minor + 1, 0);
-  }
-
-  /**
-   * Bump patch version.
-   */
-  bumpPatch(): MonotonicVersion {
-    return new MonotonicVersion(this.major, this.minor, this.patch + 1);
-  }
-
-  /**
-   * Compare with another version.
-   */
-  compare(other: MonotonicVersion): number {
-    if (this.major !== other.major) return this.major - other.major;
-    if (this.minor !== other.minor) return this.minor - other.minor;
-    return this.patch - other.patch;
-  }
-
-  /**
-   * Check if this version is greater than another.
-   */
-  isGreaterThan(other: MonotonicVersion): boolean {
-    return this.compare(other) > 0;
-  }
-
-  /**
-   * Convert to string.
-   */
-  toString(): string {
-    return `${this.major}.${this.minor}.${this.patch}`;
-  }
-
-  /**
-   * Convert to number array.
-   */
-  toArray(): [number, number, number] {
-    return [this.major, this.minor, this.patch];
+  static counter(initial: number | bigint, maxValue: number | bigint): Result<MonotonicCounter> {
+    return MonotonicCounter.create(initial, maxValue);
   }
 }
-
-export const SafeMonotonic = {
-  MonotonicCounter,
-  MonotonicTimestamp,
-  MonotonicID,
-  MonotonicSequence,
-  MonotonicVersion,
-};

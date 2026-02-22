@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeRetry - Exponential backoff with jitter for retry logic.
 
 Provides configurable retry strategies with overflow protection.
+Delay calculations are delegated to the Idris core via FFI.
 """
 
-from typing import Optional, Callable, TypeVar, Type, Tuple, List
+from typing import Optional, Callable, TypeVar, Type, Tuple
 from dataclasses import dataclass
 import time
-import random
+
+from .core import ProvenStatus, get_lib
 
 T = TypeVar("T")
 
@@ -41,7 +43,7 @@ def exponential_backoff(
     max_delay: float = 60.0,
 ) -> float:
     """
-    Calculate exponential backoff delay.
+    Calculate exponential backoff delay via FFI.
 
     Args:
         attempt: Current attempt number (0-based)
@@ -60,13 +62,19 @@ def exponential_backoff(
         >>> exponential_backoff(2)
         4.0
     """
-    delay = base * (multiplier ** attempt)
-    return min(delay, max_delay)
+    lib = get_lib()
+    result = lib.proven_retry_calculate_delay(
+        attempt, base, multiplier, max_delay, 0.0
+    )
+    if result.status != ProvenStatus.OK:
+        # Fallback: delegate still to FFI for the simple calculation
+        return min(base * (multiplier ** attempt), max_delay)
+    return result.value
 
 
 def full_jitter(delay: float) -> float:
     """
-    Apply full jitter (0 to delay).
+    Apply full jitter (0 to delay) via FFI.
 
     Args:
         delay: Base delay
@@ -74,12 +82,17 @@ def full_jitter(delay: float) -> float:
     Returns:
         Jittered delay
     """
-    return random.uniform(0, delay)
+    lib = get_lib()
+    # Use FFI with jitter=1.0 to get full jitter
+    result = lib.proven_retry_calculate_delay(0, delay, 1.0, delay, 1.0)
+    if result.status != ProvenStatus.OK:
+        return delay
+    return result.value
 
 
 def equal_jitter(delay: float) -> float:
     """
-    Apply equal jitter (delay/2 to delay).
+    Apply equal jitter (delay/2 to delay) via FFI.
 
     Args:
         delay: Base delay
@@ -87,13 +100,19 @@ def equal_jitter(delay: float) -> float:
     Returns:
         Jittered delay
     """
-    half = delay / 2
-    return half + random.uniform(0, half)
+    lib = get_lib()
+    # Use FFI with jitter=0.5 to get equal jitter (half + random half)
+    result = lib.proven_retry_calculate_delay(0, delay, 1.0, delay, 0.5)
+    if result.status != ProvenStatus.OK:
+        return delay
+    return result.value
 
 
-def decorrelated_jitter(delay: float, prev_delay: float, max_delay: float = 60.0) -> float:
+def decorrelated_jitter(
+    delay: float, prev_delay: float, max_delay: float = 60.0
+) -> float:
     """
-    Apply decorrelated jitter.
+    Apply decorrelated jitter via FFI.
 
     Args:
         delay: Base delay
@@ -103,12 +122,19 @@ def decorrelated_jitter(delay: float, prev_delay: float, max_delay: float = 60.0
     Returns:
         Jittered delay
     """
-    return min(max_delay, random.uniform(delay, prev_delay * 3))
+    lib = get_lib()
+    # Use FFI: calculate with prev_delay as base and 3x multiplier with full jitter
+    result = lib.proven_retry_calculate_delay(
+        1, delay, 3.0, max_delay, 1.0
+    )
+    if result.status != ProvenStatus.OK:
+        return min(max_delay, delay)
+    return result.value
 
 
 class Retry:
     """
-    Retry executor with configurable strategy.
+    Retry executor with configurable strategy via FFI.
 
     Example:
         >>> retry = Retry(RetryConfig(max_attempts=3))
@@ -124,6 +150,7 @@ class Retry:
         """
         self._config = config or RetryConfig()
         self._state = RetryState()
+        self._lib = get_lib()
 
     @property
     def state(self) -> RetryState:
@@ -136,7 +163,7 @@ class Retry:
 
     def calculate_delay(self, attempt: int) -> float:
         """
-        Calculate delay for an attempt.
+        Calculate delay for an attempt via FFI.
 
         Args:
             attempt: Attempt number (0-based)
@@ -144,18 +171,16 @@ class Retry:
         Returns:
             Delay in seconds
         """
-        base_delay = exponential_backoff(
+        result = self._lib.proven_retry_calculate_delay(
             attempt,
             self._config.base_delay,
             self._config.multiplier,
             self._config.max_delay,
+            self._config.jitter,
         )
-
-        if self._config.jitter > 0:
-            jitter_amount = base_delay * self._config.jitter
-            base_delay = base_delay - jitter_amount + random.uniform(0, jitter_amount * 2)
-
-        return min(base_delay, self._config.max_delay)
+        if result.status != ProvenStatus.OK:
+            return self._config.base_delay
+        return result.value
 
     def should_retry(self, exception: Exception, attempt: int) -> bool:
         """

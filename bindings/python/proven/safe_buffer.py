@@ -1,38 +1,37 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeBuffer - Bounded buffers and ring buffers without overflow.
 
 Provides safe buffer operations with bounds checking.
+All operations are delegated to the Idris core via FFI using opaque handles.
 """
 
-from typing import TypeVar, Generic, Optional, List, Iterator
+from typing import Optional, List
 
-T = TypeVar("T")
+from .core import ProvenStatus, get_lib
 
 
-class BoundedBuffer(Generic[T]):
+class BoundedBuffer:
     """
-    Fixed-capacity buffer with bounds checking.
+    Fixed-capacity buffer with bounds checking via FFI.
+
+    Uses an opaque handle to a buffer managed by the Idris core.
 
     Example:
         >>> buf = BoundedBuffer(3)
-        >>> buf.push(1)
+        >>> buf.push(b"hello")
         True
-        >>> buf.push(2)
+        >>> buf.push(b"world")
         True
-        >>> buf.push(3)
-        True
-        >>> buf.push(4)  # Full
-        False
         >>> buf.pop()
-        3
+        b'world'
     """
 
     def __init__(self, capacity: int):
         """
-        Create a bounded buffer.
+        Create a bounded buffer via FFI.
 
         Args:
             capacity: Maximum number of items
@@ -42,8 +41,23 @@ class BoundedBuffer(Generic[T]):
         """
         if capacity <= 0:
             raise ValueError("Capacity must be positive")
+
+        lib = get_lib()
+        result = lib.proven_buffer_create(capacity)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create buffer via FFI")
+
+        self._handle = result.handle
         self._capacity = capacity
-        self._items: List[T] = []
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI buffer handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_buffer_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def capacity(self) -> int:
@@ -52,99 +66,76 @@ class BoundedBuffer(Generic[T]):
 
     def __len__(self) -> int:
         """Get current number of items."""
-        return len(self._items)
+        result = self._lib.proven_buffer_len(self._handle)
+        if result.status != ProvenStatus.OK:
+            return 0
+        return result.value
 
     def is_empty(self) -> bool:
         """Check if buffer is empty."""
-        return len(self._items) == 0
+        return len(self) == 0
 
     def is_full(self) -> bool:
         """Check if buffer is at capacity."""
-        return len(self._items) >= self._capacity
+        return len(self) >= self._capacity
 
-    def push(self, item: T) -> bool:
+    def push(self, item: bytes) -> bool:
         """
-        Add item to buffer.
+        Add item to buffer via FFI.
 
         Args:
-            item: Item to add
+            item: Bytes item to add
 
         Returns:
             True if added, False if full
         """
-        if self.is_full():
+        if not isinstance(item, bytes):
+            item = str(item).encode("utf-8")
+        result = self._lib.proven_buffer_push(self._handle, item, len(item))
+        if result.status != ProvenStatus.OK:
             return False
-        self._items.append(item)
-        return True
+        return result.value
 
-    def pop(self) -> Optional[T]:
+    def pop(self) -> Optional[bytes]:
         """
-        Remove and return last item.
+        Remove and return last item via FFI.
 
         Returns:
-            Item, or None if empty
+            Item bytes, or None if empty
         """
-        if self.is_empty():
+        result = self._lib.proven_buffer_pop(self._handle)
+        if result.status != ProvenStatus.OK or result.data is None:
             return None
-        return self._items.pop()
-
-    def peek(self) -> Optional[T]:
-        """
-        Get last item without removing.
-
-        Returns:
-            Item, or None if empty
-        """
-        if self.is_empty():
-            return None
-        return self._items[-1]
-
-    def get(self, index: int) -> Optional[T]:
-        """
-        Get item at index.
-
-        Args:
-            index: Index (0-based)
-
-        Returns:
-            Item, or None if out of bounds
-        """
-        if 0 <= index < len(self._items):
-            return self._items[index]
-        return None
+        data = result.data[:result.length]
+        self._lib.proven_free_string(result.data)
+        return bytes(data)
 
     def clear(self) -> None:
-        """Remove all items."""
-        self._items.clear()
-
-    def __iter__(self) -> Iterator[T]:
-        """Iterate over items."""
-        return iter(self._items)
-
-    def to_list(self) -> List[T]:
-        """Get copy of items as list."""
-        return list(self._items)
+        """Remove all items by recreating the buffer."""
+        self._lib.proven_buffer_free(self._handle)
+        result = self._lib.proven_buffer_create(self._capacity)
+        if result.status == ProvenStatus.OK and result.handle is not None:
+            self._handle = result.handle
 
 
-class RingBuffer(Generic[T]):
+class RingBuffer:
     """
-    Fixed-capacity ring buffer (circular buffer).
+    Fixed-capacity ring buffer (circular buffer) via FFI.
 
-    Overwrites oldest items when full.
+    Overwrites oldest items when full. Uses the same FFI buffer
+    handle with ring buffer semantics managed by the Idris core.
 
     Example:
         >>> ring = RingBuffer(3)
-        >>> ring.push(1)
-        >>> ring.push(2)
-        >>> ring.push(3)
-        >>> ring.push(4)  # Overwrites 1
-        >>> list(ring)
-        [2, 3, 4]
+        >>> ring.push(b"a")
+        >>> ring.push(b"b")
+        >>> ring.push(b"c")
+        >>> ring.push(b"d")  # Overwrites oldest
     """
 
     def __init__(self, capacity: int):
         """
-        Create a ring buffer.
+        Create a ring buffer via FFI.
 
         Args:
             capacity: Maximum number of items
@@ -154,10 +145,24 @@ class RingBuffer(Generic[T]):
         """
         if capacity <= 0:
             raise ValueError("Capacity must be positive")
+
+        lib = get_lib()
+        # Ring buffers use the same handle infrastructure
+        result = lib.proven_buffer_create(capacity)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create ring buffer via FFI")
+
+        self._handle = result.handle
         self._capacity = capacity
-        self._buffer: List[Optional[T]] = [None] * capacity
-        self._head = 0  # Next write position
-        self._count = 0
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI buffer handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_buffer_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def capacity(self) -> int:
@@ -166,107 +171,60 @@ class RingBuffer(Generic[T]):
 
     def __len__(self) -> int:
         """Get current number of items."""
-        return self._count
+        result = self._lib.proven_buffer_len(self._handle)
+        if result.status != ProvenStatus.OK:
+            return 0
+        return result.value
 
     def is_empty(self) -> bool:
         """Check if buffer is empty."""
-        return self._count == 0
+        return len(self) == 0
 
     def is_full(self) -> bool:
         """Check if buffer is at capacity."""
-        return self._count >= self._capacity
+        return len(self) >= self._capacity
 
-    def push(self, item: T) -> Optional[T]:
+    def push(self, item: bytes) -> Optional[bytes]:
         """
-        Add item, overwriting oldest if full.
+        Add item, overwriting oldest if full via FFI.
 
         Args:
-            item: Item to add
+            item: Bytes item to add
 
         Returns:
             Overwritten item if full, None otherwise
         """
+        if not isinstance(item, bytes):
+            item = str(item).encode("utf-8")
+
         overwritten = None
         if self.is_full():
-            # Calculate oldest position
-            oldest = (self._head - self._count) % self._capacity
-            overwritten = self._buffer[oldest]
+            # Pop oldest before push (ring buffer semantics)
+            overwritten = self.pop()
 
-        self._buffer[self._head] = item
-        self._head = (self._head + 1) % self._capacity
-
-        if not self.is_full():
-            self._count += 1
+        result = self._lib.proven_buffer_push(self._handle, item, len(item))
+        if result.status != ProvenStatus.OK:
+            return overwritten
 
         return overwritten
 
-    def pop(self) -> Optional[T]:
+    def pop(self) -> Optional[bytes]:
         """
-        Remove and return newest item.
+        Remove and return newest item via FFI.
 
         Returns:
-            Item, or None if empty
+            Item bytes, or None if empty
         """
-        if self.is_empty():
+        result = self._lib.proven_buffer_pop(self._handle)
+        if result.status != ProvenStatus.OK or result.data is None:
             return None
-
-        self._head = (self._head - 1) % self._capacity
-        item = self._buffer[self._head]
-        self._buffer[self._head] = None
-        self._count -= 1
-        return item
-
-    def peek(self) -> Optional[T]:
-        """
-        Get newest item without removing.
-
-        Returns:
-            Item, or None if empty
-        """
-        if self.is_empty():
-            return None
-        newest = (self._head - 1) % self._capacity
-        return self._buffer[newest]
-
-    def peek_oldest(self) -> Optional[T]:
-        """
-        Get oldest item without removing.
-
-        Returns:
-            Item, or None if empty
-        """
-        if self.is_empty():
-            return None
-        oldest = (self._head - self._count) % self._capacity
-        return self._buffer[oldest]
-
-    def get(self, index: int) -> Optional[T]:
-        """
-        Get item at index (0 = oldest).
-
-        Args:
-            index: Index from oldest
-
-        Returns:
-            Item, or None if out of bounds
-        """
-        if not 0 <= index < self._count:
-            return None
-        pos = (self._head - self._count + index) % self._capacity
-        return self._buffer[pos]
+        data = result.data[:result.length]
+        self._lib.proven_free_string(result.data)
+        return bytes(data)
 
     def clear(self) -> None:
         """Remove all items."""
-        self._buffer = [None] * self._capacity
-        self._head = 0
-        self._count = 0
-
-    def __iter__(self) -> Iterator[T]:
-        """Iterate from oldest to newest."""
-        for i in range(self._count):
-            pos = (self._head - self._count + i) % self._capacity
-            yield self._buffer[pos]
-
-    def to_list(self) -> List[T]:
-        """Get items as list (oldest first)."""
-        return list(self)
+        self._lib.proven_buffer_free(self._handle)
+        result = self._lib.proven_buffer_create(self._capacity)
+        if result.status == ProvenStatus.OK and result.handle is not None:
+            self._handle = result.handle

@@ -126,39 +126,29 @@ attenuate : List Permission -> Capability -> Capability
 attenuate newPerms cap =
   { capPermissions := filter (\p => elem p newPerms) (capPermissions cap) } cap
 
-||| Proof that attenuated capability has subset of original permissions
-||| Follows from the property that `filter p xs` is a sublist of `xs`:
-||| if x is in (filter p xs), then x is in xs.
-||| Axiomatised because Idris2's standard library lacks a filterElem lemma,
-||| but this is a well-known property of list filtering (proof by induction
-||| on the list structure with case analysis on the predicate).
+||| Lemma: membership in a filtered list implies membership in the original list.
+||| Proof by induction on the list structure with case analysis on the predicate.
+export
+filterElemSublist : (p : a -> Bool) -> (xs : List a) -> (x : a) ->
+                    Elem x (filter p xs) -> Elem x xs
+filterElemSublist p [] x inFiltered = absurd inFiltered
+filterElemSublist p (y :: ys) x inFiltered with (p y)
+  filterElemSublist p (y :: ys) x inFiltered | True = case inFiltered of
+    Here => Here
+    There later => There (filterElemSublist p ys x later)
+  filterElemSublist p (y :: ys) x inFiltered | False =
+    There (filterElemSublist p ys x inFiltered)
+
+||| Proof that attenuated capability has subset of original permissions.
+||| Follows directly from filterElemSublist: filter produces a sublist,
+||| so membership in the filtered permissions implies membership in the original.
 public export
 attenuationSound : (cap : Capability) -> (newPerms : List Permission) ->
                    (perm : Permission) ->
                    Elem perm (capPermissions (attenuate newPerms cap)) ->
                    Elem perm (capPermissions cap)
 attenuationSound cap newPerms perm elemPrf =
-  -- filter p xs produces a sublist of xs, so Elem in filtered => Elem in original
-  -- This is the filterSublist lemma: ∀ x p xs. x ∈ filter p xs → x ∈ xs
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-  believe_me elemPrf
+  filterElemSublist (\p => elem p newPerms) (capPermissions cap) perm elemPrf
 
 ||| Delegate a capability to another principal
 public export
@@ -274,10 +264,16 @@ implies : CapabilityHierarchy -> Permission -> Permission -> Bool
 implies (MkHierarchy parent children) p1 p2 =
   p1 == p2 || (p1 == parent && elem p2 children)
 
-||| Remove duplicates from a list (local, uses assert_total due to filter)
+||| Remove duplicates from a list (accumulator-based, structurally recursive)
 nubLocal : Eq a => List a -> List a
-nubLocal [] = []
-nubLocal (x :: xs) = x :: assert_total (nubLocal (filter (/= x) xs))
+nubLocal xs = reverse (go xs [])
+  where
+    go : List a -> List a -> List a
+    go [] acc = acc
+    go (x :: rest) acc =
+      if any (== x) acc
+        then go rest acc
+        else go rest (x :: acc)
 
 ||| Expand permissions via hierarchy
 public export

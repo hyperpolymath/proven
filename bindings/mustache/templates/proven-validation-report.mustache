@@ -1,0 +1,69 @@
+{{! SPDX-License-Identifier: PMPL-1.0-or-later }}
+{{! Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> }}
+{{!
+  Proven Safety Library - Validation Report Template
+
+  Renders a validation report for one or more inputs checked via proven-cli.
+  Uses lambda sections for live validation when a lambda provider is active.
+
+  Expected context (static mode):
+    {
+      "title": "Input Validation Report",
+      "timestamp": "2026-02-22T14:00:00Z",
+      "entries": [
+        {
+          "input": "user@example.com",
+          "type": "email",
+          "valid": true,
+          "message": "Valid RFC 5321 email address",
+          "passed": true
+        },
+        {
+          "input": "not-an-email",
+          "type": "email",
+          "valid": false,
+          "message": "Missing @ symbol",
+          "passed": false
+        }
+      ],
+      "total": 2,
+      "passed_count": 1,
+      "failed_count": 1
+    }
+
+  Lambda mode (requires proven-helpers.js or proven-helpers.rb):
+    Context includes callable lambdas:
+      proven_validate_email, proven_validate_url, proven_validate_ipv4,
+      proven_validate_json, proven_validate_path, proven_hash_sha256
+}}
+================================================================================
+  {{ title }}
+  Generated: {{ timestamp }}
+================================================================================
+
+{{# entries }}
+  Input:      {{ input }}
+  Type:       {{ type }}
+  Valid:      {{# passed }}PASS{{/ passed }}{{^ passed }}FAIL{{/ passed }}
+  Message:    {{ message }}
+  ---
+{{/ entries }}
+{{^ entries }}
+  No validation entries provided.
+{{/ entries }}
+
+--------------------------------------------------------------------------------
+  Totals: {{ total }} checked | {{ passed_count }} passed | {{ failed_count }} failed
+--------------------------------------------------------------------------------
+
+{{!
+  Lambda-powered live validation sections.
+  When a lambda provider (JS/Ruby) is active, these sections invoke
+  proven-cli at render time and replace the enclosed text with results.
+}}
+{{# proven_validate_email }}user@example.com{{/ proven_validate_email }}
+{{# proven_validate_url }}https://example.com{{/ proven_validate_url }}
+{{# proven_validate_ipv4 }}192.168.1.1{{/ proven_validate_ipv4 }}
+{{# proven_validate_json }}{"key": "value"}{{/ proven_validate_json }}
+{{# proven_validate_path }}../etc/passwd{{/ proven_validate_path }}
+{{# proven_hash_sha256 }}hello world{{/ proven_hash_sha256 }}

@@ -1,0 +1,152 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/* Proven - FFI vazby na libproven (Idris 2 formalne overena bezpecnostni knihovna)
+ * pro Oblibeny.
+ *
+ * Oblibeny se zameriuje na oblibene vzory a idiomy inspirovane cestinou.
+ * Tento modul poskytuje zakladni chybove typy a obaly vysledku pomoci
+ * Oblibeny typu Vysledek<T, Chyba>, na kterych stavejia vsechny moduly Proven.
+ *
+ * Veskere vypocty provadi Idris 2 pres Zig FFI vrstvu.
+ * ZADNA bezpecnostni logika neni reimplementovana v Oblibeny.
+ *
+ * Architektura:
+ *   Oblibeny (.obl)
+ *     |  cizi("C", ...)
+ *     v
+ *   libproven.so (Zig FFI vrstva)
+ *     |  Zig -> Idris2 RefC volani
+ *     v
+ *   Idris 2 (zavisle typy, kontrola totality)
+ */
+
+modul Proven
+
+import Proven.FFI
+import Proven.SafeMath
+import Proven.SafeString
+import Proven.SafeEmail
+import Proven.SafeUrl
+import Proven.SafeCrypto
+import Proven.SafeJson
+
+// ============================================================================
+// Zakladni chybovy typ pro operace Proven
+// ============================================================================
+
+/* ProvenChyba vycituje vsechny mozne zpusoby selhani z libproven
+ * C ABI. Kazda varianta nese semanticky vyznam selhani,
+ * umoznujici vyerpavajici porovnavani vzoru v obsluhach chyb. */
+typ ProvenChyba =
+  | Preteceni           // Aritmeticke preteceni (status -3)
+  | Podteceni           // Aritmeticke podteceni (status -4)
+  | DeleniNulou         // Deleni nulou (status -5)
+  | NulovyUkazatel      // Nulovy ukazatel (status -1)
+  | NeplatnyArgument    // Neplatny argument (status -2)
+  | ChybaParsovani      // Chyba parsovani (status -6)
+  | ValidaceNeuspela    // Validace neuspela (status -7)
+  | MimoRozsah          // Index mimo rozsah (status -8)
+  | ChybaKodovani       // Chyba kodovani (status -9)
+  | AlokaceNeuspela     // Alokace pameti neuspela (status -10)
+  | Neimplementovano    // Funkce neimplementovana (status -99)
+  | NeznamaChyba(Int32) // Nerozpoznany stavovy kod
+
+// Prevede surovy C ABI stavovy kod na ProvenChyba.
+// Tato funkce je totalni: kazdy mozny Int32 se mapuje na presne jednu chybu.
+fn status_na_chybu(kod : Int32) -> ProvenChyba =
+  match kod with
+  | -1  => NulovyUkazatel
+  | -2  => NeplatnyArgument
+  | -3  => Preteceni
+  | -4  => Podteceni
+  | -5  => DeleniNulou
+  | -6  => ChybaParsovani
+  | -7  => ValidaceNeuspela
+  | -8  => MimoRozsah
+  | -9  => ChybaKodovani
+  | -10 => AlokaceNeuspela
+  | -99 => Neimplementovano
+  | n   => NeznamaChyba(n)
+
+// ============================================================================
+// Vysledek<T, Ch> typ vysledku
+// ============================================================================
+
+/* Zakladni typ vysledku pro vsechny operace Proven.
+ * Vysledek<T, ProvenChyba> je kanonicky navratovy typ, kombinujici
+ * uspesnou hodnotu typu T s chybovym typem Ch. */
+typ Výsledek<T, Ch> =
+  | Úspěch(T)
+  | Neúspěch(Ch)
+
+// Prevede FFI IntResult na Vysledek<Int64, ProvenChyba>.
+fn int_vysledek_prevod(ir : FFI.IntResult) -> Výsledek<Int64, ProvenChyba> =
+  match ir.status with
+  | 0 => Úspěch(ir.value)
+  | s => Neúspěch(status_na_chybu(s))
+
+// Prevede FFI BoolResult na Vysledek<Bool, ProvenChyba>.
+fn bool_vysledek_prevod(br : FFI.BoolResult) -> Výsledek<Bool, ProvenChyba> =
+  match br.status with
+  | 0 => Úspěch(br.value != 0)
+  | s => Neúspěch(status_na_chybu(s))
+
+// Prevede FFI FloatResult na Vysledek<Float64, ProvenChyba>.
+fn float_vysledek_prevod(fr : FFI.FloatResult) -> Výsledek<Float64, ProvenChyba> =
+  match fr.status with
+  | 0 => Úspěch(fr.value)
+  | s => Neúspěch(status_na_chybu(s))
+
+// Prevede FFI StringResult na Vysledek<String, ProvenChyba>,
+// uvolni C-alokovanou retezec po kopirovani.
+fn string_vysledek_prevod(sr : FFI.StringResult) -> Výsledek<String, ProvenChyba> =
+  match sr.status with
+  | 0 =>
+    let vysledek = string_from_ptr(sr.ptr, sr.len)
+    FFI.proven_free_string(sr.ptr)
+    Úspěch(vysledek)
+  | s => Neúspěch(status_na_chybu(s))
+
+// ============================================================================
+// Sprava zivotniho cyklu
+// ============================================================================
+
+// Inicializuje runtime Proven. Musi byt zavolano pred jakoukoli jinou funkci.
+// Vraci Uspech(()) pri uspechu.
+fn inicializuj() -> Výsledek<Unit, ProvenChyba> =
+  let status = FFI.proven_init()
+  match status with
+  | 0 => Úspěch(())
+  | s => Neúspěch(status_na_chybu(s))
+
+// Deinicializuje runtime Proven. Zavolat po dokonceni.
+fn deinicializuj() -> Unit =
+  FFI.proven_deinit()
+
+// Zkontroluje, zda je runtime Proven inicializovany.
+fn je_inicializovany() -> Bool =
+  FFI.proven_is_initialized()
+
+// Ziska verzi knihovny jako trojici (hlavni, vedlejsi, oprava).
+fn verze() -> (UInt32, UInt32, UInt32) =
+  (FFI.proven_version_major(), FFI.proven_version_minor(), FFI.proven_version_patch())
+
+// Ziska verzi FFI ABI pro kontrolu kompatibility.
+fn abi_verze() -> UInt32 =
+  FFI.proven_ffi_abi_version()
+
+// Ziska celkovy pocet modulu v libproven.
+fn pocet_modulu() -> UInt32 =
+  FFI.proven_module_count()
+
+// ============================================================================
+// Re-exporty
+// ============================================================================
+
+export Proven.SafeMath.*
+export Proven.SafeString.*
+export Proven.SafeEmail.*
+export Proven.SafeUrl.*
+export Proven.SafeCrypto.*
+export Proven.SafeJson.*

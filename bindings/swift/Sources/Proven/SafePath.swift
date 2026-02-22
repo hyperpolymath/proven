@@ -1,57 +1,29 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Safe filesystem path operations delegated to libproven FFI.
+///
+/// Prevents directory traversal attacks and sanitizes filenames
+/// via the formally verified Idris 2 core.
 
-/// Safe filesystem path operations with traversal attack prevention.
+import CProven
+
 public enum SafePath {
     /// Check if a path contains directory traversal sequences.
-    public static func hasTraversal(_ path: String) -> Bool {
-        path.contains("..") || path.contains("~")
-    }
-
-    /// Check if a path is safe (no traversal attacks).
-    public static func isSafe(_ path: String) -> Bool {
-        !hasTraversal(path)
+    public static func hasTraversal(_ path: String) -> Result<Bool, ProvenError> {
+        withStringBytes(path) { ptr, len in
+            let result = proven_path_has_traversal(ptr, len)
+            if let error = ProvenError.fromStatus(result.status) {
+                return .failure(error)
+            }
+            return .success(result.value)
+        }
     }
 
     /// Sanitize a filename by removing dangerous characters.
-    public static func sanitizeFilename(_ filename: String) -> String {
-        filename
-            .replacingOccurrences(of: "..", with: "_")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "\\", with: "_")
-            .replacingOccurrences(of: "<", with: "_")
-            .replacingOccurrences(of: ">", with: "_")
-            .replacingOccurrences(of: ":", with: "_")
-            .replacingOccurrences(of: "\"", with: "_")
-            .replacingOccurrences(of: "|", with: "_")
-            .replacingOccurrences(of: "?", with: "_")
-            .replacingOccurrences(of: "*", with: "_")
-            .replacingOccurrences(of: "\0", with: "_")
-    }
-
-    /// Safely join path components, rejecting traversal attempts.
-    /// Returns nil if any part contains traversal sequences.
-    public static func safeJoin(base: String, parts: [String]) -> String? {
-        guard !parts.contains(where: hasTraversal) else { return nil }
-
-        let sanitized = parts.map(sanitizeFilename)
-        var path = base
-
-        for part in sanitized {
-            if path.hasSuffix("/") {
-                path += part
-            } else {
-                path += "/" + part
-            }
+    public static func sanitizeFilename(_ filename: String) -> Result<String, ProvenError> {
+        withStringBytes(filename) { ptr, len in
+            consumeStringResult(proven_path_sanitize_filename(ptr, len))
         }
-
-        return path
-    }
-
-    /// Safely join path components (variadic version).
-    public static func safeJoin(base: String, _ parts: String...) -> String? {
-        safeJoin(base: base, parts: parts)
     }
 }

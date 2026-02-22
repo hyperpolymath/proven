@@ -1,54 +1,52 @@
-      *> SPDX-License-Identifier: PMPL-1.0
-      *> SPDX-FileCopyrightText: 2025 Hyperpolymath
+      *> SPDX-License-Identifier: PMPL-1.0-or-later
+      *> Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)
+      *> <jonathan.jewell@open.ac.uk>
       *
-      * Proven - Common data types for COBOL bindings
+      * Proven FFI - Common data types for COBOL bindings.
+      *
+      * These data items map to the C types declared in proven.h.
+      * All computation delegates to libproven (Idris 2 + Zig)
+      * via the CALL verb.
       *
 
-      * Return status codes
-       01 WS-RETURN-STATUS.
-          05 WS-SUCCESS               PIC 9 VALUE 0.
-          05 WS-ERROR                 PIC 9 VALUE 1.
-          05 WS-OVERFLOW              PIC 9 VALUE 2.
-          05 WS-INVALID               PIC 9 VALUE 3.
+      * ProvenStatus codes (matching proven.h)
+       01 WS-PROVEN-STATUS.
+          05 PROVEN-OK                  PIC S9(9) COMP VALUE 0.
+          05 PROVEN-ERR-NULL-PTR        PIC S9(9) COMP VALUE -1.
+          05 PROVEN-ERR-INVALID-ARG     PIC S9(9) COMP VALUE -2.
+          05 PROVEN-ERR-OVERFLOW        PIC S9(9) COMP VALUE -3.
+          05 PROVEN-ERR-UNDERFLOW       PIC S9(9) COMP VALUE -4.
+          05 PROVEN-ERR-DIV-BY-ZERO     PIC S9(9) COMP VALUE -5.
+          05 PROVEN-ERR-PARSE-FAIL      PIC S9(9) COMP VALUE -6.
+          05 PROVEN-ERR-VALIDATION      PIC S9(9) COMP VALUE -7.
+          05 PROVEN-ERR-OUT-OF-BOUNDS   PIC S9(9) COMP VALUE -8.
+          05 PROVEN-ERR-ENCODING        PIC S9(9) COMP VALUE -9.
+          05 PROVEN-ERR-ALLOC           PIC S9(9) COMP VALUE -10.
 
-      * Boolean values
-       01 WS-BOOLEAN.
-          05 WS-TRUE                  PIC 9 VALUE 1.
-          05 WS-FALSE                 PIC 9 VALUE 0.
+      * ProvenIntResult (matching C struct)
+       01 WS-INT-RESULT.
+          05 WS-INT-STATUS              PIC S9(9) COMP.
+          05 WS-INT-VALUE               PIC S9(18) COMP.
 
-      * Maximum string lengths
-       01 WS-MAX-LENGTHS.
-          05 WS-MAX-STRING            PIC 9(4) VALUE 4096.
-          05 WS-MAX-EMAIL             PIC 9(3) VALUE 254.
-          05 WS-MAX-PATH              PIC 9(4) VALUE 1024.
-          05 WS-MAX-HOSTNAME          PIC 9(3) VALUE 253.
+      * ProvenBoolResult (matching C struct)
+       01 WS-BOOL-RESULT.
+          05 WS-BOOL-STATUS             PIC S9(9) COMP.
+          05 WS-BOOL-VALUE              PIC 9 COMP.
 
-      * IPv4 address structure
-       01 WS-IPV4-ADDRESS.
-          05 WS-IP-OCTET-1            PIC 9(3).
-          05 WS-IP-OCTET-2            PIC 9(3).
-          05 WS-IP-OCTET-3            PIC 9(3).
-          05 WS-IP-OCTET-4            PIC 9(3).
-          05 WS-IP-STRING             PIC X(15).
-          05 WS-IP-VALID              PIC 9 VALUE 0.
+      * ProvenFloatResult (matching C struct)
+       01 WS-FLOAT-RESULT.
+          05 WS-FLOAT-STATUS            PIC S9(9) COMP.
+          05 WS-FLOAT-VALUE             COMP-2.
 
-      * IP classification codes
-       01 WS-IP-CLASSIFICATIONS.
-          05 WS-IP-CLASS-INVALID      PIC 9 VALUE 0.
-          05 WS-IP-CLASS-LOOPBACK     PIC 9 VALUE 1.
-          05 WS-IP-CLASS-PRIVATE      PIC 9 VALUE 2.
-          05 WS-IP-CLASS-RESERVED     PIC 9 VALUE 3.
-          05 WS-IP-CLASS-PUBLIC       PIC 9 VALUE 4.
+      * ProvenStringResult (matching C struct)
+       01 WS-STRING-RESULT.
+          05 WS-STR-STATUS              PIC S9(9) COMP.
+          05 WS-STR-PTR                 USAGE POINTER.
+          05 WS-STR-LENGTH              PIC 9(9) COMP.
 
-      * Email result structure
-       01 WS-EMAIL-RESULT.
-          05 WS-EMAIL-VALID           PIC 9 VALUE 0.
-          05 WS-EMAIL-LOCAL           PIC X(64).
-          05 WS-EMAIL-DOMAIN          PIC X(255).
-          05 WS-EMAIL-ERROR           PIC X(100).
+      * Working buffer for string parameters
+       01 WS-INPUT-BUFFER               PIC X(4096).
+       01 WS-INPUT-LENGTH               PIC 9(9) COMP.
 
-      * Path result structure
-       01 WS-PATH-RESULT.
-          05 WS-PATH-VALID            PIC 9 VALUE 0.
-          05 WS-PATH-VALUE            PIC X(1024).
-          05 WS-PATH-ERROR            PIC X(100).
+      * Lifecycle status
+       01 WS-INIT-STATUS                PIC S9(9) COMP.

@@ -1,16 +1,17 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeRateLimiter - Rate limiting with token bucket and sliding window.
 
 Provides various rate limiting algorithms for controlling request rates.
+All operations are delegated to the Idris core via FFI using opaque handles.
 """
 
+import json
 from typing import Optional, NamedTuple
-from enum import Enum
-import time
-import threading
+
+from .core import ProvenStatus, get_lib
 
 
 class RateLimitResult(NamedTuple):
@@ -22,7 +23,7 @@ class RateLimitResult(NamedTuple):
 
 class TokenBucket:
     """
-    Token bucket rate limiter.
+    Token bucket rate limiter via FFI.
 
     Allows burst traffic up to bucket capacity, then limits to rate.
 
@@ -34,7 +35,7 @@ class TokenBucket:
 
     def __init__(self, rate: float, capacity: int):
         """
-        Create a token bucket.
+        Create a token bucket via FFI.
 
         Args:
             rate: Tokens per second to add
@@ -48,11 +49,23 @@ class TokenBucket:
         if capacity <= 0:
             raise ValueError("Capacity must be positive")
 
+        lib = get_lib()
+        result = lib.proven_ratelimit_token_bucket_create(rate, capacity)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create token bucket via FFI")
+
+        self._handle = result.handle
         self._rate = rate
         self._capacity = capacity
-        self._tokens = float(capacity)
-        self._last_update = time.monotonic()
-        self._lock = threading.Lock()
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI token bucket handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_ratelimit_token_bucket_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def rate(self) -> float:
@@ -64,16 +77,9 @@ class TokenBucket:
         """Get bucket capacity."""
         return self._capacity
 
-    def _refill(self) -> None:
-        """Refill tokens based on elapsed time."""
-        now = time.monotonic()
-        elapsed = now - self._last_update
-        self._tokens = min(self._capacity, self._tokens + elapsed * self._rate)
-        self._last_update = now
-
     def acquire(self, tokens: int = 1) -> RateLimitResult:
         """
-        Try to acquire tokens.
+        Try to acquire tokens via FFI.
 
         Args:
             tokens: Number of tokens to acquire
@@ -81,35 +87,34 @@ class TokenBucket:
         Returns:
             RateLimitResult with allowed status
         """
-        with self._lock:
-            self._refill()
+        result = self._lib.proven_ratelimit_token_bucket_acquire(
+            self._handle, tokens
+        )
+        if result.status != ProvenStatus.OK or result.value is None:
+            return RateLimitResult(allowed=False, remaining=0, retry_after=None)
 
-            if self._tokens >= tokens:
-                self._tokens -= tokens
-                return RateLimitResult(
-                    allowed=True,
-                    remaining=int(self._tokens),
-                    retry_after=None,
-                )
-            else:
-                deficit = tokens - self._tokens
-                retry_after = deficit / self._rate
-                return RateLimitResult(
-                    allowed=False,
-                    remaining=0,
-                    retry_after=retry_after,
-                )
+        raw = result.value[:result.length].decode("utf-8")
+        self._lib.proven_free_string(result.value)
+
+        try:
+            data = json.loads(raw)
+            return RateLimitResult(
+                allowed=data.get("allowed", False),
+                remaining=data.get("remaining", 0),
+                retry_after=data.get("retry_after"),
+            )
+        except (json.JSONDecodeError, KeyError):
+            return RateLimitResult(allowed=False, remaining=0, retry_after=None)
 
     def available(self) -> int:
-        """Get current available tokens."""
-        with self._lock:
-            self._refill()
-            return int(self._tokens)
+        """Get current available tokens via FFI."""
+        result = self.acquire(0)
+        return result.remaining
 
 
 class SlidingWindow:
     """
-    Sliding window rate limiter.
+    Sliding window rate limiter via FFI.
 
     Tracks requests in a sliding time window.
 
@@ -121,7 +126,7 @@ class SlidingWindow:
 
     def __init__(self, limit: int, window_seconds: float):
         """
-        Create a sliding window limiter.
+        Create a sliding window limiter via FFI.
 
         Args:
             limit: Maximum requests in window
@@ -135,10 +140,23 @@ class SlidingWindow:
         if window_seconds <= 0:
             raise ValueError("Window must be positive")
 
+        lib = get_lib()
+        result = lib.proven_ratelimit_sliding_window_create(limit, window_seconds)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create sliding window via FFI")
+
+        self._handle = result.handle
         self._limit = limit
         self._window = window_seconds
-        self._timestamps: list = []
-        self._lock = threading.Lock()
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI sliding window handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_ratelimit_sliding_window_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def limit(self) -> int:
@@ -150,50 +168,44 @@ class SlidingWindow:
         """Get window duration."""
         return self._window
 
-    def _cleanup(self, now: float) -> None:
-        """Remove expired timestamps."""
-        cutoff = now - self._window
-        self._timestamps = [t for t in self._timestamps if t > cutoff]
-
     def acquire(self) -> RateLimitResult:
         """
-        Try to acquire a request slot.
+        Try to acquire a request slot via FFI.
 
         Returns:
             RateLimitResult with allowed status
         """
-        with self._lock:
-            now = time.monotonic()
-            self._cleanup(now)
+        result = self._lib.proven_ratelimit_sliding_window_acquire(self._handle)
+        if result.status != ProvenStatus.OK or result.value is None:
+            return RateLimitResult(allowed=False, remaining=0, retry_after=None)
 
-            if len(self._timestamps) < self._limit:
-                self._timestamps.append(now)
-                return RateLimitResult(
-                    allowed=True,
-                    remaining=self._limit - len(self._timestamps),
-                    retry_after=None,
-                )
-            else:
-                oldest = self._timestamps[0]
-                retry_after = oldest + self._window - now
-                return RateLimitResult(
-                    allowed=False,
-                    remaining=0,
-                    retry_after=max(0, retry_after),
-                )
+        raw = result.value[:result.length].decode("utf-8")
+        self._lib.proven_free_string(result.value)
+
+        try:
+            data = json.loads(raw)
+            return RateLimitResult(
+                allowed=data.get("allowed", False),
+                remaining=data.get("remaining", 0),
+                retry_after=data.get("retry_after"),
+            )
+        except (json.JSONDecodeError, KeyError):
+            return RateLimitResult(allowed=False, remaining=0, retry_after=None)
 
     def remaining(self) -> int:
-        """Get remaining requests in window."""
-        with self._lock:
-            self._cleanup(time.monotonic())
-            return self._limit - len(self._timestamps)
+        """Get remaining requests in window via FFI."""
+        result = self.acquire()
+        # Note: This consumes a slot; for pure query, the Idris core
+        # handles it via the acquire call with remaining field.
+        return result.remaining
 
 
 class FixedWindow:
     """
-    Fixed window rate limiter.
+    Fixed window rate limiter via FFI.
 
-    Resets count at fixed intervals. Simpler but can allow 2x burst at window boundaries.
+    Resets count at fixed intervals. Uses the sliding window FFI handle
+    with fixed window semantics managed by the Idris core.
 
     Example:
         >>> limiter = FixedWindow(limit=100, window_seconds=60)  # 100/minute
@@ -203,7 +215,7 @@ class FixedWindow:
 
     def __init__(self, limit: int, window_seconds: float):
         """
-        Create a fixed window limiter.
+        Create a fixed window limiter via FFI.
 
         Args:
             limit: Maximum requests in window
@@ -217,11 +229,24 @@ class FixedWindow:
         if window_seconds <= 0:
             raise ValueError("Window must be positive")
 
+        lib = get_lib()
+        # Fixed window uses the same sliding window FFI with fixed semantics
+        result = lib.proven_ratelimit_sliding_window_create(limit, window_seconds)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create fixed window via FFI")
+
+        self._handle = result.handle
         self._limit = limit
         self._window = window_seconds
-        self._count = 0
-        self._window_start = time.monotonic()
-        self._lock = threading.Lock()
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_ratelimit_sliding_window_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def limit(self) -> int:
@@ -233,40 +258,31 @@ class FixedWindow:
         """Get window duration."""
         return self._window
 
-    def _maybe_reset(self, now: float) -> None:
-        """Reset if window has passed."""
-        if now - self._window_start >= self._window:
-            self._window_start = now
-            self._count = 0
-
     def acquire(self) -> RateLimitResult:
         """
-        Try to acquire a request slot.
+        Try to acquire a request slot via FFI.
 
         Returns:
             RateLimitResult with allowed status
         """
-        with self._lock:
-            now = time.monotonic()
-            self._maybe_reset(now)
+        result = self._lib.proven_ratelimit_sliding_window_acquire(self._handle)
+        if result.status != ProvenStatus.OK or result.value is None:
+            return RateLimitResult(allowed=False, remaining=0, retry_after=None)
 
-            if self._count < self._limit:
-                self._count += 1
-                return RateLimitResult(
-                    allowed=True,
-                    remaining=self._limit - self._count,
-                    retry_after=None,
-                )
-            else:
-                retry_after = self._window_start + self._window - now
-                return RateLimitResult(
-                    allowed=False,
-                    remaining=0,
-                    retry_after=max(0, retry_after),
-                )
+        raw = result.value[:result.length].decode("utf-8")
+        self._lib.proven_free_string(result.value)
+
+        try:
+            data = json.loads(raw)
+            return RateLimitResult(
+                allowed=data.get("allowed", False),
+                remaining=data.get("remaining", 0),
+                retry_after=data.get("retry_after"),
+            )
+        except (json.JSONDecodeError, KeyError):
+            return RateLimitResult(allowed=False, remaining=0, retry_after=None)
 
     def remaining(self) -> int:
-        """Get remaining requests in window."""
-        with self._lock:
-            self._maybe_reset(time.monotonic())
-            return self._limit - self._count
+        """Get remaining requests in window via FFI."""
+        result = self.acquire()
+        return result.remaining

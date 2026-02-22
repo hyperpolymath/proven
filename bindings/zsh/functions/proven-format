@@ -1,0 +1,185 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Proven Safety Library - Zsh Formatting Functions
+#
+# Date/time, color, version, angle, unit, and currency formatting functions
+# that delegate to proven-cli. Source this file or let proven.zsh auto-load it.
+
+# ---------------------------------------------------------------------------
+# SafeDateTime - ISO 8601 date/time
+# ---------------------------------------------------------------------------
+
+# Parse and format an ISO 8601 datetime string.
+# Usage: proven-format-datetime "2026-01-15T10:30:00Z"
+proven-format-datetime() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-format-datetime <iso8601-string>" >&2
+        return 1
+    fi
+    _proven_call datetime parse "$1"
+}
+
+# Check if a year is a leap year.
+# Usage: proven-is-leap-year 2024
+proven-is-leap-year() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-is-leap-year <year>" >&2
+        return 1
+    fi
+    _proven_call datetime is-leap-year "$1"
+}
+
+# Get the number of days in a month.
+# Usage: proven-days-in-month 2024 2
+proven-days-in-month() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-days-in-month <year> <month>" >&2
+        return 1
+    fi
+    _proven_call datetime days-in-month "$1" "$2"
+}
+
+# ---------------------------------------------------------------------------
+# SafeColor - Color parsing
+# ---------------------------------------------------------------------------
+
+# Parse a hex color string to RGB components.
+# Usage: proven-parse-color "#FF5733"
+proven-parse-color() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-parse-color <hex-color>" >&2
+        return 1
+    fi
+    _proven_call color parse-hex "$1"
+}
+
+# ---------------------------------------------------------------------------
+# SafeVersion - Semantic versioning
+# ---------------------------------------------------------------------------
+
+# Parse a semantic version string.
+# Usage: proven-parse-version "1.2.3-alpha"
+proven-parse-version() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-parse-version <semver>" >&2
+        return 1
+    fi
+    _proven_call version parse "$1"
+}
+
+# Compare two semantic versions (-1, 0, or 1).
+# Usage: proven-version-compare "1.2.3" "1.3.0"
+proven-version-compare() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-version-compare <version-a> <version-b>" >&2
+        return 1
+    fi
+    _proven_call version compare "$1" "$2"
+}
+
+# ---------------------------------------------------------------------------
+# SafeAngle - Angle conversions
+# ---------------------------------------------------------------------------
+
+# Convert degrees to radians.
+# Usage: proven-deg-to-rad 180
+proven-deg-to-rad() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-deg-to-rad <degrees>" >&2
+        return 1
+    fi
+    _proven_call angle deg-to-rad "$1"
+}
+
+# Convert radians to degrees.
+# Usage: proven-rad-to-deg 3.14159
+proven-rad-to-deg() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-rad-to-deg <radians>" >&2
+        return 1
+    fi
+    _proven_call angle rad-to-deg "$1"
+}
+
+# ---------------------------------------------------------------------------
+# SafeUnit - Physical unit conversions
+# ---------------------------------------------------------------------------
+
+# Convert length between units.
+# Usage: proven-convert-length 5280 feet meters
+proven-convert-length() {
+    if [[ $# -ne 3 ]]; then
+        echo "Usage: proven-convert-length <value> <from-unit> <to-unit>" >&2
+        return 1
+    fi
+    _proven_call unit convert-length "$1" "$2" "$3"
+}
+
+# Convert temperature between units.
+# Usage: proven-convert-temp 100 celsius fahrenheit
+proven-convert-temp() {
+    if [[ $# -ne 3 ]]; then
+        echo "Usage: proven-convert-temp <value> <from-unit> <to-unit>" >&2
+        return 1
+    fi
+    _proven_call unit convert-temp "$1" "$2" "$3"
+}
+
+# ---------------------------------------------------------------------------
+# SafeUUID - UUID generation
+# ---------------------------------------------------------------------------
+
+# Generate a random UUID v4.
+# Usage: proven-uuid-v4
+proven-uuid-v4() {
+    _proven_call uuid v4
+}
+
+# ---------------------------------------------------------------------------
+# SafeCurrency - Monetary values
+# ---------------------------------------------------------------------------
+
+# Parse a currency amount string.
+# Usage: proven-parse-currency "USD 123.45"
+proven-parse-currency() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-parse-currency <amount>" >&2
+        return 1
+    fi
+    _proven_call currency parse "$1"
+}
+
+# ---------------------------------------------------------------------------
+# SafeString - String escaping
+# ---------------------------------------------------------------------------
+
+# Escape a string for safe HTML interpolation (prevent XSS).
+# Usage: proven-sanitize-string "<script>alert(1)</script>"
+proven-sanitize-string() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-sanitize-string <input>" >&2
+        return 1
+    fi
+    _proven_call string escape-html "$1"
+}
+
+# Escape a string for safe SQL interpolation.
+# Usage: proven-escape-sql "Robert'; DROP TABLE students;--"
+proven-escape-sql() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-escape-sql <input>" >&2
+        return 1
+    fi
+    _proven_call string escape-sql "$1"
+}
+
+# Escape a string for safe JavaScript interpolation.
+# Usage: proven-escape-js "alert('xss')"
+proven-escape-js() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-escape-js <input>" >&2
+        return 1
+    fi
+    _proven_call string escape-js "$1"
+}

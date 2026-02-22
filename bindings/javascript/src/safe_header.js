@@ -1,262 +1,131 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * SafeHeader - HTTP header validation without CRLF injection.
+ * SafeHeader - HTTP header operations that prevent CRLF injection.
  *
- * Provides safe HTTP header operations.
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
  * @module
  */
 
+import { getLib, ProvenStatus, statusToError, readAndFreeString } from './ffi.js';
 import { ok, err } from './result.js';
 
 /**
- * HTTP header.
- * @typedef {Object} Header
- * @property {string} name - Header name
- * @property {string} value - Header value
+ * Header name constants (for convenience, not exhaustive).
+ * @readonly
+ * @enum {string}
  */
+export const HeaderName = Object.freeze({
+  CONTENT_TYPE: 'Content-Type',
+  CONTENT_LENGTH: 'Content-Length',
+  AUTHORIZATION: 'Authorization',
+  HOST: 'Host',
+  USER_AGENT: 'User-Agent',
+  ACCEPT: 'Accept',
+  CACHE_CONTROL: 'Cache-Control',
+  SET_COOKIE: 'Set-Cookie',
+  STRICT_TRANSPORT_SECURITY: 'Strict-Transport-Security',
+  CONTENT_SECURITY_POLICY: 'Content-Security-Policy',
+});
 
 /**
- * Safe HTTP header operations.
+ * Safe HTTP header operations backed by formally verified Idris 2 code.
  */
 export class SafeHeader {
   /**
-   * Validate and create a header.
+   * Check for CRLF injection characters in a header value.
    *
-   * @param {string} name - Header name
-   * @param {string} value - Header value
-   * @returns {{ ok: true, value: Header } | { ok: false, error: string }}
-   *
-   * @example
-   * SafeHeader.create("Content-Type", "application/json")
+   * @param {string} value - The header value to check.
+   * @returns {{ ok: true, value: boolean } | { ok: false, error: string }}
    */
-  static create(name, value) {
-    // Validate name
-    const nameResult = SafeHeader.validateName(name);
-    if (!nameResult.ok) {
-      return nameResult;
-    }
-
-    // Validate value
-    const valueResult = SafeHeader.validateValue(value);
-    if (!valueResult.ok) {
-      return valueResult;
-    }
-
-    return ok({
-      name: nameResult.value,
-      value: valueResult.value,
-    });
+  static hasCrlf(value) {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(value);
+    const result = symbols.proven_header_has_crlf(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
   }
 
   /**
-   * Validate a header name.
+   * Check if a header name is a valid token per RFC 7230.
    *
-   * @param {string} name - Header name
+   * @param {string} name - The header name to validate.
+   * @returns {{ ok: true, value: boolean } | { ok: false, error: string }}
+   */
+  static isValidName(name) {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(name);
+    const result = symbols.proven_header_is_valid_name(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Check if a header name is in the dangerous headers list.
+   *
+   * @param {string} name - The header name to check.
+   * @returns {{ ok: true, value: boolean } | { ok: false, error: string }}
+   */
+  static isDangerous(name) {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(name);
+    const result = symbols.proven_header_is_dangerous(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Create a validated header string "Name: Value".
+   *
+   * @param {string} name - The header name.
+   * @param {string} value - The header value.
    * @returns {{ ok: true, value: string } | { ok: false, error: string }}
    */
-  static validateName(name) {
-    if (typeof name !== 'string') {
-      return err('Header name must be a string');
-    }
-
-    const trimmed = name.trim();
-    if (trimmed.length === 0) {
-      return err('Header name cannot be empty');
-    }
-
-    // Check for invalid characters (only token characters allowed per RFC 7230)
-    // Token = 1*tchar
-    // tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
-    //         "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
-    if (!/^[\w!#$%&'*+\-.^`|~]+$/.test(trimmed)) {
-      return err('Header name contains invalid characters');
-    }
-
-    // Check for CRLF injection
-    if (/[\r\n]/.test(name)) {
-      return err('Header name contains CRLF characters');
-    }
-
-    return ok(trimmed);
+  static render(name, value) {
+    const symbols = getLib();
+    const nameBytes = new TextEncoder().encode(name);
+    const valueBytes = new TextEncoder().encode(value);
+    const result = symbols.proven_header_render(
+      nameBytes, nameBytes.length,
+      valueBytes, valueBytes.length,
+    );
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const rendered = readAndFreeString(result[1], Number(result[2]));
+    if (rendered === null) return err('Null string returned');
+    return ok(rendered);
   }
 
   /**
-   * Validate a header value.
+   * Build Content-Security-Policy header value from directives JSON.
    *
-   * @param {string} value - Header value
+   * @param {string} directivesJson - JSON string of CSP directives.
    * @returns {{ ok: true, value: string } | { ok: false, error: string }}
    */
-  static validateValue(value) {
-    if (typeof value !== 'string') {
-      return err('Header value must be a string');
-    }
-
-    // Check for CRLF injection
-    if (/[\r\n]/.test(value)) {
-      return err('Header value contains CRLF characters (injection attempt)');
-    }
-
-    // Check for null bytes
-    if (value.includes('\x00')) {
-      return err('Header value contains null bytes');
-    }
-
-    return ok(value.trim());
+  static buildCsp(directivesJson) {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(directivesJson);
+    const result = symbols.proven_header_build_csp(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const csp = readAndFreeString(result[1], Number(result[2]));
+    if (csp === null) return err('Null string returned');
+    return ok(csp);
   }
 
   /**
-   * Sanitize a header value (remove dangerous characters).
+   * Build HSTS (Strict-Transport-Security) header value.
    *
-   * @param {string} value - Header value to sanitize
-   * @returns {string}
+   * @param {number} maxAge - Max age in seconds.
+   * @param {boolean} includeSubdomains - Whether to include subdomains.
+   * @param {boolean} preload - Whether to include preload directive.
+   * @returns {{ ok: true, value: string } | { ok: false, error: string }}
    */
-  static sanitizeValue(value) {
-    // Remove CRLF and null bytes
-    return value.replace(/[\r\n\x00]/g, '');
-  }
-
-  /**
-   * Parse a raw header line.
-   *
-   * @param {string} line - Raw header line (e.g., "Content-Type: text/html")
-   * @returns {{ ok: true, value: Header } | { ok: false, error: string }}
-   */
-  static parseLine(line) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) {
-      return err('Invalid header line: missing colon');
-    }
-
-    const name = line.slice(0, colonIndex);
-    const value = line.slice(colonIndex + 1);
-
-    return SafeHeader.create(name, value);
-  }
-
-  /**
-   * Format a header as a string.
-   *
-   * @param {Header} header - Header to format
-   * @returns {string}
-   */
-  static format(header) {
-    return `${header.name}: ${header.value}`;
-  }
-
-  /**
-   * Check if header name is a standard HTTP header.
-   *
-   * @param {string} name - Header name
-   * @returns {boolean}
-   */
-  static isStandardHeader(name) {
-    const standardHeaders = new Set([
-      'accept',
-      'accept-charset',
-      'accept-encoding',
-      'accept-language',
-      'accept-ranges',
-      'access-control-allow-credentials',
-      'access-control-allow-headers',
-      'access-control-allow-methods',
-      'access-control-allow-origin',
-      'access-control-expose-headers',
-      'access-control-max-age',
-      'access-control-request-headers',
-      'access-control-request-method',
-      'age',
-      'allow',
-      'authorization',
-      'cache-control',
-      'connection',
-      'content-disposition',
-      'content-encoding',
-      'content-language',
-      'content-length',
-      'content-location',
-      'content-range',
-      'content-security-policy',
-      'content-type',
-      'cookie',
-      'date',
-      'etag',
-      'expect',
-      'expires',
-      'forwarded',
-      'from',
-      'host',
-      'if-match',
-      'if-modified-since',
-      'if-none-match',
-      'if-range',
-      'if-unmodified-since',
-      'last-modified',
-      'location',
-      'origin',
-      'pragma',
-      'proxy-authenticate',
-      'proxy-authorization',
-      'range',
-      'referer',
-      'retry-after',
-      'server',
-      'set-cookie',
-      'strict-transport-security',
-      'te',
-      'trailer',
-      'transfer-encoding',
-      'upgrade',
-      'user-agent',
-      'vary',
-      'via',
-      'warning',
-      'www-authenticate',
-      'x-content-type-options',
-      'x-frame-options',
-      'x-xss-protection',
-    ]);
-    return standardHeaders.has(name.toLowerCase());
-  }
-
-  /**
-   * Check if header is a security-sensitive header.
-   *
-   * @param {string} name - Header name
-   * @returns {boolean}
-   */
-  static isSecurityHeader(name) {
-    const securityHeaders = new Set([
-      'authorization',
-      'cookie',
-      'set-cookie',
-      'x-api-key',
-      'x-auth-token',
-      'www-authenticate',
-      'proxy-authorization',
-      'proxy-authenticate',
-    ]);
-    return securityHeaders.has(name.toLowerCase());
-  }
-
-  /**
-   * Normalize header name to lowercase.
-   *
-   * @param {string} name - Header name
-   * @returns {string}
-   */
-  static normalizeName(name) {
-    return name.toLowerCase();
-  }
-
-  /**
-   * Get Content-Type charset from header value.
-   *
-   * @param {string} contentType - Content-Type header value
-   * @returns {string | null}
-   */
-  static getCharset(contentType) {
-    const match = contentType.match(/charset=([^\s;]+)/i);
-    return match ? match[1].replace(/["']/g, '') : null;
+  static buildHsts(maxAge, includeSubdomains, preload) {
+    const symbols = getLib();
+    const result = symbols.proven_header_build_hsts(BigInt(maxAge), includeSubdomains, preload);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const hsts = readAndFreeString(result[1], Number(result[2]));
+    if (hsts === null) return err('Null string returned');
+    return ok(hsts);
   }
 }

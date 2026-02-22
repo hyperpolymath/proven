@@ -1,0 +1,17 @@
+;; SPDX-License-Identifier: PMPL-1.0-or-later
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+;; ClojureScript dependencies for the proven bindings.
+;; Uses shadow-cljs for compilation targeting Node.js.
+
+{:paths ["src"]
+
+ :deps
+ {org.clojure/clojurescript {:mvn/version "1.11.132"}
+  thheller/shadow-cljs      {:mvn/version "2.28.18"}}
+
+ :aliases
+ {:dev
+  {:extra-paths ["test"]
+   :extra-deps
+   {org.clojure/test.check {:mvn/version "1.1.1"}}}}}

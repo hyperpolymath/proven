@@ -1,71 +1,48 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeString provides text operations that handle encoding safely.
+// All computation is performed in Idris 2 via the Proven FFI.
 
 package proven
 
-import (
-	"net/url"
-	"strings"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
+import "unsafe"
 
-// EscapeHTML escapes a string for safe HTML insertion.
-func EscapeHTML(value string) string {
-	replacer := strings.NewReplacer(
-		"&", "&amp;",
-		"<", "&lt;",
-		">", "&gt;",
-		"\"", "&quot;",
-		"'", "&#x27;",
-	)
-	return replacer.Replace(value)
+// IsValidUTF8 checks whether a byte sequence is valid UTF-8.
+func IsValidUTF8(data []byte) (bool, error) {
+	ptr, length := cBytes(data)
+	if ptr != nil {
+		defer C.free(unsafe.Pointer(ptr))
+	}
+	result := C.proven_string_is_valid_utf8(ptr, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
+	}
+	return bool(result.value), nil
 }
 
-// EscapeSQL escapes a string for safe SQL interpolation.
-// Note: Prefer parameterized queries over string interpolation.
-func EscapeSQL(value string) string {
-	return strings.ReplaceAll(value, "'", "''")
+// EscapeSQL escapes a string for safe SQL interpolation (single quotes).
+// Prefer parameterized queries over string interpolation.
+func EscapeSQL(input string) (string, error) {
+	cs, length := cString(input)
+	defer unsafeFree(cs)
+	return goStringResult(C.proven_string_escape_sql(cs, length))
+}
+
+// EscapeHTML escapes a string for safe HTML insertion (< > & " ').
+func EscapeHTML(input string) (string, error) {
+	cs, length := cString(input)
+	defer unsafeFree(cs)
+	return goStringResult(C.proven_string_escape_html(cs, length))
 }
 
 // EscapeJS escapes a string for safe JavaScript string literal insertion.
-func EscapeJS(value string) string {
-	replacer := strings.NewReplacer(
-		"\\", "\\\\",
-		"\"", "\\\"",
-		"'", "\\'",
-		"\n", "\\n",
-		"\r", "\\r",
-		"\t", "\\t",
-	)
-	return replacer.Replace(value)
-}
-
-// EscapeURL percent-encodes a string for safe URL inclusion.
-func EscapeURL(value string) string {
-	return url.QueryEscape(value)
-}
-
-// TruncateSafe safely truncates a string to a maximum length.
-func TruncateSafe(value string, maxLength int, suffix string) string {
-	if maxLength < 0 {
-		return ""
-	}
-
-	runes := []rune(value)
-	if len(runes) <= maxLength {
-		return value
-	}
-
-	suffixRunes := []rune(suffix)
-	suffixLen := len(suffixRunes)
-
-	if maxLength <= suffixLen {
-		return string(runes[:maxLength])
-	}
-
-	return string(runes[:maxLength-suffixLen]) + suffix
-}
-
-// TruncateSafeDefault truncates with "..." as the default suffix.
-func TruncateSafeDefault(value string, maxLength int) string {
-	return TruncateSafe(value, maxLength, "...")
+func EscapeJS(input string) (string, error) {
+	cs, length := cString(input)
+	defer unsafeFree(cs)
+	return goStringResult(C.proven_string_escape_js(cs, length))
 }

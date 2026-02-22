@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+[brick]
+name = "proven"
+version = "0.9.0"
+chplVersion = "1.31.0..2.3.0"
+license = "PMPL-1.0-or-later"
+authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+source = "src/"
+
+[dependencies]
+
+[external]
+# libproven must be installed and findable via -lproven
+# or via CHPL_LIB_PATH / LD_LIBRARY_PATH.

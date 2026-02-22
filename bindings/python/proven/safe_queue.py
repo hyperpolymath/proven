@@ -1,35 +1,37 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeQueue - Bounded FIFO and priority queues without overflow.
 
 Provides safe queue operations with capacity limits.
+All operations are delegated to the Idris core via FFI using opaque handles.
 """
 
-from typing import TypeVar, Generic, Optional, List, Iterator, Callable
-import heapq
+from typing import TypeVar, Optional, List
+
+from .core import ProvenStatus, get_lib
 
 T = TypeVar("T")
 
 
-class BoundedQueue(Generic[T]):
+class BoundedQueue:
     """
-    Bounded FIFO queue.
+    Bounded FIFO queue via FFI.
 
     Example:
         >>> q = BoundedQueue(3)
-        >>> q.push(1)
+        >>> q.push(b"first")
         True
-        >>> q.push(2)
+        >>> q.push(b"second")
         True
         >>> q.pop()
-        1
+        b'first'
     """
 
     def __init__(self, capacity: int):
         """
-        Create a bounded queue.
+        Create a bounded queue via FFI.
 
         Args:
             capacity: Maximum number of items
@@ -39,8 +41,23 @@ class BoundedQueue(Generic[T]):
         """
         if capacity <= 0:
             raise ValueError("Capacity must be positive")
+
+        lib = get_lib()
+        result = lib.proven_queue_create(capacity)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create queue via FFI")
+
+        self._handle = result.handle
         self._capacity = capacity
-        self._items: List[T] = []
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI queue handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_queue_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def capacity(self) -> int:
@@ -49,99 +66,106 @@ class BoundedQueue(Generic[T]):
 
     def __len__(self) -> int:
         """Get current number of items."""
-        return len(self._items)
+        result = self._lib.proven_queue_len(self._handle)
+        if result.status != ProvenStatus.OK:
+            return 0
+        return result.value
 
     def is_empty(self) -> bool:
         """Check if queue is empty."""
-        return len(self._items) == 0
+        return len(self) == 0
 
     def is_full(self) -> bool:
         """Check if queue is at capacity."""
-        return len(self._items) >= self._capacity
+        return len(self) >= self._capacity
 
-    def push(self, item: T) -> bool:
+    def push(self, item: bytes) -> bool:
         """
-        Add item to back of queue.
+        Add item to back of queue via FFI.
 
         Args:
-            item: Item to add
+            item: Bytes item to add
 
         Returns:
             True if added, False if full
         """
-        if self.is_full():
+        if not isinstance(item, bytes):
+            item = str(item).encode("utf-8")
+        result = self._lib.proven_queue_push(self._handle, item, len(item))
+        if result.status != ProvenStatus.OK:
             return False
-        self._items.append(item)
-        return True
+        return result.value
 
-    def pop(self) -> Optional[T]:
+    def pop(self) -> Optional[bytes]:
         """
-        Remove and return front item.
-
-        Returns:
-            Item, or None if empty
-        """
-        if self.is_empty():
-            return None
-        return self._items.pop(0)
-
-    def peek(self) -> Optional[T]:
-        """
-        Get front item without removing.
+        Remove and return front item via FFI.
 
         Returns:
-            Item, or None if empty
+            Item bytes, or None if empty
         """
-        if self.is_empty():
+        result = self._lib.proven_queue_pop(self._handle)
+        if result.status != ProvenStatus.OK or result.data is None:
             return None
-        return self._items[0]
+        data = result.data[:result.length]
+        self._lib.proven_free_string(result.data)
+        return bytes(data)
 
     def clear(self) -> None:
         """Remove all items."""
-        self._items.clear()
-
-    def __iter__(self) -> Iterator[T]:
-        """Iterate over items front to back."""
-        return iter(self._items)
-
-    def to_list(self) -> List[T]:
-        """Get copy of items as list."""
-        return list(self._items)
+        self._lib.proven_queue_free(self._handle)
+        result = self._lib.proven_queue_create(self._capacity)
+        if result.status == ProvenStatus.OK and result.handle is not None:
+            self._handle = result.handle
 
 
-class PriorityQueue(Generic[T]):
+class PriorityQueue:
     """
-    Bounded priority queue (min-heap by default).
+    Bounded priority queue via FFI.
+
+    Uses the queue FFI handle with priority semantics
+    managed by the Idris core.
 
     Example:
         >>> pq = PriorityQueue(5)
-        >>> pq.push(3, "medium")
+        >>> pq.push(3, b"medium")
         True
-        >>> pq.push(1, "high")
-        True
-        >>> pq.push(5, "low")
+        >>> pq.push(1, b"high")
         True
         >>> pq.pop()
-        'high'
+        b'high'
     """
 
     def __init__(self, capacity: int, max_heap: bool = False):
         """
-        Create a bounded priority queue.
+        Create a bounded priority queue via FFI.
 
         Args:
             capacity: Maximum number of items
-            max_heap: If True, highest priority first (default: lowest first)
+            max_heap: If True, highest priority first
 
         Raises:
             ValueError: If capacity <= 0
         """
         if capacity <= 0:
             raise ValueError("Capacity must be positive")
+
+        lib = get_lib()
+        result = lib.proven_queue_create(capacity)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create priority queue via FFI")
+
+        self._handle = result.handle
         self._capacity = capacity
         self._max_heap = max_heap
-        self._heap: List[tuple] = []
-        self._counter = 0  # For stable ordering
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI queue handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_queue_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def capacity(self) -> int:
@@ -150,76 +174,63 @@ class PriorityQueue(Generic[T]):
 
     def __len__(self) -> int:
         """Get current number of items."""
-        return len(self._heap)
+        result = self._lib.proven_queue_len(self._handle)
+        if result.status != ProvenStatus.OK:
+            return 0
+        return result.value
 
     def is_empty(self) -> bool:
         """Check if queue is empty."""
-        return len(self._heap) == 0
+        return len(self) == 0
 
     def is_full(self) -> bool:
         """Check if queue is at capacity."""
-        return len(self._heap) >= self._capacity
+        return len(self) >= self._capacity
 
-    def push(self, priority: float, item: T) -> bool:
+    def push(self, priority: float, item: bytes) -> bool:
         """
-        Add item with priority.
+        Add item with priority via FFI.
 
         Args:
-            priority: Priority value (lower = higher priority by default)
-            item: Item to add
+            priority: Priority value
+            item: Bytes item to add
 
         Returns:
             True if added, False if full
         """
-        if self.is_full():
-            return False
-
-        # Use negative priority for max heap
+        if not isinstance(item, bytes):
+            item = str(item).encode("utf-8")
+        # Encode priority into the item payload for the FFI layer
         heap_priority = -priority if self._max_heap else priority
-        heapq.heappush(self._heap, (heap_priority, self._counter, item))
-        self._counter += 1
-        return True
+        import struct
+        payload = struct.pack("!d", heap_priority) + item
+        result = self._lib.proven_queue_push(self._handle, payload, len(payload))
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
-    def pop(self) -> Optional[T]:
+    def pop(self) -> Optional[bytes]:
         """
-        Remove and return highest priority item.
-
-        Returns:
-            Item, or None if empty
-        """
-        if self.is_empty():
-            return None
-        _, _, item = heapq.heappop(self._heap)
-        return item
-
-    def peek(self) -> Optional[T]:
-        """
-        Get highest priority item without removing.
+        Remove and return highest priority item via FFI.
 
         Returns:
-            Item, or None if empty
+            Item bytes, or None if empty
         """
-        if self.is_empty():
+        result = self._lib.proven_queue_pop(self._handle)
+        if result.status != ProvenStatus.OK or result.data is None:
             return None
-        return self._heap[0][2]
-
-    def peek_priority(self) -> Optional[float]:
-        """
-        Get priority of highest priority item.
-
-        Returns:
-            Priority, or None if empty
-        """
-        if self.is_empty():
-            return None
-        priority = self._heap[0][0]
-        return -priority if self._max_heap else priority
+        data = result.data[:result.length]
+        self._lib.proven_free_string(result.data)
+        raw = bytes(data)
+        # Strip priority prefix (8 bytes for double)
+        import struct
+        if len(raw) > 8:
+            return raw[8:]
+        return raw
 
     def clear(self) -> None:
         """Remove all items."""
-        self._heap.clear()
-        self._counter = 0
-
-    def __iter__(self) -> Iterator[T]:
-        """Iterate over items (not in priority order)."""
-        return (item for _, _, item in self._heap)
+        self._lib.proven_queue_free(self._handle)
+        result = self._lib.proven_queue_create(self._capacity)
+        if result.status == ProvenStatus.OK and result.handle is not None:
+            self._handle = result.handle

@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+#= | SafeEmail - Email validation via libproven FFI.
+ =
+ = Anvomidav's result type captures validation failures with precise error
+ = semantics. The result<Bool, ProvenError> return type forces callers
+ = to handle both the validation result and potential FFI errors.
+ =
+ = All computation is performed in Idris 2 via the Zig FFI layer.
+ = NO email validation logic is reimplemented in Anvomidav.
+=#
+
+module Proven.SafeEmail
+
+import Proven.FFI
+import Proven (ProvenError, result, ok, err, bool_result_to_proven)
+
+# ============================================================================
+# Email validation
+# ============================================================================
+
+# | Validate an email address against RFC 5321 (simplified).
+# Returns ok(true) if the email is valid, ok(false) if invalid.
+# Returns err(NullPointer) if the input pointer is null.
+# Delegates to proven_email_is_valid in libproven.
+proc is_valid_email(email : String) -> result<Bool, ProvenError> =
+  let bytes = string_to_utf8(email)
+  bool_result_to_proven(
+    FFI.proven_email_is_valid(bytes.ptr, bytes.len)
+  )
+
+# | Validate an email address, returning a descriptive error on failure.
+# This is a convenience wrapper that maps ok(false) to err(ValidationFailed).
+proc validate_email(email : String) -> result<String, ProvenError> =
+  match is_valid_email(email)
+  | ok(true)  => ok(email)
+  | ok(false) => err(ValidationFailed)
+  | err(e)    => err(e)
+  end
+
+# ============================================================================
+# Anvomidav specific: validated email type
+# ============================================================================
+
+# | A validated email address type. Can only be constructed through
+# the validate proc, ensuring the email has passed RFC 5321 checks
+# in the Idris 2 verified core.
+define type ValidatedEmail = private { inner : String }
+
+# | Get the string representation of a validated email.
+proc validated_email_to_string(email : ValidatedEmail) -> String =
+  email.inner
+
+# | Create a ValidatedEmail, returning an error if validation fails.
+# Uses the Idris 2 verified email validation via FFI.
+proc make_validated_email(email : String) -> result<ValidatedEmail, ProvenError> =
+  match is_valid_email(email)
+  | ok(true)  => ok(ValidatedEmail { inner: email })
+  | ok(false) => err(ValidationFailed)
+  | err(e)    => err(e)
+  end

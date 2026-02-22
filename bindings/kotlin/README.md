@@ -1,6 +1,12 @@
 # proven-kt
 
-Kotlin bindings for the [proven](https://github.com/hyperpolymath/proven) library - safe, formally verified operations for math, crypto, parsing, and validation.
+Kotlin JNA bindings for [libproven](https://github.com/hyperpolymath/proven) -- a formally verified safety library (Idris 2 + Zig FFI).
+
+All computation is performed by the native `libproven` shared library. This binding contains **only** JNA-based data marshaling -- no logic is reimplemented on the JVM.
+
+## Prerequisites
+
+`libproven.so` (Linux), `libproven.dylib` (macOS), or `proven.dll` (Windows) must be available on the JNA library path at runtime.
 
 ## Installation
 
@@ -8,125 +14,97 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.hyperpolymath:proven:0.4.0")
+    implementation("io.github.hyperpolymath:proven:0.9.0")
 }
 ```
-
-Or in Maven `pom.xml`:
-
-```xml
-<dependency>
-    <groupId>com.hyperpolymath</groupId>
-    <artifactId>proven</artifactId>
-    <version>0.4.0</version>
-</dependency>
-```
-
-## Modules (38)
-
-### Core Modules (11)
-- **SafeMath**: Overflow detection, safe division, bounded integers
-- **SafeString**: UTF-8 validation, injection-safe escaping (HTML, SQL, JS, URL, shell)
-- **SafePath**: Path traversal prevention
-- **SafeEmail**: RFC 5321/5322 validation
-- **SafeUrl**: RFC 3986 compliant parsing
-- **SafeNetwork**: IPv4/IPv6 parsing, CIDR notation
-- **SafeCrypto**: Secure hashing (SHA-3, BLAKE3)
-- **SafeUuid**: UUID generation and validation
-- **SafeCurrency**: Currency handling with precision
-- **SafePhone**: Phone number parsing and validation
-- **SafeHex**: Hexadecimal encoding/decoding
-
-### Data Modules (7)
-- **SafeJson**: Exception-free parsing with validation
-- **SafeDatetime**: ISO 8601 parsing, date validation
-- **SafeFloat**: NaN/Infinity prevention
-- **SafeVersion**: Semantic versioning
-- **SafeColor**: RGB/HSL with WCAG contrast
-- **SafeAngle**: Angle conversions and trigonometry
-- **SafeUnit**: Unit conversions (length, mass, temperature, etc.)
-
-### Data Structure Modules (5)
-- **SafeBuffer**: Bounded, ring, and growable buffers
-- **SafeQueue**: Priority queues and deques
-- **SafeBloom**: Bloom filters
-- **SafeLRU**: LRU caches with TTL
-- **SafeGraph**: Directed and undirected graphs with algorithms
-
-### Resilience Modules (4)
-- **SafeRateLimiter**: Token bucket, sliding window, leaky bucket
-- **SafeCircuitBreaker**: Circuit breaker pattern
-- **SafeRetry**: Retry strategies with backoff
-- **SafeMonotonic**: Monotonic counters and timestamps
-
-### State Modules (2)
-- **SafeStateMachine**: State machine builder
-- **SafeCalculator**: Expression parser and calculator
-
-### Algorithm Modules (4)
-- **SafeGeo**: Geographic calculations (haversine, bearing)
-- **SafeProbability**: Probability distributions
-- **SafeChecksum**: CRC-32, Adler-32, FNV, Luhn
-- **SafeTensor**: Tensor operations
-
-### Security Modules (2)
-- **SafePassword**: Password validation and generation
-- **SafeML**: Machine learning utilities
-
-### HTTP Modules (3)
-- **SafeHeader**: HTTP header validation
-- **SafeCookie**: HTTP cookie handling
-- **SafeContentType**: MIME type handling
 
 ## Usage
 
 ```kotlin
-import com.hyperpolymath.proven.*
+import io.github.hyperpolymath.proven.*
 
-// Safe math operations
-val sum = SafeMath.addChecked(Long.MAX_VALUE, 1)
-// Returns Result.failure (overflow detected)
+// Initialise the native runtime
+Proven.init()
 
-val div = SafeMath.divChecked(10, 0)
-// Returns Result.failure (division by zero)
+// Safe math (returns null on overflow / division by zero)
+val sum = SafeMath.add(Long.MAX_VALUE, 1L)   // null (overflow)
+val div = SafeMath.div(10L, 0L)              // null (division by zero)
+val ok  = SafeMath.add(2L, 3L)              // 5L
 
-// Safe string escaping
+// Safe string escaping (XSS prevention)
 val escaped = SafeString.escapeHtml("<script>alert('xss')</script>")
-// Returns "&lt;script&gt;..."
+// "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"
 
 // Email validation
 SafeEmail.isValid("user@example.com")  // true
 SafeEmail.isValid("invalid")           // false
 
-// JSON parsing
-val json = SafeJson.parse("""{"name": "Alice", "age": 30}""")
-val name = json.get("name")?.asString  // "Alice"
+// Path safety
+SafePath.hasTraversal("../../../etc/passwd")  // true
 
-// Rate limiting
-val limiter = TokenBucket(capacity = 100, refillRate = 10.0)
-if (limiter.tryAcquire()) {
-    // Request allowed
+// URL parsing
+val url = SafeUrl.parse("https://example.com:8080/path?q=1#frag")
+// ParsedUrl(scheme=https, host=example.com, port=8080, path=/path, query=q=1, fragment=frag)
+
+// Safe expression evaluation
+SafeCalculator.eval("(2 + 3) * 4")  // 20.0
+
+// Data structures (auto-closeable, backed by native memory)
+SafeQueue.create(100)?.use { queue ->
+    queue.push(42L)
+    val value = queue.pop()  // 42L
 }
 
-// State machines
-val machine = StateMachineBuilder<String, String>()
-    .initialState("idle")
-    .state("idle") {
-        on("start") { transitionTo("running") }
-    }
-    .state("running") {
-        on("stop") { transitionTo("idle") }
-    }
-    .build()
+// Cleanup
+Proven.deinit()
 ```
 
-## Features
+## Modules (38)
 
-- **Thread-safe**: Uses `ReentrantLock` for concurrent access
-- **Kotlin-idiomatic**: Value classes, sealed classes, extension functions
-- **Type-safe**: Leverages Kotlin's null safety and Result types
-- **Zero dependencies**: Pure Kotlin implementation
+All 103 exported FFI functions from libproven are wrapped, covering:
+
+- **SafeMath**: Overflow-safe arithmetic (div, mod, add, sub, mul, pow, abs, clamp)
+- **SafeString**: UTF-8 validation, SQL/HTML/JS escaping
+- **SafePath**: Traversal detection, filename sanitisation
+- **SafeEmail**: RFC 5321 email validation
+- **SafeUrl**: URL parsing into components
+- **SafeNetwork**: IPv4 parsing, private/loopback classification
+- **SafeCrypto**: Constant-time comparison, secure random bytes
+- **SafeJson**: JSON validation and type detection
+- **SafeDatetime**: ISO 8601 parsing/formatting, leap year, days-in-month
+- **SafeFloat**: Safe division, sqrt, ln, finiteness checks
+- **SafeVersion**: Semantic version parsing and comparison
+- **SafeColor**: Hex color parsing, RGB-to-HSL conversion
+- **SafeAngle**: Degree/radian conversion and normalisation
+- **SafeUnit**: Length and temperature unit conversion
+- **SafeBuffer**: Bounded buffer with append
+- **SafeQueue**: Bounded FIFO queue
+- **SafeBloom**: Bloom filter
+- **SafeLRU**: LRU cache
+- **SafeGraph**: Directed graph with adjacency matrix
+- **SafeRateLimiter**: Token bucket rate limiting
+- **SafeCircuitBreaker**: Circuit breaker pattern
+- **SafeRetry**: Exponential backoff configuration
+- **SafeMonotonic**: Monotonically increasing counter
+- **SafeStateMachine**: State machine with explicit transitions
+- **SafeCalculator**: Safe arithmetic expression evaluation
+
+## Architecture
+
+```
+Kotlin JNA binding (this package)
+    |
+    | JNA FFI calls
+    v
+libproven.so (Zig C ABI bridge)
+    |
+    | Calls compiled Idris 2 RefC output
+    v
+Idris 2 formally verified core (THE TRUTH)
+```
 
 ## License
 
-AGPL-3.0-or-later
+SPDX-License-Identifier: PMPL-1.0-or-later
+
+Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>

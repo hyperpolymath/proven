@@ -1,62 +1,47 @@
 {- SPDX-License-Identifier: PMPL-1.0-or-later -}
-{- SPDX-FileCopyrightText: 2025 Hyperpolymath -}
+{- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> -}
 
--- | Safe string operations for security-sensitive contexts.
+-- | Safe string operations via libproven FFI.
+--
+-- All escaping and validation is performed by the Idris 2 verified core.
+-- This module only marshals strings to/from the C ABI.
 module Proven.SafeString
-  ( escapeHtml
+  ( isValidUtf8
+  , escapeHtml
   , escapeSql
   , escapeJs
-  , escapeUrl
-  , truncateSafe
   ) where
 
-import Data.Char (ord)
-import Numeric (showHex)
+import qualified Data.ByteString as BS
+import Proven.FFI (c_proven_string_is_valid_utf8, c_proven_string_escape_html,
+                   c_proven_string_escape_sql, c_proven_string_escape_js,
+                   c_proven_free_string)
+import Proven.Core (withCStringLen', withByteString, boolResultToBool,
+                    stringResultToMaybe)
 
--- | Escape HTML special characters to prevent XSS attacks.
-escapeHtml :: String -> String
-escapeHtml = concatMap escapeChar
-  where
-    escapeChar '&'  = "&amp;"
-    escapeChar '<'  = "&lt;"
-    escapeChar '>'  = "&gt;"
-    escapeChar '"'  = "&quot;"
-    escapeChar '\'' = "&#x27;"
-    escapeChar c    = [c]
+-- | Check if a byte string is valid UTF-8.
+-- Delegates to @proven_string_is_valid_utf8@ in libproven.
+isValidUtf8 :: BS.ByteString -> IO (Maybe Bool)
+isValidUtf8 bs = withByteString bs $ \ptr len ->
+  boolResultToBool <$> c_proven_string_is_valid_utf8 ptr len
+
+-- | Escape HTML special characters to prevent XSS.
+-- Delegates to @proven_string_escape_html@ in libproven.
+escapeHtml :: String -> IO (Maybe String)
+escapeHtml str = withCStringLen' str $ \ptr len -> do
+  sr <- c_proven_string_escape_html ptr len
+  stringResultToMaybe c_proven_free_string sr
 
 -- | Escape single quotes for SQL strings.
-escapeSql :: String -> String
-escapeSql = concatMap escapeChar
-  where
-    escapeChar '\'' = "''"
-    escapeChar c    = [c]
+-- Delegates to @proven_string_escape_sql@ in libproven.
+escapeSql :: String -> IO (Maybe String)
+escapeSql str = withCStringLen' str $ \ptr len -> do
+  sr <- c_proven_string_escape_sql ptr len
+  stringResultToMaybe c_proven_free_string sr
 
 -- | Escape JavaScript special characters.
-escapeJs :: String -> String
-escapeJs = concatMap escapeChar
-  where
-    escapeChar '\\' = "\\\\"
-    escapeChar '"'  = "\\\""
-    escapeChar '\'' = "\\'"
-    escapeChar '\n' = "\\n"
-    escapeChar '\r' = "\\r"
-    escapeChar '\t' = "\\t"
-    escapeChar c    = [c]
-
--- | URL-encode a string.
-escapeUrl :: String -> String
-escapeUrl = concatMap escapeChar
-  where
-    escapeChar c
-      | isUnreserved c = [c]
-      | otherwise      = '%' : pad2 (showHex (ord c) "")
-    isUnreserved c = c `elem` (['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ "-_.~")
-    pad2 [x] = ['0', x]
-    pad2 xs  = xs
-
--- | Safely truncate a string with a suffix.
-truncateSafe :: String -> Int -> String -> String
-truncateSafe value maxLen suffix
-  | length value <= maxLen = value
-  | maxLen <= length suffix = take maxLen suffix
-  | otherwise = take (maxLen - length suffix) value ++ suffix
+-- Delegates to @proven_string_escape_js@ in libproven.
+escapeJs :: String -> IO (Maybe String)
+escapeJs str = withCStringLen' str $ \ptr len -> do
+  sr <- c_proven_string_escape_js ptr len
+  stringResultToMaybe c_proven_free_string sr

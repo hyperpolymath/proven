@@ -1,105 +1,87 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Safe Bloom filter operations.
+# Thin wrapper over libproven FFI -- all logic lives in Idris.
 
-## Safe Bloom filter implementation.
-
-import std/[options, hashes, math]
+import std/options
+import lib_proven
 
 type
   BloomFilter* = object
-    ## Bloom filter with configurable size and hash count.
-    bits: seq[bool]
-    size: int
-    numHashes: int
+    ## Bloom filter backed by libproven's verified implementation.
+    ## Uses an opaque pointer to the C-side ProvenBloomFilter.
+    handle: ptr ProvenBloomFilter
 
-proc optimalSize*(expectedItems: int, falsePositiveRate: float64): int =
-  ## Calculate optimal size for given parameters.
-  let n = expectedItems.float64
-  let p = falsePositiveRate
-  let ln2Sq = 0.4804530139182014  # ln(2)^2
-  let m = -(n * ln(p)) / ln2Sq
-  ceil(m).int
+  BloomFilterError* = object of CatchableError
+    ## Error raised when Bloom filter creation fails.
 
-proc optimalHashes*(filterSize, expectedItems: int): int =
-  ## Calculate optimal hash count.
-  let m = filterSize.float64
-  let n = expectedItems.float64
-  let k = (m / n) * 0.6931471805599453  # ln(2)
-  max(1, ceil(k).int)
+proc `=destroy`*(bf: BloomFilter) =
+  ## Destructor: automatically frees the underlying C Bloom filter.
+  if bf.handle != nil:
+    provenBloomFree(bf.handle)
 
-proc newBloomFilter*(size, numHashes: int): BloomFilter =
-  ## Create a new Bloom filter with the given size and hash count.
-  BloomFilter(
-    bits: newSeq[bool](size),
-    size: size,
-    numHashes: numHashes
-  )
+proc `=copy`*(dest: var BloomFilter, src: BloomFilter) {.error:
+  "BloomFilter cannot be copied; it owns an opaque C resource".}
 
-proc newBloomFilterWithRate*(expectedItems: int, falsePositiveRate: float64): BloomFilter =
-  ## Create with optimal parameters for expected items and false positive rate.
-  let size = optimalSize(expectedItems, falsePositiveRate)
-  let numHashes = optimalHashes(size, expectedItems)
-  newBloomFilter(size, numHashes)
+proc `=sink`*(dest: var BloomFilter, src: BloomFilter) =
+  ## Move semantics for BloomFilter.
+  `=destroy`(dest)
+  dest.handle = src.handle
 
-proc computeHash(bf: BloomFilter, value: string, seed: int): int =
-  ## Compute hash for a value with a seed.
-  let h1 = hash(value)
-  let h2 = hash(seed)
-  abs((h1 + seed * h2)) mod bf.size
+proc newBloomFilter*(expectedItems: int,
+                     falsePositiveRate: float64 = 0.01): BloomFilter =
+  ## Create a new Bloom filter sized for the expected number of items and
+  ## desired false-positive rate.  Delegates to proven_bloom_create.
+  let handle = provenBloomCreate(csize_t(expectedItems), falsePositiveRate)
+  if handle == nil:
+    raise newException(BloomFilterError,
+      "Failed to create Bloom filter (allocation or invalid parameters)")
+  BloomFilter(handle: handle)
 
-proc insert*[T](bf: var BloomFilter, item: T) =
-  ## Insert an item into the filter.
-  let s = $item
-  for i in 0..<bf.numHashes:
-    let h = bf.computeHash(s, i)
-    bf.bits[h] = true
+proc insert*(bf: BloomFilter, item: string) =
+  ## Insert a string item into the filter.
+  if bf.handle != nil and item.len > 0:
+    provenBloomAdd(bf.handle, unsafeAddr item[0], csize_t(item.len))
+  elif bf.handle != nil:
+    # Empty string: pass a valid but zero-length pointer
+    var dummy: uint8
+    provenBloomAdd(bf.handle, addr dummy, csize_t(0))
+
+proc insert*[T](bf: BloomFilter, item: T) =
+  ## Insert any item into the filter by converting it to a string first.
+  bf.insert($item)
+
+proc contains*(bf: BloomFilter, item: string): bool =
+  ## Check if an item might be in the filter.
+  ## Returns false if definitely not present, true if possibly present
+  ## (probabilistic data structure -- false positives are possible).
+  if bf.handle == nil:
+    return false
+  if item.len > 0:
+    provenBloomContains(bf.handle, unsafeAddr item[0], csize_t(item.len))
+  else:
+    var dummy: uint8
+    provenBloomContains(bf.handle, addr dummy, csize_t(0))
 
 proc contains*[T](bf: BloomFilter, item: T): bool =
-  ## Check if an item might be in the filter.
-  ## Returns false if definitely not present, true if possibly present.
-  let s = $item
-  for i in 0..<bf.numHashes:
-    let h = bf.computeHash(s, i)
-    if not bf.bits[h]:
-      return false
-  true
+  ## Check if any item might be in the filter (converts to string).
+  bf.contains($item)
 
-proc countOnes*(bf: BloomFilter): int =
-  ## Count set bits.
-  result = 0
-  for b in bf.bits:
-    if b:
-      result += 1
+proc getHashCount*(bf: BloomFilter): uint32 =
+  ## Get the number of hash functions used by the filter.
+  if bf.handle != nil:
+    bf.handle[].hash_count
+  else:
+    0
 
-proc fillRatio*(bf: BloomFilter): float64 =
-  ## Get fill ratio.
-  bf.countOnes().float64 / bf.size.float64
+proc getBitCount*(bf: BloomFilter): int =
+  ## Get the number of bits in the filter.
+  if bf.handle != nil:
+    int(bf.handle[].bit_count)
+  else:
+    0
 
-proc estimatedFpr*(bf: BloomFilter): float64 =
-  ## Estimate false positive rate.
-  pow(bf.fillRatio(), bf.numHashes.float64)
-
-proc clear*(bf: var BloomFilter) =
-  ## Clear the filter.
-  for i in 0..<bf.size:
-    bf.bits[i] = false
-
-proc unionWith*(bf: var BloomFilter, other: BloomFilter) =
-  ## Union of two filters (must be same size).
-  if bf.size == other.size:
-    for i in 0..<bf.size:
-      bf.bits[i] = bf.bits[i] or other.bits[i]
-
-proc intersectWith*(bf: var BloomFilter, other: BloomFilter) =
-  ## Intersection of two filters (must be same size).
-  if bf.size == other.size:
-    for i in 0..<bf.size:
-      bf.bits[i] = bf.bits[i] and other.bits[i]
-
-proc getSize*(bf: BloomFilter): int =
-  ## Get the size of the filter.
-  bf.size
-
-proc getNumHashes*(bf: BloomFilter): int =
-  ## Get the number of hash functions.
-  bf.numHashes
+proc isValid*(bf: BloomFilter): bool =
+  ## Check if the Bloom filter handle is valid (non-nil).
+  bf.handle != nil

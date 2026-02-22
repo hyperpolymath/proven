@@ -1,244 +1,94 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
-require "time"
-require "date"
+# Safe datetime operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
 
 module Proven
-  # Safe datetime operations with validation.
-  #
-  # Provides validated datetime parsing, formatting, and arithmetic
-  # with protection against invalid dates and overflow.
   module SafeDatetime
-    # Minimum supported timestamp (year 1970)
-    MIN_TIMESTAMP = 0
+    # Parsed datetime from libproven.
+    DateTimeInfo = Struct.new(
+      :year, :month, :day, :hour, :minute, :second,
+      :nanosecond, :tz_offset_minutes,
+      keyword_init: true
+    )
 
-    # Maximum supported timestamp (year 2100)
-    MAX_TIMESTAMP = 4_102_444_800
+    class << self
+      # Parse an ISO 8601 datetime string.
+      # Returns nil on invalid input.
+      #
+      # @param datetime_string [String]
+      # @return [DateTimeInfo, nil]
+      def parse(datetime_string)
+        return nil if datetime_string.nil?
+        ptr, len = FFI.str_to_ptr(datetime_string)
 
-    # Parse ISO 8601 datetime string.
-    #
-    # @param datetime_string [String]
-    # @return [Result] containing Time or error
-    def self.parse_iso8601(datetime_string)
-      return Result.error(InvalidInputError.new("Datetime cannot be nil")) if datetime_string.nil?
-      return Result.error(InvalidInputError.new("Datetime cannot be empty")) if datetime_string.strip.empty?
+        # DateTimeResult = { i32 status, DateTime { i32 year, u8 month, u8 day,
+        #   u8 hour, u8 minute, u8 second, u32 nanosecond, i16 tz_offset } }
+        # Layout: 4(status) + 4(year) + 1+1+1+1+1(month..second) + 3pad + 4(nano) + 2(tz) + 2pad = 24 bytes
+        buf = Fiddle::Pointer.malloc(24, Fiddle::RUBY_FREE)
 
-      begin
-        time = Time.iso8601(datetime_string.strip)
-        Result.ok(time)
-      rescue ArgumentError => e
-        Result.error(InvalidFormatError.new("Invalid ISO 8601 datetime: #{e.message}"))
-      end
-    end
+        fn = Fiddle::Function.new(
+          FFI.handler["proven_datetime_parse"],
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          Fiddle::TYPE_VOID,
+          need_gvl: true
+        )
+        fn.call(buf, ptr, len)
 
-    # Parse RFC 2822 datetime string.
-    #
-    # @param datetime_string [String]
-    # @return [Result]
-    def self.parse_rfc2822(datetime_string)
-      return Result.error(InvalidInputError.new("Datetime cannot be nil")) if datetime_string.nil?
+        packed = buf.to_str(24)
+        status = packed[0, 4].unpack1("l!")
+        return nil unless status == FFI::STATUS_OK
 
-      begin
-        time = Time.rfc2822(datetime_string.strip)
-        Result.ok(time)
-      rescue ArgumentError => e
-        Result.error(InvalidFormatError.new("Invalid RFC 2822 datetime: #{e.message}"))
-      end
-    end
+        year = packed[4, 4].unpack1("l!") # i32
+        month = packed[8, 1].unpack1("C")
+        day = packed[9, 1].unpack1("C")
+        hour = packed[10, 1].unpack1("C")
+        minute = packed[11, 1].unpack1("C")
+        second = packed[12, 1].unpack1("C")
+        # 3 bytes padding (13-15)
+        nanosecond = packed[16, 4].unpack1("L") # u32
+        tz_offset = packed[20, 2].unpack1("s!") # i16
 
-    # Parse Unix timestamp.
-    #
-    # @param timestamp [Integer, Float, String]
-    # @return [Result]
-    def self.from_unix(timestamp)
-      ts = case timestamp
-           when Integer, Float
-             timestamp.to_i
-           when String
-             Integer(timestamp) rescue nil
-           else
-             nil
-           end
-
-      return Result.error(InvalidInputError.new("Invalid timestamp")) if ts.nil?
-      return Result.error(OutOfRangeError.new("Timestamp out of range")) if ts < MIN_TIMESTAMP || ts > MAX_TIMESTAMP
-
-      Result.ok(Time.at(ts).utc)
-    end
-
-    # Parse Unix timestamp in milliseconds.
-    #
-    # @param timestamp_ms [Integer, String]
-    # @return [Result]
-    def self.from_unix_ms(timestamp_ms)
-      ts = case timestamp_ms
-           when Integer
-             timestamp_ms
-           when String
-             Integer(timestamp_ms) rescue nil
-           else
-             nil
-           end
-
-      return Result.error(InvalidInputError.new("Invalid timestamp")) if ts.nil?
-
-      from_unix(ts / 1000)
-    end
-
-    # Format time as ISO 8601.
-    #
-    # @param time [Time]
-    # @return [String]
-    def self.to_iso8601(time)
-      time.utc.iso8601
-    end
-
-    # Format time as RFC 2822.
-    #
-    # @param time [Time]
-    # @return [String]
-    def self.to_rfc2822(time)
-      time.rfc2822
-    end
-
-    # Convert to Unix timestamp.
-    #
-    # @param time [Time]
-    # @return [Integer]
-    def self.to_unix(time)
-      time.to_i
-    end
-
-    # Convert to Unix timestamp in milliseconds.
-    #
-    # @param time [Time]
-    # @return [Integer]
-    def self.to_unix_ms(time)
-      (time.to_f * 1000).to_i
-    end
-
-    # Safely add duration to time.
-    #
-    # @param time [Time]
-    # @param seconds [Integer]
-    # @return [Result]
-    def self.add_seconds(time, seconds)
-      new_ts = time.to_i + seconds
-      return Result.error(OutOfRangeError.new("Result out of range")) if new_ts < MIN_TIMESTAMP || new_ts > MAX_TIMESTAMP
-
-      Result.ok(Time.at(new_ts).utc)
-    end
-
-    # Safely add days to time.
-    #
-    # @param time [Time]
-    # @param days [Integer]
-    # @return [Result]
-    def self.add_days(time, days)
-      add_seconds(time, days * 86_400)
-    end
-
-    # Safely add months to time.
-    #
-    # @param time [Time]
-    # @param months [Integer]
-    # @return [Result]
-    def self.add_months(time, months)
-      date = time.to_date
-      new_date = date >> months
-
-      # Handle end of month edge cases
-      if date.day > new_date.day
-        new_date = Date.new(new_date.year, new_date.month, -1)
+        DateTimeInfo.new(
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          nanosecond: nanosecond,
+          tz_offset_minutes: tz_offset
+        )
+      rescue Fiddle::DLError, TypeError
+        nil
       end
 
-      Result.ok(Time.utc(new_date.year, new_date.month, new_date.day, time.hour, time.min, time.sec))
-    rescue ArgumentError => e
-      Result.error(OutOfRangeError.new("Date arithmetic error: #{e.message}"))
-    end
+      # Check if a year is a leap year.
+      #
+      # @param year [Integer]
+      # @return [Boolean, nil]
+      def leap_year?(year)
+        FFI.invoke_bool(
+          "proven_datetime_is_leap_year",
+          [Fiddle::TYPE_INT],
+          [year]
+        )
+      end
 
-    # Calculate difference between two times in seconds.
-    #
-    # @param time1 [Time]
-    # @param time2 [Time]
-    # @return [Integer]
-    def self.diff_seconds(time1, time2)
-      (time1 - time2).to_i.abs
-    end
-
-    # Calculate difference in days.
-    #
-    # @param time1 [Time]
-    # @param time2 [Time]
-    # @return [Integer]
-    def self.diff_days(time1, time2)
-      diff_seconds(time1, time2) / 86_400
-    end
-
-    # Check if time is in the past.
-    #
-    # @param time [Time]
-    # @return [Boolean]
-    def self.past?(time)
-      time < Time.now
-    end
-
-    # Check if time is in the future.
-    #
-    # @param time [Time]
-    # @return [Boolean]
-    def self.future?(time)
-      time > Time.now
-    end
-
-    # Get start of day (midnight UTC).
-    #
-    # @param time [Time]
-    # @return [Time]
-    def self.start_of_day(time)
-      Time.utc(time.year, time.month, time.day, 0, 0, 0)
-    end
-
-    # Get end of day (23:59:59 UTC).
-    #
-    # @param time [Time]
-    # @return [Time]
-    def self.end_of_day(time)
-      Time.utc(time.year, time.month, time.day, 23, 59, 59)
-    end
-
-    # Check if date is valid.
-    #
-    # @param year [Integer]
-    # @param month [Integer]
-    # @param day [Integer]
-    # @return [Boolean]
-    def self.valid_date?(year, month, day)
-      Date.valid_date?(year, month, day)
-    end
-
-    # Check if year is a leap year.
-    #
-    # @param year [Integer]
-    # @return [Boolean]
-    def self.leap_year?(year)
-      Date.leap?(year)
-    end
-
-    # Get current UTC time.
-    #
-    # @return [Time]
-    def self.now_utc
-      Time.now.utc
-    end
-
-    # Get current Unix timestamp.
-    #
-    # @return [Integer]
-    def self.now_unix
-      Time.now.to_i
+      # Get the number of days in a month.
+      #
+      # @param year [Integer]
+      # @param month [Integer] 1-12
+      # @return [Integer, nil]
+      def days_in_month(year, month)
+        FFI.invoke_u8(
+          "proven_datetime_days_in_month",
+          [Fiddle::TYPE_INT, Fiddle::TYPE_CHAR],
+          [year, month]
+        )
+      end
     end
   end
 end

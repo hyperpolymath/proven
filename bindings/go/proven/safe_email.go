@@ -1,83 +1,23 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeEmail provides email validation via the Proven FFI.
+// All computation is performed in Idris 2 with formal verification.
 
 package proven
 
-import (
-	"strings"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
 
-// EmailParts represents the parts of an email address.
-type EmailParts struct {
-	LocalPart string
-	Domain    string
-}
-
-// IsValidEmail checks if an email address is valid (basic check).
-func IsValidEmail(email string) bool {
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		return false
+// IsValidEmail checks whether an email address is valid (RFC 5321 simplified).
+func IsValidEmail(email string) (bool, error) {
+	cs, length := cString(email)
+	defer unsafeFree(cs)
+	result := C.proven_email_is_valid(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-
-	localPart, domain := parts[0], parts[1]
-
-	if len(localPart) == 0 {
-		return false
-	}
-	if len(domain) < 3 {
-		return false
-	}
-	if !strings.Contains(domain, ".") {
-		return false
-	}
-	if strings.HasPrefix(domain, ".") {
-		return false
-	}
-	if strings.HasSuffix(domain, ".") {
-		return false
-	}
-
-	return true
-}
-
-// SplitEmail splits an email into local part and domain.
-// Returns nil if the email is invalid.
-func SplitEmail(email string) *EmailParts {
-	if !IsValidEmail(email) {
-		return nil
-	}
-
-	parts := strings.Split(email, "@")
-	return &EmailParts{
-		LocalPart: parts[0],
-		Domain:    parts[1],
-	}
-}
-
-// GetDomain extracts the domain from an email address.
-func GetDomain(email string) (string, bool) {
-	parts := SplitEmail(email)
-	if parts == nil {
-		return "", false
-	}
-	return parts.Domain, true
-}
-
-// GetLocalPart extracts the local part from an email address.
-func GetLocalPart(email string) (string, bool) {
-	parts := SplitEmail(email)
-	if parts == nil {
-		return "", false
-	}
-	return parts.LocalPart, true
-}
-
-// NormalizeEmail normalizes an email address (lowercase domain).
-func NormalizeEmail(email string) (string, bool) {
-	parts := SplitEmail(email)
-	if parts == nil {
-		return "", false
-	}
-	return parts.LocalPart + "@" + strings.ToLower(parts.Domain), true
+	return bool(result.value), nil
 }

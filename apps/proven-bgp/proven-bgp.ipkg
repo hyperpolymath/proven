@@ -1,0 +1,23 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-bgp
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "BGP-4 router that cannot crash on malformed input"
+
+sourcedir = "src"
+main = Main
+executable = "proven-bgp"
+
+modules = BGP
+        , BGP.FSM
+        , BGP.Message
+        , BGP.Route
+        , BGP.Peer
+        , BGP.Config
+
+-- depends = proven
+--         , network
+--         , contrib

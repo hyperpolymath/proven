@@ -11,6 +11,7 @@ module Proven.SafeEnv.Types
 import Proven.Core
 import Data.List
 import Data.String
+import Decidable.Equality
 
 %default total
 
@@ -56,27 +57,9 @@ envName name = MkEnvName name
 public export
 tryEnvName : String -> Maybe EnvName
 tryEnvName s =
-  if isValidEnvName s
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    then Just (MkEnvName s {prf = believe_me Refl})
-    else Nothing
+  case decEq (isValidEnvName s) True of
+    Yes prf => Just (MkEnvName s {prf = prf})
+    No _    => Nothing
 
 --------------------------------------------------------------------------------
 -- Environment Variable Values

@@ -1,14 +1,48 @@
-# SPDX-License-Identifier: PLMP-1.0-or-later
-# Mustfile - mandatory checks
-# See: https://github.com/hyperpolymath/mustfile
-
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Mustfile - proven library invariants
 version: 1
-
+metadata:
+  name: proven-state-contract
+  spec: v1.0.0
+  description: "Invariant checks for proven formally verified safety library."
+parameters:
+  believe_me_threshold: "0"
+  assert_total_threshold: "0"
+  binding_count: "89"
 checks:
-  - name: security
-    run: just lint
-  - name: tests
-    run: just test
-  - name: format
-    run: just fmt
-
+  - name: idris2-typecheck
+    description: "All Idris2 modules must typecheck with totality"
+    run: "pack typecheck proven.ipkg"
+  - name: zig-ffi-build
+    description: "Zig FFI bridge must compile"
+    run: "cd ffi/zig && zig build"
+  - name: zig-ffi-test
+    description: "Zig FFI integration tests must pass"
+    run: "cd ffi/zig && zig build test"
+  - name: no-believe-me
+    description: "No believe_me in source code (banned pattern)"
+    run: "! grep -r 'believe_me' src/ --include='*.idr' -l"
+  - name: no-assert-total
+    description: "No assert_total in source code (banned pattern)"
+    run: "! grep -r 'assert_total' src/ --include='*.idr' -l"
+  - name: no-todo-stubs
+    description: "No TODO/STUB/FIXME markers in released code"
+    run: "! grep -rE 'TODO|STUB|FIXME' src/ --include='*.idr' -l"
+  - name: spdx-headers
+    description: "All source files must have SPDX-License-Identifier"
+    run: "bash -c 'for f in src/Proven/*.idr; do head -1 \"$f\" | grep -q SPDX || exit 1; done'"
+  - name: containerfile-builds
+    description: "Container image must build"
+    run: "podman build -f Containerfile ."
+  - name: bindings-no-reimpl
+    description: "No binding may reimplement proven logic natively"
+    run: "bash -c '! grep -rn \"fn safe_\" bindings/rust/src/ | grep -v \"extern\\|unsafe\" | head -1'"
+  - name: trustfile-valid
+    description: "Trustfile.a2ml must be valid"
+    run: "a2ml validate Trustfile.a2ml"
+rupture:
+  on_failure: "robot-repo-automaton"
+  actions:
+    - flag: ".machine_readable/RUPTURE.a2ml"
+    - notify: "maintainers"
+    - archive_fetch: "proven-backup"

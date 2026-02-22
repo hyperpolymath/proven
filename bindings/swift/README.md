@@ -127,4 +127,4 @@ let distance = SafeGeo.haversine(from: nyc, to: la)  // ~3935 km
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later

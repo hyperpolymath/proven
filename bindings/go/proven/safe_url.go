@@ -1,88 +1,62 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeUrl provides URL parsing and validation via the Proven FFI.
+// All computation is performed in Idris 2 with formal verification.
 
 package proven
 
-import (
-	"net/url"
-	"strings"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
 
 // ParsedURL represents the parsed components of a URL.
 type ParsedURL struct {
 	Scheme   string
 	Host     string
-	Port     string
+	Port     uint16
+	HasPort  bool
 	Path     string
 	Query    string
 	Fragment string
 }
 
-// ParseURL parses a URL into its components.
-func ParseURL(urlString string) *ParsedURL {
-	u, err := url.Parse(urlString)
-	if err != nil {
-		return nil
+// ParseURL parses a URL string into its components via FFI.
+// Returns nil and an error if parsing fails.
+func ParseURL(urlString string) (*ParsedURL, error) {
+	cs, length := cString(urlString)
+	defer unsafeFree(cs)
+
+	result := C.proven_url_parse(cs, length)
+	status := int(result.status)
+	if status != StatusOK {
+		return nil, newError(status)
 	}
 
-	if u.Scheme == "" || u.Host == "" {
-		return nil
+	parsed := &ParsedURL{
+		Port:    uint16(result.components.port),
+		HasPort: bool(result.components.has_port),
 	}
 
-	host := u.Hostname()
-	port := u.Port()
-	path := u.Path
-	if path == "" {
-		path = "/"
+	if result.components.scheme != nil {
+		parsed.Scheme = C.GoStringN(result.components.scheme, C.int(result.components.scheme_len))
+	}
+	if result.components.host != nil {
+		parsed.Host = C.GoStringN(result.components.host, C.int(result.components.host_len))
+	}
+	if result.components.path != nil {
+		parsed.Path = C.GoStringN(result.components.path, C.int(result.components.path_len))
+	}
+	if result.components.query != nil {
+		parsed.Query = C.GoStringN(result.components.query, C.int(result.components.query_len))
+	}
+	if result.components.fragment != nil {
+		parsed.Fragment = C.GoStringN(result.components.fragment, C.int(result.components.fragment_len))
 	}
 
-	return &ParsedURL{
-		Scheme:   strings.ToLower(u.Scheme),
-		Host:     host,
-		Port:     port,
-		Path:     path,
-		Query:    u.RawQuery,
-		Fragment: u.Fragment,
-	}
-}
+	// Free the C-allocated URL components.
+	C.proven_url_free(&result.components)
 
-// IsValidURL checks if a string is a valid URL.
-func IsValidURL(urlString string) bool {
-	return ParseURL(urlString) != nil
-}
-
-// GetHost extracts the host from a URL.
-func GetHost(urlString string) (string, bool) {
-	parsed := ParseURL(urlString)
-	if parsed == nil {
-		return "", false
-	}
-	return parsed.Host, true
-}
-
-// GetPath extracts the path from a URL.
-func GetPath(urlString string) (string, bool) {
-	parsed := ParseURL(urlString)
-	if parsed == nil {
-		return "", false
-	}
-	return parsed.Path, true
-}
-
-// IsHTTPS checks if a URL uses HTTPS.
-func IsHTTPS(urlString string) bool {
-	parsed := ParseURL(urlString)
-	if parsed == nil {
-		return false
-	}
-	return parsed.Scheme == "https"
-}
-
-// IsSecure checks if a URL uses a secure scheme (https, wss).
-func IsSecure(urlString string) bool {
-	parsed := ParseURL(urlString)
-	if parsed == nil {
-		return false
-	}
-	return parsed.Scheme == "https" || parsed.Scheme == "wss"
+	return parsed, nil
 }

@@ -1,109 +1,112 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
---  Safe currency operations with type-safe monetary values.
+--  Safe currency operations -- thin FFI wrapper over libproven.
+--  Currency arithmetic and formatting done by the Idris2/Zig core.
 
 package Proven.Safe_Currency is
 
-   --  ISO 4217 currency codes.
-   type Currency_Code is (
-      USD, EUR, GBP, JPY, CHF, CAD, AUD, NZD, CNY, INR,
-      BRL, MXN, KRW, SGD, HKD, SEK, NOK, DKK, PLN, RUB,
-      ZAR, TRY, THB, MYR, IDR, PHP, VND, AED, SAR, ILS,
-      CZK, HUF, RON, BGN, HRK, ISK, CLP, COP, PEN, ARS,
-      BTC, ETH
-   );
+   --  ISO 4217 currency code as integer (maps to CurrencyCode enum in C).
+   --  Use the constants below for specific currencies.
+   subtype Currency_Code is Integer;
 
-   --  Parse result for currency code.
-   type Currency_Code_Result (Valid : Boolean := False) is record
-      case Valid is
-         when True  => Code : Currency_Code;
-         when False => null;
-      end case;
-   end record;
+   --  Major currencies
+   USD : constant Currency_Code := 0;
+   EUR : constant Currency_Code := 1;
+   GBP : constant Currency_Code := 2;
+   JPY : constant Currency_Code := 3;
+   CHF : constant Currency_Code := 4;
+   CAD : constant Currency_Code := 5;
+   AUD : constant Currency_Code := 6;
+   NZD : constant Currency_Code := 7;
+   CNY : constant Currency_Code := 8;
+   INR : constant Currency_Code := 9;
+   BRL : constant Currency_Code := 10;
+   MXN : constant Currency_Code := 11;
 
-   --  Get number of decimal places for a currency.
-   function Decimals (Code : Currency_Code) return Natural;
+   --  Cryptocurrencies
+   BTC : constant Currency_Code := 40;
+   ETH : constant Currency_Code := 41;
 
-   --  Get currency symbol.
-   function Symbol (Code : Currency_Code) return String;
-
-   --  Get currency name.
-   function Currency_Name (Code : Currency_Code) return String;
-
-   --  Parse currency code from string.
-   function Parse_Code (S : String) return Currency_Code_Result;
-
-   --  Parse currency code, raising exception on failure.
-   function Parse_Code_Or_Raise (S : String) return Currency_Code;
-
-   --  Check if valid currency code string.
-   function Is_Valid_Code (S : String) return Boolean;
-
-   --  Type-safe monetary value.
-   --  Amounts stored in minor units (cents, satoshis, etc.)
    type Money is record
       Minor_Units : Long_Long_Integer;
       Currency    : Currency_Code;
    end record;
 
-   --  Result type for monetary operations.
-   type Money_Result (Valid : Boolean := False) is record
-      case Valid is
-         when True  => Value : Money;
-         when False => null;
+   type Money_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Value      : Money;
+         when False => Error_Code : Integer;
       end case;
    end record;
 
-   --  Create from major units.
+   type Code_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Code       : Currency_Code;
+         when False => Error_Code : Integer;
+      end case;
+   end record;
+
+   --  Parse currency code from string (calls currency_parse_code).
+   function Parse_Code (S : String) return Code_Result;
+
+   --  Check if string is valid currency code (calls currency_is_valid_code).
+   function Is_Valid_Code (S : String) return Boolean;
+
+   --  Get decimal places for currency (calls currency_get_decimals).
+   function Decimals (Code : Currency_Code) return Natural;
+
+   --  Create money from major units (calls money_from_major).
    function From_Major
      (Amount : Long_Long_Integer; Code : Currency_Code) return Money;
 
-   --  Create from minor units.
+   --  Create money from minor units (calls money_from_minor).
    function From_Minor
      (Amount : Long_Long_Integer; Code : Currency_Code) return Money;
 
-   --  Create zero amount.
+   --  Create zero money (calls money_zero).
    function Zero (Code : Currency_Code) return Money;
 
-   --  Get the currency.
-   function Get_Currency (M : Money) return Currency_Code;
-
-   --  Get major units (truncated).
-   function Major (M : Money) return Long_Long_Integer;
-
-   --  Get minor units.
-   function Minor (M : Money) return Long_Long_Integer;
-
-   --  Add two monetary values (currencies must match).
+   --  Add two money values (calls money_add).
    function Add (A, B : Money) return Money_Result;
 
-   --  Subtract two monetary values (currencies must match).
+   --  Subtract two money values (calls money_sub).
    function Subtract (A, B : Money) return Money_Result;
 
-   --  Multiply by scalar.
-   function Multiply (M : Money; Scalar : Long_Long_Integer) return Money;
+   --  Multiply by scalar (calls money_mul).
+   function Multiply (M : Money; Scalar : Long_Long_Integer) return Money_Result;
 
-   --  Divide by scalar (returns failure if divisor is zero).
+   --  Divide by scalar (calls money_div).
    function Divide
-     (M : Money; Scalar : Long_Long_Integer) return Money_Result;
+     (M : Money; Divisor : Long_Long_Integer) return Money_Result;
 
-   --  Check if zero.
+   --  Check if zero (calls money_is_zero).
    function Is_Zero (M : Money) return Boolean;
 
-   --  Check if positive.
+   --  Check if positive (calls money_is_positive).
    function Is_Positive (M : Money) return Boolean;
 
-   --  Check if negative.
+   --  Check if negative (calls money_is_negative).
    function Is_Negative (M : Money) return Boolean;
 
-   --  Absolute value.
-   function Abs_Value (M : Money) return Money;
+   --  Get major units (calls money_get_major).
+   function Major (M : Money) return Long_Long_Integer;
 
-   --  Format as string with symbol.
-   function Format (M : Money) return String;
+   --  Get minor units (calls money_get_minor).
+   function Minor (M : Money) return Long_Long_Integer;
 
-   --  Exception for currency operations.
-   Currency_Error : exception;
+   Max_Format_Len : constant := 64;
+
+   type Format_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Value      : String (1 .. Max_Format_Len);
+                       Last       : Natural;
+         when False => Error_Code : Integer;
+      end case;
+   end record;
+
+   --  Format money as string with symbol (calls money_format).
+   function Format (M : Money) return Format_Result;
 
 end Proven.Safe_Currency;

@@ -1,0 +1,115 @@
+(********************************************************************)
+(*  SPDX-License-Identifier: PMPL-1.0-or-later                     *)
+(*  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)         *)
+(*  <jonathan.jewell@open.ac.uk>                                    *)
+(*                                                                  *)
+(*  proven.s7i -- External C function declarations for libproven.   *)
+(*  All computation is performed in the Idris 2 / Zig core via the  *)
+(*  C ABI. This file declares external bindings. Do NOT reimplement *)
+(*  any logic.                                                      *)
+(*                                                                  *)
+(*  Link with: -lproven                                             *)
+(********************************************************************)
+
+const type: ProvenStatus is new enum
+    PROVEN_OK,
+    PROVEN_ERR_NULL_POINTER,
+    PROVEN_ERR_INVALID_ARGUMENT,
+    PROVEN_ERR_OVERFLOW,
+    PROVEN_ERR_UNDERFLOW,
+    PROVEN_ERR_DIVISION_BY_ZERO,
+    PROVEN_ERR_PARSE_FAILURE,
+    PROVEN_ERR_VALIDATION_FAILED,
+    PROVEN_ERR_OUT_OF_BOUNDS,
+    PROVEN_ERR_ENCODING_ERROR,
+    PROVEN_ERR_ALLOCATION_FAILED,
+    PROVEN_ERR_NOT_IMPLEMENTED
+  end enum;
+
+(* Map status code integers to ProvenStatus. *)
+const func ProvenStatus: statusFromInt (in integer: code) is func
+  result
+    var ProvenStatus: status is PROVEN_OK;
+  begin
+    case code of
+      when { 0}: status := PROVEN_OK;
+      when {-1}: status := PROVEN_ERR_NULL_POINTER;
+      when {-2}: status := PROVEN_ERR_INVALID_ARGUMENT;
+      when {-3}: status := PROVEN_ERR_OVERFLOW;
+      when {-4}: status := PROVEN_ERR_UNDERFLOW;
+      when {-5}: status := PROVEN_ERR_DIVISION_BY_ZERO;
+      when {-6}: status := PROVEN_ERR_PARSE_FAILURE;
+      when {-7}: status := PROVEN_ERR_VALIDATION_FAILED;
+      when {-8}: status := PROVEN_ERR_OUT_OF_BOUNDS;
+      when {-9}: status := PROVEN_ERR_ENCODING_ERROR;
+      when {-10}: status := PROVEN_ERR_ALLOCATION_FAILED;
+      otherwise:  status := PROVEN_ERR_NOT_IMPLEMENTED;
+    end case;
+  end func;
+
+(* Integer result: status + value. *)
+const type: IntResult is new struct
+    var integer: status is 0;
+    var integer: value is 0;
+  end struct;
+
+(* Boolean result: status + value. *)
+const type: BoolResult is new struct
+    var integer: status is 0;
+    var boolean: value is FALSE;
+  end struct;
+
+(* String result: status + value. *)
+const type: StringResult is new struct
+    var integer: status is 0;
+    var string: value is "";
+  end struct;
+
+(* Float result: status + value. *)
+const type: FloatResult is new struct
+    var integer: status is 0;
+    var float: value is 0.0;
+  end struct;
+
+(* ---------------------------------------------------------------------------
+   Lifecycle
+   --------------------------------------------------------------------------- *)
+
+(* Initialize the Proven runtime. Returns status code. *)
+const func integer: proven_init is
+  external "proven_init" integer;
+
+(* Cleanup the Proven runtime. *)
+const proc: proven_deinit is
+  external "proven_deinit";
+
+(* Check if the runtime is initialized. *)
+const func boolean: proven_is_initialized is
+  external "proven_is_initialized" boolean;
+
+(* ---------------------------------------------------------------------------
+   Version
+   --------------------------------------------------------------------------- *)
+
+const func integer: proven_ffi_abi_version is
+  external "proven_ffi_abi_version" integer;
+
+const func integer: proven_version_major is
+  external "proven_version_major" integer;
+
+const func integer: proven_version_minor is
+  external "proven_version_minor" integer;
+
+const func integer: proven_version_patch is
+  external "proven_version_patch" integer;
+
+const func integer: proven_module_count is
+  external "proven_module_count" integer;
+
+(* ---------------------------------------------------------------------------
+   Memory
+   --------------------------------------------------------------------------- *)
+
+(* Free a string allocated by proven functions. Internal use. *)
+const proc: proven_free_string (in integer: ptr) is
+  external "proven_free_string";

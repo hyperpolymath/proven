@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+#= | SafeUrl - URL parsing and validation via libproven FFI.
+ =
+ = Anvomidav's result type captures parse failures, null pointer errors,
+ = and validation failures in the return type. All URL parsing is
+ = performed by the Idris 2 verified core.
+ =
+ = All computation is performed in Idris 2 via the Zig FFI layer.
+ = NO URL logic is reimplemented in Anvomidav.
+=#
+
+module Proven.SafeUrl
+
+import Proven.FFI
+import Proven (ProvenError, result, ok, err)
+
+# ============================================================================
+# URL components
+# ============================================================================
+
+# | Parsed URL components returned by the Idris 2 URL parser.
+define type UrlComponents = {
+  scheme   : String,
+  host     : String,
+  port     : maybe<UInt16>,
+  path     : String,
+  query    : maybe<String>,
+  fragment : maybe<String>,
+}
+
+# ============================================================================
+# URL parsing
+# ============================================================================
+
+# | Parse a URL string into its components.
+# Returns err(ParseFailure) if the URL is malformed.
+# Returns err(NullPointer) if the input is null.
+# Memory allocated by libproven is freed after copying components.
+# Delegates to proven_url_parse and proven_url_free in libproven.
+proc parse_url(url : String) -> result<UrlComponents, ProvenError> =
+  let bytes = string_to_utf8(url)
+  let raw_result = FFI.proven_url_parse(bytes.ptr, bytes.len)
+  match raw_result
+  | null => err(ParseFailure)
+  | ptr  =>
+    let components = read_url_components(ptr)
+    FFI.proven_url_free(ptr)
+    ok(components)
+  end
+
+# | Validate that a string is a well-formed URL without returning components.
+# Returns ok(true) if parseable, ok(false) if not.
+# Delegates to proven_url_parse in libproven.
+proc is_valid_url(url : String) -> result<Bool, ProvenError> =
+  let bytes = string_to_utf8(url)
+  let raw_result = FFI.proven_url_parse(bytes.ptr, bytes.len)
+  match raw_result
+  | null => ok(false)
+  | ptr  =>
+    FFI.proven_url_free(ptr)
+    ok(true)
+  end
+
+# ============================================================================
+# Anvomidav specific: validated URL type
+# ============================================================================
+
+# | A validated URL type. Can only be constructed through the parse proc,
+# ensuring the URL has been validated by the Idris 2 verified parser.
+define type ValidatedUrl = private {
+  raw        : String,
+  components : UrlComponents,
+}
+
+# | Get the original URL string.
+proc validated_url_string(url : ValidatedUrl) -> String =
+  url.raw
+
+# | Get the parsed components.
+proc validated_url_components(url : ValidatedUrl) -> UrlComponents =
+  url.components
+
+# | Create a ValidatedUrl, returning an error if parsing fails.
+# Uses the Idris 2 verified URL parser via FFI.
+proc make_validated_url(url : String) -> result<ValidatedUrl, ProvenError> =
+  match parse_url(url)
+  | ok(components) => ok(ValidatedUrl { raw: url, components: components })
+  | err(e)         => err(e)
+  end

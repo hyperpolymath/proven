@@ -12,6 +12,7 @@ import Proven.Core
 import Proven.SafeCookie.Types
 import Data.List
 import Data.String
+import Decidable.Equality
 
 %default total
 
@@ -30,25 +31,11 @@ validateName opts name =
          then Err (NameTooLong name len)
          else case find (not . isValidNameChar) (unpack name) of
                 Just c => Err (InvalidNameChar name c)
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-                Nothing => Ok (MkCookieName name (believe_me Refl))
+                Nothing =>
+                  let bounded = length (unpack name) <= maxNameLength
+                  in case decEq bounded True of
+                       Yes prf => Ok (MkCookieName name prf)
+                       No _ => Err (NameTooLong name len)
 
 ||| Validate name with default options
 export
@@ -68,25 +55,10 @@ validateValue opts name value =
        then Err (ValueTooLong name len)
        else if hasInjectionChar value
          then Err (CookieInjection name value)
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-         else Ok (MkCookieValue value (believe_me Refl))
+         else let bounded = length (unpack value) <= maxValueLength
+              in case decEq bounded True of
+                   Yes prf => Ok (MkCookieValue value prf)
+                   No _ => Err (ValueTooLong name len)
 
 ||| Validate value with default options
 export

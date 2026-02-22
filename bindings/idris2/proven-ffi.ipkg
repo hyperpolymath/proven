@@ -1,0 +1,39 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- Self-hosted FFI binding for libproven.
+-- Calls the precompiled shared library via %foreign C FFI rather than
+-- importing the Idris 2 source modules directly. This allows users to
+-- consume proven as a shared library without needing the source tree.
+
+package proven-ffi
+
+version      = 0.9.0
+authors      = "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
+license      = "PMPL-1.0-or-later"
+brief        = "Self-hosted Idris 2 FFI binding for libproven"
+readme       = "README.md"
+homepage     = "https://github.com/hyperpolymath/proven"
+sourceloc    = "https://github.com/hyperpolymath/proven"
+bugtracker   = "https://github.com/hyperpolymath/proven/issues"
+
+sourcedir    = "src"
+builddir     = "build"
+outputdir    = "build/exec"
+
+depends      = base
+             , contrib
+
+opts         = "--cg refc"
+
+modules      = Proven
+             , Proven.FFI
+             , Proven.SafeMath
+             , Proven.SafeString
+             , Proven.SafePath
+             , Proven.SafeEmail
+             , Proven.SafeUrl
+             , Proven.SafeNetwork
+             , Proven.SafeCrypto
+             , Proven.SafeJson
+             , Proven.SafeDateTime

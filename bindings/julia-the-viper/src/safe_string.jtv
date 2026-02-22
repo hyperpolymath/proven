@@ -1,0 +1,91 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- safe_string.jtv - Safe string operations for Julia the Viper
+--
+-- Data-plane module: String operations are delegated to libproven's
+-- formally verified Idris 2 core via the FFI bridge. No string
+-- processing logic is reimplemented in JTV.
+--
+-- String escaping is a Control-plane operation (side-effectful: allocates
+-- memory via FFI). The escaped results are returned as Data-plane values.
+--
+-- @module
+
+module Proven.SafeString
+
+import Proven.FFI (
+    proven_string_is_valid_utf8,
+    proven_string_escape_sql,
+    proven_string_escape_html,
+    proven_string_escape_js,
+    proven_free_string,
+    STATUS_OK
+)
+import Proven (DataResult, Ok, Err, ProvenError)
+
+-- ---------------------------------------------------------------------------
+-- Data-plane: UTF-8 Validation
+-- ---------------------------------------------------------------------------
+
+-- Validate that a byte string is valid UTF-8.
+-- This is a pure Data operation (returns bool, no allocation).
+-- Delegates to proven_string_is_valid_utf8 via FFI.
+fn is_valid_utf8(data: *u8, len: usize) -> DataResult<bool>:
+    let result = proven_string_is_valid_utf8(data, len)
+    if result.status == STATUS_OK:
+        return Ok(result.value != 0)
+    else:
+        return Err({ code: result.status, message: "UTF-8 validation FFI error" })
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: String Escaping (allocates via FFI)
+-- ---------------------------------------------------------------------------
+
+-- Escape a string for safe SQL interpolation.
+-- Control-plane: allocates an escaped string via FFI.
+-- The caller is responsible for the returned string's lifetime.
+-- Delegates to proven_string_escape_sql via FFI.
+fn escape_sql(data: *u8, len: usize) -> DataResult<[u8]>:
+    let result = proven_string_escape_sql(data, len)
+    if result.status == STATUS_OK:
+        let escaped = copy_ffi_string(result.ptr, result.len)
+        proven_free_string(result.ptr)
+        return Ok(escaped)
+    else:
+        return Err({ code: result.status, message: "SQL escape failed" })
+
+-- Escape a string for safe HTML rendering (XSS prevention).
+-- Control-plane: allocates an escaped string via FFI.
+-- Delegates to proven_string_escape_html via FFI.
+fn escape_html(data: *u8, len: usize) -> DataResult<[u8]>:
+    let result = proven_string_escape_html(data, len)
+    if result.status == STATUS_OK:
+        let escaped = copy_ffi_string(result.ptr, result.len)
+        proven_free_string(result.ptr)
+        return Ok(escaped)
+    else:
+        return Err({ code: result.status, message: "HTML escape failed" })
+
+-- Escape a string for safe JavaScript string literals.
+-- Control-plane: allocates an escaped string via FFI.
+-- Delegates to proven_string_escape_js via FFI.
+fn escape_js(data: *u8, len: usize) -> DataResult<[u8]>:
+    let result = proven_string_escape_js(data, len)
+    if result.status == STATUS_OK:
+        let escaped = copy_ffi_string(result.ptr, result.len)
+        proven_free_string(result.ptr)
+        return Ok(escaped)
+    else:
+        return Err({ code: result.status, message: "JS escape failed" })
+
+-- ---------------------------------------------------------------------------
+-- Helper: Copy FFI string into JTV-managed memory
+-- ---------------------------------------------------------------------------
+
+-- Copy bytes from an FFI-allocated pointer into a JTV byte array.
+-- This transfers ownership from C to JTV, allowing safe FFI string freeing.
+fn copy_ffi_string(ptr: *u8, len: usize) -> [u8]:
+    let mut buf: [u8; len] = zeroed()
+    memcpy(buf, ptr, len)
+    return buf

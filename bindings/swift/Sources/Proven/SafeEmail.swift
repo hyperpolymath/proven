@@ -1,57 +1,22 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Safe email validation delegated to libproven FFI.
+///
+/// RFC 5321 compliant validation performed by the formally verified
+/// Idris 2 core via the Zig FFI bridge.
 
-/// Safe email validation and parsing operations.
+import CProven
+
 public enum SafeEmail {
-    /// Represents the parts of an email address.
-    public struct EmailParts: Equatable {
-        public let localPart: String
-        public let domain: String
-    }
-
-    /// Check if an email address is valid (basic check).
-    public static func isValid(_ email: String) -> Bool {
-        let parts = email.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2 else { return false }
-
-        let localPart = parts[0]
-        let domain = parts[1]
-
-        guard !localPart.isEmpty else { return false }
-        guard domain.count >= 3 else { return false }
-        guard domain.contains(".") else { return false }
-        guard !domain.hasPrefix(".") else { return false }
-        guard !domain.hasSuffix(".") else { return false }
-
-        return true
-    }
-
-    /// Split an email into local part and domain.
-    public static func split(_ email: String) -> EmailParts? {
-        guard isValid(email) else { return nil }
-
-        let parts = email.split(separator: "@", omittingEmptySubsequences: false)
-        return EmailParts(
-            localPart: String(parts[0]),
-            domain: String(parts[1])
-        )
-    }
-
-    /// Extract the domain from an email address.
-    public static func getDomain(_ email: String) -> String? {
-        split(email)?.domain
-    }
-
-    /// Extract the local part from an email address.
-    public static func getLocalPart(_ email: String) -> String? {
-        split(email)?.localPart
-    }
-
-    /// Normalize an email address (lowercase domain).
-    public static func normalize(_ email: String) -> String? {
-        guard let parts = split(email) else { return nil }
-        return parts.localPart + "@" + parts.domain.lowercased()
+    /// Validate an email address (RFC 5321 simplified).
+    public static func isValid(_ email: String) -> Result<Bool, ProvenError> {
+        withStringBytes(email) { ptr, len in
+            let result = proven_email_is_valid(ptr, len)
+            if let error = ProvenError.fromStatus(result.status) {
+                return .failure(error)
+            }
+            return .success(result.value)
+        }
     }
 }

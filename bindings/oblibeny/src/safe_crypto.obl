@@ -1,0 +1,109 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/* SafeCrypto - Kryptograficke primitivy pres libproven FFI.
+ *
+ * Oblibeny typ Vysledek<T, Ch> zaruci, ze selhani kryptografickych
+ * operaci jsou zachyceny v navratovem typu. Vsechny kryptograficke
+ * operace provadi Idris 2 overene jadro pres Zig FFI most.
+ *
+ * Veskere vypocty provadi Idris 2 pres Zig FFI vrstvu.
+ * ZADNA kryptograficka logika neni reimplementovana v Oblibeny.
+ */
+
+modul Proven.SafeCrypto
+
+import Proven.FFI
+import Proven (ProvenChyba, Výsledek, Neúspěch, Úspěch, bool_vysledek_prevod, int_vysledek_prevod, string_vysledek_prevod)
+
+// ============================================================================
+// Porovnani s konstantnim casem
+// ============================================================================
+
+// Porovnani bajtu s konstantnim casem (bezpecne proti timing utokum).
+// Vraci Uspech(true) pokud jsou dve bajtove sekvence stejne, Uspech(false) jinak.
+// Vraci Uspech(false) pokud se lisi delky (bez uniku casove informace).
+// Deleguje na proven_crypto_constant_time_eq v libproven.
+fn porovnání_konstantní_čas(a : Bytes, b : Bytes) -> Výsledek<Bool, ProvenChyba> =
+  bool_vysledek_prevod(
+    FFI.proven_crypto_constant_time_eq(a.ptr, a.len, b.ptr, b.len)
+  )
+
+// Porovnani retezcu s konstantnim casem (bezpecne proti timing utokum).
+// Pomocny obal ktery nejprve konvertuje retezce na bajty.
+// Deleguje na proven_crypto_constant_time_eq v libproven.
+fn porovnání_konstantní_čas_řetězce(a : String, b : String) -> Výsledek<Bool, ProvenChyba> =
+  let ba = string_to_utf8(a)
+  let bb = string_to_utf8(b)
+  bool_vysledek_prevod(
+    FFI.proven_crypto_constant_time_eq(ba.ptr, ba.len, bb.ptr, bb.len)
+  )
+
+// ============================================================================
+// Bezpecne nahodne bajty
+// ============================================================================
+
+// Naplni buffer kryptograficky bezpecnymi nahodnymi bajty.
+// Vraci Uspech(bajty) pri uspechu, Neuspech pri selhani.
+// Deleguje na proven_crypto_random_bytes v libproven.
+fn náhodné_bajty(délka : USize) -> Výsledek<Bytes, ProvenChyba> =
+  let buf = allocate_bytes(délka)
+  let status = FFI.proven_crypto_random_bytes(buf.ptr, délka)
+  match status with
+  | 0 => Úspěch(buf)
+  | s => Neúspěch(status_na_chybu(s))
+
+// ============================================================================
+// Hex kodovani
+// ============================================================================
+
+// Zakoduje bajty do hexadecimalniho retezce.
+// Deleguje na proven_hex_encode v libproven.
+fn hex_zakódovat(data : Bytes, velká_písmena : Bool) -> Výsledek<String, ProvenChyba> =
+  string_vysledek_prevod(
+    FFI.proven_hex_encode(data.ptr, data.len, velká_písmena)
+  )
+
+// Dekoduje hexadecimalni retezec na bajty.
+// Vraci Neuspech(ChybaParsovani) pokud vstup obsahuje ne-hex znaky.
+// Deleguje na proven_hex_decode v libproven.
+fn hex_dekódovat(hex : String) -> Výsledek<Bytes, ProvenChyba> =
+  let bajty = string_to_utf8(hex)
+  let surovy = FFI.proven_hex_decode(bajty.ptr, bajty.len)
+  match surovy with
+  | null => Neúspěch(ChybaParsovani)
+  | ptr  =>
+    let vysledek = cist_hex_dekodovany_vysledek(ptr)
+    FFI.proven_hex_free(ptr)
+    Úspěch(vysledek)
+
+// ============================================================================
+// Kontrolni soucet
+// ============================================================================
+
+// Vypocita CRC32 kontrolni soucet bajtoveho bufferu.
+// Deleguje na proven_checksum_crc32 v libproven.
+fn crc32(data : Bytes) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(
+    FFI.proven_checksum_crc32(data.ptr, data.len)
+  )
+
+// Overi, ze CRC32 kontrolni soucet odpovida ocekavane hodnote.
+// Vraci Uspech(true) pokud kontrolni soucet odpovida.
+// Deleguje na proven_checksum_verify_crc32 v libproven.
+fn ověřit_crc32(data : Bytes, očekávaný : UInt32) -> Výsledek<Bool, ProvenChyba> =
+  bool_vysledek_prevod(
+    FFI.proven_checksum_verify_crc32(data.ptr, data.len, očekávaný)
+  )
+
+// ============================================================================
+// Oblibeny specificke: typovane kryptograficke vysledky
+// ============================================================================
+
+// Chybovy typ specializovany pro kryptograficke operace.
+// Rozsiruje ProvenChyba o krypto-specificke semantiky.
+typ KryptoChyba =
+  | ProvenCh(ProvenChyba)       // Zakladni Proven chyba
+  | NedostatekEntropie          // Nedostatek entropie
+  | PorovnáníSelhalo            // Porovnani s konstantnim casem selhalo
+  | NeplatnéHexKódování         // Neplatne hex kodovani ve vstupu

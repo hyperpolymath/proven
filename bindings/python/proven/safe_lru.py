@@ -1,39 +1,39 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeLru - Least-recently-used cache with bounded size.
 
 Provides a thread-safe LRU cache implementation.
+All operations are delegated to the Idris core via FFI using opaque handles.
 """
 
-from typing import TypeVar, Generic, Optional, Dict, List, Tuple
-from collections import OrderedDict
-import threading
+from typing import Optional, Dict, List, Tuple
 
-K = TypeVar("K")
-V = TypeVar("V")
+from .core import ProvenStatus, get_lib
 
 
-class LruCache(Generic[K, V]):
+class LruCache:
     """
-    Least-recently-used cache with automatic eviction.
+    Least-recently-used cache with automatic eviction via FFI.
+
+    Keys and values are stored as bytes in the Idris core.
 
     Example:
         >>> cache = LruCache(3)
-        >>> cache.put("a", 1)
-        >>> cache.put("b", 2)
-        >>> cache.put("c", 3)
+        >>> cache.put("a", "1")
+        >>> cache.put("b", "2")
+        >>> cache.put("c", "3")
         >>> cache.get("a")  # Moves "a" to most recent
-        1
-        >>> cache.put("d", 4)  # Evicts "b" (least recently used)
+        b'1'
+        >>> cache.put("d", "4")  # Evicts "b" (least recently used)
         >>> cache.get("b")
         None
     """
 
     def __init__(self, capacity: int):
         """
-        Create an LRU cache.
+        Create an LRU cache via FFI.
 
         Args:
             capacity: Maximum number of items
@@ -43,11 +43,25 @@ class LruCache(Generic[K, V]):
         """
         if capacity <= 0:
             raise ValueError("Capacity must be positive")
+
+        lib = get_lib()
+        result = lib.proven_lru_create(capacity)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create LRU cache via FFI")
+
+        self._handle = result.handle
         self._capacity = capacity
-        self._cache: OrderedDict[K, V] = OrderedDict()
-        self._lock = threading.Lock()
+        self._lib = lib
         self._hits = 0
         self._misses = 0
+
+    def __del__(self):
+        """Free the FFI LRU handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_lru_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def capacity(self) -> int:
@@ -56,72 +70,58 @@ class LruCache(Generic[K, V]):
 
     def __len__(self) -> int:
         """Get current number of items."""
-        with self._lock:
-            return len(self._cache)
+        result = self._lib.proven_lru_len(self._handle)
+        if result.status != ProvenStatus.OK:
+            return 0
+        return result.value
 
-    def get(self, key: K) -> Optional[V]:
+    def get(self, key: str) -> Optional[bytes]:
         """
-        Get value by key, marking it as recently used.
+        Get value by key, marking it as recently used via FFI.
 
         Args:
             key: Key to look up
 
         Returns:
-            Value, or None if not found
+            Value bytes, or None if not found
         """
-        with self._lock:
-            if key not in self._cache:
-                self._misses += 1
-                return None
-            # Move to end (most recently used)
-            self._cache.move_to_end(key)
-            self._hits += 1
-            return self._cache[key]
+        encoded_key = key.encode("utf-8") if isinstance(key, str) else key
+        result = self._lib.proven_lru_get(self._handle, encoded_key, len(encoded_key))
+        if result.status != ProvenStatus.OK or result.data is None:
+            self._misses += 1
+            return None
+        data = result.data[:result.length]
+        self._lib.proven_free_string(result.data)
+        self._hits += 1
+        return bytes(data)
 
-    def put(self, key: K, value: V) -> Optional[Tuple[K, V]]:
+    def put(self, key: str, value: str) -> None:
         """
-        Insert or update a value.
+        Insert or update a value via FFI.
 
         Args:
             key: Key
             value: Value
-
-        Returns:
-            Evicted (key, value) tuple if eviction occurred, None otherwise
         """
-        with self._lock:
-            evicted = None
+        encoded_key = key.encode("utf-8") if isinstance(key, str) else key
+        encoded_value = value.encode("utf-8") if isinstance(value, str) else value
+        self._lib.proven_lru_put(
+            self._handle,
+            encoded_key, len(encoded_key),
+            encoded_value, len(encoded_value),
+        )
 
-            if key in self._cache:
-                # Update existing
-                self._cache.move_to_end(key)
-                self._cache[key] = value
-            else:
-                # Insert new
-                if len(self._cache) >= self._capacity:
-                    # Evict oldest
-                    oldest_key, oldest_value = self._cache.popitem(last=False)
-                    evicted = (oldest_key, oldest_value)
-                self._cache[key] = value
-
-            return evicted
-
-    def remove(self, key: K) -> Optional[V]:
+    def remove(self, key: str) -> None:
         """
-        Remove and return value by key.
+        Remove a key via FFI.
 
         Args:
             key: Key to remove
-
-        Returns:
-            Value, or None if not found
         """
-        with self._lock:
-            if key not in self._cache:
-                return None
-            return self._cache.pop(key)
+        encoded_key = key.encode("utf-8") if isinstance(key, str) else key
+        self._lib.proven_lru_remove(self._handle, encoded_key, len(encoded_key))
 
-    def contains(self, key: K) -> bool:
+    def contains(self, key: str) -> bool:
         """
         Check if key exists (does not update LRU order).
 
@@ -131,45 +131,24 @@ class LruCache(Generic[K, V]):
         Returns:
             True if exists
         """
-        with self._lock:
-            return key in self._cache
+        # Use get but don't count as hit/miss for stats
+        encoded_key = key.encode("utf-8") if isinstance(key, str) else key
+        result = self._lib.proven_lru_get(self._handle, encoded_key, len(encoded_key))
+        if result.status != ProvenStatus.OK or result.data is None:
+            return False
+        self._lib.proven_free_string(result.data)
+        return True
 
-    def __contains__(self, key: K) -> bool:
+    def __contains__(self, key: str) -> bool:
         """Support 'in' operator."""
         return self.contains(key)
 
-    def peek(self, key: K) -> Optional[V]:
-        """
-        Get value without updating LRU order.
-
-        Args:
-            key: Key to look up
-
-        Returns:
-            Value, or None if not found
-        """
-        with self._lock:
-            return self._cache.get(key)
-
     def clear(self) -> None:
-        """Remove all items."""
-        with self._lock:
-            self._cache.clear()
-
-    def keys(self) -> List[K]:
-        """Get all keys (oldest to newest)."""
-        with self._lock:
-            return list(self._cache.keys())
-
-    def values(self) -> List[V]:
-        """Get all values (oldest to newest)."""
-        with self._lock:
-            return list(self._cache.values())
-
-    def items(self) -> List[Tuple[K, V]]:
-        """Get all items (oldest to newest)."""
-        with self._lock:
-            return list(self._cache.items())
+        """Remove all items by recreating the cache."""
+        self._lib.proven_lru_free(self._handle)
+        result = self._lib.proven_lru_create(self._capacity)
+        if result.status == ProvenStatus.OK and result.handle is not None:
+            self._handle = result.handle
 
     def stats(self) -> Dict[str, int]:
         """
@@ -178,13 +157,12 @@ class LruCache(Generic[K, V]):
         Returns:
             Dict with hits, misses, size, capacity
         """
-        with self._lock:
-            return {
-                "hits": self._hits,
-                "misses": self._misses,
-                "size": len(self._cache),
-                "capacity": self._capacity,
-            }
+        return {
+            "hits": self._hits,
+            "misses": self._misses,
+            "size": len(self),
+            "capacity": self._capacity,
+        }
 
     def hit_rate(self) -> float:
         """
@@ -193,6 +171,5 @@ class LruCache(Generic[K, V]):
         Returns:
             Hit rate (0.0-1.0), or 0.0 if no accesses
         """
-        with self._lock:
-            total = self._hits + self._misses
-            return self._hits / total if total > 0 else 0.0
+        total = self._hits + self._misses
+        return self._hits / total if total > 0 else 0.0

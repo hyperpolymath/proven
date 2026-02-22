@@ -1,115 +1,65 @@
 #lang racket/base
 
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;
-;; Proven SafeMath - Overflow-checked arithmetic for Racket
+;; SafeMath - FFI bindings to libproven overflow-checked arithmetic
 ;;
+;; All computation delegates to Idris 2 via the Zig FFI layer.
 
-(require racket/contract)
+(require ffi/unsafe)
 
-(provide
- ;; Result struct
- (struct-out safe-result)
+(provide safe-add safe-sub safe-mul safe-div safe-mod
+         safe-abs safe-negate safe-pow clamp in-range?
+         (struct-out safe-result) MAX-INT64 MIN-INT64)
 
- ;; Safe operations
- safe-add
- safe-sub
- safe-mul
- safe-div
- safe-mod
- safe-abs
- safe-negate
+;; Load libproven
+(define libproven (ffi-lib "libproven"))
 
- ;; Range operations
- clamp
- in-range?
+;; IntResult C struct: { i32 status, i64 value }
+(define-cstruct _IntResult
+  ([status _int32]
+   [value  _int64]))
 
- ;; Constants
- MAX-INT64
- MIN-INT64)
-
-;; Maximum and minimum values for 64-bit integers
+;; Constants
 (define MAX-INT64 9223372036854775807)
 (define MIN-INT64 -9223372036854775808)
 
-;; Result struct for safe operations
+;; Result struct for Racket consumers
 (struct safe-result (value ok?) #:transparent)
 
-;; Safe addition with overflow checking
-(define (safe-add a b)
-  (cond
-    ;; Check for positive overflow: b > 0 and a > MAX - b
-    [(and (> b 0) (> a (- MAX-INT64 b)))
-     (safe-result 0 #f)]
-    ;; Check for negative overflow: b < 0 and a < MIN - b
-    [(and (< b 0) (< a (- MIN-INT64 b)))
-     (safe-result 0 #f)]
-    ;; Safe to add
-    [else (safe-result (+ a b) #t)]))
+;; FFI bindings
+(define ffi-math-add
+  (get-ffi-obj "proven_math_add_checked" libproven (_fun _int64 _int64 -> _IntResult)))
+(define ffi-math-sub
+  (get-ffi-obj "proven_math_sub_checked" libproven (_fun _int64 _int64 -> _IntResult)))
+(define ffi-math-mul
+  (get-ffi-obj "proven_math_mul_checked" libproven (_fun _int64 _int64 -> _IntResult)))
+(define ffi-math-div
+  (get-ffi-obj "proven_math_div" libproven (_fun _int64 _int64 -> _IntResult)))
+(define ffi-math-mod
+  (get-ffi-obj "proven_math_mod" libproven (_fun _int64 _int64 -> _IntResult)))
+(define ffi-math-abs
+  (get-ffi-obj "proven_math_abs_safe" libproven (_fun _int64 -> _IntResult)))
+(define ffi-math-clamp
+  (get-ffi-obj "proven_math_clamp" libproven (_fun _int64 _int64 _int64 -> _int64)))
+(define ffi-math-pow
+  (get-ffi-obj "proven_math_pow_checked" libproven (_fun _int64 _uint32 -> _IntResult)))
 
-;; Safe subtraction with overflow checking
-(define (safe-sub a b)
-  (cond
-    ;; Check for positive overflow: b < 0 and a > MAX + b
-    [(and (< b 0) (> a (+ MAX-INT64 b)))
-     (safe-result 0 #f)]
-    ;; Check for negative overflow: b > 0 and a < MIN + b
-    [(and (> b 0) (< a (+ MIN-INT64 b)))
-     (safe-result 0 #f)]
-    ;; Safe to subtract
-    [else (safe-result (- a b) #t)]))
+;; Helper: convert IntResult to safe-result
+(define (int-result->safe-result ir)
+  (if (= (IntResult-status ir) 0)
+      (safe-result (IntResult-value ir) #t)
+      (safe-result 0 #f)))
 
-;; Safe multiplication with overflow checking
-(define (safe-mul a b)
-  (cond
-    ;; Handle zero cases
-    [(or (= a 0) (= b 0))
-     (safe-result 0 #t)]
-    ;; Compute and verify
-    [else
-     (let ([result (* a b)])
-       (if (and (not (= a 0)) (not (= (quotient result a) b)))
-           (safe-result 0 #f)
-           (safe-result result #t)))]))
-
-;; Safe division with zero check
-(define (safe-div a b)
-  (cond
-    ;; Division by zero
-    [(= b 0)
-     (safe-result 0 #f)]
-    ;; MIN / -1 overflow
-    [(and (= a MIN-INT64) (= b -1))
-     (safe-result 0 #f)]
-    ;; Safe to divide
-    [else (safe-result (quotient a b) #t)]))
-
-;; Safe modulo with zero check
-(define (safe-mod a b)
-  (if (= b 0)
-      (safe-result 0 #f)
-      (safe-result (remainder a b) #t)))
-
-;; Safe absolute value
-(define (safe-abs a)
-  (if (= a MIN-INT64)
-      (safe-result 0 #f)
-      (safe-result (abs a) #t)))
-
-;; Safe negate
-(define (safe-negate a)
-  (if (= a MIN-INT64)
-      (safe-result 0 #f)
-      (safe-result (- a) #t)))
-
-;; Clamp value to range
-(define (clamp value min-val max-val)
-  (cond
-    [(< value min-val) min-val]
-    [(> value max-val) max-val]
-    [else value]))
-
-;; Check if value is in range
-(define (in-range? value min-val max-val)
-  (and (>= value min-val) (<= value max-val)))
+;; Public API (all delegate to Idris 2)
+(define (safe-add a b) (int-result->safe-result (ffi-math-add a b)))
+(define (safe-sub a b) (int-result->safe-result (ffi-math-sub a b)))
+(define (safe-mul a b) (int-result->safe-result (ffi-math-mul a b)))
+(define (safe-div a b) (int-result->safe-result (ffi-math-div a b)))
+(define (safe-mod a b) (int-result->safe-result (ffi-math-mod a b)))
+(define (safe-abs a)   (int-result->safe-result (ffi-math-abs a)))
+(define (safe-negate a) (int-result->safe-result (ffi-math-sub 0 a)))
+(define (safe-pow base exp) (int-result->safe-result (ffi-math-pow base exp)))
+(define (clamp value min-val max-val) (ffi-math-clamp min-val max-val value))
+(define (in-range? value min-val max-val) (= value (clamp value min-val max-val)))

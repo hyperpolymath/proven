@@ -255,41 +255,64 @@ filterArray _ json = json
 -- JSON Equality
 --------------------------------------------------------------------------------
 
-||| Equality for JSON values
+||| Equality helper for lists of JSON values (structurally recursive)
+jsonListEq : List JsonValue -> List JsonValue -> Bool
+
+||| Equality helper for lists of JSON key-value pairs (structurally recursive)
+jsonPairsEq : List (String, JsonValue) -> List (String, JsonValue) -> Bool
+
+||| Equality for JSON values (structurally recursive on subterms)
 public export
 Eq JsonValue where
   JsonNull == JsonNull = True
   (JsonBool a) == (JsonBool b) = a == b
   (JsonNumber a) == (JsonNumber b) = a == b
   (JsonString a) == (JsonString b) = a == b
-  (JsonArray a) == (JsonArray b) = assert_total $ a == b
-  (JsonObject a) == (JsonObject b) = assert_total $ a == b
+  (JsonArray a) == (JsonArray b) = jsonListEq a b
+  (JsonObject a) == (JsonObject b) = jsonPairsEq a b
   _ == _ = False
+
+jsonListEq [] [] = True
+jsonListEq (x :: xs) (y :: ys) = x == y && jsonListEq xs ys
+jsonListEq _ _ = False
+
+jsonPairsEq [] [] = True
+jsonPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
+  k1 == k2 && v1 == v2 && jsonPairsEq ps1 ps2
+jsonPairsEq _ _ = False
 
 --------------------------------------------------------------------------------
 -- JSON Show Instance
 --------------------------------------------------------------------------------
 
+||| Show helper for JSON array elements (structurally recursive)
+showJsonElems : List JsonValue -> String
+
+||| Show helper for JSON object pairs (structurally recursive)
+showJsonPairs : List (String, JsonValue) -> String
+
+||| Show helper for a single JSON value (structurally recursive)
+showJsonValue : JsonValue -> String
+showJsonValue JsonNull = "null"
+showJsonValue (JsonBool True) = "true"
+showJsonValue (JsonBool False) = "false"
+showJsonValue (JsonNumber n) = show n
+showJsonValue (JsonString s) = show s
+showJsonValue (JsonArray arr) = "[" ++ showJsonElems arr ++ "]"
+showJsonValue (JsonObject pairs) = "{" ++ showJsonPairs pairs ++ "}"
+
+showJsonElems [] = ""
+showJsonElems [x] = showJsonValue x
+showJsonElems (x :: xs) = showJsonValue x ++ ", " ++ showJsonElems xs
+
+showJsonPairs [] = ""
+showJsonPairs [(k, v)] = show k ++ ": " ++ showJsonValue v
+showJsonPairs ((k, v) :: ps) = show k ++ ": " ++ showJsonValue v ++ ", " ++ showJsonPairs ps
+
 ||| Show instance for debugging
 public export
 Show JsonValue where
-  show JsonNull = "null"
-  show (JsonBool True) = "true"
-  show (JsonBool False) = "false"
-  show (JsonNumber n) = show n
-  show (JsonString s) = show s
-  show (JsonArray arr) = "[" ++ showElems arr ++ "]"
-    where
-      showElems : List JsonValue -> String
-      showElems [] = ""
-      showElems [x] = assert_total $ show x
-      showElems (x :: xs) = assert_total $ show x ++ ", " ++ showElems xs
-  show (JsonObject pairs) = "{" ++ showPairs pairs ++ "}"
-    where
-      showPairs : List (String, JsonValue) -> String
-      showPairs [] = ""
-      showPairs [(k, v)] = assert_total $ show k ++ ": " ++ show v
-      showPairs ((k, v) :: ps) = assert_total $ show k ++ ": " ++ show v ++ ", " ++ showPairs ps
+  show = showJsonValue
 
 --------------------------------------------------------------------------------
 -- Type-Safe JSON Schema

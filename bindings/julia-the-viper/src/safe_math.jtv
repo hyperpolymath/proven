@@ -1,0 +1,133 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- safe_math.jtv - Safe arithmetic operations for Julia the Viper
+--
+-- Data-plane module: All operations here are addition-only at the JTV
+-- language level. The actual computation is delegated to libproven's
+-- formally verified Idris 2 core via the FFI bridge.
+--
+-- The addition-only constraint is JTV's key security feature: code
+-- injection becomes grammatically impossible because the Data language
+-- cannot express control flow. Subtraction, multiplication, division,
+-- and power are available through Control-plane wrappers that call FFI.
+--
+-- @module
+
+module Proven.SafeMath
+
+import Proven.FFI (
+    proven_math_add_checked,
+    proven_math_sub_checked,
+    proven_math_mul_checked,
+    proven_math_div,
+    proven_math_mod,
+    proven_math_abs_safe,
+    proven_math_clamp,
+    proven_math_pow_checked,
+    STATUS_OK
+)
+import Proven (DataResult, Ok, Err, ProvenError)
+
+-- ---------------------------------------------------------------------------
+-- Data-plane: Addition (the fundamental JTV Data operation)
+-- ---------------------------------------------------------------------------
+
+-- Safe addition with overflow check.
+-- This is the ONLY arithmetic primitive in the Data language.
+-- All other operations are Control-plane helpers.
+--
+-- Delegates to proven_math_add_checked via FFI.
+-- Returns DataResult with the sum, or error on overflow.
+fn safe_add(a: i64, b: i64) -> DataResult<i64>:
+    let result = proven_math_add_checked(a, b)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "Addition overflow" })
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Extended arithmetic (requires Control context)
+-- ---------------------------------------------------------------------------
+
+-- Safe subtraction with underflow check.
+-- Control-plane only: subtraction is not a Data-plane operation in JTV.
+-- Delegates to proven_math_sub_checked via FFI.
+fn safe_sub(a: i64, b: i64) -> DataResult<i64>:
+    let result = proven_math_sub_checked(a, b)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "Subtraction underflow" })
+
+-- Safe multiplication with overflow check.
+-- Control-plane only.
+-- Delegates to proven_math_mul_checked via FFI.
+fn safe_mul(a: i64, b: i64) -> DataResult<i64>:
+    let result = proven_math_mul_checked(a, b)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "Multiplication overflow" })
+
+-- Safe integer division with division-by-zero check.
+-- Control-plane only.
+-- Delegates to proven_math_div via FFI.
+fn safe_div(a: i64, b: i64) -> DataResult<i64>:
+    let result = proven_math_div(a, b)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "Division by zero" })
+
+-- Safe modulo operation.
+-- Control-plane only.
+-- Delegates to proven_math_mod via FFI.
+fn safe_mod(a: i64, b: i64) -> DataResult<i64>:
+    let result = proven_math_mod(a, b)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "Modulo by zero" })
+
+-- Safe absolute value (handles MIN_INT correctly).
+-- Control-plane only.
+-- Delegates to proven_math_abs_safe via FFI.
+fn safe_abs(n: i64) -> DataResult<i64>:
+    let result = proven_math_abs_safe(n)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "Absolute value overflow (MIN_INT)" })
+
+-- Clamp value to range [lo, hi].
+-- This is a pure Data operation (no error possible).
+-- Delegates to proven_math_clamp via FFI.
+fn clamp(value: i64, lo: i64, hi: i64) -> i64:
+    return proven_math_clamp(lo, hi, value)
+
+-- Safe integer power with overflow checking.
+-- Control-plane only.
+-- Delegates to proven_math_pow_checked via FFI.
+fn safe_pow(base: i64, exponent: u32) -> DataResult<i64>:
+    let result = proven_math_pow_checked(base, exponent)
+    if result.status == STATUS_OK:
+        return Ok(result.value)
+    else:
+        return Err({ code: result.status, message: "Power overflow" })
+
+-- ---------------------------------------------------------------------------
+-- Data-plane convenience: Repeated addition (Data-safe multiply)
+-- ---------------------------------------------------------------------------
+
+-- Multiply by repeated addition (Data-plane legal).
+-- This is intentionally slow but satisfies the addition-only constraint.
+-- For production use, prefer safe_mul (Control-plane) instead.
+fn add_repeated(value: i64, count: u32) -> DataResult<i64>:
+    let mut accumulator: i64 = 0
+    for i in 0..count:
+        let step = safe_add(accumulator, value)
+        match step:
+            Ok(v) -> accumulator = v
+            Err(e) -> return Err(e)
+    return Ok(accumulator)

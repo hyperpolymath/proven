@@ -1,123 +1,113 @@
-# Proven JavaScript Bindings
+# Proven JavaScript Bindings (FFI)
 
-Safe, formally verified library for JavaScript - 38 modules of operations that cannot crash.
+Thin FFI wrapper for the formally verified **libproven** safety library.
+All computation delegates to Idris 2 (dependent types + totality checking)
+via the Zig FFI bridge. This binding loads `libproven.so`/`libproven.dylib`
+through `Deno.dlopen`.
 
-## Installation
+## Architecture
 
-```bash
-npm install @proven/javascript
-# or
-deno add @proven/javascript
+```
+JavaScript (this package)
+    |
+    | Deno.dlopen / FFI
+    v
+libproven.so (Zig C ABI)
+    |
+    | extern fn calls
+    v
+Idris 2 RefC (formally verified)
 ```
 
-## Modules (38)
+**No logic is reimplemented in JavaScript.** Every function call goes
+through the FFI to Idris 2 compiled code.
 
-### Core Modules (11)
-- **SafeMath**: Overflow detection, safe division, bounded integers
-- **SafeString**: UTF-8 validation, injection-safe escaping (HTML, SQL, JS, URL, shell)
-- **SafePath**: Path traversal prevention
-- **SafeEmail**: RFC 5321/5322 validation
-- **SafeUrl**: RFC 3986 compliant parsing
-- **SafeNetwork**: IPv4/IPv6 parsing, CIDR notation
-- **SafeCrypto**: Secure hashing (SHA-3, BLAKE3)
-- **SafeUuid**: UUID generation and validation
-- **SafeCurrency**: Currency handling with precision
-- **SafePhone**: Phone number parsing and validation
-- **SafeHex**: Hexadecimal encoding/decoding
+## Requirements
 
-### Data Modules (7)
-- **SafeJson**: Exception-free parsing with validation
-- **SafeDatetime**: ISO 8601 parsing, date validation
-- **SafeFloat**: NaN/Infinity prevention
-- **SafeVersion**: Semantic versioning
-- **SafeColor**: RGB/HSL with WCAG contrast
-- **SafeAngle**: Angle conversions and trigonometry
-- **SafeUnit**: Unit conversions (length, mass, temperature, etc.)
+- **Deno >= 1.40** (for `Deno.dlopen` FFI support)
+- **libproven** shared library built from `ffi/zig/`
+- Run with `--allow-ffi` and `--unstable-ffi` flags
 
-### Data Structure Modules (5)
-- **SafeBuffer**: Bounded, ring, and growable buffers
-- **SafeQueue**: Priority queues and deques
-- **SafeBloom**: Bloom filters
-- **SafeLRU**: LRU caches with TTL
-- **SafeGraph**: Directed and undirected graphs with algorithms
+## Building libproven
 
-### Resilience Modules (4)
-- **SafeRateLimiter**: Token bucket, sliding window, leaky bucket
-- **SafeCircuitBreaker**: Circuit breaker pattern
-- **SafeRetry**: Retry strategies with backoff
-- **SafeMonotonic**: Monotonic counters and timestamps
-
-### State Modules (2)
-- **SafeStateMachine**: State machine builder
-- **SafeCalculator**: Expression parser and calculator
-
-### Algorithm Modules (4)
-- **SafeGeo**: Geographic calculations (haversine, bearing)
-- **SafeProbability**: Probability distributions
-- **SafeChecksum**: CRC-32, Adler-32, FNV, Luhn
-- **SafeTensor**: Tensor operations
-
-### Security Modules (2)
-- **SafePassword**: Password validation and generation
-- **SafeML**: Machine learning utilities
-
-### HTTP Modules (3)
-- **SafeHeader**: HTTP header validation
-- **SafeCookie**: HTTP cookie handling
-- **SafeContentType**: MIME type handling
+```bash
+cd ../../ffi/zig
+zig build -Doptimize=ReleaseSafe
+# Output: zig-out/lib/libproven.so (or .dylib on macOS)
+```
 
 ## Usage
 
 ```javascript
-import {
-  SafeMath,
-  SafeString,
-  SafeEmail,
-  SafeUUID,
-  Money,
-  CurrencyCode,
-  TokenBucket,
-  StateMachineBuilder,
-} from '@proven/javascript';
+import { SafeMath, SafeString, SafeAngle, isAvailable } from '@hyperpolymath/proven';
 
-// Safe math operations
-const sum = SafeMath.addChecked(Number.MAX_SAFE_INTEGER, 1);
-if (sum.isErr()) {
-  console.log('Overflow detected!');
+// Check if FFI is available
+if (!isAvailable()) {
+  console.error('libproven not loaded');
+  Deno.exit(1);
 }
 
-// Safe string escaping
+// Safe math (calls Idris via FFI)
+const sum = SafeMath.add(Number.MAX_SAFE_INTEGER - 1, 1);
+console.log(sum); // { ok: true, value: 9007199254740991 }
+
+const overflow = SafeMath.add(Number.MAX_SAFE_INTEGER, 1);
+console.log(overflow); // { ok: false, error: 'Integer overflow' }
+
+// Safe string escaping (calls Idris via FFI)
 const escaped = SafeString.escapeHtml("<script>alert('xss')</script>");
-console.log(escaped);  // &lt;script&gt;...
+console.log(escaped); // { ok: true, value: '&lt;script&gt;...' }
 
-// UUID operations
-const uuidResult = SafeUUID.parse('550e8400-e29b-41d4-a716-446655440000');
-if (uuidResult.ok) {
-  console.log(uuidResult.value.toString());
-  console.log(uuidResult.value.getVersion());  // 'v4'
-}
-
-// Money operations (no floating-point errors)
-const moneyResult = Money.fromMajorUnits(10.50, CurrencyCode.USD);
-if (moneyResult.ok) {
-  const doubled = moneyResult.value.multiply(2);
-  console.log(doubled.value.format());  // '$21.00'
-}
-
-// Rate limiting
-const limiter = new TokenBucket(100, 10.0);
-if (limiter.tryAcquire()) {
-  // Request allowed
-}
-
-// State machines
-const machine = new StateMachineBuilder()
-  .initialState('idle')
-  .addTransition('idle', 'start', 'running')
-  .addTransition('running', 'stop', 'idle')
-  .build();
+// Angle conversion (calls Idris via FFI)
+const rad = SafeAngle.degToRad(180);
+console.log(rad); // 3.141592653589793
 ```
+
+## Custom library path
+
+Set `PROVEN_LIB_PATH` environment variable:
+
+```bash
+PROVEN_LIB_PATH=/opt/proven/lib/libproven.so deno run --allow-ffi --unstable-ffi app.ts
+```
+
+## Subpath imports
+
+Each module is available as a subpath import:
+
+```javascript
+import { SafeMath } from '@hyperpolymath/proven/math';
+import { SafeUUID } from '@hyperpolymath/proven/uuid';
+import { BloomFilter } from '@hyperpolymath/proven/bloom';
+```
+
+## Modules (39)
+
+### Core (11)
+SafeMath, SafeString, SafePath, SafeEmail, SafeUrl, SafeNetwork,
+SafeCrypto, SafeUUID, SafeCurrency (Money), SafePhone, SafeHex
+
+### Data (7)
+SafeJson, SafeDateTime, SafeFloat, SafeVersion, SafeColor, SafeAngle, SafeUnit
+
+### Data Structures (5)
+BoundedBuffer, BoundedQueue, BloomFilter, LruCache, DirectedGraph
+
+### Resilience (4)
+TokenBucket, CircuitBreaker, Retry, MonotonicCounter
+
+### State (2)
+StateMachine, SafeCalculator
+
+### Algorithm (4)
+SafeGeo, SafeProbability, SafeChecksum, Matrix (Tensor)
+
+### Security (2)
+SafePassword, SafeML
+
+### HTTP (3)
+SafeHeader, SafeCookie, SafeContentType
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later

@@ -1,0 +1,44 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{{
+SafeJson -- Safe JSON validation and type detection.
+
+All computation is performed in verified Idris 2 code via proven-cli.
+}}
+
+-- JSON value type.
+unique type proven.JsonType
+  = JsonNull
+  | JsonBool
+  | JsonNumber
+  | JsonString
+  | JsonArray
+  | JsonObject
+  | JsonInvalid
+
+-- Check if a string is valid JSON.
+proven.json.isValid : '{IO} Text -> Boolean
+proven.json.isValid value =
+  match proven.runCli ["json", "validate", value] with
+    Some output ->
+      match proven.parseBoolResult output with
+        Some b -> b
+        None -> false
+    None -> false
+
+-- Get the JSON value type at the root level.
+-- Returns JsonInvalid for non-JSON input.
+proven.json.getType : '{IO} Text -> proven.JsonType
+proven.json.getType value =
+  match proven.runCli ["json", "get-type", value] with
+    Some output ->
+      match Text.trim output with
+        "null"    -> JsonNull
+        "bool"    -> JsonBool
+        "number"  -> JsonNumber
+        "string"  -> JsonString
+        "array"   -> JsonArray
+        "object"  -> JsonObject
+        _         -> JsonInvalid
+    None -> JsonInvalid

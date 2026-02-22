@@ -1,35 +1,40 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Common types and utilities for Proven AssemblyScript bindings.
+ * Common types and data marshaling utilities for Proven AssemblyScript bindings.
+ *
+ * This file provides:
+ *   - ProvenStatus enum matching libproven's C status codes
+ *   - Result<T> and Option<T> types for safe error handling
+ *   - WASM linear memory helpers for marshaling data to/from host FFI calls
+ *
+ * NO computation logic is implemented here. All computation is performed
+ * by libproven via host-provided WASM imports declared in ffi.ts.
  */
 
 // ============================================================================
-// ERROR CODES
+// STATUS CODES (must match ProvenStatus in proven.h exactly)
 // ============================================================================
 
-export const enum ErrorCode {
-  None = 0,
-  Overflow = 1,
-  DivisionByZero = 2,
-  OutOfBounds = 3,
-  InvalidInput = 4,
-  ParseError = 5,
-  NotFound = 6,
-  InvalidState = 7,
-  NetworkError = 8,
-  CapacityExceeded = 9,
-  InvalidFormat = 10,
-  InvalidPath = 11,
-  InvalidEmail = 12,
-  InvalidUrl = 13,
-  InvalidIp = 14,
-  RateLimited = 15,
-  CircuitOpen = 16,
-  Timeout = 17,
-  InvalidTransition = 18,
-  CycleDetected = 19,
+/**
+ * Status codes returned by libproven operations.
+ * Zero indicates success; negative values indicate specific error conditions.
+ * These values MUST match the ProvenStatus enum in proven.h.
+ */
+export const enum ProvenStatus {
+  Ok                   =   0,
+  ErrNullPointer       =  -1,
+  ErrInvalidArgument   =  -2,
+  ErrOverflow          =  -3,
+  ErrUnderflow         =  -4,
+  ErrDivisionByZero    =  -5,
+  ErrParseFailure      =  -6,
+  ErrValidationFailed  =  -7,
+  ErrOutOfBounds       =  -8,
+  ErrEncodingError     =  -9,
+  ErrAllocationFailed  = -10,
+  ErrNotImplemented    = -99,
 }
 
 // ============================================================================
@@ -38,68 +43,69 @@ export const enum ErrorCode {
 
 /**
  * Result type for operations that can fail.
- * Similar to Rust's Result<T, E>.
+ * Wraps a value with a ProvenStatus code from libproven.
+ *
+ * This is a data container for marshaling FFI results. It does not
+ * perform any computation itself.
  */
 export class Result<T> {
-  private _ok: bool;
+  private _status: ProvenStatus;
   private _value: T;
-  private _error: ErrorCode;
 
-  private constructor(ok: bool, value: T, error: ErrorCode) {
-    this._ok = ok;
+  private constructor(status: ProvenStatus, value: T) {
+    this._status = status;
     this._value = value;
-    this._error = error;
   }
 
+  /** Create a successful result. */
   static ok<T>(value: T): Result<T> {
-    return new Result<T>(true, value, ErrorCode.None);
+    return new Result<T>(ProvenStatus.Ok, value);
   }
 
-  static err<T>(error: ErrorCode): Result<T> {
-    return new Result<T>(false, changetype<T>(0), error);
+  /** Create a failed result with the given status code. */
+  static err<T>(status: ProvenStatus): Result<T> {
+    return new Result<T>(status, changetype<T>(0));
   }
 
+  /** True if the operation succeeded (status == Ok). */
   get isOk(): bool {
-    return this._ok;
+    return this._status == ProvenStatus.Ok;
   }
 
-  isErr(): bool {
-    return !this._ok;
+  /** True if the operation failed (status != Ok). */
+  get isErr(): bool {
+    return this._status != ProvenStatus.Ok;
   }
 
+  /** The result value. Only meaningful when isOk is true. */
   get value(): T {
     return this._value;
   }
 
-  get error(): ErrorCode {
-    return this._error;
+  /** The status code from libproven. */
+  get status(): ProvenStatus {
+    return this._status;
   }
 
-  unwrap(): T {
-    assert(this._ok, "Called unwrap on Err");
-    return this._value;
-  }
-
+  /** Return value if Ok, otherwise the provided default. */
   unwrapOr(defaultValue: T): T {
-    return this._ok ? this._value : defaultValue;
+    return this._status == ProvenStatus.Ok ? this._value : defaultValue;
   }
 
-  unwrapOrElse(fn: () => T): T {
-    return this._ok ? this._value : fn();
-  }
-
+  /** Transform the value if Ok, propagate error otherwise. */
   map<U>(fn: (value: T) => U): Result<U> {
-    if (this._ok) {
+    if (this._status == ProvenStatus.Ok) {
       return Result.ok<U>(fn(this._value));
     }
-    return Result.err<U>(this._error);
+    return Result.err<U>(this._status);
   }
 
+  /** Chain operations: apply fn if Ok, propagate error otherwise. */
   andThen<U>(fn: (value: T) => Result<U>): Result<U> {
-    if (this._ok) {
+    if (this._status == ProvenStatus.Ok) {
       return fn(this._value);
     }
-    return Result.err<U>(this._error);
+    return Result.err<U>(this._status);
   }
 }
 
@@ -109,7 +115,7 @@ export class Result<T> {
 
 /**
  * Option type for nullable values.
- * Similar to Rust's Option<T>.
+ * Data container only -- no computation logic.
  */
 export class Option<T> {
   private _some: bool;
@@ -140,11 +146,6 @@ export class Option<T> {
     return this._value;
   }
 
-  unwrap(): T {
-    assert(this._some, "Called unwrap on None");
-    return this._value;
-  }
-
   unwrapOr(defaultValue: T): T {
     return this._some ? this._value : defaultValue;
   }
@@ -165,77 +166,131 @@ export class Option<T> {
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// WASM LINEAR MEMORY MARSHALING HELPERS
 // ============================================================================
 
 /**
- * Check if a character is ASCII alphanumeric.
+ * Size constants for result struct buffers allocated in WASM linear memory.
+ * The host writes result structs into these buffers after each FFI call.
  */
-export function isAlphanumeric(code: i32): bool {
-  return (code >= 48 && code <= 57) ||  // 0-9
-         (code >= 65 && code <= 90) ||  // A-Z
-         (code >= 97 && code <= 122);   // a-z
+export const INT_RESULT_SIZE: usize = 16;     // [status: i32 @ +0] [pad: 4] [value: i64 @ +8]
+export const BOOL_RESULT_SIZE: usize = 8;     // [status: i32 @ +0] [value: i32 @ +4]
+export const FLOAT_RESULT_SIZE: usize = 16;   // [status: i32 @ +0] [pad: 4] [value: f64 @ +8]
+export const STRING_RESULT_SIZE: usize = 12;  // [status: i32 @ +0] [ptr: u32 @ +4] [len: u32 @ +8]
+
+/**
+ * Scratch buffer for result structs. Allocated once in WASM linear memory
+ * using AssemblyScript's memory.data() intrinsic (static allocation).
+ *
+ * 64 bytes is enough for the largest result struct we use.
+ */
+// @ts-ignore: decorator
+@lazy
+export const RESULT_BUF: usize = memory.data(64);
+
+/**
+ * Read the status field (i32 at offset +0) from a result buffer.
+ */
+export function readStatus(ptr: usize): ProvenStatus {
+  return load<i32>(ptr) as ProvenStatus;
 }
 
 /**
- * Check if a character is ASCII digit.
+ * Read an IntResult: status i32 at +0, value i64 at +8.
+ * Returns Result<i64>.
  */
-export function isDigit(code: i32): bool {
-  return code >= 48 && code <= 57;  // 0-9
+export function readIntResult(ptr: usize): Result<i64> {
+  const status = readStatus(ptr);
+  if (status != ProvenStatus.Ok) {
+    return Result.err<i64>(status);
+  }
+  return Result.ok<i64>(load<i64>(ptr, 8));
 }
 
 /**
- * Check if a character is ASCII letter.
+ * Read a BoolResult: status i32 at +0, value i32 at +4.
+ * Returns Result<bool>.
  */
-export function isLetter(code: i32): bool {
-  return (code >= 65 && code <= 90) ||  // A-Z
-         (code >= 97 && code <= 122);   // a-z
+export function readBoolResult(ptr: usize): Result<bool> {
+  const status = readStatus(ptr);
+  if (status != ProvenStatus.Ok) {
+    return Result.err<bool>(status);
+  }
+  return Result.ok<bool>(load<i32>(ptr, 4) != 0);
 }
 
 /**
- * Check if a character is ASCII lowercase.
+ * Read a FloatResult: status i32 at +0, value f64 at +8.
+ * Returns Result<f64>.
  */
-export function isLowercase(code: i32): bool {
-  return code >= 97 && code <= 122;  // a-z
+export function readFloatResult(ptr: usize): Result<f64> {
+  const status = readStatus(ptr);
+  if (status != ProvenStatus.Ok) {
+    return Result.err<f64>(status);
+  }
+  return Result.ok<f64>(load<f64>(ptr, 8));
 }
 
 /**
- * Check if a character is ASCII uppercase.
+ * Read a StringResult: status i32 at +0, ptr u32 at +4, len u32 at +8.
+ *
+ * The host has allocated the string bytes in WASM linear memory and
+ * written the pointer and length into the result buffer. We copy the
+ * bytes into an AssemblyScript string object.
+ *
+ * Returns Result<string>.
  */
-export function isUppercase(code: i32): bool {
-  return code >= 65 && code <= 90;  // A-Z
+export function readStringResult(ptr: usize): Result<string> {
+  const status = readStatus(ptr);
+  if (status != ProvenStatus.Ok) {
+    return Result.err<string>(status);
+  }
+  const strPtr = load<u32>(ptr, 4) as usize;
+  const strLen = load<u32>(ptr, 8) as usize;
+  if (strLen == 0) {
+    return Result.ok<string>("");
+  }
+  return Result.ok<string>(String.UTF8.decodeUnsafe(strPtr, strLen));
 }
 
 /**
- * Check if a character is hex digit.
+ * Encode an AssemblyScript string to UTF-8 bytes in WASM linear memory.
+ * Returns the pointer and length as a pair stored in a static buffer.
+ *
+ * IMPORTANT: The returned buffer is statically allocated and will be
+ * overwritten on the next call. Copy data before calling again.
  */
-export function isHexDigit(code: i32): bool {
-  return (code >= 48 && code <= 57) ||  // 0-9
-         (code >= 65 && code <= 70) ||  // A-F
-         (code >= 97 && code <= 102);   // a-f
+// @ts-ignore: decorator
+@lazy
+const STR_ENCODE_BUF: usize = memory.data(8); // [ptr: u32, len: u32]
+
+/**
+ * Encode a string to UTF-8 and return (ptr, len) for passing to host FFI.
+ *
+ * Uses AssemblyScript's String.UTF8.encode() which allocates in the
+ * managed heap. The host reads from this pointer during the FFI call.
+ */
+export function encodeString(s: string): usize {
+  const buf = String.UTF8.encode(s, false);
+  const ptr = changetype<usize>(buf);
+  // ArrayBuffer header is 16 bytes in AssemblyScript; data starts after
+  const dataPtr = ptr + 16;
+  const len = <u32>buf.byteLength;
+  store<u32>(STR_ENCODE_BUF, dataPtr as u32);
+  store<u32>(STR_ENCODE_BUF, len, 4);
+  return STR_ENCODE_BUF;
 }
 
 /**
- * Check if a character is whitespace.
+ * Read the encoded string pointer from the encode buffer.
  */
-export function isWhitespace(code: i32): bool {
-  return code == 32 || code == 9 || code == 10 || code == 13;  // space, tab, LF, CR
+export function encodedPtr(): usize {
+  return load<u32>(STR_ENCODE_BUF) as usize;
 }
 
 /**
- * Convert hex character to value.
+ * Read the encoded string length from the encode buffer.
  */
-export function hexToValue(code: i32): i32 {
-  if (code >= 48 && code <= 57) return code - 48;       // 0-9
-  if (code >= 65 && code <= 70) return code - 55;       // A-F
-  if (code >= 97 && code <= 102) return code - 87;      // a-f
-  return -1;
-}
-
-/**
- * Convert value to hex character.
- */
-export function valueToHex(value: i32, uppercase: bool = false): i32 {
-  if (value < 10) return 48 + value;  // 0-9
-  return (uppercase ? 55 : 87) + value;  // A-F or a-f
+export function encodedLen(): usize {
+  return load<u32>(STR_ENCODE_BUF, 4) as usize;
 }

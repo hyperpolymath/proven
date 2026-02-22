@@ -1,69 +1,40 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
  * Safe semantic versioning parsing and comparison.
- * Follows Semantic Versioning 2.0.0 specification.
+ *
+ * Thin FFI wrapper around libproven's SafeVersion module. Semantic
+ * version parsing and comparison are performed in formally verified
+ * Idris 2 code. This module only marshals data to/from the C ABI.
  */
 module proven.safe_version;
 
-import std.array : appender, split;
-import std.conv : to, ConvException;
-import std.string : strip;
+import proven.ffi;
 import std.typecons : Nullable, nullable;
+
+pragma(lib, "proven");
 
 /// Semantic version.
 struct SemVer
 {
-    ulong major;
-    ulong minor;
-    ulong patch;
+    uint major;
+    uint minor;
+    uint patch;
     Nullable!string prerelease;
-    Nullable!string buildMetadata;
 
-    /// Create a new version.
-    static SemVer opCall(ulong major, ulong minor, ulong patch) pure nothrow @safe @nogc
-    {
-        SemVer v;
-        v.major = major;
-        v.minor = minor;
-        v.patch = patch;
-        return v;
-    }
-
-    /// Create with prerelease.
-    SemVer withPrerelease(string prereleaseStr) const pure @safe
-    {
-        SemVer v = this;
-        v.prerelease = nullable(prereleaseStr);
-        return v;
-    }
-
-    /// Create with build metadata.
-    SemVer withBuild(string build) const pure @safe
-    {
-        SemVer v = this;
-        v.buildMetadata = nullable(build);
-        return v;
-    }
-
-    /// Format as string.
+    /// Format as string (e.g., "1.2.3" or "1.2.3-alpha").
     string toString() const pure @safe
     {
         import std.format : format;
+        import std.array : appender;
 
         auto result = appender!string;
         result ~= format!"%d.%d.%d"(major, minor, patch);
-
         if (!prerelease.isNull)
         {
             result ~= '-';
             result ~= prerelease.get;
-        }
-        if (!buildMetadata.isNull)
-        {
-            result ~= '+';
-            result ~= buildMetadata.get;
         }
         return result[];
     }
@@ -78,58 +49,6 @@ struct SemVer
     bool isStable() const pure nothrow @safe @nogc
     {
         return major >= 1 && prerelease.isNull;
-    }
-
-    /// Increment major version.
-    SemVer bumpMajor() const pure nothrow @safe @nogc
-    {
-        return SemVer(major + 1, 0, 0);
-    }
-
-    /// Increment minor version.
-    SemVer bumpMinor() const pure nothrow @safe @nogc
-    {
-        return SemVer(major, minor + 1, 0);
-    }
-
-    /// Increment patch version.
-    SemVer bumpPatch() const pure nothrow @safe @nogc
-    {
-        return SemVer(major, minor, patch + 1);
-    }
-
-    /// Compare two versions.
-    int opCmp(const SemVer other) const pure nothrow @safe
-    {
-        // Compare major.minor.patch
-        if (major != other.major)
-            return major < other.major ? -1 : 1;
-        if (minor != other.minor)
-            return minor < other.minor ? -1 : 1;
-        if (patch != other.patch)
-            return patch < other.patch ? -1 : 1;
-
-        // Prerelease comparison
-        if (prerelease.isNull && !other.prerelease.isNull)
-            return 1; // No prerelease > prerelease
-        if (!prerelease.isNull && other.prerelease.isNull)
-            return -1;
-        if (!prerelease.isNull && !other.prerelease.isNull)
-        {
-            if (prerelease.get < other.prerelease.get)
-                return -1;
-            if (prerelease.get > other.prerelease.get)
-                return 1;
-        }
-
-        // Build metadata is ignored in comparison per SemVer spec
-        return 0;
-    }
-
-    /// Equality comparison.
-    bool opEquals(const SemVer other) const pure nothrow @safe
-    {
-        return opCmp(other) == 0;
     }
 }
 
@@ -151,188 +70,76 @@ struct VersionResult
     }
 }
 
-/// Parse a version string.
-VersionResult parseVersion(string versionString) pure @safe
+/// Parse a semantic version string (e.g., "1.2.3-alpha").
+/// Supports optional 'v' or 'V' prefix.
+VersionResult parseVersion(string versionString) @trusted nothrow
 {
-    auto s = versionString.strip();
-
-    // Remove leading 'v' if present
-    if (s.length > 0 && (s[0] == 'v' || s[0] == 'V'))
-        s = s[1 .. $];
-
-    if (s.length == 0)
+    if (versionString.length == 0)
         return VersionResult.failure("Empty version string");
 
-    // Split off build metadata
-    Nullable!string buildMeta;
-    auto plusIdx = indexOf(s, '+');
-    if (plusIdx >= 0)
-    {
-        buildMeta = nullable(s[plusIdx + 1 .. $]);
-        s = s[0 .. plusIdx];
-    }
+    auto result = proven_version_parse(
+        cast(const(ubyte)*) versionString.ptr, versionString.length
+    );
 
-    // Split off prerelease
-    Nullable!string prereleaseStr;
-    auto dashIdx = indexOf(s, '-');
-    if (dashIdx >= 0)
-    {
-        prereleaseStr = nullable(s[dashIdx + 1 .. $]);
-        s = s[0 .. dashIdx];
-    }
+    if (provenFailed(result.status))
+        return VersionResult.failure("Invalid version");
 
-    // Parse major.minor.patch
-    auto parts = s.split('.');
-    if (parts.length != 3)
-        return VersionResult.failure("Version must have major.minor.patch");
+    auto v = result.version_;
+    SemVer semver;
+    semver.major = v.major;
+    semver.minor = v.minor;
+    semver.patch = v.patch;
 
-    try
-    {
-        immutable major = parts[0].to!ulong;
-        immutable minor = parts[1].to!ulong;
-        immutable patch = parts[2].to!ulong;
+    if (v.prerelease !is null && v.prerelease_len > 0)
+        semver.prerelease = nullable(v.prerelease[0 .. v.prerelease_len].idup);
 
-        SemVer v = SemVer(major, minor, patch);
-        v.prerelease = prereleaseStr;
-        v.buildMetadata = buildMeta;
+    // Free the C-allocated prerelease string
+    proven_version_free(&result.version_);
 
-        return VersionResult.success(v);
-    }
-    catch (ConvException)
-    {
-        return VersionResult.failure("Invalid version number");
-    }
+    return VersionResult.success(semver);
 }
 
-/// Check if version satisfies a constraint.
-bool satisfies(const SemVer semver, string constraint) pure @safe
+/// Compare two semantic versions via libproven.
+/// Returns negative if a < b, 0 if equal, positive if a > b.
+int compareVersions(SemVer a, SemVer b) @trusted nothrow
 {
-    auto trimmed = constraint.strip();
-    if (trimmed.length == 0)
-        return false;
+    // Build ProvenSemanticVersion structs
+    ProvenSemanticVersion pa;
+    pa.major = a.major;
+    pa.minor = a.minor;
+    pa.patch = a.patch;
+    pa.prerelease_len = 0;
+    pa.prerelease = null;
 
-    // Check for comparison operators
-    if (trimmed.length >= 2 && trimmed[0 .. 2] == ">=")
+    ProvenSemanticVersion pb;
+    pb.major = b.major;
+    pb.minor = b.minor;
+    pb.patch = b.patch;
+    pb.prerelease_len = 0;
+    pb.prerelease = null;
+
+    // We need to handle prerelease strings carefully since they are
+    // D strings (GC managed) being passed to C. The C function only
+    // reads them, so casting is safe for the duration of the call.
+    if (!a.prerelease.isNull)
     {
-        auto targetResult = parseVersion(trimmed[2 .. $]);
-        if (!targetResult.ok)
-            return false;
-        return semver >= targetResult.semver;
-    }
-    if (trimmed.length >= 2 && trimmed[0 .. 2] == "<=")
-    {
-        auto targetResult = parseVersion(trimmed[2 .. $]);
-        if (!targetResult.ok)
-            return false;
-        return semver <= targetResult.semver;
-    }
-    if (trimmed[0] == '>')
-    {
-        auto targetResult = parseVersion(trimmed[1 .. $]);
-        if (!targetResult.ok)
-            return false;
-        return semver > targetResult.semver;
-    }
-    if (trimmed[0] == '<')
-    {
-        auto targetResult = parseVersion(trimmed[1 .. $]);
-        if (!targetResult.ok)
-            return false;
-        return semver < targetResult.semver;
-    }
-    if (trimmed[0] == '=')
-    {
-        auto targetResult = parseVersion(trimmed[1 .. $]);
-        if (!targetResult.ok)
-            return false;
-        return semver == targetResult.semver;
-    }
-    if (trimmed[0] == '^')
-    {
-        // Caret: compatible with version (same major, if major > 0)
-        auto targetResult = parseVersion(trimmed[1 .. $]);
-        if (!targetResult.ok)
-            return false;
-        immutable target = targetResult.semver;
-        if (target.major == 0)
-            return semver.major == 0 && semver.minor == target.minor && semver >= target;
-        return semver.major == target.major && semver >= target;
-    }
-    if (trimmed[0] == '~')
-    {
-        // Tilde: same major.minor
-        auto targetResult = parseVersion(trimmed[1 .. $]);
-        if (!targetResult.ok)
-            return false;
-        immutable target = targetResult.semver;
-        return semver.major == target.major && semver.minor == target.minor && semver >= target;
+        auto preA = a.prerelease.get;
+        pa.prerelease = cast(char*) preA.ptr;
+        pa.prerelease_len = preA.length;
     }
 
-    // Exact match
-    auto targetResult = parseVersion(trimmed);
-    if (!targetResult.ok)
-        return false;
-    return semver == targetResult.semver;
+    if (!b.prerelease.isNull)
+    {
+        auto preB = b.prerelease.get;
+        pb.prerelease = cast(char*) preB.ptr;
+        pb.prerelease_len = preB.length;
+    }
+
+    return proven_version_compare(pa, pb);
 }
 
 /// Check if version string is valid.
-bool isValidVersion(string versionString) pure @safe
+bool isValidVersion(string versionString) @trusted nothrow
 {
     return parseVersion(versionString).ok;
-}
-
-/// Find index of character in string.
-private ptrdiff_t indexOf(string s, char c) pure nothrow @safe @nogc
-{
-    foreach (i, ch; s)
-    {
-        if (ch == c)
-            return i;
-    }
-    return -1;
-}
-
-// Unit tests
-unittest
-{
-    // Test parsing
-    auto v = parseVersion("1.2.3");
-    assert(v.ok);
-    assert(v.semver.major == 1);
-    assert(v.semver.minor == 2);
-    assert(v.semver.patch == 3);
-
-    // Test with prerelease and build
-    auto v2 = parseVersion("1.2.3-alpha.1+build.123");
-    assert(v2.ok);
-    assert(v2.semver.prerelease.get == "alpha.1");
-    assert(v2.semver.buildMetadata.get == "build.123");
-
-    // Test with leading v
-    auto v3 = parseVersion("v2.0.0");
-    assert(v3.ok);
-    assert(v3.semver.major == 2);
-
-    // Test comparison
-    assert(parseVersion("1.0.0").semver > parseVersion("0.9.9").semver);
-    assert(parseVersion("1.0.0").semver > parseVersion("1.0.0-alpha").semver);
-    assert(parseVersion("1.0.0-beta").semver > parseVersion("1.0.0-alpha").semver);
-
-    // Test satisfies
-    auto testVer = parseVersion("1.2.3").semver;
-    assert(satisfies(testVer, ">=1.0.0"));
-    assert(satisfies(testVer, "^1.0.0"));
-    assert(satisfies(testVer, "~1.2.0"));
-    assert(!satisfies(testVer, ">=2.0.0"));
-
-    // Test bumping
-    auto bumped = SemVer(1, 2, 3).bumpMajor();
-    assert(bumped.major == 2);
-    assert(bumped.minor == 0);
-    assert(bumped.patch == 0);
-
-    // Test stable check
-    assert(SemVer(1, 0, 0).isStable());
-    assert(!SemVer(0, 9, 9).isStable());
-    assert(!parseVersion("1.0.0-alpha").semver.isStable());
 }

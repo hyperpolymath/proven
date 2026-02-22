@@ -1,0 +1,138 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/// SafeMath -- Affine wrappers around libproven arithmetic FFI.
+///
+/// Every result is affine (consumed at most once). All computation is
+/// delegated to the formally verified Idris 2 implementation via the
+/// Zig FFI layer. No arithmetic logic is reimplemented here.
+
+module Proven.SafeMath
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI IntResult into an affine Option[Int64].
+fn int_result_to_option(result: IntResult) -> Option[Int64] / Pure {
+  if result.status == STATUS_OK {
+    Some(result.value)
+  } else {
+    None
+  }
+}
+
+/// Convert an FFI IntResult into a Result[Int64, ProvenError].
+fn int_result_to_result(result: IntResult) -> Result[Int64, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Safe addition with overflow detection.
+/// Delegates to proven_math_add_checked via FFI.
+fn safe_add(a: Int64, b: Int64) -> Result[Int64, own ProvenError] / Pure {
+  int_result_to_result(extern_proven_math_add_checked(a, b))
+}
+
+/// Safe subtraction with underflow detection.
+/// Delegates to proven_math_sub_checked via FFI.
+fn safe_sub(a: Int64, b: Int64) -> Result[Int64, own ProvenError] / Pure {
+  int_result_to_result(extern_proven_math_sub_checked(a, b))
+}
+
+/// Safe multiplication with overflow detection.
+/// Delegates to proven_math_mul_checked via FFI.
+fn safe_mul(a: Int64, b: Int64) -> Result[Int64, own ProvenError] / Pure {
+  int_result_to_result(extern_proven_math_mul_checked(a, b))
+}
+
+/// Safe division with zero-check.
+/// Delegates to proven_math_div via FFI.
+fn safe_div(numerator: Int64, denominator: Int64) -> Result[Int64, own ProvenError] / Pure {
+  int_result_to_result(extern_proven_math_div(numerator, denominator))
+}
+
+/// Safe modulo with zero-check.
+/// Delegates to proven_math_mod via FFI.
+fn safe_mod(numerator: Int64, denominator: Int64) -> Result[Int64, own ProvenError] / Pure {
+  int_result_to_result(extern_proven_math_mod(numerator, denominator))
+}
+
+/// Safe absolute value (handles MIN_INT correctly).
+/// Delegates to proven_math_abs_safe via FFI.
+fn safe_abs(n: Int64) -> Result[Int64, own ProvenError] / Pure {
+  int_result_to_result(extern_proven_math_abs_safe(n))
+}
+
+/// Clamp value to range [lo, hi]. Pure, always succeeds.
+/// Delegates to proven_math_clamp via FFI.
+fn safe_clamp(value: Int64, lo: Int64, hi: Int64) -> Int64 / Pure {
+  extern_proven_math_clamp(lo, hi, value)
+}
+
+/// Safe integer power with overflow checking.
+/// Delegates to proven_math_pow_checked via FFI.
+fn safe_pow(base: Int64, exponent: UInt32) -> Result[Int64, own ProvenError] / Pure {
+  int_result_to_result(extern_proven_math_pow_checked(base, exponent))
+}
+
+/// Calculate percentage safely: (percent * total) / 100.
+/// Returns None on overflow or division-by-zero.
+fn percent_of(percent: Int64, total: Int64) -> Option[Int64] / Pure {
+  match safe_mul(percent, total) {
+    Err(_) => None,
+    Ok(product) => int_result_to_option(extern_proven_math_div(product, 100))
+  }
+}
+
+/// Calculate what percentage `part` is of `whole`: (part * 100) / whole.
+/// Returns None on division-by-zero or overflow.
+fn as_percent(part: Int64, whole: Int64) -> Option[Int64] / Pure {
+  match safe_mul(part, 100) {
+    Err(_) => None,
+    Ok(scaled) => int_result_to_option(extern_proven_math_div(scaled, whole))
+  }
+}
+
+/// Safe floating-point division.
+/// Delegates to proven_float_div via FFI.
+fn safe_float_div(a: Float64, b: Float64) -> Result[Float64, own ProvenError] / Pure {
+  let result = extern_proven_float_div(a, b);
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Safe square root.
+/// Delegates to proven_float_sqrt via FFI.
+fn safe_sqrt(x: Float64) -> Result[Float64, own ProvenError] / Pure {
+  let result = extern_proven_float_sqrt(x);
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Safe natural logarithm.
+/// Delegates to proven_float_ln via FFI.
+fn safe_ln(x: Float64) -> Result[Float64, own ProvenError] / Pure {
+  let result = extern_proven_float_ln(x);
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}

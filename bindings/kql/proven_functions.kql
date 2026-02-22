@@ -1,0 +1,347 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// proven_functions.kql - KQL function definitions using libproven via inline Python
+//
+// KQL (Kusto Query Language) is Microsoft's query language for Azure Data
+// Explorer and Log Analytics. These function definitions use the inline
+// Python plugin to call libproven via ctypes.
+//
+// ALL computation is performed in Idris 2 via the Zig FFI bridge.
+// The Python code here is ONLY ctypes marshaling to the libproven C ABI.
+// No algorithms are reimplemented.
+//
+// Prerequisites:
+//   - Python plugin enabled on the ADX cluster
+//   - libproven.so available in the Python sandbox path
+
+// ============================================================================
+// SafeMath: Checked arithmetic
+// ============================================================================
+
+// Checked addition with overflow detection.
+// Returns null if the result would overflow int64.
+.create-or-alter function with (folder="proven", docstring="Checked addition via libproven. Returns null on overflow.") proven_safe_add(a: long, b: long) {
+    let T = print_t | extend result = a, b;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class IntResult(ctypes.Structure):
+            _fields_ = [('status', ctypes.c_int32), ('value', ctypes.c_int64)]
+
+        lib.proven_init()
+        lib.proven_math_add_checked.argtypes = [ctypes.c_int64, ctypes.c_int64]
+        lib.proven_math_add_checked.restype = IntResult
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            r = lib.proven_math_add_checked(int(row['a']), int(row['b']))
+            outputs.append(r.value if r.status == 0 else None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: long), T, script)
+}
+
+// Checked subtraction with underflow detection.
+// Returns null if the result would underflow int64.
+.create-or-alter function with (folder="proven", docstring="Checked subtraction via libproven. Returns null on underflow.") proven_safe_sub(a: long, b: long) {
+    let T = print_t | extend result = a, b;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class IntResult(ctypes.Structure):
+            _fields_ = [('status', ctypes.c_int32), ('value', ctypes.c_int64)]
+
+        lib.proven_init()
+        lib.proven_math_sub_checked.argtypes = [ctypes.c_int64, ctypes.c_int64]
+        lib.proven_math_sub_checked.restype = IntResult
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            r = lib.proven_math_sub_checked(int(row['a']), int(row['b']))
+            outputs.append(r.value if r.status == 0 else None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: long), T, script)
+}
+
+// Checked multiplication with overflow detection.
+// Returns null if the result would overflow int64.
+.create-or-alter function with (folder="proven", docstring="Checked multiplication via libproven. Returns null on overflow.") proven_safe_mul(a: long, b: long) {
+    let T = print_t | extend result = a, b;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class IntResult(ctypes.Structure):
+            _fields_ = [('status', ctypes.c_int32), ('value', ctypes.c_int64)]
+
+        lib.proven_init()
+        lib.proven_math_mul_checked.argtypes = [ctypes.c_int64, ctypes.c_int64]
+        lib.proven_math_mul_checked.restype = IntResult
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            r = lib.proven_math_mul_checked(int(row['a']), int(row['b']))
+            outputs.append(r.value if r.status == 0 else None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: long), T, script)
+}
+
+// Safe integer division.
+// Returns null on division by zero or INT64_MIN / -1 overflow.
+.create-or-alter function with (folder="proven", docstring="Safe division via libproven. Returns null on division by zero.") proven_safe_div(a: long, b: long) {
+    let T = print_t | extend result = a, b;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class IntResult(ctypes.Structure):
+            _fields_ = [('status', ctypes.c_int32), ('value', ctypes.c_int64)]
+
+        lib.proven_init()
+        lib.proven_math_div.argtypes = [ctypes.c_int64, ctypes.c_int64]
+        lib.proven_math_div.restype = IntResult
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            r = lib.proven_math_div(int(row['a']), int(row['b']))
+            outputs.append(r.value if r.status == 0 else None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: long), T, script)
+}
+
+// ============================================================================
+// Validation functions
+// ============================================================================
+
+// Validate email address (RFC 5321 simplified).
+.create-or-alter function with (folder="proven", docstring="Validate email via libproven (RFC 5321).") proven_validate_email(email: string) {
+    let T = print_t | extend result = email;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class BoolResult(ctypes.Structure):
+            _fields_ = [('status', ctypes.c_int32), ('value', ctypes.c_bool)]
+
+        lib.proven_init()
+        lib.proven_email_is_valid.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        lib.proven_email_is_valid.restype = BoolResult
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            s = str(row['email']).encode('utf-8')
+            r = lib.proven_email_is_valid(s, len(s))
+            outputs.append(r.value if r.status == 0 else None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: bool), T, script)
+}
+
+// Validate URL by attempting to parse it.
+.create-or-alter function with (folder="proven", docstring="Validate URL via libproven URL parser.") proven_validate_url(url: string) {
+    let T = print_t | extend result = url;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        lib.proven_init()
+        lib.proven_url_parse.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        lib.proven_url_parse.restype = ctypes.c_void_p
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            s = str(row['url']).encode('utf-8')
+            r = lib.proven_url_parse(s, len(s))
+            # Check status field at offset 0 (int32)
+            if r is not None:
+                status = ctypes.c_int32.from_address(r).value
+                outputs.append(status == 0)
+            else:
+                outputs.append(False)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: bool), T, script)
+}
+
+// Validate IPv4 address string.
+.create-or-alter function with (folder="proven", docstring="Validate IPv4 address via libproven.") proven_validate_ipv4(addr: string) {
+    let T = print_t | extend result = addr;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        lib.proven_init()
+
+        class IPv4Result(ctypes.Structure):
+            _fields_ = [
+                ('status', ctypes.c_int32),
+                ('octets', ctypes.c_uint8 * 4)
+            ]
+
+        lib.proven_network_parse_ipv4.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        lib.proven_network_parse_ipv4.restype = IPv4Result
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            s = str(row['addr']).encode('utf-8')
+            r = lib.proven_network_parse_ipv4(s, len(s))
+            outputs.append(r.status == 0)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: bool), T, script)
+}
+
+// Validate JSON string.
+.create-or-alter function with (folder="proven", docstring="Validate JSON string via libproven.") proven_validate_json(doc: string) {
+    let T = print_t | extend result = doc;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class BoolResult(ctypes.Structure):
+            _fields_ = [('status', ctypes.c_int32), ('value', ctypes.c_bool)]
+
+        lib.proven_init()
+        lib.proven_json_is_valid.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        lib.proven_json_is_valid.restype = BoolResult
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            s = str(row['doc']).encode('utf-8')
+            r = lib.proven_json_is_valid(s, len(s))
+            outputs.append(r.value if r.status == 0 else None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: bool), T, script)
+}
+
+// ============================================================================
+// String operations
+// ============================================================================
+
+// Sanitize string by escaping HTML entities (XSS prevention).
+.create-or-alter function with (folder="proven", docstring="Sanitize string (HTML escape) via libproven.") proven_sanitize_string(input: string) {
+    let T = print_t | extend result = input;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class StringResult(ctypes.Structure):
+            _fields_ = [
+                ('status', ctypes.c_int32),
+                ('value', ctypes.c_char_p),
+                ('length', ctypes.c_size_t)
+            ]
+
+        lib.proven_init()
+        lib.proven_string_escape_html.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        lib.proven_string_escape_html.restype = StringResult
+        lib.proven_free_string.argtypes = [ctypes.c_char_p]
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            s = str(row['input']).encode('utf-8')
+            r = lib.proven_string_escape_html(s, len(s))
+            if r.status == 0 and r.value is not None:
+                outputs.append(r.value.decode('utf-8'))
+                lib.proven_free_string(r.value)
+            else:
+                outputs.append(None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: string), T, script)
+}
+
+// Hex-encode input bytes.
+.create-or-alter function with (folder="proven", docstring="Hex-encode input via libproven.") proven_hex_encode(input: string) {
+    let T = print_t | extend result = input;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class StringResult(ctypes.Structure):
+            _fields_ = [
+                ('status', ctypes.c_int32),
+                ('value', ctypes.c_char_p),
+                ('length', ctypes.c_size_t)
+            ]
+
+        lib.proven_init()
+        lib.proven_hex_encode.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_bool]
+        lib.proven_hex_encode.restype = StringResult
+        lib.proven_free_string.argtypes = [ctypes.c_char_p]
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            s = str(row['input']).encode('utf-8')
+            r = lib.proven_hex_encode(s, len(s), False)
+            if r.status == 0 and r.value is not None:
+                outputs.append(r.value.decode('utf-8'))
+                lib.proven_free_string(r.value)
+            else:
+                outputs.append(None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: string), T, script)
+}
+
+// CRC32 checksum as hex string.
+.create-or-alter function with (folder="proven", docstring="CRC32 hash as hex via libproven.") proven_hash_sha256(input: string) {
+    let T = print_t | extend result = input;
+    let script = ```if 1:
+        import ctypes
+        lib = ctypes.CDLL('libproven.so')
+
+        class IntResult(ctypes.Structure):
+            _fields_ = [('status', ctypes.c_int32), ('value', ctypes.c_int64)]
+
+        class StringResult(ctypes.Structure):
+            _fields_ = [
+                ('status', ctypes.c_int32),
+                ('value', ctypes.c_char_p),
+                ('length', ctypes.c_size_t)
+            ]
+
+        lib.proven_init()
+        lib.proven_checksum_crc32.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        lib.proven_checksum_crc32.restype = IntResult
+        lib.proven_hex_encode.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_bool]
+        lib.proven_hex_encode.restype = StringResult
+        lib.proven_free_string.argtypes = [ctypes.c_char_p]
+
+        result = df
+        outputs = []
+        for _, row in result.iterrows():
+            s = str(row['input']).encode('utf-8')
+            cr = lib.proven_checksum_crc32(s, len(s))
+            if cr.status != 0:
+                outputs.append(None)
+                continue
+            crc = int(cr.value) & 0xFFFFFFFF
+            crc_bytes = crc.to_bytes(4, byteorder='big')
+            hr = lib.proven_hex_encode(crc_bytes, 4, False)
+            if hr.status == 0 and hr.value is not None:
+                outputs.append(hr.value.decode('utf-8'))
+                lib.proven_free_string(hr.value)
+            else:
+                outputs.append(None)
+        result['result'] = outputs
+    ```;
+    evaluate python(typeof(*, result: string), T, script)
+}

@@ -1,115 +1,68 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Safe datetime operations delegated to libproven FFI.
+///
+/// ISO 8601 parsing and formatting via the formally verified
+/// Idris 2 core.
 
-/// Safe datetime handling.
-public struct SafeDateTime: Equatable, Comparable, Hashable {
-    public let timestamp: Double
+import CProven
 
-    public init(_ timestamp: Double) {
-        self.timestamp = timestamp
-    }
-
-    public init(_ date: Date) {
-        self.timestamp = date.timeIntervalSince1970 * 1000
-    }
-
-    public static func now() -> SafeDateTime {
-        SafeDateTime(Date())
-    }
-
-    /// Parse an ISO 8601 date string.
-    public static func parse(_ dateString: String) -> SafeDateTime? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        if let date = formatter.date(from: dateString) {
-            return SafeDateTime(date)
-        }
-
-        // Try without fractional seconds
-        formatter.formatOptions = [.withInternetDateTime]
-        if let date = formatter.date(from: dateString) {
-            return SafeDateTime(date)
-        }
-
-        return nil
-    }
-
-    public func toDate() -> Date {
-        Date(timeIntervalSince1970: timestamp / 1000)
-    }
-
-    public func toISOString() -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.string(from: toDate())
-    }
-
-    public func add(_ duration: SafeDuration) -> SafeDateTime {
-        SafeDateTime(timestamp + duration.milliseconds)
-    }
-
-    public func subtract(_ duration: SafeDuration) -> SafeDateTime {
-        SafeDateTime(timestamp - duration.milliseconds)
-    }
-
-    public func diff(_ other: SafeDateTime) -> SafeDuration {
-        SafeDuration(milliseconds: abs(timestamp - other.timestamp))
-    }
-
-    public func isBefore(_ other: SafeDateTime) -> Bool {
-        timestamp < other.timestamp
-    }
-
-    public func isAfter(_ other: SafeDateTime) -> Bool {
-        timestamp > other.timestamp
-    }
-
-    public static func < (lhs: SafeDateTime, rhs: SafeDateTime) -> Bool {
-        lhs.timestamp < rhs.timestamp
-    }
+/// Parsed datetime components returned by SafeDatetime.parse.
+public struct DateTimeComponents: Equatable, Sendable {
+    public let year: Int32
+    public let month: UInt8
+    public let day: UInt8
+    public let hour: UInt8
+    public let minute: UInt8
+    public let second: UInt8
+    public let nanosecond: UInt32
+    public let tzOffsetMinutes: Int16
 }
 
-/// Duration representation.
-public struct SafeDuration: Equatable, Comparable, Hashable {
-    public let milliseconds: Double
-
-    public init(milliseconds: Double) {
-        self.milliseconds = milliseconds
+public enum SafeDatetime {
+    /// Parse an ISO 8601 date string.
+    public static func parse(_ dateString: String) -> Result<DateTimeComponents, ProvenError> {
+        withStringBytes(dateString) { ptr, len in
+            let result = proven_datetime_parse(ptr, len)
+            if let error = ProvenError.fromStatus(result.status) {
+                return .failure(error)
+            }
+            let dt = result.datetime
+            return .success(DateTimeComponents(
+                year: dt.year,
+                month: dt.month,
+                day: dt.day,
+                hour: dt.hour,
+                minute: dt.minute,
+                second: dt.second,
+                nanosecond: dt.nanosecond,
+                tzOffsetMinutes: dt.tz_offset_minutes
+            ))
+        }
     }
 
-    public static func seconds(_ s: Double) -> SafeDuration {
-        SafeDuration(milliseconds: s * 1000)
+    /// Format a DateTimeComponents as an ISO 8601 string.
+    public static func formatISO8601(_ dt: DateTimeComponents) -> Result<String, ProvenError> {
+        var cDt = ProvenDateTime()
+        cDt.year = dt.year
+        cDt.month = dt.month
+        cDt.day = dt.day
+        cDt.hour = dt.hour
+        cDt.minute = dt.minute
+        cDt.second = dt.second
+        cDt.nanosecond = dt.nanosecond
+        cDt.tz_offset_minutes = dt.tzOffsetMinutes
+        return consumeStringResult(proven_datetime_format_iso8601(cDt))
     }
 
-    public static func minutes(_ m: Double) -> SafeDuration {
-        SafeDuration(milliseconds: m * 60 * 1000)
+    /// Check if a year is a leap year.
+    public static func isLeapYear(_ year: Int32) -> Bool {
+        proven_datetime_is_leap_year(year)
     }
 
-    public static func hours(_ h: Double) -> SafeDuration {
-        SafeDuration(milliseconds: h * 60 * 60 * 1000)
-    }
-
-    public static func days(_ d: Double) -> SafeDuration {
-        SafeDuration(milliseconds: d * 24 * 60 * 60 * 1000)
-    }
-
-    public var seconds: Double { milliseconds / 1000 }
-    public var minutes: Double { milliseconds / 60000 }
-    public var hours: Double { milliseconds / 3600000 }
-    public var days: Double { milliseconds / 86400000 }
-
-    public static func < (lhs: SafeDuration, rhs: SafeDuration) -> Bool {
-        lhs.milliseconds < rhs.milliseconds
-    }
-
-    public static func + (lhs: SafeDuration, rhs: SafeDuration) -> SafeDuration {
-        SafeDuration(milliseconds: lhs.milliseconds + rhs.milliseconds)
-    }
-
-    public static func - (lhs: SafeDuration, rhs: SafeDuration) -> SafeDuration {
-        SafeDuration(milliseconds: lhs.milliseconds - rhs.milliseconds)
+    /// Get the number of days in a month.
+    public static func daysInMonth(year: Int32, month: UInt8) -> UInt8 {
+        proven_datetime_days_in_month(year, month)
     }
 }

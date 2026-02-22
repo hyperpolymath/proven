@@ -1,224 +1,123 @@
-# Proven for Scala
+# proven-scala
 
-Safe, validated operations library for Scala applications.
+Scala JNA bindings for [libproven](https://github.com/hyperpolymath/proven) -- a formally verified safety library (Idris 2 + Zig FFI).
+
+All computation is performed by the native `libproven` shared library. This binding contains **only** JNA-based data marshaling -- no logic is reimplemented on the JVM.
+
+## Prerequisites
+
+`libproven.so` (Linux), `libproven.dylib` (macOS), or `proven.dll` (Windows) must be available on the JNA library path at runtime.
 
 ## Installation
 
 Add to your `build.sbt`:
 
 ```scala
-libraryDependencies += "com.hyperpolymath" %% "proven" % "0.1.0"
-```
-
-Or clone and publish locally:
-
-```bash
-sbt publishLocal
+libraryDependencies += "io.github.hyperpolymath" %% "proven" % "0.9.0"
 ```
 
 ## Usage
 
 ```scala
-import proven._
+import io.github.hyperpolymath.proven.*
 
-// Safe math with overflow checking
-SafeMath.add(1000000000000L, 2000000000000L) match {
-  case Some(result) => println(s"Sum: $result")
-  case None => println("Overflow!")
-}
+// Initialise the native runtime
+Proven.init()
 
-// XSS prevention
-val userInput = "<script>alert('xss')</script>"
-val safeHtml = SafeString.escapeHtml(userInput)
-// &lt;script&gt;alert('xss')&lt;/script&gt;
-
-// Path safety
-if (SafePath.hasTraversal("../../../etc/passwd")) {
-  throw new SecurityException("Dangerous path!")
-}
-
-// Email validation
-SafeEmail.parse("user@example.com") match {
-  case EmailResult.Ok(local, domain) =>
-    println(s"Local: $local, Domain: $domain")
-  case EmailResult.Error(msg) =>
-    println(s"Invalid: $msg")
-}
-
-// IP classification
-IPv4Address.parse("192.168.1.1").foreach { ip =>
-  println(s"Private: ${ip.isPrivate}")
-  println(s"Classification: ${ip.classification}")
-}
-
-// Secure tokens
-val token = SafeCrypto.generateToken()
-println(s"CSRF token: $token")
-```
-
-## Modules
-
-### SafeMath
-
-Overflow-checked arithmetic using `Option`:
-
-```scala
-// All operations return Option[Long]
-val sum = SafeMath.add(a, b)
-val diff = SafeMath.sub(a, b)
-val prod = SafeMath.mul(a, b)
-val quot = SafeMath.div(a, b)
-
-// Pattern matching
-SafeMath.mul(bigNumber, anotherBig) match {
-  case Some(result) => println(result)
-  case None => println("Overflow!")
-}
-
-// Default values
-val value = SafeMath.div(x, y).getOrElse(0L)
+// Safe math (returns Option -- None on overflow / division by zero)
+SafeMath.add(Long.MaxValue, 1L)   // None (overflow)
+SafeMath.div(10L, 0L)             // None (division by zero)
+SafeMath.add(2L, 3L)              // Some(5L)
 
 // For comprehension
-for {
-  a <- SafeMath.add(x, y)
-  b <- SafeMath.mul(a, z)
-} yield b
+for
+  a <- SafeMath.add(1L, 2L)
+  b <- SafeMath.mul(a, 3L)
+yield b  // Some(9L)
+
+// Safe string escaping (XSS prevention)
+SafeString.escapeHtml("<script>alert('xss')</script>")
+// Some("&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;")
+
+// Email validation
+SafeEmail.isValid("user@example.com")  // true
+SafeEmail.isValid("invalid")           // false
+
+// Path safety
+SafePath.hasTraversal("../../../etc/passwd")  // true
+
+// URL parsing
+SafeUrl.parse("https://example.com:8080/path?q=1#frag")
+// Some(ParsedUrl(https, example.com, Some(8080), /path, Some(q=1), Some(frag)))
+
+// Pattern matching
+SafeUrl.parse(url) match
+  case Some(ParsedUrl(scheme, host, port, path, query, fragment)) =>
+    println(s"Host: $host")
+  case None =>
+    println("Invalid URL")
+
+// Safe expression evaluation
+SafeCalculator.eval("(2 + 3) * 4")  // Some(20.0)
+
+// Data structures (AutoCloseable, backed by native memory)
+SafeQueue.create(100).foreach { queue =>
+  try
+    queue.push(42L)
+    val value = queue.pop()  // Some(42L)
+  finally queue.close()
+}
+
+// Cleanup
+Proven.deinit()
 ```
 
-### SafeString
+## Modules (38)
 
-XSS prevention and string sanitization:
+All 103 exported FFI functions from libproven are wrapped, covering:
 
-```scala
-// HTML escaping
-val safe = SafeString.escapeHtml("<script>")
+- **SafeMath**: Overflow-safe arithmetic (div, mod, add, sub, mul, pow, abs, clamp)
+- **SafeString**: UTF-8 validation, SQL/HTML/JS escaping
+- **SafePath**: Traversal detection, filename sanitisation
+- **SafeEmail**: RFC 5321 email validation
+- **SafeUrl**: URL parsing into components
+- **SafeNetwork**: IPv4 parsing, private/loopback classification
+- **SafeCrypto**: Constant-time comparison, secure random bytes
+- **SafeJson**: JSON validation and type detection
+- **SafeDatetime**: ISO 8601 parsing/formatting, leap year, days-in-month
+- **SafeFloat**: Safe division, sqrt, ln, finiteness checks
+- **SafeVersion**: Semantic version parsing and comparison
+- **SafeColor**: Hex color parsing, RGB-to-HSL conversion
+- **SafeAngle**: Degree/radian conversion and normalisation
+- **SafeUnit**: Length and temperature unit conversion
+- **SafeBuffer**: Bounded buffer with append
+- **SafeQueue**: Bounded FIFO queue
+- **SafeBloom**: Bloom filter
+- **SafeLRU**: LRU cache
+- **SafeGraph**: Directed graph with adjacency matrix
+- **SafeRateLimiter**: Token bucket rate limiting
+- **SafeCircuitBreaker**: Circuit breaker pattern
+- **SafeRetry**: Exponential backoff configuration
+- **SafeMonotonic**: Monotonically increasing counter
+- **SafeStateMachine**: State machine with explicit transitions
+- **SafeCalculator**: Safe arithmetic expression evaluation
 
-// SQL escaping (prefer parameterized queries!)
-val safeSql = SafeString.escapeSql("O'Brien")
+## Architecture
 
-// JavaScript escaping
-val safeJs = SafeString.escapeJs(userInput)
-
-// URL encoding
-val encoded = SafeString.urlEncode("hello world")
-
-// String sanitization
-val clean = SafeString.sanitize(input, "a-zA-Z0-9")
 ```
-
-### SafePath
-
-Directory traversal protection:
-
-```scala
-// Check for traversal
-if (SafePath.hasTraversal(userPath)) {
-  throw new SecurityException("Path traversal detected")
-}
-
-// Sanitize filename
-val safe = SafePath.sanitizeFilename(userFilename)
-
-// Safe path joining
-SafePath.join("/base", "subdir", "file.txt") match {
-  case PathResult.Ok(path) => println(path)
-  case PathResult.Error(msg) => println(s"Error: $msg")
-}
-
-// Resolve within base directory
-SafePath.resolveWithin("/var/www", userPath) match {
-  case PathResult.Ok(path) => // Safe to use
-  case PathResult.Error(_) => // Path escape attempt
-}
-```
-
-### SafeEmail
-
-Email validation with ADTs:
-
-```scala
-// Simple validation
-if (SafeEmail.isValid(email)) {
-  // Valid
-}
-
-// Parse with pattern matching
-SafeEmail.parse(email) match {
-  case EmailResult.Ok(local, domain) =>
-    println(s"Local: $local, Domain: $domain")
-  case EmailResult.Error(msg) =>
-    println(s"Error: $msg")
-}
-
-// Check for disposable emails
-if (SafeEmail.isDisposable(email)) {
-  println("Please use a non-disposable email")
-}
-
-// Normalize
-val normalized = SafeEmail.normalize("User@EXAMPLE.COM")
-// Some("User@example.com")
-```
-
-### SafeNetwork
-
-IP address validation and classification:
-
-```scala
-// Parse IPv4
-IPv4Address.parse("192.168.1.1").foreach { ip =>
-  println(s"Loopback: ${ip.isLoopback}")
-  println(s"Private: ${ip.isPrivate}")
-  println(s"Public: ${ip.isPublic}")
-
-  ip.classification match {
-    case IpClassification.Private => println("Private network")
-    case IpClassification.Loopback => println("Localhost")
-    case IpClassification.Public => println("Public IP")
-    case _ => println("Other")
-  }
-}
-
-// Validate port
-if (SafeNetwork.isValidPort(8080)) {
-  // OK
-}
-
-// SSRF protection
-if (SafeNetwork.isPrivateUrl(url)) {
-  throw new SecurityException("Cannot access private URLs")
-}
-```
-
-### SafeCrypto
-
-Cryptographic operations:
-
-```scala
-// Secure random generation
-val bytes = SafeCrypto.randomBytes(32)
-val hex = SafeCrypto.randomHex(16)
-val token = SafeCrypto.generateToken()
-
-// Hashing
-val hash = SafeCrypto.sha256("data")
-val hash512 = SafeCrypto.sha512("data")
-
-// HMAC
-val mac = SafeCrypto.hmacSha256(key, message)
-if (SafeCrypto.verifyHmacSha256(key, message, expectedMac)) {
-  // Valid
-}
-
-// Constant-time comparison (timing attack prevention)
-if (SafeCrypto.constantTimeEquals(actual, expected)) {
-  // Match
-}
-
-// Key derivation
-val derived = SafeCrypto.pbkdf2(password, salt, iterations = 100000)
+Scala JNA binding (this package)
+    |
+    | JNA FFI calls
+    v
+libproven.so (Zig C ABI bridge)
+    |
+    | Calls compiled Idris 2 RefC output
+    v
+Idris 2 formally verified core (THE TRUTH)
 ```
 
 ## License
 
-PMPL-1.0
+SPDX-License-Identifier: PMPL-1.0-or-later
+
+Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>

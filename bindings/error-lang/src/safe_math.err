@@ -1,0 +1,94 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- | SafeMath - Overflow-checked arithmetic via libproven FFI.
+--
+-- Error-Lang's dependent error types make this module particularly expressive:
+-- each arithmetic operation returns Proven<Int64, ProvenError> where the error
+-- variant precisely describes the failure (Overflow, Underflow, DivByZero).
+--
+-- All computation is performed in Idris 2 via the Zig FFI layer.
+-- NO arithmetic logic is reimplemented in Error-Lang.
+
+module Proven.SafeMath
+
+import Proven.FFI
+import Proven (ProvenError, Proven, int_result_to_proven)
+
+-- ============================================================================
+-- Checked arithmetic operations
+-- ============================================================================
+
+-- | Safely add two integers with overflow detection.
+-- Returns Err(Overflow) if the result would exceed Int64 range.
+-- Delegates to proven_math_add_checked in libproven.
+fn safe_add(a : Int64, b : Int64) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_add_checked(a, b))
+
+-- | Safely subtract two integers with underflow detection.
+-- Returns Err(Underflow) if the result would go below Int64 range.
+-- Delegates to proven_math_sub_checked in libproven.
+fn safe_sub(a : Int64, b : Int64) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_sub_checked(a, b))
+
+-- | Safely multiply two integers with overflow detection.
+-- Returns Err(Overflow) if the result would exceed Int64 range.
+-- Delegates to proven_math_mul_checked in libproven.
+fn safe_mul(a : Int64, b : Int64) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_mul_checked(a, b))
+
+-- | Safely divide two integers.
+-- Returns Err(DivByZero) if the denominator is zero.
+-- Returns Err(Overflow) for INT64_MIN / -1.
+-- Delegates to proven_math_div in libproven.
+fn safe_div(a : Int64, b : Int64) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_div(a, b))
+
+-- | Safe modulo operation.
+-- Returns Err(DivByZero) if the denominator is zero.
+-- Delegates to proven_math_mod in libproven.
+fn safe_mod(a : Int64, b : Int64) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_mod(a, b))
+
+-- | Safe absolute value.
+-- Returns Err(Overflow) for INT64_MIN (cannot be represented as positive Int64).
+-- Delegates to proven_math_abs_safe in libproven.
+fn safe_abs(n : Int64) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_abs_safe(n))
+
+-- | Safe negation. Equivalent to safe_sub(0, n).
+-- Returns Err(Overflow) if negation of INT64_MIN.
+-- Delegates to proven_math_sub_checked in libproven.
+fn safe_negate(n : Int64) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_sub_checked(0i64, n))
+
+-- | Clamp a value to [lo, hi] range.
+-- This operation cannot fail.
+-- Delegates to proven_math_clamp in libproven.
+fn clamp(lo : Int64, hi : Int64, value : Int64) -> Int64 =
+  FFI.proven_math_clamp(lo, hi, value)
+
+-- | Safe integer exponentiation with overflow checking.
+-- Returns Err(Overflow) if the result would exceed Int64 range.
+-- Delegates to proven_math_pow_checked in libproven.
+fn safe_pow(base : Int64, exp : UInt32) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(FFI.proven_math_pow_checked(base, exp))
+
+-- | Check if a value falls within [lo, hi].
+-- This is a convenience function built on clamp.
+fn in_range(value : Int64, lo : Int64, hi : Int64) -> Bool =
+  value == clamp(lo, hi, value)
+
+-- ============================================================================
+-- Error-Lang specific: exhaustive error matching examples
+-- ============================================================================
+
+-- | Demonstrate Error-Lang's exhaustive error matching on arithmetic.
+-- The compiler guarantees all error variants are handled.
+--
+-- Example:
+--   match safe_add(a, b) with
+--   | Ok(result) => handle_success(result)
+--   | Err(Overflow) => handle_overflow()
+--   | Err(Underflow) => handle_underflow()
+--   | Err(e) => handle_other_error(e)

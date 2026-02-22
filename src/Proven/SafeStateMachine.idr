@@ -157,10 +157,16 @@ isDeterministic machine = noDuplicates machine.transitions
     noDuplicates [] = True
     noDuplicates (t :: ts) = not (any (conflicts t) ts) && noDuplicates ts
 
-||| Remove duplicates (local, uses assert_total)
+||| Remove duplicates (accumulator-based, structurally recursive on input)
 nubSM : Eq a => List a -> List a
-nubSM [] = []
-nubSM (x :: xs) = x :: assert_total (nubSM (filter (/= x) xs))
+nubSM xs = reverse (go xs [])
+  where
+    go : List a -> List a -> List a
+    go [] acc = acc
+    go (x :: rest) acc =
+      if any (== x) acc
+        then go rest acc
+        else go rest (x :: acc)
 
 ||| Get all states mentioned in the machine
 public export

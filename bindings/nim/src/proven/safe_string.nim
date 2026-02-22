@@ -1,45 +1,51 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Safe string operations for security-sensitive contexts.
+# Thin wrapper over libproven FFI -- all logic lives in Idris.
 
-## Safe string operations for security-sensitive contexts.
+import std/options
+import lib_proven
 
-import std/[strutils, uri]
+proc isValidUtf8*(value: string): bool =
+  ## Check if a string contains valid UTF-8 bytes.
+  if value.len == 0:
+    return true
+  let res = provenStringIsValidUtf8(unsafeAddr value[0], csize_t(value.len))
+  if res.status == PROVEN_OK:
+    return res.value
+  false
 
-proc escapeHtml*(value: string): string =
-  ## Escape HTML special characters to prevent XSS attacks.
-  result = value
-    .replace("&", "&amp;")
-    .replace("<", "&lt;")
-    .replace(">", "&gt;")
-    .replace("\"", "&quot;")
-    .replace("'", "&#x27;")
-
-proc escapeSql*(value: string): string =
+proc escapeSql*(value: string): Option[string] =
   ## Escape single quotes for SQL strings.
   ## Note: Use parameterized queries when possible.
-  result = value.replace("'", "''")
+  if value.len == 0:
+    return some("")
+  let res = provenStringEscapeSql(unsafeAddr value[0], csize_t(value.len))
+  if res.status == PROVEN_OK and res.value != nil:
+    let escaped = $res.value
+    provenFreeString(res.value)
+    return some(escaped)
+  none(string)
 
-proc escapeJs*(value: string): string =
+proc escapeHtml*(value: string): Option[string] =
+  ## Escape HTML special characters to prevent XSS attacks.
+  if value.len == 0:
+    return some("")
+  let res = provenStringEscapeHtml(unsafeAddr value[0], csize_t(value.len))
+  if res.status == PROVEN_OK and res.value != nil:
+    let escaped = $res.value
+    provenFreeString(res.value)
+    return some(escaped)
+  none(string)
+
+proc escapeJs*(value: string): Option[string] =
   ## Escape JavaScript special characters.
-  result = value
-    .replace("\\", "\\\\")
-    .replace("\"", "\\\"")
-    .replace("'", "\\'")
-    .replace("\n", "\\n")
-    .replace("\r", "\\r")
-    .replace("\t", "\\t")
-
-proc escapeUrl*(value: string): string =
-  ## URL-encode a string.
-  result = encodeUrl(value)
-
-proc truncateSafe*(value: string, maxLen: int, suffix: string = "..."): string =
-  ## Safely truncate a string with a suffix.
-  if value.len <= maxLen:
-    return value
-
-  let suffixLen = suffix.len
-  if maxLen <= suffixLen:
-    return suffix[0 ..< maxLen]
-
-  result = value[0 ..< maxLen - suffixLen] & suffix
+  if value.len == 0:
+    return some("")
+  let res = provenStringEscapeJs(unsafeAddr value[0], csize_t(value.len))
+  if res.status == PROVEN_OK and res.value != nil:
+    let escaped = $res.value
+    provenFreeString(res.value)
+    return some(escaped)
+  none(string)

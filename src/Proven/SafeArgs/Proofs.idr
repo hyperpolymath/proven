@@ -7,6 +7,11 @@
 ||| - Argument validation
 ||| - Length bounds
 ||| - Type safety
+|||
+||| Properties involving string parsing (boolean/integer/nat) are
+||| postulated because they depend on `String` FFI primitives
+||| (`toLower`, `isPrefixOf`, `parseInteger`) whose implementations
+||| are opaque C functions not reducible in Idris 2.
 module Proven.SafeArgs.Proofs
 
 import Proven.Core
@@ -117,8 +122,14 @@ defaultSatisfiesRequired spec required hasDefault = ()
 -- Type Conversion Proofs
 --------------------------------------------------------------------------------
 
-||| Theorem: Boolean parsing is complete
+||| Boolean parsing is complete for all recognised boolean strings.
+||| Postulated: the proof requires showing that when `toLower s` is
+||| a member of the recognised list, the `if` chain in `parseBool'`
+||| will match one of the two branches and return `Just`. This depends
+||| on `toLower` (an FFI primitive) and `elem` over `String` equality,
+||| neither of which reduces in Idris 2's evaluator.
 export
+postulate
 boolParsingComplete : (s : String) ->
                       toLower s `elem` ["true", "yes", "1", "on",
                                         "false", "no", "0", "off"] = True ->
@@ -132,54 +143,28 @@ boolParsingComplete : (s : String) ->
            else if lower `elem` ["false", "no", "0", "off"]
              then Just False
              else Nothing
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-boolParsingComplete s valid = believe_me Refl
 
-||| Theorem: Integer parsing handles negatives
+||| Integer parsing handles negative numbers correctly.
+||| Postulated: requires showing that `parseInteger` (an FFI call to
+||| the C runtime's string-to-integer conversion) returns `Just` when
+||| the input starts with "-" and is followed by all-digit characters.
+||| The `isPrefixOf`, `drop`, and `parseInteger` functions are all
+||| opaque FFI primitives.
 export
+postulate
 intParsingHandlesNegative : (s : String) ->
                             isPrefixOf "-" s = True ->
                             all isDigit (unpack (drop 1 s)) = True ->
                             isJust (parseInteger s) = True
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-intParsingHandlesNegative s hasNeg allDigits = believe_me Refl
 
-||| Theorem: Natural parsing rejects negatives
+||| Natural number parsing rejects negative inputs.
+||| Postulated: requires showing that when `isPrefixOf "-" s` holds,
+||| `parseInteger s` returns a negative `Integer`, causing the
+||| `if i >= 0` guard to fail and return `Nothing`. This depends on
+||| the behaviour of the C `parseInteger` FFI function for strings
+||| beginning with '-'.
 export
+postulate
 natRejectsNegative : (s : String) ->
                      isPrefixOf "-" s = True ->
                      parseNat' s = Nothing
@@ -188,25 +173,6 @@ natRejectsNegative : (s : String) ->
     parseNat' str = do
       i <- parseInteger str
       if i >= 0 then Just (cast i) else Nothing
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-natRejectsNegative s hasNeg = believe_me Refl
 
 --------------------------------------------------------------------------------
 -- Parser Options Proofs

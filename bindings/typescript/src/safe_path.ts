@@ -1,114 +1,46 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * SafePath - Filesystem path operations that cannot crash.
+ * SafePath - Typed wrapper for path operations that prevent traversal attacks.
  *
- * Provides path sanitization and traversal attack prevention.
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * @module
  */
 
-import { getExports, encodeString, decodeString, freePtr } from './wasm.js';
-import { statusFromCode } from './error.js';
+import { SafePath as JsSafePath } from '../../javascript/src/safe_path.js';
+
+/** Result type for path operations. */
+export type PathResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: string };
 
 /**
- * Safe path operations with proven correctness guarantees.
+ * Safe path operations backed by formally verified Idris 2 code.
+ * All methods delegate to the JavaScript FFI wrapper.
  */
 export class SafePath {
   /**
    * Check if a path contains directory traversal sequences.
+   * Delegates to proven_path_has_traversal via FFI.
    *
-   * Detects ../ and similar attacks that could escape a base directory.
-   *
-   * @example
-   * SafePath.hasTraversal("foo/bar.txt")          // false
-   * SafePath.hasTraversal("../etc/passwd")        // true
-   * SafePath.hasTraversal("foo/../../../etc")     // true
+   * @param path - The path to check.
+   * @returns Result with boolean traversal flag, or error.
    */
-  static hasTraversal(path: string): boolean {
-    const exports = getExports();
-    const fn = exports['proven_path_has_traversal'] as (ptr: number, len: number) => number;
-
-    const { ptr, len } = encodeString(path);
-    const result = fn(ptr, len);
-    freePtr(ptr);
-
-    const status = result >> 16;
-    const value = result & 0xffff;
-
-    // On error, assume unsafe
-    if (statusFromCode(status) !== 'ok') {
-      return true;
-    }
-    return value === 1;
-  }
-
-  /**
-   * Check if a path is safe (no traversal attacks).
-   *
-   * Convenience method, inverse of hasTraversal.
-   */
-  static isSafe(path: string): boolean {
-    return !SafePath.hasTraversal(path);
+  static hasTraversal(path: string): PathResult<boolean> {
+    return JsSafePath.hasTraversal(path) as PathResult<boolean>;
   }
 
   /**
    * Sanitize a filename by removing dangerous characters.
+   * Delegates to proven_path_sanitize_filename via FFI.
    *
-   * Removes path separators, null bytes, and other dangerous chars.
-   *
-   * @example
-   * SafePath.sanitizeFilename("report.pdf")           // "report.pdf"
-   * SafePath.sanitizeFilename("../../../etc/passwd") // "etc_passwd"
+   * @param filename - The filename to sanitize.
+   * @returns Result with sanitized filename, or error.
    */
-  static sanitizeFilename(filename: string): string | null {
-    const exports = getExports();
-    const fn = exports['proven_path_sanitize_filename'] as (ptr: number, len: number) => number;
-
-    const { ptr, len } = encodeString(filename);
-    const resultPtr = fn(ptr, len);
-    freePtr(ptr);
-
-    if (resultPtr === 0) {
-      return null;
-    }
-
-    const memory = exports['memory'] as WebAssembly.Memory;
-    const view = new DataView(memory.buffer);
-    const resultLen = view.getUint32(resultPtr, true);
-
-    const sanitized = decodeString(resultPtr + 4, resultLen);
-    freePtr(resultPtr);
-
-    return sanitized;
-  }
-
-  /**
-   * Safely join path components, rejecting traversal attempts.
-   *
-   * @example
-   * SafePath.safeJoin("/var/data", ["user", "file.txt"])
-   * // "/var/data/user/file.txt"
-   *
-   * SafePath.safeJoin("/var/data", ["../etc/passwd"])
-   * // null
-   */
-  static safeJoin(base: string, parts: string[]): string | null {
-    for (const part of parts) {
-      if (SafePath.hasTraversal(part)) {
-        return null;
-      }
-    }
-
-    let result = base;
-    for (const part of parts) {
-      const sanitized = SafePath.sanitizeFilename(part);
-      if (sanitized === null) {
-        return null;
-      }
-      // Use forward slash for consistency
-      result = result.endsWith('/') ? result + sanitized : result + '/' + sanitized;
-    }
-
-    return result;
+  static sanitizeFilename(filename: string): PathResult<string> {
+    return JsSafePath.sanitizeFilename(filename) as PathResult<string>;
   }
 }

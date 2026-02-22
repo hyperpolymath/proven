@@ -1,0 +1,96 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- safe_json.jtv - JSON validation for Julia the Viper
+--
+-- Data-plane module: JSON validation is delegated to libproven's
+-- formally verified Idris 2 core via the FFI bridge. No JSON
+-- parsing or validation logic is reimplemented in JTV.
+--
+-- JSON validation is a pure Data operation (returns bool, no allocation).
+-- JSON type detection is also Data-plane (returns integer constant).
+--
+-- @module
+
+module Proven.SafeJson
+
+import Proven.FFI (
+    proven_json_is_valid,
+    proven_json_get_type,
+    STATUS_OK
+)
+import Proven (DataResult, Ok, Err, ProvenError)
+
+-- ---------------------------------------------------------------------------
+-- JSON Type Constants (matching libproven C ABI)
+-- ---------------------------------------------------------------------------
+
+const JSON_TYPE_NULL: i32 = 0
+const JSON_TYPE_BOOL: i32 = 1
+const JSON_TYPE_NUMBER: i32 = 2
+const JSON_TYPE_STRING: i32 = 3
+const JSON_TYPE_ARRAY: i32 = 4
+const JSON_TYPE_OBJECT: i32 = 5
+const JSON_TYPE_INVALID: i32 = -1
+
+-- ---------------------------------------------------------------------------
+-- Data-plane: JSON Validation
+-- ---------------------------------------------------------------------------
+
+-- Validate a JSON document string.
+-- Returns true if valid JSON, false otherwise.
+-- Delegates to proven_json_is_valid via FFI.
+fn is_valid_json(data: *u8, len: usize) -> DataResult<bool>:
+    let result = proven_json_is_valid(data, len)
+    if result.status == STATUS_OK:
+        return Ok(result.value != 0)
+    else:
+        return Err({ code: result.status, message: "JSON validation FFI error" })
+
+-- ---------------------------------------------------------------------------
+-- Data-plane: JSON Type Detection
+-- ---------------------------------------------------------------------------
+
+-- Get the top-level JSON type of a document.
+-- Returns one of the JSON_TYPE_* constants.
+-- Delegates to proven_json_get_type via FFI.
+fn json_type(data: *u8, len: usize) -> i32:
+    return proven_json_get_type(data, len)
+
+-- Get the top-level JSON type as a human-readable string.
+-- Returns "null", "bool", "number", "string", "array", "object", or "invalid".
+fn json_type_name(data: *u8, len: usize) -> [u8; 8]:
+    let t = json_type(data, len)
+    match t:
+        0  -> "null"
+        1  -> "bool"
+        2  -> "number"
+        3  -> "string"
+        4  -> "array"
+        5  -> "object"
+        _  -> "invalid"
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Convenience wrappers
+-- ---------------------------------------------------------------------------
+
+-- Validate a JSON document from a JTV string.
+-- Control-plane helper that extracts pointer/length from a JTV string.
+fn validate_json_str(json_str: [u8]) -> DataResult<bool>:
+    return is_valid_json(json_str.ptr(), json_str.len())
+
+-- Check if a JSON document is a specific top-level type.
+fn is_json_object(data: *u8, len: usize) -> bool:
+    return json_type(data, len) == JSON_TYPE_OBJECT
+
+fn is_json_array(data: *u8, len: usize) -> bool:
+    return json_type(data, len) == JSON_TYPE_ARRAY
+
+fn is_json_string(data: *u8, len: usize) -> bool:
+    return json_type(data, len) == JSON_TYPE_STRING
+
+fn is_json_number(data: *u8, len: usize) -> bool:
+    return json_type(data, len) == JSON_TYPE_NUMBER
+
+fn is_json_null(data: *u8, len: usize) -> bool:
+    return json_type(data, len) == JSON_TYPE_NULL

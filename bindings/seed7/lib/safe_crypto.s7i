@@ -1,0 +1,97 @@
+(********************************************************************)
+(*  SPDX-License-Identifier: PMPL-1.0-or-later                     *)
+(*  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)         *)
+(*  <jonathan.jewell@open.ac.uk>                                    *)
+(*                                                                  *)
+(*  safe_crypto.s7i -- Safe cryptographic primitives.               *)
+(*  Thin wrapper over libproven FFI -- all logic lives in Idris 2.  *)
+(*  Returns EMPTY on error.                                         *)
+(********************************************************************)
+
+include "proven.s7i";
+
+(* ---------------------------------------------------------------------------
+   External C declarations (raw FFI)
+   --------------------------------------------------------------------------- *)
+
+const func integer: c_proven_crypto_constant_time_eq (
+    in string: ptr1, in integer: len1,
+    in string: ptr2, in integer: len2) is
+  external "proven_crypto_constant_time_eq" integer;
+
+const func integer: c_proven_crypto_random_bytes (in string: buf, in integer: len) is
+  external "proven_crypto_random_bytes" integer;
+
+const func integer: c_proven_hex_encode (in string: ptr, in integer: len, in integer: uppercase) is
+  external "proven_hex_encode" integer;
+
+const func integer: c_proven_hex_decode (in string: ptr, in integer: len) is
+  external "proven_hex_decode" integer;
+
+const proc: c_proven_hex_free (in integer: result_ptr) is
+  external "proven_hex_free";
+
+(* ---------------------------------------------------------------------------
+   High-level wrappers
+   --------------------------------------------------------------------------- *)
+
+(** Constant-time byte comparison (timing-attack safe).
+    Returns TRUE if the two strings are equal, FALSE otherwise. *)
+const func boolean: constantTimeEq (in string: a, in string: b) is func
+  result
+    var boolean: equal is FALSE;
+  begin
+    equal := c_proven_crypto_constant_time_eq(
+      a, length(a), b, length(b)) = 1;
+  end func;
+
+(** Generate cryptographically secure random bytes.
+    Returns a string of random bytes, or EMPTY on failure. *)
+const func string: randomBytes (in integer: count) is func
+  result
+    var string: bytes is "";
+  begin
+    bytes := " " mult count;
+    if c_proven_crypto_random_bytes(bytes, count) <> 0 then
+      bytes := "";
+    end if;
+  end func;
+
+(** Encode bytes to lowercase hex string. Returns EMPTY on error. *)
+const func StringResult: hexEncode (in string: data) is func
+  result
+    var StringResult: res is StringResult.value;
+  begin
+    if length(data) = 0 then
+      res.status := 0;
+      res.value := "";
+    else
+      res.status := c_proven_hex_encode(data, length(data), 0);
+    end if;
+  end func;
+
+(** Encode bytes to uppercase hex string. Returns EMPTY on error. *)
+const func StringResult: hexEncodeUpper (in string: data) is func
+  result
+    var StringResult: res is StringResult.value;
+  begin
+    if length(data) = 0 then
+      res.status := 0;
+      res.value := "";
+    else
+      res.status := c_proven_hex_encode(data, length(data), 1);
+    end if;
+  end func;
+
+(** Decode hex string to bytes. Returns EMPTY on error. *)
+const func StringResult: hexDecode (in string: hexStr) is func
+  result
+    var StringResult: res is StringResult.value;
+  begin
+    if length(hexStr) = 0 then
+      res.status := 0;
+      res.value := "";
+    else
+      res.status := c_proven_hex_decode(hexStr, length(hexStr));
+    end if;
+  end func;

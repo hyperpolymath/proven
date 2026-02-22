@@ -1,16 +1,19 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeContentType - MIME type validation with sniffing prevention.
 
 Provides safe Content-Type handling to prevent MIME confusion attacks.
+All parsing and validation is delegated to the Idris core via FFI.
 """
 
-from typing import Optional, Dict, List, Tuple
+import json
+from typing import Optional, Dict
 from dataclasses import dataclass
 from enum import Enum
-import re
+
+from .core import ProvenStatus, get_lib
 
 
 class MediaCategory(Enum):
@@ -61,7 +64,6 @@ class ContentType:
         """Format as Content-Type header value."""
         result = self.media_type
         for key, value in self.parameters.items():
-            # Quote value if needed
             if " " in value or ";" in value:
                 value = f'"{value}"'
             result += f"; {key}={value}"
@@ -69,7 +71,7 @@ class ContentType:
 
 
 class SafeContentType:
-    """Safe Content-Type parsing and validation."""
+    """Safe Content-Type parsing and validation via FFI."""
 
     # Common safe MIME types
     TEXT_PLAIN = "text/plain"
@@ -88,27 +90,10 @@ class SafeContentType:
     MULTIPART_FORM_DATA = "multipart/form-data"
     APPLICATION_FORM_URLENCODED = "application/x-www-form-urlencoded"
 
-    # Dangerous types that can execute code
-    DANGEROUS_TYPES = frozenset([
-        "text/html",
-        "application/javascript",
-        "text/javascript",
-        "application/x-javascript",
-        "image/svg+xml",
-        "application/xhtml+xml",
-        "text/xml",
-        "application/xml",
-    ])
-
-    # Pattern for media type
-    _MEDIA_TYPE_PATTERN = re.compile(
-        r"^([a-zA-Z0-9!#$&\-^_.+]+)/([a-zA-Z0-9!#$&\-^_.+]+)$"
-    )
-
     @staticmethod
     def parse(value: str) -> Optional[ContentType]:
         """
-        Parse Content-Type header value.
+        Parse Content-Type header value via FFI.
 
         Args:
             value: Content-Type header value
@@ -123,56 +108,53 @@ class SafeContentType:
         if not value:
             return None
 
-        parts = value.split(";")
-        media_type = parts[0].strip().lower()
-
-        match = SafeContentType._MEDIA_TYPE_PATTERN.match(media_type)
-        if not match:
+        lib = get_lib()
+        encoded = value.encode("utf-8")
+        result = lib.proven_content_type_parse(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
             return None
 
-        type_part = match.group(1)
-        subtype = match.group(2)
+        json_str = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
 
-        # Parse parameters
-        parameters: Dict[str, str] = {}
-        for param in parts[1:]:
-            param = param.strip()
-            if not param:
-                continue
-            eq = param.find("=")
-            if eq <= 0:
-                continue
-            key = param[:eq].strip().lower()
-            val = param[eq + 1:].strip()
-            # Remove quotes
-            if val.startswith('"') and val.endswith('"'):
-                val = val[1:-1]
-            parameters[key] = val
-
-        return ContentType(type=type_part, subtype=subtype, parameters=parameters)
+        try:
+            parsed = json.loads(json_str)
+            return ContentType(
+                type=parsed.get("type", ""),
+                subtype=parsed.get("subtype", ""),
+                parameters=parsed.get("parameters", {}),
+            )
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return None
 
     @staticmethod
-    def create(type: str, subtype: str, **parameters) -> Optional[ContentType]:
+    def create(type_: str, subtype: str, **parameters) -> Optional[ContentType]:
         """
-        Create a Content-Type with validation.
+        Create a Content-Type with validation via FFI.
 
         Args:
-            type: Media type (e.g., "text")
+            type_: Media type (e.g., "text")
             subtype: Media subtype (e.g., "html")
             **parameters: Additional parameters
 
         Returns:
             ContentType object, or None if invalid
         """
-        media_type = f"{type}/{subtype}"
-        if not SafeContentType._MEDIA_TYPE_PATTERN.match(media_type):
+        # Validate by parsing the assembled content type
+        parts = f"{type_}/{subtype}"
+        if parameters:
+            param_str = "; ".join(f"{k}={v}" for k, v in parameters.items())
+            parts = f"{parts}; {param_str}"
+
+        result = SafeContentType.parse(parts)
+        if result is None:
             return None
-        return ContentType(type=type.lower(), subtype=subtype.lower(), parameters=parameters)
+        return result
 
     @staticmethod
     def is_dangerous(content_type: str) -> bool:
         """
-        Check if content type can execute code.
+        Check if content type can execute code via FFI.
 
         Args:
             content_type: Media type string
@@ -180,10 +162,14 @@ class SafeContentType:
         Returns:
             True if type can execute code in browsers
         """
-        parsed = SafeContentType.parse(content_type)
-        if parsed:
-            return parsed.media_type in SafeContentType.DANGEROUS_TYPES
-        return content_type.lower().split(";")[0].strip() in SafeContentType.DANGEROUS_TYPES
+        if not content_type:
+            return False
+        lib = get_lib()
+        encoded = content_type.encode("utf-8")
+        result = lib.proven_content_type_is_dangerous(encoded, len(encoded))
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     @staticmethod
     def is_text(content_type: str) -> bool:
@@ -223,7 +209,7 @@ class SafeContentType:
     @staticmethod
     def guess_from_extension(filename: str) -> str:
         """
-        Guess content type from file extension.
+        Guess content type from file extension via FFI.
 
         Args:
             filename: Filename or path
@@ -231,36 +217,17 @@ class SafeContentType:
         Returns:
             Guessed content type (defaults to application/octet-stream)
         """
-        ext_map = {
-            ".txt": "text/plain",
-            ".html": "text/html",
-            ".htm": "text/html",
-            ".css": "text/css",
-            ".js": "text/javascript",
-            ".json": "application/json",
-            ".xml": "application/xml",
-            ".pdf": "application/pdf",
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".gif": "image/gif",
-            ".webp": "image/webp",
-            ".svg": "image/svg+xml",
-            ".mp3": "audio/mpeg",
-            ".mp4": "video/mp4",
-            ".webm": "video/webm",
-            ".woff": "font/woff",
-            ".woff2": "font/woff2",
-            ".zip": "application/zip",
-            ".gz": "application/gzip",
-        }
-
-        dot = filename.rfind(".")
-        if dot < 0:
+        if not filename:
             return SafeContentType.APPLICATION_OCTET_STREAM
 
-        ext = filename[dot:].lower()
-        return ext_map.get(ext, SafeContentType.APPLICATION_OCTET_STREAM)
+        lib = get_lib()
+        encoded = filename.encode("utf-8")
+        result = lib.proven_content_type_guess_ext(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return SafeContentType.APPLICATION_OCTET_STREAM
+        output = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+        return output
 
     @staticmethod
     def with_charset(media_type: str, charset: str = "utf-8") -> str:

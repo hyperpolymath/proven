@@ -1,0 +1,95 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/* SafeMath - Aritmetika s kontrolou preteceni pres libproven FFI.
+ *
+ * Oblibeny typ Vysledek<T, Ch> dela tento modul prirozene expresivni:
+ * kazda aritmeticka operace vraci Vysledek<Int64, ProvenChyba>, kde
+ * chybova varianta presne popisuje selhani (Preteceni, Podteceni, DeleniNulou).
+ *
+ * Veskere vypocty provadi Idris 2 pres Zig FFI vrstvu.
+ * ZADNA aritmeticka logika neni reimplementovana v Oblibeny.
+ */
+
+modul Proven.SafeMath
+
+import Proven.FFI
+import Proven (ProvenChyba, Výsledek, int_vysledek_prevod)
+
+// ============================================================================
+// Kontrolovane aritmeticke operace
+// ============================================================================
+
+// Bezpecne secte dve cela cisla s detekci preteceni.
+// Vraci Neuspech(Preteceni) pokud by vysledek presahl rozsah Int64.
+// Deleguje na proven_math_add_checked v libproven.
+fn bezpečné_sčítání(a : Int64, b : Int64) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_add_checked(a, b))
+
+// Bezpecne odecte dve cela cisla s detekci podteceni.
+// Vraci Neuspech(Podteceni) pokud by vysledek spadl pod rozsah Int64.
+// Deleguje na proven_math_sub_checked v libproven.
+fn bezpečné_odčítání(a : Int64, b : Int64) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_sub_checked(a, b))
+
+// Bezpecne vynasobi dve cela cisla s detekci preteceni.
+// Vraci Neuspech(Preteceni) pokud by vysledek presahl rozsah Int64.
+// Deleguje na proven_math_mul_checked v libproven.
+fn bezpečné_násobení(a : Int64, b : Int64) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_mul_checked(a, b))
+
+// Bezpecne podeli dve cela cisla.
+// Vraci Neuspech(DeleniNulou) pokud je jmenovatel nula.
+// Vraci Neuspech(Preteceni) pro INT64_MIN / -1.
+// Deleguje na proven_math_div v libproven.
+fn bezpečné_dělení(a : Int64, b : Int64) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_div(a, b))
+
+// Bezpecna operace modulo.
+// Vraci Neuspech(DeleniNulou) pokud je jmenovatel nula.
+// Deleguje na proven_math_mod v libproven.
+fn bezpečné_modulo(a : Int64, b : Int64) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_mod(a, b))
+
+// Bezpecna absolutni hodnota.
+// Vraci Neuspech(Preteceni) pro INT64_MIN (nelze reprezentovat jako kladne Int64).
+// Deleguje na proven_math_abs_safe v libproven.
+fn bezpečná_absolutní_hodnota(n : Int64) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_abs_safe(n))
+
+// Bezpecna negace. Ekvivalentni bezpecne_odcitani(0, n).
+// Vraci Neuspech(Preteceni) pri negaci INT64_MIN.
+// Deleguje na proven_math_sub_checked v libproven.
+fn bezpečná_negace(n : Int64) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_sub_checked(0i64, n))
+
+// Orez hodnoty do rozsahu [lo, hi].
+// Tato operace nemuze selhat.
+// Deleguje na proven_math_clamp v libproven.
+fn oříznout(lo : Int64, hi : Int64, hodnota : Int64) -> Int64 =
+  FFI.proven_math_clamp(lo, hi, hodnota)
+
+// Bezpecne umocneni celych cisel s kontrolou preteceni.
+// Vraci Neuspech(Preteceni) pokud by vysledek presahl rozsah Int64.
+// Deleguje na proven_math_pow_checked v libproven.
+fn bezpečné_umocnění(základ : Int64, exponent : UInt32) -> Výsledek<Int64, ProvenChyba> =
+  int_vysledek_prevod(FFI.proven_math_pow_checked(základ, exponent))
+
+// Zkontroluje, zda hodnota spada do rozsahu [lo, hi].
+// Pomocna funkce postavena na oriznout.
+fn v_rozsahu(hodnota : Int64, lo : Int64, hi : Int64) -> Bool =
+  hodnota == oříznout(lo, hi, hodnota)
+
+// ============================================================================
+// Oblibeny specificke: priklady oblibeneho porovnavani vzoru
+// ============================================================================
+
+// Ukazka Oblibeny oblibeneho porovnavani vzoru na aritmetice.
+// Kompilator zarucuje, ze vsechny chybove varianty jsou obsouzeny.
+//
+// Priklad:
+//   match bezpecne_scitani(a, b) with
+//   | Uspech(vysledek) => zpracuj_uspech(vysledek)
+//   | Neuspech(Preteceni) => zpracuj_preteceni()
+//   | Neuspech(Podteceni) => zpracuj_podteceni()
+//   | Neuspech(e) => zpracuj_jinou_chybu(e)

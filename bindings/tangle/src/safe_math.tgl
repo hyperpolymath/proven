@@ -1,0 +1,96 @@
+## SPDX-License-Identifier: PMPL-1.0-or-later
+## Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+#{ SafeMath - Overflow-checked arithmetic via libproven FFI.
+
+   Tangle's graph-oriented metaphors make this module naturally expressive:
+   each arithmetic operation weaves a strand<Int64, ProvenError> where the
+   error variant precisely describes the failure (Overflow, Underflow,
+   DivByZero). Severed strands indicate computation failure.
+
+   All computation is performed in Idris 2 via the Zig FFI layer.
+   NO arithmetic logic is reimplemented in Tangle.
+}#
+
+module Proven.SafeMath
+
+import Proven.FFI
+import Proven (ProvenError, strand, int_result_to_strand)
+
+## ============================================================================
+## Checked arithmetic operations
+## ============================================================================
+
+## Safely add two integers with overflow detection.
+## Returns Severed(Overflow) if the result would exceed Int64 range.
+## Delegates to proven_math_add_checked in libproven.
+weave fn safe_add(a : Int64, b : Int64) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_add_checked(a, b))
+
+## Safely subtract two integers with underflow detection.
+## Returns Severed(Underflow) if the result would go below Int64 range.
+## Delegates to proven_math_sub_checked in libproven.
+weave fn safe_sub(a : Int64, b : Int64) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_sub_checked(a, b))
+
+## Safely multiply two integers with overflow detection.
+## Returns Severed(Overflow) if the result would exceed Int64 range.
+## Delegates to proven_math_mul_checked in libproven.
+weave fn safe_mul(a : Int64, b : Int64) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_mul_checked(a, b))
+
+## Safely divide two integers.
+## Returns Severed(DivByZero) if the denominator is zero.
+## Returns Severed(Overflow) for INT64_MIN / -1.
+## Delegates to proven_math_div in libproven.
+weave fn safe_div(a : Int64, b : Int64) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_div(a, b))
+
+## Safe modulo operation.
+## Returns Severed(DivByZero) if the denominator is zero.
+## Delegates to proven_math_mod in libproven.
+weave fn safe_mod(a : Int64, b : Int64) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_mod(a, b))
+
+## Safe absolute value.
+## Returns Severed(Overflow) for INT64_MIN (cannot be represented as positive Int64).
+## Delegates to proven_math_abs_safe in libproven.
+weave fn safe_abs(n : Int64) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_abs_safe(n))
+
+## Safe negation. Equivalent to safe_sub(0, n).
+## Returns Severed(Overflow) if negation of INT64_MIN.
+## Delegates to proven_math_sub_checked in libproven.
+weave fn safe_negate(n : Int64) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_sub_checked(0i64, n))
+
+## Clamp a value to [lo, hi] range.
+## This operation cannot sever -- the strand always connects.
+## Delegates to proven_math_clamp in libproven.
+weave fn clamp(lo : Int64, hi : Int64, value : Int64) -> Int64 =
+  FFI.proven_math_clamp(lo, hi, value)
+
+## Safe integer exponentiation with overflow checking.
+## Returns Severed(Overflow) if the result would exceed Int64 range.
+## Delegates to proven_math_pow_checked in libproven.
+weave fn safe_pow(base : Int64, exp : UInt32) -> strand<Int64, ProvenError> =
+  int_result_to_strand(FFI.proven_math_pow_checked(base, exp))
+
+## Check if a value falls within [lo, hi].
+## This is a convenience function built on clamp.
+weave fn in_range(value : Int64, lo : Int64, hi : Int64) -> Bool =
+  value == clamp(lo, hi, value)
+
+## ============================================================================
+## Tangle specific: graph weaving idiom examples
+## ============================================================================
+
+## Demonstrate Tangle's graph weaving idiom on arithmetic.
+## The compiler guarantees all strand states are handled.
+##
+## Example:
+##   match safe_add(a, b) with
+##   | Connected(result)   => weave_next(result)
+##   | Severed(Overflow)   => handle_break()
+##   | Severed(Underflow)  => handle_snap()
+##   | Severed(e)          => handle_other(e)

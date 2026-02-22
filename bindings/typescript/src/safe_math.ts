@@ -1,210 +1,151 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * SafeMath - Arithmetic operations that cannot crash.
+ * SafeMath - Typed wrapper for arithmetic operations that cannot crash.
  *
- * All operations handle edge cases like division by zero, overflow, and underflow
- * without throwing exceptions. Operations return null on failure.
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * @module
  */
 
-import { getExports } from './wasm.js';
-import { statusFromCode } from './error.js';
+import { SafeMath as JsSafeMath } from '../../javascript/src/safe_math.js';
+
+/** Result type returned by SafeMath operations. */
+export type MathResult =
+  | { readonly ok: true; readonly value: number }
+  | { readonly ok: false; readonly error: string };
 
 /**
- * Safe arithmetic operations with proven correctness guarantees.
+ * Safe arithmetic operations with overflow detection.
+ * Every method calls through to the JavaScript FFI wrapper, which in turn
+ * calls the formally verified Idris 2 code via the Zig FFI bridge.
  */
 export class SafeMath {
   /**
-   * Safe division that returns null on division by zero.
+   * Safe addition with overflow check.
+   * Delegates to proven_math_add_checked via FFI.
    *
-   * @example
-   * SafeMath.div(10, 2)  // 5
-   * SafeMath.div(10, 0)  // null
+   * @param a - First operand.
+   * @param b - Second operand.
+   * @returns Result with the sum, or error on overflow.
    */
-  static div(numerator: number, denominator: number): number | null {
-    const exports = getExports();
-    const fn = exports['proven_math_div'] as (a: bigint, b: bigint) => bigint;
-
-    // Pack result into i64: status in high 32 bits, value in low 32 bits
-    const result = fn(BigInt(numerator), BigInt(denominator));
-    const status = Number(result >> 32n);
-    const value = Number(result & 0xffffffffn);
-
-    if (statusFromCode(status) !== 'ok') {
-      return null;
-    }
-    return value;
+  static add(a: number, b: number): MathResult {
+    return JsSafeMath.add(a, b) as MathResult;
   }
 
   /**
-   * Safe division with a default value for division by zero.
+   * Safe subtraction with underflow check.
+   * Delegates to proven_math_sub_checked via FFI.
+   *
+   * @param a - First operand.
+   * @param b - Second operand.
+   * @returns Result with the difference, or error on underflow.
    */
-  static divOr(defaultValue: number, numerator: number, denominator: number): number {
-    return SafeMath.div(numerator, denominator) ?? defaultValue;
+  static sub(a: number, b: number): MathResult {
+    return JsSafeMath.sub(a, b) as MathResult;
   }
 
   /**
-   * Safe modulo that returns null on division by zero.
+   * Safe multiplication with overflow check.
+   * Delegates to proven_math_mul_checked via FFI.
+   *
+   * @param a - First operand.
+   * @param b - Second operand.
+   * @returns Result with the product, or error on overflow.
    */
-  static mod(numerator: number, denominator: number): number | null {
-    const exports = getExports();
-    const fn = exports['proven_math_mod'] as (a: bigint, b: bigint) => bigint;
-
-    const result = fn(BigInt(numerator), BigInt(denominator));
-    const status = Number(result >> 32n);
-    const value = Number(result & 0xffffffffn);
-
-    if (statusFromCode(status) !== 'ok') {
-      return null;
-    }
-    return value;
+  static mul(a: number, b: number): MathResult {
+    return JsSafeMath.mul(a, b) as MathResult;
   }
 
   /**
-   * Addition with overflow detection.
+   * Safe integer division with division-by-zero check.
+   * Delegates to proven_math_div via FFI.
    *
-   * Returns null if the result would overflow.
-   *
-   * @example
-   * SafeMath.addChecked(5, 3)  // 8
-   * SafeMath.addChecked(Number.MAX_SAFE_INTEGER, 1)  // null
+   * @param a - Dividend.
+   * @param b - Divisor.
+   * @returns Result with the quotient, or error on division by zero.
    */
-  static addChecked(a: number, b: number): number | null {
-    const exports = getExports();
-    const fn = exports['proven_math_add_checked'] as (a: bigint, b: bigint) => bigint;
-
-    const result = fn(BigInt(a), BigInt(b));
-    const status = Number(result >> 32n);
-    const value = Number(result & 0xffffffffn);
-
-    if (statusFromCode(status) !== 'ok') {
-      return null;
-    }
-    return value;
+  static div(a: number, b: number): MathResult {
+    return JsSafeMath.div(a, b) as MathResult;
   }
 
   /**
-   * Subtraction with underflow detection.
+   * Safe modulo operation.
+   * Delegates to proven_math_mod via FFI.
    *
-   * Returns null if the result would underflow.
+   * @param a - Dividend.
+   * @param b - Divisor.
+   * @returns Result with the remainder, or error on division by zero.
    */
-  static subChecked(a: number, b: number): number | null {
-    const exports = getExports();
-    const fn = exports['proven_math_sub_checked'] as (a: bigint, b: bigint) => bigint;
-
-    const result = fn(BigInt(a), BigInt(b));
-    const status = Number(result >> 32n);
-    const value = Number(result & 0xffffffffn);
-
-    if (statusFromCode(status) !== 'ok') {
-      return null;
-    }
-    return value;
+  static mod(a: number, b: number): MathResult {
+    return JsSafeMath.mod(a, b) as MathResult;
   }
 
   /**
-   * Multiplication with overflow detection.
+   * Safe absolute value (handles MIN_INT correctly).
+   * Delegates to proven_math_abs_safe via FFI.
    *
-   * Returns null if the result would overflow.
+   * @param n - Input value.
+   * @returns Result with absolute value, or error if n is MIN_INT.
    */
-  static mulChecked(a: number, b: number): number | null {
-    const exports = getExports();
-    const fn = exports['proven_math_mul_checked'] as (a: bigint, b: bigint) => bigint;
-
-    const result = fn(BigInt(a), BigInt(b));
-    const status = Number(result >> 32n);
-    const value = Number(result & 0xffffffffn);
-
-    if (statusFromCode(status) !== 'ok') {
-      return null;
-    }
-    return value;
+  static abs(n: number): MathResult {
+    return JsSafeMath.abs(n) as MathResult;
   }
 
   /**
-   * Safe absolute value that handles MIN_INT correctly.
+   * Clamp value to range [lo, hi].
+   * Delegates to proven_math_clamp via FFI.
    *
-   * Returns null if n is MIN_INT (cannot be represented).
+   * @param value - Value to clamp.
+   * @param lo - Minimum value.
+   * @param hi - Maximum value.
+   * @returns The clamped value.
    */
-  static absSafe(n: number): number | null {
-    const exports = getExports();
-    const fn = exports['proven_math_abs_safe'] as (n: bigint) => bigint;
-
-    const result = fn(BigInt(n));
-    const status = Number(result >> 32n);
-    const value = Number(result & 0xffffffffn);
-
-    if (statusFromCode(status) !== 'ok') {
-      return null;
-    }
-    return value;
+  static clamp(value: number, lo: number, hi: number): number {
+    return JsSafeMath.clamp(value, lo, hi);
   }
 
   /**
-   * Clamp a value to range [lo, hi].
+   * Safe integer power with overflow checking.
+   * Delegates to proven_math_pow_checked via FFI.
    *
-   * @example
-   * SafeMath.clamp(0, 100, 50)   // 50
-   * SafeMath.clamp(0, 100, 150)  // 100
-   * SafeMath.clamp(0, 100, -10)  // 0
+   * @param base - Base value.
+   * @param exponent - Exponent (non-negative integer).
+   * @returns Result with the power, or error on overflow.
    */
-  static clamp(lo: number, hi: number, value: number): number {
-    const exports = getExports();
-    const fn = exports['proven_math_clamp'] as (lo: bigint, hi: bigint, value: bigint) => bigint;
-
-    return Number(fn(BigInt(lo), BigInt(hi), BigInt(value)));
+  static pow(base: number, exponent: number): MathResult {
+    return JsSafeMath.pow(base, exponent) as MathResult;
   }
 
   /**
-   * Integer exponentiation with overflow detection.
+   * Calculate percentage safely using FFI-backed multiply and divide.
    *
-   * @param exp - Must be non-negative
-   * @throws If exp is negative
-   */
-  static powChecked(base: number, exp: number): number | null {
-    if (exp < 0) {
-      throw new Error('Exponent must be non-negative');
-    }
-
-    const exports = getExports();
-    const fn = exports['proven_math_pow_checked'] as (base: bigint, exp: number) => bigint;
-
-    const result = fn(BigInt(base), exp);
-    const status = Number(result >> 32n);
-    const value = Number(result & 0xffffffffn);
-
-    if (statusFromCode(status) !== 'ok') {
-      return null;
-    }
-    return value;
-  }
-
-  /**
-   * Calculate percentage safely.
-   *
-   * @returns percent% of total, or null on overflow/division-by-zero
-   *
-   * @example
-   * SafeMath.percentOf(50, 200)  // 100
+   * @param percent - The percentage (e.g. 50 for 50%).
+   * @param total - The total value.
+   * @returns percent% of total, or null on overflow/division-by-zero.
    */
   static percentOf(percent: number, total: number): number | null {
-    const product = SafeMath.mulChecked(percent, total);
-    if (product === null) return null;
-    return SafeMath.div(product, 100);
+    const product = SafeMath.mul(percent, total);
+    if (!product.ok) return null;
+    const result = SafeMath.div(product.value, 100);
+    if (!result.ok) return null;
+    return result.value;
   }
 
   /**
-   * Calculate what percentage part is of whole.
+   * Calculate what percentage part is of whole using FFI-backed operations.
    *
-   * @returns The percentage (0-100+), or null on division by zero
-   *
-   * @example
-   * SafeMath.asPercent(50, 200)  // 25
+   * @param part - The part value.
+   * @param whole - The whole value.
+   * @returns The percentage (0-100+), or null on division by zero / overflow.
    */
   static asPercent(part: number, whole: number): number | null {
-    const scaled = SafeMath.mulChecked(part, 100);
-    if (scaled === null) return null;
-    return SafeMath.div(scaled, whole);
+    const scaled = SafeMath.mul(part, 100);
+    if (!scaled.ok) return null;
+    const result = SafeMath.div(scaled.value, whole);
+    if (!result.ok) return null;
+    return result.value;
   }
 }

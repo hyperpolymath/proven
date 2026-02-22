@@ -1,0 +1,47 @@
+(* SPDX-License-Identifier: PMPL-1.0-or-later *)
+(* Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> *)
+
+(* proven.cm -- Compilation Manager file for SML/NJ.
+ *
+ * Usage:
+ *   CM.make "proven.cm";
+ *
+ * NOTE: SML/NJ does not natively support MLton's _import pragma for C FFI.
+ * This CM file is provided for type-checking the SML interface layer.
+ * For actual FFI calls at runtime, use MLton with proven.mlb, or provide
+ * a NLFFI (SML/NJ foreign function interface) adapter.
+ *
+ * When SML/NJ's NLFFI is configured for libproven, replace the stub
+ * lib_proven.sml with an NLFFI-based implementation that loads
+ * libproven.so via DynLink and binds the same function signatures.
+ *)
+
+Group is
+
+  (* SML/NJ Basis Library *)
+  $/basis.cm
+
+  (* Core FFI declarations and marshaling.
+   * Under SML/NJ, the _import pragmas will not compile.  Users must
+   * either:
+   *   (a) Use MLton for the full FFI binding (recommended), or
+   *   (b) Provide an NLFFI-compatible lib_proven.sml for SML/NJ.
+   *
+   * For type-checking only (no FFI), comment out lib_proven.sml and
+   * uncomment the stub below. *)
+  src/lib_proven.sml
+
+  (* Safe wrapper modules -- pure SML, compiler-agnostic *)
+  src/safe_math.sml
+  src/safe_string.sml
+  src/safe_path.sml
+  src/safe_email.sml
+  src/safe_url.sml
+  src/safe_network.sml
+  src/safe_crypto.sml
+  src/safe_json.sml
+  src/safe_datetime.sml
+  src/safe_float.sml
+
+  (* Top-level structure *)
+  src/proven.sml

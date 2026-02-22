@@ -145,6 +145,7 @@ modules = Proven
         , Proven.SafeCookie.Proofs
         -- SafeContentType
         , Proven.SafeContentType
+        , Proven.SafeContentType.Types
         , Proven.SafeContentType.Parser
         , Proven.SafeContentType.Proofs
         -- Standalone validated types

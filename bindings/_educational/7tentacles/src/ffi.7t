@@ -1,0 +1,244 @@
+~~ SPDX-License-Identifier: PMPL-1.0-or-later
+~~ Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+~{ | FFI declarations to libproven C ABI.
+ |
+ | 7Tentacles uses @reach("C", ...) for foreign function binding,
+ | representing a tentacle reaching out to the C world. All foreign
+ | function declarations map to the libproven shared library which is
+ | compiled from Idris 2 source with dependent types and totality
+ | checking. NO safety logic is reimplemented in 7Tentacles.
+ |
+ | Architecture:
+ |   7Tentacles (.7t)
+ |     |  @reach("C", ...)
+ |     v
+ |   libproven.so (Zig FFI layer)
+ |     |  Zig -> Idris2 RefC calls
+ |     v
+ |   Idris 2 (dependent types, totality checking)
+}~
+
+sucker module Proven.FFI
+
+~~ ============================================================================
+~~ Result types matching the C ABI structs
+~~ ============================================================================
+
+~~ IntResult: struct { int32 status; int64 value; }
+@repr("C")
+sucker type IntResult = {
+  status : Int32,
+  value  : Int64,
+}
+
+~~ BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+sucker type BoolResult = {
+  status : Int32,
+  value  : Int32,
+}
+
+~~ StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+sucker type StringResult = {
+  status : Int32,
+  ptr    : Ptr[Byte],
+  len    : USize,
+}
+
+~~ FloatResult: struct { int32 status; double value; }
+@repr("C")
+sucker type FloatResult = {
+  status : Int32,
+  value  : Float64,
+}
+
+~~ ============================================================================
+~~ Lifecycle
+~~ ============================================================================
+
+@reach("C", "proven_init")
+grasp fn proven_init() -> Int32
+
+@reach("C", "proven_deinit")
+grasp fn proven_deinit() -> Void
+
+@reach("C", "proven_is_initialized")
+grasp fn proven_is_initialized() -> Bool
+
+~~ ============================================================================
+~~ Memory management
+~~ ============================================================================
+
+@reach("C", "proven_free_string")
+grasp fn proven_free_string(ptr : Ptr[Byte]) -> Void
+
+~~ ============================================================================
+~~ Version info
+~~ ============================================================================
+
+@reach("C", "proven_ffi_abi_version")
+grasp fn proven_ffi_abi_version() -> UInt32
+
+@reach("C", "proven_version_major")
+grasp fn proven_version_major() -> UInt32
+
+@reach("C", "proven_version_minor")
+grasp fn proven_version_minor() -> UInt32
+
+@reach("C", "proven_version_patch")
+grasp fn proven_version_patch() -> UInt32
+
+@reach("C", "proven_module_count")
+grasp fn proven_module_count() -> UInt32
+
+~~ ============================================================================
+~~ SafeMath
+~~ ============================================================================
+
+@reach("C", "proven_math_add_checked")
+grasp fn proven_math_add_checked(a : Int64, b : Int64) -> IntResult
+
+@reach("C", "proven_math_sub_checked")
+grasp fn proven_math_sub_checked(a : Int64, b : Int64) -> IntResult
+
+@reach("C", "proven_math_mul_checked")
+grasp fn proven_math_mul_checked(a : Int64, b : Int64) -> IntResult
+
+@reach("C", "proven_math_div")
+grasp fn proven_math_div(a : Int64, b : Int64) -> IntResult
+
+@reach("C", "proven_math_mod")
+grasp fn proven_math_mod(a : Int64, b : Int64) -> IntResult
+
+@reach("C", "proven_math_abs_safe")
+grasp fn proven_math_abs_safe(n : Int64) -> IntResult
+
+@reach("C", "proven_math_clamp")
+grasp fn proven_math_clamp(lo : Int64, hi : Int64, value : Int64) -> Int64
+
+@reach("C", "proven_math_pow_checked")
+grasp fn proven_math_pow_checked(base : Int64, exp : UInt32) -> IntResult
+
+~~ ============================================================================
+~~ SafeString
+~~ ============================================================================
+
+@reach("C", "proven_string_is_valid_utf8")
+grasp fn proven_string_is_valid_utf8(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@reach("C", "proven_string_escape_sql")
+grasp fn proven_string_escape_sql(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@reach("C", "proven_string_escape_html")
+grasp fn proven_string_escape_html(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@reach("C", "proven_string_escape_js")
+grasp fn proven_string_escape_js(ptr : Ptr[Byte], len : USize) -> StringResult
+
+~~ ============================================================================
+~~ SafeEmail
+~~ ============================================================================
+
+@reach("C", "proven_email_is_valid")
+grasp fn proven_email_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+~~ ============================================================================
+~~ SafeUrl
+~~ ============================================================================
+
+@reach("C", "proven_url_parse")
+grasp fn proven_url_parse(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@reach("C", "proven_url_free")
+grasp fn proven_url_free(components : Ptr[Void]) -> Void
+
+~~ ============================================================================
+~~ SafePath
+~~ ============================================================================
+
+@reach("C", "proven_path_has_traversal")
+grasp fn proven_path_has_traversal(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@reach("C", "proven_path_sanitize_filename")
+grasp fn proven_path_sanitize_filename(ptr : Ptr[Byte], len : USize) -> StringResult
+
+~~ ============================================================================
+~~ SafeCrypto
+~~ ============================================================================
+
+@reach("C", "proven_crypto_constant_time_eq")
+grasp fn proven_crypto_constant_time_eq(
+  ptr1 : Ptr[Byte], len1 : USize,
+  ptr2 : Ptr[Byte], len2 : USize,
+) -> BoolResult
+
+@reach("C", "proven_crypto_random_bytes")
+grasp fn proven_crypto_random_bytes(ptr : Ptr[Byte], len : USize) -> Int32
+
+~~ ============================================================================
+~~ SafeJson
+~~ ============================================================================
+
+@reach("C", "proven_json_is_valid")
+grasp fn proven_json_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@reach("C", "proven_json_get_type")
+grasp fn proven_json_get_type(ptr : Ptr[Byte], len : USize) -> Int32
+
+~~ ============================================================================
+~~ SafeFloat
+~~ ============================================================================
+
+@reach("C", "proven_float_div")
+grasp fn proven_float_div(a : Float64, b : Float64) -> FloatResult
+
+@reach("C", "proven_float_is_finite")
+grasp fn proven_float_is_finite(x : Float64) -> Bool
+
+@reach("C", "proven_float_is_nan")
+grasp fn proven_float_is_nan(x : Float64) -> Bool
+
+@reach("C", "proven_float_sqrt")
+grasp fn proven_float_sqrt(x : Float64) -> FloatResult
+
+@reach("C", "proven_float_ln")
+grasp fn proven_float_ln(x : Float64) -> FloatResult
+
+~~ ============================================================================
+~~ SafeHex
+~~ ============================================================================
+
+@reach("C", "proven_hex_encode")
+grasp fn proven_hex_encode(ptr : Ptr[Byte], len : USize, uppercase : Bool) -> StringResult
+
+@reach("C", "proven_hex_decode")
+grasp fn proven_hex_decode(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@reach("C", "proven_hex_free")
+grasp fn proven_hex_free(result : Ptr[Void]) -> Void
+
+~~ ============================================================================
+~~ SafeChecksum
+~~ ============================================================================
+
+@reach("C", "proven_checksum_crc32")
+grasp fn proven_checksum_crc32(ptr : Ptr[Byte], len : USize) -> IntResult
+
+@reach("C", "proven_checksum_verify_crc32")
+grasp fn proven_checksum_verify_crc32(ptr : Ptr[Byte], len : USize, expected : UInt32) -> BoolResult
+
+~~ ============================================================================
+~~ SafeNetwork
+~~ ============================================================================
+
+@reach("C", "proven_network_parse_ipv4")
+grasp fn proven_network_parse_ipv4(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+~~ ============================================================================
+~~ SafeCalculator
+~~ ============================================================================
+
+@reach("C", "proven_calculator_eval")
+grasp fn proven_calculator_eval(ptr : Ptr[Byte], len : USize) -> FloatResult

@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# RSR Anti-Pattern CI Check
+# Enforces: No TypeScript, No Go, No Python (except SaltStack), No npm
+# Allows: ReScript, Deno, WASM, Rust, OCaml, Haskell, Guile/Scheme, Idris2, Zig
+
+name: RSR Anti-Pattern Check
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+permissions: read-all
+
+jobs:
+  antipattern-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Check for TypeScript
+        run: |
+          # Exclude bindings/deno/ (Deno FFI files using Deno.dlopen)
+          # Exclude .d.ts files (type declarations for ReScript FFI)
+          TS_FILES=$(find . \( -name "*.ts" -o -name "*.tsx" \) | grep -v node_modules | grep -v 'bindings/deno' | grep -v '\.d\.ts$' || true)
+          if [ -n "$TS_FILES" ]; then
+            echo "❌ TypeScript files detected - use ReScript instead"
+            echo "$TS_FILES"
+            exit 1
+          fi
+          echo "✅ No TypeScript files (Deno FFI bindings excluded)"
+
+      - name: Check for Go
+        run: |
+          # Exclude bindings/go/ (Go FFI binding to libproven)
+          GO_FILES=$(find . -name "*.go" | grep -v 'bindings/go' || true)
+          if [ -n "$GO_FILES" ]; then
+            echo "❌ Go files detected outside bindings - use Rust/WASM instead"
+            echo "$GO_FILES"
+            exit 1
+          fi
+          echo "✅ No Go files outside bindings"
+
+      - name: Check for Python (non-SaltStack, non-binding)
+        run: |
+          PY_FILES=$(find . -name "*.py" | grep -v salt | grep -v _states | grep -v _modules | grep -v pillar | grep -v venv | grep -v __pycache__ | grep -v 'bindings/python' || true)
+          if [ -n "$PY_FILES" ]; then
+            echo "❌ Python files detected outside bindings - only allowed for SaltStack"
+            echo "$PY_FILES"
+            exit 1
+          fi
+          echo "✅ No non-SaltStack Python files outside bindings"
+
+      - name: Check for npm lockfiles
+        run: |
+          if [ -f "package-lock.json" ] || [ -f "yarn.lock" ]; then
+            echo "❌ npm/yarn lockfile detected - use Deno instead"
+            exit 1
+          fi
+          echo "✅ No npm lockfiles"
+
+      - name: Check for tsconfig
+        run: |
+          if [ -f "tsconfig.json" ]; then
+            echo "❌ tsconfig.json detected - use ReScript instead"
+            exit 1
+          fi
+          echo "✅ No tsconfig.json"
+
+      - name: Verify Deno presence (if package.json exists)
+        run: |
+          if [ -f "package.json" ]; then
+            if [ ! -f "deno.json" ] && [ ! -f "deno.jsonc" ]; then
+              echo "::warning::package.json without deno.json - migration recommended"
+            fi
+          fi
+          echo "✅ Deno configuration check complete"
+
+      - name: Summary
+        run: |
+          echo "RSR Anti-Pattern Check Passed"
+          echo "Allowed: ReScript, Deno, WASM, Rust, Idris2, Zig, OCaml, Haskell, Guile/Scheme"
+          echo "Blocked: TypeScript, Go (outside bindings), npm, Python (non-Salt, outside bindings)"

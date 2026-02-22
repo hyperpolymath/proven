@@ -1,109 +1,55 @@
 ;;; SPDX-License-Identifier: PMPL-1.0-or-later
-;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;
-;;; SafePath - Path operations without traversal attacks for Guile Scheme
+;;; SafePath - FFI bindings to libproven path validation
 ;;;
-;;; Validates and sanitizes filesystem paths to prevent directory traversal,
-;;; null byte injection, and other path-based attacks.
+;;; All computation delegates to Idris 2 via the Zig FFI layer.
+;;; This module is a thin wrapper only -- no reimplemented logic.
 
 (define-module (proven safe-path)
-  #:use-module (ice-9 regex)
-  #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-13)
+  #:use-module (system foreign)
+  #:use-module (rnrs bytevectors)
   #:export (path-has-traversal?
-            path-is-absolute?
-            path-is-relative?
-            sanitize-filename
-            path-validate
-            path-join-safe
-            path-extension
-            path-basename
-            path-dirname
-            make-path-result
-            path-result-path
-            path-result-ok?
-            path-result-error))
+            sanitize-filename))
 
-;;; Result constructor for path operations
-(define (make-path-result path ok error)
-  `((path . ,path) (ok . ,ok) (error . ,error)))
+;;; Load libproven shared library
+(define libproven (dynamic-link "libproven"))
 
-;;; Result accessors
-(define (path-result-path result)
-  (assoc-ref result 'path))
+;;; FFI function bindings
 
-(define (path-result-ok? result)
-  (assoc-ref result 'ok))
+(define ffi-path-has-traversal
+  (pointer->procedure '* (dynamic-func "proven_path_has_traversal" libproven)
+                      (list '*)))
 
-(define (path-result-error result)
-  (assoc-ref result 'error))
+(define ffi-path-sanitize-filename
+  (pointer->procedure '* (dynamic-func "proven_path_sanitize_filename" libproven)
+                      (list '*)))
 
-;;; Check if path contains directory traversal sequences
+(define ffi-free-string
+  (pointer->procedure void (dynamic-func "proven_free_string" libproven)
+                      (list '*)))
+
+;;; Helper: parse BoolResult from IdrisValue return
+(define (parse-idris-bool-result ptr)
+  ;; IdrisValue-based returns; the Zig FFI wraps Idris booleans
+  ;; For path_has_traversal the return is an IdrisValue encoding bool
+  ;; We read it as a native int from the pointer
+  (let* ((bv (pointer->bytevector ptr (sizeof '*)))
+         (val (bytevector-uint-native-ref bv 0 (sizeof '*))))
+    (not (= val 0))))
+
+;;; Helper: parse IdrisValue string result
+(define (parse-idris-string-result ptr)
+  (let ((str (pointer->string ptr)))
+    str))
+
+;;; Check if path contains directory traversal sequences (delegates to Idris 2)
 (define (path-has-traversal? path)
-  (or (string-contains path "..")
-      (string-contains path "\x00")))
+  (parse-idris-bool-result
+   (ffi-path-has-traversal (string->pointer path))))
 
-;;; Check if path is absolute (starts with /)
-(define (path-is-absolute? path)
-  (and (> (string-length path) 0)
-       (char=? (string-ref path 0) #\/)))
-
-;;; Check if path is relative (does not start with /)
-(define (path-is-relative? path)
-  (not (path-is-absolute? path)))
-
-;;; Sanitize filename (remove dangerous characters)
+;;; Sanitize filename by removing dangerous characters (delegates to Idris 2)
 (define (sanitize-filename filename)
-  (let* (;; Remove path separators and null bytes
-         (s1 (regexp-substitute/global #f "[/\\\\\x00]" filename 'pre "" 'post))
-         ;; Remove leading dots
-         (s2 (regexp-substitute/global #f "^\\.+" s1 'pre "" 'post))
-         ;; Trim whitespace
-         (s3 (string-trim-both s2)))
-    s3))
-
-;;; Validate path is safe (no traversal, no null bytes)
-(define (path-validate path)
-  (cond
-   ((= (string-length path) 0)
-    (make-path-result "" #f "Empty path"))
-   ((string-contains path "\x00")
-    (make-path-result "" #f "Null byte in path"))
-   ((string-contains path "..")
-    (make-path-result "" #f "Path traversal detected"))
-   (else
-    (make-path-result path #t ""))))
-
-;;; Join paths safely (prevents traversal in child component)
-(define (path-join-safe base child)
-  (let ((validated (path-validate child)))
-    (cond
-     ((not (path-result-ok? validated))
-      validated)
-     ((path-is-absolute? child)
-      (make-path-result "" #f "Child path must be relative"))
-     (else
-      (make-path-result (string-append base "/" child) #t "")))))
-
-;;; Get file extension (returns empty string if none)
-(define (path-extension path)
-  (let ((parts (string-split path #\.)))
-    (if (<= (length parts) 1)
-        ""
-        (last parts))))
-
-;;; Get basename (filename without directory)
-(define (path-basename path)
-  (let ((parts (string-split path #\/)))
-    (if (null? parts)
-        path
-        (last parts))))
-
-;;; Get dirname (directory without filename)
-(define (path-dirname path)
-  (let ((parts (string-split path #\/)))
-    (cond
-     ((<= (length parts) 1)
-      ".")
-     (else
-      (string-join (drop-right parts 1) "/")))))
+  (let* ((result-ptr (ffi-path-sanitize-filename (string->pointer filename)))
+         (result (pointer->string result-ptr)))
+    result))

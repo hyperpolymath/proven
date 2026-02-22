@@ -1,0 +1,243 @@
+## SPDX-License-Identifier: PMPL-1.0-or-later
+## Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+#{ FFI declarations to libproven C ABI.
+
+   Tangle uses @bridge("C", ...) to declare external connections to the
+   libproven shared library, which is compiled from Idris 2 source with
+   dependent types and totality checking. NO safety logic is reimplemented
+   in Tangle.
+
+   Architecture:
+     Tangle (.tgl)
+       |  @bridge("C", ...)
+       v
+     libproven.so (Zig FFI layer)
+       |  Zig -> Idris2 RefC calls
+       v
+     Idris 2 (dependent types, totality checking)
+}#
+
+module Proven.FFI
+
+## ============================================================================
+## Result types matching the C ABI structs
+## ============================================================================
+
+## IntResult: struct { int32 status; int64 value; }
+@repr("C")
+node type IntResult = {
+  status : Int32,
+  value  : Int64,
+}
+
+## BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+node type BoolResult = {
+  status : Int32,
+  value  : Int32,
+}
+
+## StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+node type StringResult = {
+  status : Int32,
+  ptr    : Ptr[Byte],
+  len    : USize,
+}
+
+## FloatResult: struct { int32 status; double value; }
+@repr("C")
+node type FloatResult = {
+  status : Int32,
+  value  : Float64,
+}
+
+## ============================================================================
+## Lifecycle
+## ============================================================================
+
+@bridge("C", "proven_init")
+extern weave fn proven_init() -> Int32
+
+@bridge("C", "proven_deinit")
+extern weave fn proven_deinit() -> Void
+
+@bridge("C", "proven_is_initialized")
+extern weave fn proven_is_initialized() -> Bool
+
+## ============================================================================
+## Memory management
+## ============================================================================
+
+@bridge("C", "proven_free_string")
+extern weave fn proven_free_string(ptr : Ptr[Byte]) -> Void
+
+## ============================================================================
+## Version info
+## ============================================================================
+
+@bridge("C", "proven_ffi_abi_version")
+extern weave fn proven_ffi_abi_version() -> UInt32
+
+@bridge("C", "proven_version_major")
+extern weave fn proven_version_major() -> UInt32
+
+@bridge("C", "proven_version_minor")
+extern weave fn proven_version_minor() -> UInt32
+
+@bridge("C", "proven_version_patch")
+extern weave fn proven_version_patch() -> UInt32
+
+@bridge("C", "proven_module_count")
+extern weave fn proven_module_count() -> UInt32
+
+## ============================================================================
+## SafeMath
+## ============================================================================
+
+@bridge("C", "proven_math_add_checked")
+extern weave fn proven_math_add_checked(a : Int64, b : Int64) -> IntResult
+
+@bridge("C", "proven_math_sub_checked")
+extern weave fn proven_math_sub_checked(a : Int64, b : Int64) -> IntResult
+
+@bridge("C", "proven_math_mul_checked")
+extern weave fn proven_math_mul_checked(a : Int64, b : Int64) -> IntResult
+
+@bridge("C", "proven_math_div")
+extern weave fn proven_math_div(a : Int64, b : Int64) -> IntResult
+
+@bridge("C", "proven_math_mod")
+extern weave fn proven_math_mod(a : Int64, b : Int64) -> IntResult
+
+@bridge("C", "proven_math_abs_safe")
+extern weave fn proven_math_abs_safe(n : Int64) -> IntResult
+
+@bridge("C", "proven_math_clamp")
+extern weave fn proven_math_clamp(lo : Int64, hi : Int64, value : Int64) -> Int64
+
+@bridge("C", "proven_math_pow_checked")
+extern weave fn proven_math_pow_checked(base : Int64, exp : UInt32) -> IntResult
+
+## ============================================================================
+## SafeString
+## ============================================================================
+
+@bridge("C", "proven_string_is_valid_utf8")
+extern weave fn proven_string_is_valid_utf8(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@bridge("C", "proven_string_escape_sql")
+extern weave fn proven_string_escape_sql(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@bridge("C", "proven_string_escape_html")
+extern weave fn proven_string_escape_html(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@bridge("C", "proven_string_escape_js")
+extern weave fn proven_string_escape_js(ptr : Ptr[Byte], len : USize) -> StringResult
+
+## ============================================================================
+## SafeEmail
+## ============================================================================
+
+@bridge("C", "proven_email_is_valid")
+extern weave fn proven_email_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+## ============================================================================
+## SafeUrl
+## ============================================================================
+
+@bridge("C", "proven_url_parse")
+extern weave fn proven_url_parse(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@bridge("C", "proven_url_free")
+extern weave fn proven_url_free(components : Ptr[Void]) -> Void
+
+## ============================================================================
+## SafePath
+## ============================================================================
+
+@bridge("C", "proven_path_has_traversal")
+extern weave fn proven_path_has_traversal(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@bridge("C", "proven_path_sanitize_filename")
+extern weave fn proven_path_sanitize_filename(ptr : Ptr[Byte], len : USize) -> StringResult
+
+## ============================================================================
+## SafeCrypto
+## ============================================================================
+
+@bridge("C", "proven_crypto_constant_time_eq")
+extern weave fn proven_crypto_constant_time_eq(
+  ptr1 : Ptr[Byte], len1 : USize,
+  ptr2 : Ptr[Byte], len2 : USize,
+) -> BoolResult
+
+@bridge("C", "proven_crypto_random_bytes")
+extern weave fn proven_crypto_random_bytes(ptr : Ptr[Byte], len : USize) -> Int32
+
+## ============================================================================
+## SafeJson
+## ============================================================================
+
+@bridge("C", "proven_json_is_valid")
+extern weave fn proven_json_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@bridge("C", "proven_json_get_type")
+extern weave fn proven_json_get_type(ptr : Ptr[Byte], len : USize) -> Int32
+
+## ============================================================================
+## SafeFloat
+## ============================================================================
+
+@bridge("C", "proven_float_div")
+extern weave fn proven_float_div(a : Float64, b : Float64) -> FloatResult
+
+@bridge("C", "proven_float_is_finite")
+extern weave fn proven_float_is_finite(x : Float64) -> Bool
+
+@bridge("C", "proven_float_is_nan")
+extern weave fn proven_float_is_nan(x : Float64) -> Bool
+
+@bridge("C", "proven_float_sqrt")
+extern weave fn proven_float_sqrt(x : Float64) -> FloatResult
+
+@bridge("C", "proven_float_ln")
+extern weave fn proven_float_ln(x : Float64) -> FloatResult
+
+## ============================================================================
+## SafeHex
+## ============================================================================
+
+@bridge("C", "proven_hex_encode")
+extern weave fn proven_hex_encode(ptr : Ptr[Byte], len : USize, uppercase : Bool) -> StringResult
+
+@bridge("C", "proven_hex_decode")
+extern weave fn proven_hex_decode(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@bridge("C", "proven_hex_free")
+extern weave fn proven_hex_free(result : Ptr[Void]) -> Void
+
+## ============================================================================
+## SafeChecksum
+## ============================================================================
+
+@bridge("C", "proven_checksum_crc32")
+extern weave fn proven_checksum_crc32(ptr : Ptr[Byte], len : USize) -> IntResult
+
+@bridge("C", "proven_checksum_verify_crc32")
+extern weave fn proven_checksum_verify_crc32(ptr : Ptr[Byte], len : USize, expected : UInt32) -> BoolResult
+
+## ============================================================================
+## SafeNetwork
+## ============================================================================
+
+@bridge("C", "proven_network_parse_ipv4")
+extern weave fn proven_network_parse_ipv4(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+## ============================================================================
+## SafeCalculator
+## ============================================================================
+
+@bridge("C", "proven_calculator_eval")
+extern weave fn proven_calculator_eval(ptr : Ptr[Byte], len : USize) -> FloatResult

@@ -1,186 +1,100 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Safe LRU (Least Recently Used) cache.
+# Thin wrapper over libproven FFI -- all logic lives in Idris.
+#
+# Note: The C API uses uint64 keys and int64 values.  This wrapper
+# exposes the same key/value types.  For arbitrary key types, callers
+# should hash them to uint64 externally.
 
-## Safe LRU (Least Recently Used) cache implementation.
-
-import std/[options, tables]
+import std/options
+import lib_proven
 
 type
-  LruNode[K, V] = ref object
-    key: K
-    value: V
-    prev: LruNode[K, V]
-    next: LruNode[K, V]
+  LruCache* = object
+    ## LRU cache with bounded capacity, backed by libproven's verified
+    ## implementation.  Keys are uint64 and values are int64.
+    handle: ptr ProvenLRUCache
 
-  LruCache*[K, V] = object
-    ## LRU cache with bounded capacity.
-    map: Table[K, LruNode[K, V]]
-    head: LruNode[K, V]
-    tail: LruNode[K, V]
-    capacity: int
-    length: int
+  LruCacheError* = object of CatchableError
+    ## Error raised when LRU cache creation fails.
 
-proc newLruCache*[K, V](capacity: int): LruCache[K, V] =
+proc `=destroy`*(cache: LruCache) =
+  ## Destructor: automatically frees the underlying C LRU cache.
+  if cache.handle != nil:
+    provenLruFree(cache.handle)
+
+proc `=copy`*(dest: var LruCache, src: LruCache) {.error:
+  "LruCache cannot be copied; it owns an opaque C resource".}
+
+proc `=sink`*(dest: var LruCache, src: LruCache) =
+  ## Move semantics for LruCache.
+  `=destroy`(dest)
+  dest.handle = src.handle
+
+proc newLruCache*(capacity: int): LruCache =
   ## Create a new LRU cache with the given capacity.
-  LruCache[K, V](
-    map: initTable[K, LruNode[K, V]](),
-    head: nil,
-    tail: nil,
-    capacity: capacity,
-    length: 0
-  )
+  ## Maximum capacity is 100,000 as enforced by libproven.
+  let handle = provenLruCreate(csize_t(capacity))
+  if handle == nil:
+    raise newException(LruCacheError,
+      "Failed to create LRU cache (allocation or invalid capacity)")
+  LruCache(handle: handle)
 
-proc len*[K, V](cache: LruCache[K, V]): int =
-  ## Get current number of entries.
-  cache.length
+proc get*(cache: LruCache, key: uint64): Option[int64] =
+  ## Get a value by key, promoting it to most recently used.
+  ## Returns None if key is not found.
+  if cache.handle == nil:
+    return none(int64)
+  let res = provenLruGet(cache.handle, key)
+  if res.status == PROVEN_OK:
+    some(res.value)
+  else:
+    none(int64)
 
-proc isEmpty*[K, V](cache: LruCache[K, V]): bool =
+proc put*(cache: LruCache, key: uint64, value: int64): bool =
+  ## Insert or update a key-value pair.  If the cache is full, the least
+  ## recently used entry is evicted.  Returns true on success.
+  if cache.handle == nil:
+    return false
+  let status = provenLruPut(cache.handle, key, value)
+  status == PROVEN_OK
+
+proc contains*(cache: LruCache, key: uint64): bool =
+  ## Check if a key exists in the cache.
+  ## Note: this does NOT promote the entry (it calls get which does promote,
+  ## but there is no peek in the C API).
+  if cache.handle == nil:
+    return false
+  let res = provenLruGet(cache.handle, key)
+  res.status == PROVEN_OK
+
+proc len*(cache: LruCache): int =
+  ## Get current number of entries in the cache.
+  if cache.handle != nil:
+    int(cache.handle[].count)
+  else:
+    0
+
+proc capacity*(cache: LruCache): int =
+  ## Get the cache capacity.
+  if cache.handle != nil:
+    int(cache.handle[].capacity)
+  else:
+    0
+
+proc isEmpty*(cache: LruCache): bool =
   ## Check if cache is empty.
-  cache.length == 0
+  cache.len == 0
 
-proc isFull*[K, V](cache: LruCache[K, V]): bool =
-  ## Check if cache is full.
-  cache.length >= cache.capacity
-
-proc getCapacity*[K, V](cache: LruCache[K, V]): int =
-  ## Get capacity.
-  cache.capacity
-
-proc moveToFront[K, V](cache: var LruCache[K, V], node: LruNode[K, V]) =
-  ## Move a node to the front of the list.
-  if cache.head == node:
-    return
-
-  # Unlink from current position
-  if node.prev != nil:
-    node.prev.next = node.next
-  if node.next != nil:
-    node.next.prev = node.prev
-
-  if cache.tail == node:
-    cache.tail = node.prev
-
-  # Link at front
-  node.prev = nil
-  node.next = cache.head
-  if cache.head != nil:
-    cache.head.prev = node
-  cache.head = node
-
-  if cache.tail == nil:
-    cache.tail = node
-
-proc evictLru[K, V](cache: var LruCache[K, V]): Option[V] =
-  ## Evict the least recently used entry.
-  if cache.tail == nil:
-    return none(V)
-
-  let node = cache.tail
-  result = some(node.value)
-
-  # Unlink tail
-  cache.tail = node.prev
-  if cache.tail != nil:
-    cache.tail.next = nil
+proc isFull*(cache: LruCache): bool =
+  ## Check if cache is at capacity.
+  if cache.handle != nil:
+    cache.handle[].count >= cache.handle[].capacity
   else:
-    cache.head = nil
+    true
 
-  cache.map.del(node.key)
-  cache.length -= 1
-
-proc get*[K, V](cache: var LruCache[K, V], key: K): Option[V] =
-  ## Get a value by key, marking it as recently used.
-  if not cache.map.hasKey(key):
-    return none(V)
-
-  let node = cache.map[key]
-  cache.moveToFront(node)
-  result = some(node.value)
-
-proc peek*[K, V](cache: LruCache[K, V], key: K): Option[V] =
-  ## Get a value without updating recency.
-  if not cache.map.hasKey(key):
-    return none(V)
-  result = some(cache.map[key].value)
-
-proc put*[K, V](cache: var LruCache[K, V], key: K, value: V): Option[V] =
-  ## Insert a key-value pair, evicting LRU if necessary.
-  ## Returns the old value if key existed, or evicted value if cache was full.
-
-  # If key exists, update and move to front
-  if cache.map.hasKey(key):
-    let node = cache.map[key]
-    let oldValue = node.value
-    node.value = value
-    cache.moveToFront(node)
-    return some(oldValue)
-
-  # Need to evict?
-  var evicted = none(V)
-  if cache.isFull():
-    evicted = cache.evictLru()
-
-  # Create new node
-  let node = LruNode[K, V](
-    key: key,
-    value: value,
-    prev: nil,
-    next: cache.head
-  )
-
-  # Update head's prev
-  if cache.head != nil:
-    cache.head.prev = node
-
-  # Update head
-  cache.head = node
-
-  # If first node, also set tail
-  if cache.tail == nil:
-    cache.tail = node
-
-  cache.map[key] = node
-  cache.length += 1
-
-  evicted
-
-proc remove*[K, V](cache: var LruCache[K, V], key: K): Option[V] =
-  ## Remove a key from the cache.
-  if not cache.map.hasKey(key):
-    return none(V)
-
-  let node = cache.map[key]
-  result = some(node.value)
-
-  # Unlink
-  if node.prev != nil:
-    node.prev.next = node.next
-  else:
-    cache.head = node.next
-
-  if node.next != nil:
-    node.next.prev = node.prev
-  else:
-    cache.tail = node.prev
-
-  cache.map.del(key)
-  cache.length -= 1
-
-proc contains*[K, V](cache: LruCache[K, V], key: K): bool =
-  ## Check if key exists.
-  cache.map.hasKey(key)
-
-proc clear*[K, V](cache: var LruCache[K, V]) =
-  ## Clear all entries.
-  cache.map.clear()
-  cache.head = nil
-  cache.tail = nil
-  cache.length = 0
-
-proc keys*[K, V](cache: LruCache[K, V]): seq[K] =
-  ## Get all keys in order (most to least recently used).
-  result = @[]
-  var node = cache.head
-  while node != nil:
-    result.add(node.key)
-    node = node.next
+proc isValid*(cache: LruCache): bool =
+  ## Check if the cache handle is valid (non-nil).
+  cache.handle != nil

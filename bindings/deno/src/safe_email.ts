@@ -1,80 +1,62 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * Safe email validation.
+ * SafeEmail - Email validation that cannot crash.
+ *
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
+ *
+ * @module
  */
 
+import { getLib, ProvenStatus, statusToError } from './ffi.ts';
 import { err, ok, type Result } from './result.ts';
 
-export interface EmailParts {
-  local: string;
-  domain: string;
-}
-
 /**
- * Safe email operations.
+ * Safe email operations backed by formally verified Idris 2 code.
  */
 export class SafeEmail {
   /**
-   * Validate an email address.
+   * Validate an email address (RFC 5321 simplified).
    *
-   * @example
-   * ```ts
-   * const result = SafeEmail.validate("user@example.com");
-   * if (result.ok) {
-   *   console.log(result.value.local); // "user"
-   *   console.log(result.value.domain); // "example.com"
-   * }
-   * ```
+   * @param email - The email address to validate.
+   * @returns Result containing a boolean or an error string.
    */
-  static validate(email: string): Result<EmailParts> {
-    const trimmed = email.trim();
-    if (!trimmed) {
-      return err('Empty email');
-    }
+  static isValid(email: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(email);
+    const result = symbols.proven_email_is_valid(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+}
 
-    const atIndex = trimmed.lastIndexOf('@');
-    if (atIndex === -1) {
-      return err('Missing @ symbol');
-    }
+/**
+ * Parsed email representation.
+ * Created via SafeEmail.isValid() check then string splitting.
+ */
+export class Email {
+  #raw: string;
 
-    const local = trimmed.slice(0, atIndex);
-    const domain = trimmed.slice(atIndex + 1);
-
-    if (!local) {
-      return err('Empty local part');
-    }
-    if (!domain) {
-      return err('Empty domain');
-    }
-    if (local.length > 64) {
-      return err('Local part too long');
-    }
-    if (domain.length > 255) {
-      return err('Domain too long');
-    }
-    if (!domain.includes('.')) {
-      return err('Domain must contain a dot');
-    }
-
-    return ok({ local, domain });
+  constructor(raw: string) {
+    this.#raw = raw;
   }
 
-  /** Check if an email is valid. */
-  static isValid(email: string): boolean {
-    return this.validate(email).ok;
+  /**
+   * Parse and validate an email string.
+   *
+   * @param email - The email to parse.
+   * @returns Result containing an Email instance or an error string.
+   */
+  static parse(email: string): Result<Email> {
+    const valid = SafeEmail.isValid(email);
+    if (!valid.ok) return valid;
+    if (!valid.value) return err('Invalid email address');
+    return ok(new Email(email));
   }
 
-  /** Get the local part of an email. */
-  static getLocalPart(email: string): Result<string> {
-    const result = this.validate(email);
-    if (!result.ok) return result;
-    return ok(result.value.local);
-  }
-
-  /** Get the domain of an email. */
-  static getDomain(email: string): Result<string> {
-    const result = this.validate(email);
-    if (!result.ok) return result;
-    return ok(result.value.domain);
+  /** The full email address. */
+  toString(): string {
+    return this.#raw;
   }
 }

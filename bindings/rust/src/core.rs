@@ -1,66 +1,146 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 //! Core types for the proven library.
+//!
+//! Provides error types, result conversions, and helper functions for
+//! mapping libproven C ABI status codes to idiomatic Rust `Result` types.
 
-use thiserror::Error;
+use crate::ffi;
 
-/// Error type for proven operations
-#[derive(Debug, Error, Clone, PartialEq, Eq)]
+/// Error type for proven operations.
+///
+/// Each variant maps to a `ProvenStatus` error code from the C ABI.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
-    /// Integer overflow detected
-    #[error("Integer overflow: {0}")]
-    Overflow(String),
+    /// Null pointer passed to FFI function (status -1).
+    NullPointer,
 
-    /// Division by zero attempted
-    #[error("Division by zero")]
+    /// Invalid argument (status -2).
+    InvalidArgument(String),
+
+    /// Integer overflow detected (status -3).
+    Overflow,
+
+    /// Integer underflow detected (status -4).
+    Underflow,
+
+    /// Division by zero attempted (status -5).
     DivisionByZero,
 
-    /// Value out of bounds
-    #[error("Value {value} out of bounds [{min}, {max}]")]
-    OutOfBounds {
-        /// The value that was out of bounds
-        value: i64,
-        /// Minimum allowed value
-        min: i64,
-        /// Maximum allowed value
-        max: i64,
-    },
-
-    /// Invalid UTF-8 encoding
-    #[error("Invalid UTF-8 encoding: {0}")]
-    InvalidUtf8(String),
-
-    /// Invalid format
-    #[error("Invalid format: {0}")]
-    InvalidFormat(String),
-
-    /// Parsing error
-    #[error("Parse error: {0}")]
+    /// Parse failure (status -6).
     ParseError(String),
 
-    /// Validation error
-    #[error("Validation error: {0}")]
+    /// Validation failed (status -7).
     ValidationError(String),
 
-    /// Empty input not allowed
-    #[error("Empty input not allowed")]
-    EmptyInput,
+    /// Value out of bounds (status -8).
+    OutOfBounds,
 
-    /// Path traversal detected
-    #[error("Path traversal detected: {0}")]
-    PathTraversal(String),
+    /// Encoding error (status -9).
+    EncodingError(String),
 
-    /// Injection attempt detected
-    #[error("Injection attempt detected: {0}")]
-    InjectionDetected(String),
+    /// Memory allocation failed (status -10).
+    AllocationFailed,
 
-    /// Input too long
-    #[error("Input too long: {0}")]
-    TooLong(String),
+    /// Function not implemented (status -99).
+    NotImplemented,
+
+    /// Unknown error code from FFI.
+    Unknown(i32),
 }
 
-/// Result type for proven operations
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::NullPointer => write!(f, "Null pointer"),
+            Error::InvalidArgument(msg) => write!(f, "Invalid argument: {}", msg),
+            Error::Overflow => write!(f, "Integer overflow"),
+            Error::Underflow => write!(f, "Integer underflow"),
+            Error::DivisionByZero => write!(f, "Division by zero"),
+            Error::ParseError(msg) => write!(f, "Parse error: {}", msg),
+            Error::ValidationError(msg) => write!(f, "Validation error: {}", msg),
+            Error::OutOfBounds => write!(f, "Out of bounds"),
+            Error::EncodingError(msg) => write!(f, "Encoding error: {}", msg),
+            Error::AllocationFailed => write!(f, "Allocation failed"),
+            Error::NotImplemented => write!(f, "Not implemented"),
+            Error::Unknown(code) => write!(f, "Unknown error (code {})", code),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+/// Result type for proven operations.
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// Convert an FFI status code to a `Result<()>`.
+///
+/// Returns `Ok(())` for status 0, or the corresponding `Error` variant.
+pub fn status_to_result(status: i32) -> Result<()> {
+    match status {
+        ffi::STATUS_OK => Ok(()),
+        ffi::STATUS_ERR_NULL_POINTER => Err(Error::NullPointer),
+        ffi::STATUS_ERR_INVALID_ARGUMENT => Err(Error::InvalidArgument(String::new())),
+        ffi::STATUS_ERR_OVERFLOW => Err(Error::Overflow),
+        ffi::STATUS_ERR_UNDERFLOW => Err(Error::Underflow),
+        ffi::STATUS_ERR_DIVISION_BY_ZERO => Err(Error::DivisionByZero),
+        ffi::STATUS_ERR_PARSE_FAILURE => Err(Error::ParseError(String::new())),
+        ffi::STATUS_ERR_VALIDATION_FAILED => Err(Error::ValidationError(String::new())),
+        ffi::STATUS_ERR_OUT_OF_BOUNDS => Err(Error::OutOfBounds),
+        ffi::STATUS_ERR_ENCODING_ERROR => Err(Error::EncodingError(String::new())),
+        ffi::STATUS_ERR_ALLOCATION_FAILED => Err(Error::AllocationFailed),
+        ffi::STATUS_ERR_NOT_IMPLEMENTED => Err(Error::NotImplemented),
+        other => Err(Error::Unknown(other)),
+    }
+}
+
+/// Convert an `IntResult` from FFI to a Rust `Result<i64>`.
+pub fn int_result_to_result(result: ffi::IntResult) -> Result<i64> {
+    status_to_result(result.status)?;
+    Ok(result.value)
+}
+
+/// Convert a `BoolResult` from FFI to a Rust `Result<bool>`.
+pub fn bool_result_to_result(result: ffi::BoolResult) -> Result<bool> {
+    status_to_result(result.status)?;
+    Ok(result.value)
+}
+
+/// Convert a `FloatResult` from FFI to a Rust `Result<f64>`.
+pub fn float_result_to_result(result: ffi::FloatResult) -> Result<f64> {
+    status_to_result(result.status)?;
+    Ok(result.value)
+}
+
+/// Convert a `StringResult` from FFI to a Rust `Result<String>`.
+///
+/// This function takes ownership of the string pointer and frees it via
+/// `proven_free_string` after copying the data into a Rust `String`.
+///
+/// # Safety
+///
+/// The caller must ensure that the `StringResult` was produced by a
+/// libproven function and has not already been freed.
+pub fn string_result_to_result(result: ffi::StringResult) -> Result<String> {
+    status_to_result(result.status)?;
+
+    if result.value.is_null() {
+        return Err(Error::NullPointer);
+    }
+
+    // SAFETY: The pointer is non-null, was allocated by libproven's allocator,
+    // and the length field correctly describes the valid byte range. We copy
+    // the bytes before freeing the original allocation.
+    let owned = unsafe {
+        let slice = std::slice::from_raw_parts(result.value, result.length);
+        let s = String::from_utf8_lossy(slice).into_owned();
+        ffi::proven_free_string(result.value);
+        s
+    };
+
+    Ok(owned)
+}
 
 /// A non-empty collection that guarantees at least one element.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,7 +201,7 @@ impl<T> NonEmpty<T> {
     }
 }
 
-/// A bounded integer that is guaranteed to be within [min, max].
+/// A bounded integer that is guaranteed to be within [MIN, MAX].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bounded<const MIN: i64, const MAX: i64> {
     value: i64,
@@ -133,11 +213,7 @@ impl<const MIN: i64, const MAX: i64> Bounded<MIN, MAX> {
         if value >= MIN && value <= MAX {
             Ok(Bounded { value })
         } else {
-            Err(Error::OutOfBounds {
-                value,
-                min: MIN,
-                max: MAX,
-            })
+            Err(Error::OutOfBounds)
         }
     }
 
@@ -157,9 +233,13 @@ impl<const MIN: i64, const MAX: i64> Bounded<MIN, MAX> {
     }
 }
 
-/// Type alias for common bounded types
+/// Type alias for percentage values [0, 100].
 pub type Percentage = Bounded<0, 100>;
+
+/// Type alias for port numbers [0, 65535].
 pub type Port = Bounded<0, 65535>;
+
+/// Type alias for byte values [0, 255].
 pub type Byte = Bounded<0, 255>;
 
 #[cfg(test)]
@@ -175,12 +255,49 @@ mod tests {
     }
 
     #[test]
-    fn test_bounded() {
+    fn test_non_empty_from_vec() {
+        let ne = NonEmpty::from_vec(vec![1, 2, 3]);
+        assert!(ne.is_some());
+        let ne = ne.unwrap();
+        assert_eq!(ne.len(), 3);
+        assert_eq!(*ne.head(), 1);
+    }
+
+    #[test]
+    fn test_non_empty_from_empty_vec() {
+        let ne: Option<NonEmpty<i32>> = NonEmpty::from_vec(vec![]);
+        assert!(ne.is_none());
+    }
+
+    #[test]
+    fn test_bounded_valid() {
         let pct: Result<Percentage> = Bounded::new(50);
         assert!(pct.is_ok());
         assert_eq!(pct.unwrap().get(), 50);
+    }
 
+    #[test]
+    fn test_bounded_invalid() {
         let invalid: Result<Percentage> = Bounded::new(101);
         assert!(invalid.is_err());
+    }
+
+    #[test]
+    fn test_status_to_result_ok() {
+        assert!(status_to_result(0).is_ok());
+    }
+
+    #[test]
+    fn test_status_to_result_error() {
+        assert_eq!(
+            status_to_result(-5),
+            Err(Error::DivisionByZero)
+        );
+    }
+
+    #[test]
+    fn test_error_display() {
+        let err = Error::DivisionByZero;
+        assert_eq!(format!("{}", err), "Division by zero");
     }
 }

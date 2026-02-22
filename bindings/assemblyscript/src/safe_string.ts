@@ -1,338 +1,96 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * SafeString - Safe string operations
+ * SafeString - Safe string operations.
  *
- * Provides length-bounded string operations, validation,
- * sanitization, and safe manipulation.
+ * Thin wrapper around libproven's SafeString functions. All text processing
+ * (UTF-8 validation, escaping for SQL/HTML/JS) is performed by the formally
+ * verified Idris 2 implementation via host-provided WASM imports.
+ * This module only handles data marshaling between AssemblyScript strings
+ * and the WASM linear memory buffers expected by the host.
+ *
+ * Corresponds to the SafeString section in proven.h:
+ *   - proven_string_is_valid_utf8
+ *   - proven_string_escape_sql
+ *   - proven_string_escape_html
+ *   - proven_string_escape_js
  */
 
-import { Result, Option, ErrorCode, isAlphanumeric, isDigit, isLetter, isWhitespace } from "./common";
+import {
+  Result,
+  RESULT_BUF,
+  readBoolResult,
+  readStringResult,
+  encodeString,
+  encodedPtr,
+  encodedLen,
+} from "./common";
+import {
+  proven_string_is_valid_utf8,
+  proven_string_escape_sql,
+  proven_string_escape_html,
+  proven_string_escape_js,
+} from "./ffi";
 
 /**
- * SafeString provides bounded and validated string operations.
+ * SafeString provides validated and escaped string operations.
+ *
+ * Every method delegates to the corresponding libproven host function.
+ * No string processing logic is implemented in AssemblyScript.
  */
 export class SafeString {
-  private _value: string;
-  private _maxLength: i32;
-
-  constructor(value: string = "", maxLength: i32 = 65536) {
-    this._maxLength = maxLength;
-    this._value = value.length > maxLength ? value.substring(0, maxLength) : value;
+  /**
+   * Check if the given string bytes are valid UTF-8.
+   * Delegates to proven_string_is_valid_utf8 (Idris 2 verified).
+   *
+   * @param s - The string to validate.
+   * @returns Result<bool> indicating validity.
+   */
+  static isValidUtf8(s: string): Result<bool> {
+    encodeString(s);
+    proven_string_is_valid_utf8(encodedPtr(), encodedLen(), RESULT_BUF);
+    return readBoolResult(RESULT_BUF);
   }
 
   /**
-   * Get the string value.
+   * Escape a string for safe use in SQL queries (single-quote escaping).
+   * Delegates to proven_string_escape_sql (Idris 2 verified).
+   *
+   * NOTE: Prefer parameterized queries over string escaping.
+   *
+   * @param s - The string to escape.
+   * @returns Result<string> with escaped string, or error status.
    */
-  get value(): string {
-    return this._value;
+  static escapeSql(s: string): Result<string> {
+    encodeString(s);
+    proven_string_escape_sql(encodedPtr(), encodedLen(), RESULT_BUF);
+    return readStringResult(RESULT_BUF);
   }
 
   /**
-   * Get the string length.
+   * Escape a string for safe embedding in HTML (prevents XSS).
+   * Delegates to proven_string_escape_html (Idris 2 verified).
+   *
+   * @param s - The string to escape.
+   * @returns Result<string> with escaped string, or error status.
    */
-  get length(): i32 {
-    return this._value.length;
+  static escapeHtml(s: string): Result<string> {
+    encodeString(s);
+    proven_string_escape_html(encodedPtr(), encodedLen(), RESULT_BUF);
+    return readStringResult(RESULT_BUF);
   }
 
   /**
-   * Check if string is empty.
+   * Escape a string for safe use in JavaScript string literals.
+   * Delegates to proven_string_escape_js (Idris 2 verified).
+   *
+   * @param s - The string to escape.
+   * @returns Result<string> with escaped string, or error status.
    */
-  get isEmpty(): bool {
-    return this._value.length == 0;
-  }
-
-  /**
-   * Truncate string to max length.
-   */
-  static truncate(s: string, maxLength: i32): string {
-    if (s.length <= maxLength) return s;
-    return s.substring(0, maxLength);
-  }
-
-  /**
-   * Truncate with ellipsis.
-   */
-  static truncateWithEllipsis(s: string, maxLength: i32, ellipsis: string = "..."): string {
-    if (s.length <= maxLength) return s;
-    if (maxLength <= ellipsis.length) return ellipsis.substring(0, maxLength);
-    return s.substring(0, maxLength - ellipsis.length) + ellipsis;
-  }
-
-  /**
-   * Check if string contains only alphanumeric characters.
-   */
-  static isAlphanumeric(s: string): bool {
-    if (s.length == 0) return false;
-    for (let i = 0; i < s.length; i++) {
-      if (!isAlphanumeric(s.charCodeAt(i))) return false;
-    }
-    return true;
-  }
-
-  /**
-   * Check if string contains only digits.
-   */
-  static isNumeric(s: string): bool {
-    if (s.length == 0) return false;
-    for (let i = 0; i < s.length; i++) {
-      if (!isDigit(s.charCodeAt(i))) return false;
-    }
-    return true;
-  }
-
-  /**
-   * Check if string contains only letters.
-   */
-  static isAlpha(s: string): bool {
-    if (s.length == 0) return false;
-    for (let i = 0; i < s.length; i++) {
-      if (!isLetter(s.charCodeAt(i))) return false;
-    }
-    return true;
-  }
-
-  /**
-   * Check if string is ASCII only.
-   */
-  static isAscii(s: string): bool {
-    for (let i = 0; i < s.length; i++) {
-      if (s.charCodeAt(i) > 127) return false;
-    }
-    return true;
-  }
-
-  /**
-   * Check if string is printable ASCII only.
-   */
-  static isPrintableAscii(s: string): bool {
-    for (let i = 0; i < s.length; i++) {
-      const code = s.charCodeAt(i);
-      if (code < 32 || code > 126) return false;
-    }
-    return true;
-  }
-
-  /**
-   * Trim whitespace from both ends.
-   */
-  static trim(s: string): string {
-    let start = 0;
-    let end = s.length;
-
-    while (start < end && isWhitespace(s.charCodeAt(start))) {
-      start++;
-    }
-    while (end > start && isWhitespace(s.charCodeAt(end - 1))) {
-      end--;
-    }
-
-    return s.substring(start, end);
-  }
-
-  /**
-   * Trim whitespace from start.
-   */
-  static trimStart(s: string): string {
-    let start = 0;
-    while (start < s.length && isWhitespace(s.charCodeAt(start))) {
-      start++;
-    }
-    return s.substring(start);
-  }
-
-  /**
-   * Trim whitespace from end.
-   */
-  static trimEnd(s: string): string {
-    let end = s.length;
-    while (end > 0 && isWhitespace(s.charCodeAt(end - 1))) {
-      end--;
-    }
-    return s.substring(0, end);
-  }
-
-  /**
-   * Normalize whitespace (collapse multiple spaces into one).
-   */
-  static normalizeWhitespace(s: string): string {
-    let result = "";
-    let lastWasSpace = true;  // Start true to trim leading
-
-    for (let i = 0; i < s.length; i++) {
-      const code = s.charCodeAt(i);
-      if (isWhitespace(code)) {
-        if (!lastWasSpace) {
-          result += " ";
-          lastWasSpace = true;
-        }
-      } else {
-        result += String.fromCharCode(code);
-        lastWasSpace = false;
-      }
-    }
-
-    // Trim trailing space
-    if (result.length > 0 && result.charCodeAt(result.length - 1) == 32) {
-      result = result.substring(0, result.length - 1);
-    }
-
-    return result;
-  }
-
-  /**
-   * Sanitize string by removing control characters.
-   */
-  static sanitize(s: string): string {
-    let result = "";
-    for (let i = 0; i < s.length; i++) {
-      const code = s.charCodeAt(i);
-      // Keep printable ASCII and common Unicode
-      if (code >= 32 && code != 127) {
-        result += String.fromCharCode(code);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Remove non-alphanumeric characters.
-   */
-  static removeNonAlphanumeric(s: string): string {
-    let result = "";
-    for (let i = 0; i < s.length; i++) {
-      const code = s.charCodeAt(i);
-      if (isAlphanumeric(code)) {
-        result += String.fromCharCode(code);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Pad string to length on left.
-   */
-  static padStart(s: string, targetLength: i32, padChar: string = " "): string {
-    if (s.length >= targetLength) return s;
-    const padLen = targetLength - s.length;
-    let padding = "";
-    for (let i = 0; i < padLen; i++) {
-      padding += padChar;
-    }
-    return padding + s;
-  }
-
-  /**
-   * Pad string to length on right.
-   */
-  static padEnd(s: string, targetLength: i32, padChar: string = " "): string {
-    if (s.length >= targetLength) return s;
-    const padLen = targetLength - s.length;
-    let padding = "";
-    for (let i = 0; i < padLen; i++) {
-      padding += padChar;
-    }
-    return s + padding;
-  }
-
-  /**
-   * Safe substring with bounds checking.
-   */
-  static safeSubstring(s: string, start: i32, end: i32 = -1): string {
-    const len = s.length;
-    const safeStart = start < 0 ? 0 : (start > len ? len : start);
-    const safeEnd = end < 0 ? len : (end > len ? len : end);
-    if (safeStart >= safeEnd) return "";
-    return s.substring(safeStart, safeEnd);
-  }
-
-  /**
-   * Count occurrences of substring.
-   */
-  static countOccurrences(s: string, needle: string): i32 {
-    if (needle.length == 0) return 0;
-    let count = 0;
-    let pos = 0;
-    while (true) {
-      const idx = s.indexOf(needle, pos);
-      if (idx < 0) break;
-      count++;
-      pos = idx + needle.length;
-    }
-    return count;
-  }
-
-  /**
-   * Replace all occurrences of a substring.
-   */
-  static replaceAll(s: string, search: string, replacement: string): string {
-    if (search.length == 0) return s;
-    return s.split(search).join(replacement);
-  }
-
-  /**
-   * Escape HTML special characters.
-   */
-  static escapeHtml(s: string): string {
-    let result = "";
-    for (let i = 0; i < s.length; i++) {
-      const code = s.charCodeAt(i);
-      if (code == 38) result += "&amp;";        // &
-      else if (code == 60) result += "&lt;";     // <
-      else if (code == 62) result += "&gt;";     // >
-      else if (code == 34) result += "&quot;";   // "
-      else if (code == 39) result += "&#39;";    // '
-      else result += String.fromCharCode(code);
-    }
-    return result;
-  }
-
-  /**
-   * Check if string matches a simple pattern (with * wildcard).
-   */
-  static matchesPattern(s: string, pattern: string): bool {
-    // Simple glob matching with * wildcard
-    const parts = pattern.split("*");
-    if (parts.length == 1) return s == pattern;
-
-    let pos = 0;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (part.length == 0) continue;
-
-      if (i == 0) {
-        // Must start with first part
-        if (!s.startsWith(part)) return false;
-        pos = part.length;
-      } else if (i == parts.length - 1) {
-        // Must end with last part
-        if (!s.endsWith(part)) return false;
-      } else {
-        // Must contain middle part
-        const idx = s.indexOf(part, pos);
-        if (idx < 0) return false;
-        pos = idx + part.length;
-      }
-    }
-    return true;
-  }
-
-  // Instance methods
-  append(s: string): SafeString {
-    const combined = this._value + s;
-    return new SafeString(combined, this._maxLength);
-  }
-
-  truncateTo(length: i32): SafeString {
-    return new SafeString(SafeString.truncate(this._value, length), this._maxLength);
-  }
-
-  sanitized(): SafeString {
-    return new SafeString(SafeString.sanitize(this._value), this._maxLength);
-  }
-
-  trimmed(): SafeString {
-    return new SafeString(SafeString.trim(this._value), this._maxLength);
+  static escapeJs(s: string): Result<string> {
+    encodeString(s);
+    proven_string_escape_js(encodedPtr(), encodedLen(), RESULT_BUF);
+    return readStringResult(RESULT_BUF);
   }
 }

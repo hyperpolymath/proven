@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-//! Placeholder benchmark for safe_math operations
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-use criterion::{criterion_group, criterion_main, Criterion};
+//! Benchmarks for safe_math FFI operations.
+//!
+//! These benchmarks measure the overhead of calling through the FFI
+//! to the Idris 2 verified implementation.
+//!
+//! Requires libproven to be built and available at link time.
+//! Run with: cargo bench (after building libproven)
 
-fn safe_math_benchmark(_c: &mut Criterion) {
-    // Placeholder - add benchmarks as needed
+// Benchmarks are disabled until criterion is added as a dev-dependency
+// and libproven is available for linking.
+
+fn main() {
+    // Placeholder - benchmarks require libproven to be linked.
+    // Add criterion benchmarks once the library is available.
 }
-
-criterion_group!(benches, safe_math_benchmark);
-criterion_main!(benches);

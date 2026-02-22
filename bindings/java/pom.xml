@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- SPDX-License-Identifier: PMPL-1.0 -->
-<!-- SPDX-FileCopyrightText: 2025 Hyperpolymath -->
+<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.hyperpolymath</groupId>
+    <groupId>io.github.hyperpolymath</groupId>
     <artifactId>proven</artifactId>
     <version>0.9.0</version>
     <packaging>jar</packaging>
 
     <name>Proven</name>
-    <description>Formally verified safety primitives - code that cannot crash</description>
+    <description>Java JNA binding for libproven - formally verified safety primitives via Idris 2 / Zig FFI</description>
     <url>https://github.com/hyperpolymath/proven</url>
 
     <licenses>
         <license>
-            <name>PMPL-1.0</name>
+            <name>PMPL-1.0-or-later</name>
             <url>https://github.com/hyperpolymath/proven/blob/main/LICENSE</url>
         </license>
     </licenses>
 
     <developers>
         <developer>
-            <name>Hyperpolymath</name>
-            <email>hyperpolymath@proton.me</email>
+            <name>Jonathan D.A. Jewell</name>
+            <email>jonathan.jewell@open.ac.uk</email>
         </developer>
     </developers>
 
@@ -39,9 +39,15 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jna.version>5.14.0</jna.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

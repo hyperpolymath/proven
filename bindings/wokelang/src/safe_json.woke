@@ -1,0 +1,112 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{= SafeJson - JSON validation and type detection via libproven FFI.
+
+   WokeLang's awareness metaphors make JSON validation expressive: the
+   awareness<T, E> return type precisely captures whether the JSON is
+   Enlightened (valid) or Ignorant (parse failure). Root type detection
+   is typed.
+
+   All computation is performed in Idris 2 via the Zig FFI layer.
+   NO JSON logic is reimplemented in WokeLang.
+=}
+
+module Proven.SafeJson
+
+import Proven.FFI
+import Proven (ProvenError, awareness, Ignorant, Enlightened, bool_result_to_awareness, float_result_to_awareness)
+
+-- ============================================================================
+-- JSON types matching the C ABI enum
+-- ============================================================================
+
+-- JSON value types as returned by the Idris 2 JSON parser.
+conscious type JsonType =
+  | JsonNull
+  | JsonBool
+  | JsonNumber
+  | JsonString
+  | JsonArray
+  | JsonObject
+  | JsonInvalid
+
+-- Convert a raw C ABI type code to a JsonType.
+enlighten fn int_to_json_type(code : Int32) -> JsonType =
+  match code with
+  | 0  => JsonNull
+  | 1  => JsonBool
+  | 2  => JsonNumber
+  | 3  => JsonString
+  | 4  => JsonArray
+  | 5  => JsonObject
+  | _  => JsonInvalid
+
+-- ============================================================================
+-- JSON validation
+-- ============================================================================
+
+-- Check if a string is valid JSON.
+-- Returns Enlightened(true) if valid, Enlightened(false) if not.
+-- Delegates to proven_json_is_valid in libproven.
+enlighten fn is_valid_json(input : String) -> awareness<Bool, ProvenError> =
+  let bytes = string_to_utf8(input)
+  bool_result_to_awareness(
+    FFI.proven_json_is_valid(bytes.ptr, bytes.len)
+  )
+
+-- Get the JSON value type at the root level.
+-- Returns JsonInvalid if the string is not valid JSON.
+-- Delegates to proven_json_get_type in libproven.
+enlighten fn json_type(input : String) -> JsonType =
+  let bytes = string_to_utf8(input)
+  int_to_json_type(FFI.proven_json_get_type(bytes.ptr, bytes.len))
+
+-- Validate JSON and return the type in one step.
+-- Returns Ignorant(ParseFailure) if the input is not valid JSON.
+-- Combines proven_json_is_valid and proven_json_get_type from libproven.
+enlighten fn validate_json(input : String) -> awareness<JsonType, ProvenError> =
+  match is_valid_json(input) with
+  | Enlightened(true)  => Enlightened(json_type(input))
+  | Enlightened(false) => Ignorant(ParseFailure)
+  | Ignorant(e)        => Ignorant(e)
+
+-- ============================================================================
+-- Safe expression evaluation
+-- ============================================================================
+
+-- Safely evaluate an arithmetic expression string.
+-- Supports +, -, *, /, parentheses, negative and decimal numbers.
+-- Returns Ignorant(ParseFailure) for invalid expressions.
+-- Returns Ignorant(DivByZero) for division by zero.
+-- Delegates to proven_calculator_eval in libproven.
+enlighten fn eval_expression(expr : String) -> awareness<Float64, ProvenError> =
+  let bytes = string_to_utf8(expr)
+  float_result_to_awareness(
+    FFI.proven_calculator_eval(bytes.ptr, bytes.len)
+  )
+
+-- ============================================================================
+-- WokeLang specific: typed JSON validation
+-- ============================================================================
+
+-- A validated JSON string type. Can only be constructed through the
+-- validate function, ensuring the JSON has been parsed by the Idris 2
+-- verified JSON validator.
+conscious type ValidatedJson = private ValidatedJson(String, JsonType)
+
+-- Get the original JSON string.
+enlighten fn validated_json_string(json : ValidatedJson) -> String =
+  match json with
+  | ValidatedJson(s, _) => s
+
+-- Get the root type of the validated JSON.
+enlighten fn validated_json_type(json : ValidatedJson) -> JsonType =
+  match json with
+  | ValidatedJson(_, t) => t
+
+-- Create a ValidatedJson value, returning an error if validation fails.
+enlighten fn make_validated_json(input : String) -> awareness<ValidatedJson, ProvenError> =
+  match validate_json(input) with
+  | Enlightened(t) => Enlightened(ValidatedJson(input, t))
+  | Ignorant(e)    => Ignorant(e)

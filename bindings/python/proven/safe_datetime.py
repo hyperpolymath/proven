@@ -1,73 +1,52 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeDateTime - Date and time operations that cannot crash.
 
 Provides exception-free ISO 8601 parsing, timezone handling, and date arithmetic.
+Parsing and validation are delegated to the Idris core via FFI.
 """
 
 from typing import Optional, Tuple
 from datetime import datetime, timezone, timedelta
-import re
+
+from .core import ProvenStatus, ProvenError, get_lib, check_status
 
 
 class SafeDateTime:
-    """Exception-free date and time operations."""
-
-    # ISO 8601 patterns
-    _ISO_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
-    _ISO_DATETIME = re.compile(
-        r"^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?"
-        r"(?:Z|([+-]\d{2}):?(\d{2}))?$"
-    )
-    _ISO_TIME = re.compile(r"^(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?$")
+    """Exception-free date and time operations via FFI."""
 
     @staticmethod
     def parse_iso8601(text: str) -> Optional[datetime]:
         """
-        Parse ISO 8601 datetime string.
+        Parse ISO 8601 datetime string via FFI.
 
         Args:
             text: ISO 8601 formatted string
 
         Returns:
             datetime object, or None if parsing fails
-
-        Example:
-            >>> SafeDateTime.parse_iso8601("2025-01-17T10:30:00Z")
-            datetime.datetime(2025, 1, 17, 10, 30, tzinfo=timezone.utc)
         """
+        lib = get_lib()
+        encoded = text.encode("utf-8")
+        result = lib.proven_datetime_parse_iso8601(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return None
+
+        # FFI returns a normalized ISO string
+        normalized = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+
         try:
-            # Try Python's fromisoformat (3.7+)
-            return datetime.fromisoformat(text.replace("Z", "+00:00"))
+            return datetime.fromisoformat(normalized.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
-            pass
-
-        # Manual parsing fallback
-        match = SafeDateTime._ISO_DATETIME.match(text)
-        if match:
-            try:
-                year, month, day = int(match.group(1)), int(match.group(2)), int(match.group(3))
-                hour, minute, second = int(match.group(4)), int(match.group(5)), int(match.group(6))
-                microsecond = int((match.group(7) or "0").ljust(6, "0")[:6])
-
-                tz = timezone.utc
-                if match.group(8):
-                    tz_hours = int(match.group(8))
-                    tz_mins = int(match.group(9) or "0")
-                    tz = timezone(timedelta(hours=tz_hours, minutes=tz_mins))
-
-                return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=tz)
-            except (ValueError, OverflowError):
-                return None
-
-        return None
+            return None
 
     @staticmethod
     def parse_date(text: str) -> Optional[Tuple[int, int, int]]:
         """
-        Parse ISO 8601 date string.
+        Parse ISO 8601 date string via FFI.
 
         Args:
             text: Date string (YYYY-MM-DD)
@@ -75,21 +54,31 @@ class SafeDateTime:
         Returns:
             Tuple of (year, month, day), or None if parsing fails
         """
-        match = SafeDateTime._ISO_DATE.match(text)
-        if match:
-            try:
-                year, month, day = int(match.group(1)), int(match.group(2)), int(match.group(3))
-                # Validate
-                datetime(year, month, day)
-                return (year, month, day)
-            except (ValueError, OverflowError):
+        lib = get_lib()
+        encoded = text.encode("utf-8")
+        result = lib.proven_datetime_parse_date(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return None
+
+        date_str = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+
+        # Parse the validated date components
+        try:
+            parts = date_str.split("-")
+            if len(parts) != 3:
                 return None
-        return None
+            year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+            # Validate via datetime constructor
+            datetime(year, month, day)
+            return (year, month, day)
+        except (ValueError, OverflowError):
+            return None
 
     @staticmethod
     def parse_time(text: str) -> Optional[Tuple[int, int, int, int]]:
         """
-        Parse ISO 8601 time string.
+        Parse ISO 8601 time string via FFI.
 
         Args:
             text: Time string (HH:MM:SS or HH:MM:SS.mmm)
@@ -97,29 +86,32 @@ class SafeDateTime:
         Returns:
             Tuple of (hour, minute, second, microsecond), or None if parsing fails
         """
-        match = SafeDateTime._ISO_TIME.match(text)
-        if match:
-            try:
-                hour, minute, second = int(match.group(1)), int(match.group(2)), int(match.group(3))
-                microsecond = int((match.group(4) or "0").ljust(6, "0")[:6])
-                # Validate
-                if 0 <= hour < 24 and 0 <= minute < 60 and 0 <= second < 60:
-                    return (hour, minute, second, microsecond)
-            except (ValueError, OverflowError):
+        lib = get_lib()
+        encoded = text.encode("utf-8")
+        result = lib.proven_datetime_parse_time(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return None
+
+        time_str = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+
+        try:
+            # Parse "HH:MM:SS" or "HH:MM:SS.ffffff"
+            main_parts = time_str.split(".")
+            hms = main_parts[0].split(":")
+            if len(hms) != 3:
                 return None
-        return None
+            hour, minute, second = int(hms[0]), int(hms[1]), int(hms[2])
+            microsecond = int((main_parts[1] if len(main_parts) > 1 else "0").ljust(6, "0")[:6])
+            if 0 <= hour < 24 and 0 <= minute < 60 and 0 <= second < 60:
+                return (hour, minute, second, microsecond)
+            return None
+        except (ValueError, OverflowError):
+            return None
 
     @staticmethod
     def format_iso8601(dt: datetime) -> str:
-        """
-        Format datetime as ISO 8601 string.
-
-        Args:
-            dt: datetime object
-
-        Returns:
-            ISO 8601 formatted string
-        """
+        """Format datetime as ISO 8601 string."""
         return dt.isoformat()
 
     @staticmethod
@@ -129,16 +121,7 @@ class SafeDateTime:
 
     @staticmethod
     def add_days(dt: datetime, days: int) -> Optional[datetime]:
-        """
-        Add days to datetime safely.
-
-        Args:
-            dt: datetime object
-            days: Number of days to add (can be negative)
-
-        Returns:
-            New datetime, or None on overflow
-        """
+        """Add days to datetime safely."""
         try:
             return dt + timedelta(days=days)
         except OverflowError:
@@ -154,16 +137,7 @@ class SafeDateTime:
 
     @staticmethod
     def diff_seconds(a: datetime, b: datetime) -> float:
-        """
-        Get difference between two datetimes in seconds.
-
-        Args:
-            a: First datetime
-            b: Second datetime
-
-        Returns:
-            Difference in seconds (a - b)
-        """
+        """Get difference between two datetimes in seconds."""
         return (a - b).total_seconds()
 
     @staticmethod
@@ -173,13 +147,17 @@ class SafeDateTime:
 
     @staticmethod
     def is_leap_year(year: int) -> bool:
-        """Check if a year is a leap year."""
-        return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+        """Check if a year is a leap year via FFI."""
+        lib = get_lib()
+        result = lib.proven_datetime_is_leap_year(year)
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     @staticmethod
     def days_in_month(year: int, month: int) -> Optional[int]:
         """
-        Get number of days in a month.
+        Get number of days in a month via FFI.
 
         Args:
             year: The year
@@ -188,10 +166,8 @@ class SafeDateTime:
         Returns:
             Number of days, or None if invalid month
         """
-        if not 1 <= month <= 12:
+        lib = get_lib()
+        result = lib.proven_datetime_days_in_month(year, month)
+        if result.status != ProvenStatus.OK:
             return None
-        days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        result = days[month - 1]
-        if month == 2 and SafeDateTime.is_leap_year(year):
-            result = 29
-        return result
+        return result.value

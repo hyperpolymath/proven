@@ -1,115 +1,75 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-//! Safe network operations for IP address validation and classification.
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Proven SafeNetwork - FFI bindings to libproven network operations.
+// All computation is performed in verified Idris 2 code via libproven.
 
 const std = @import("std");
-const Allocator = std.mem.Allocator;
-
-/// Represents an IPv4 address.
-pub const IPv4 = struct {
-    a: u8,
-    b: u8,
-    c: u8,
-    d: u8,
-
-    /// Format IPv4 as string.
-    pub fn format(self: IPv4, allocator: Allocator) ![]u8 {
-        return std.fmt.allocPrint(allocator, "{d}.{d}.{d}.{d}", .{ self.a, self.b, self.c, self.d });
-    }
-};
+const c = @cImport(@cInclude("proven.h"));
 
 /// Error types for network operations.
 pub const NetworkError = error{
     InvalidIPv4,
+    ProvenError,
 };
 
-/// Parse an IPv4 address string.
-pub fn parseIPv4(address: []const u8) NetworkError!IPv4 {
-    var parts: [4]u8 = undefined;
-    var part_count: usize = 0;
-    var current_value: u16 = 0;
-    var has_digit = false;
+/// IPv4 address (4 octets).
+pub const IPv4 = struct {
+    octets: [4]u8,
 
-    for (address) |c| {
-        if (c == '.') {
-            if (!has_digit or part_count >= 3) return error.InvalidIPv4;
-            if (current_value > 255) return error.InvalidIPv4;
-            parts[part_count] = @intCast(current_value);
-            part_count += 1;
-            current_value = 0;
-            has_digit = false;
-        } else if (c >= '0' and c <= '9') {
-            current_value = current_value * 10 + (c - '0');
-            has_digit = true;
-            if (current_value > 255) return error.InvalidIPv4;
-        } else {
-            return error.InvalidIPv4;
-        }
+    /// Format as dotted-decimal string.
+    pub fn format(self: IPv4, buf: []u8) ![]const u8 {
+        return std.fmt.bufPrint(buf, "{d}.{d}.{d}.{d}", .{
+            self.octets[0], self.octets[1], self.octets[2], self.octets[3],
+        });
     }
+};
 
-    // Handle last octet
-    if (!has_digit or part_count != 3) return error.InvalidIPv4;
-    if (current_value > 255) return error.InvalidIPv4;
-    parts[part_count] = @intCast(current_value);
-
-    return IPv4{
-        .a = parts[0],
-        .b = parts[1],
-        .c = parts[2],
-        .d = parts[3],
-    };
+/// Parse an IPv4 address string via libproven.
+pub fn parseIPv4(address: []const u8) NetworkError!IPv4 {
+    const result = c.proven_network_parse_ipv4(address.ptr, address.len);
+    if (result.status != c.PROVEN_OK) return error.InvalidIPv4;
+    return IPv4{ .octets = result.address.octets };
 }
 
-/// Check if a string is a valid IPv4 address.
-pub fn isValidIPv4(address: []const u8) bool {
-    return parseIPv4(address) catch null != null;
+/// Check if an IPv4 address is private (RFC 1918) via libproven.
+pub fn isPrivate(addr: IPv4) bool {
+    const c_addr = c.ProvenIPv4Address{ .octets = addr.octets };
+    return c.proven_network_ipv4_is_private(c_addr);
 }
 
-/// Check if an IPv4 address is in a private range.
-pub fn isPrivate(address: []const u8) bool {
-    const ip = parseIPv4(address) catch return false;
-
-    // 10.0.0.0/8
-    if (ip.a == 10) return true;
-    // 172.16.0.0/12
-    if (ip.a == 172 and ip.b >= 16 and ip.b <= 31) return true;
-    // 192.168.0.0/16
-    if (ip.a == 192 and ip.b == 168) return true;
-
-    return false;
+/// Check if an IPv4 address is a loopback address (127.0.0.0/8) via libproven.
+pub fn isLoopback(addr: IPv4) bool {
+    const c_addr = c.ProvenIPv4Address{ .octets = addr.octets };
+    return c.proven_network_ipv4_is_loopback(c_addr);
 }
 
-/// Check if an IPv4 address is a loopback address (127.0.0.0/8).
-pub fn isLoopback(address: []const u8) bool {
-    const ip = parseIPv4(address) catch return false;
-    return ip.a == 127;
+/// Convenience: parse and check if private.
+pub fn isPrivateStr(address: []const u8) bool {
+    const addr = parseIPv4(address) catch return false;
+    return isPrivate(addr);
 }
 
-/// Check if an IPv4 address is public (not private or loopback).
-pub fn isPublic(address: []const u8) bool {
-    return isValidIPv4(address) and !isPrivate(address) and !isLoopback(address);
+/// Convenience: parse and check if loopback.
+pub fn isLoopbackStr(address: []const u8) bool {
+    const addr = parseIPv4(address) catch return false;
+    return isLoopback(addr);
 }
 
-test "isValidIPv4" {
-    try std.testing.expect(isValidIPv4("192.168.1.1"));
-    try std.testing.expect(!isValidIPv4("invalid"));
-    try std.testing.expect(!isValidIPv4("256.1.1.1"));
+test "parseIPv4" {
+    const ip = try parseIPv4("192.168.1.1");
+    try std.testing.expectEqual(@as(u8, 192), ip.octets[0]);
+    try std.testing.expectEqual(@as(u8, 168), ip.octets[1]);
+    try std.testing.expectError(error.InvalidIPv4, parseIPv4("invalid"));
 }
 
 test "isPrivate" {
-    try std.testing.expect(isPrivate("192.168.1.1"));
-    try std.testing.expect(isPrivate("10.0.0.1"));
-    try std.testing.expect(isPrivate("172.16.0.1"));
-    try std.testing.expect(!isPrivate("8.8.8.8"));
+    try std.testing.expect(isPrivateStr("192.168.1.1"));
+    try std.testing.expect(isPrivateStr("10.0.0.1"));
+    try std.testing.expect(!isPrivateStr("8.8.8.8"));
 }
 
 test "isLoopback" {
-    try std.testing.expect(isLoopback("127.0.0.1"));
-    try std.testing.expect(!isLoopback("192.168.1.1"));
-}
-
-test "isPublic" {
-    try std.testing.expect(isPublic("8.8.8.8"));
-    try std.testing.expect(!isPublic("192.168.1.1"));
+    try std.testing.expect(isLoopbackStr("127.0.0.1"));
+    try std.testing.expect(!isLoopbackStr("192.168.1.1"));
 }

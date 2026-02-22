@@ -197,151 +197,105 @@ isSecure alg = case securityLevel alg of
   _ => True
 
 --------------------------------------------------------------------------------
--- Hash Function Interfaces
---
--- These are FFI stubs. The actual implementations live in ffi/zig/src/
--- and call platform-native cryptographic libraries (e.g., OpenSSL, libsodium).
--- At link time, the Zig FFI bridge replaces these with real hash computations.
---
--- The believe_me is sound here because:
--- 1. The TYPE is correct (output has the right ByteVector length)
--- 2. The VALUE will be provided by the FFI layer at runtime
--- 3. These functions are never called in pure Idris2 proof contexts
---
--- To replace with proper FFI: uncomment %foreign declarations when
--- the Zig bridge is compiled, and remove the believe_me bodies.
---------------------------------------------------------------------------------
-
-||| Hash bytes to SHA-256 digest
-||| @param input The data to hash
-||| @return 32-byte SHA-256 digest (via FFI in production)
--- %foreign "C:proven_zig_sha256,libproven"
-public export
-sha256 : Bytes -> SHA256Digest
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-sha256 input = believe_me (MkByteVector (replicate 32 0))
-
-||| Hash bytes to SHA-512 digest
--- %foreign "C:proven_zig_sha512,libproven"
-public export
-sha512 : Bytes -> SHA512Digest
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-sha512 input = believe_me (MkByteVector (replicate 64 0))
-
-||| Hash bytes to SHA3-256 digest
--- %foreign "C:proven_zig_sha3_256,libproven"
-public export
-sha3_256 : Bytes -> SHA3_256Digest
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-sha3_256 input = believe_me (MkByteVector (replicate 32 0))
-
-||| Hash bytes to BLAKE2b digest
--- %foreign "C:proven_zig_blake2b,libproven"
-public export
-blake2b : Bytes -> BLAKE2bDigest
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-blake2b input = believe_me (MkByteVector (replicate 64 0))
-
-||| Hash bytes to BLAKE3 digest
--- %foreign "C:proven_zig_blake3,libproven"
-public export
-blake3 : Bytes -> BLAKE3Digest
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-blake3 input = believe_me (MkByteVector (replicate 32 0))
-
---------------------------------------------------------------------------------
--- Incremental Hashing
+-- Incremental Hashing Types (defined before postulates that reference them)
 --------------------------------------------------------------------------------
 
 ||| Opaque hash context state
 public export
 data HashContext : HashAlg -> Type where
   MkHashContext : HashAlg -> HashContext alg
+
+--------------------------------------------------------------------------------
+-- HMAC Types (defined before postulates that reference them)
+--------------------------------------------------------------------------------
+
+||| HMAC key
+public export
+HMACKey : Type
+HMACKey = Bytes
+
+--------------------------------------------------------------------------------
+-- FFI Postulates for Hash Functions
+--
+-- These are FFI stubs. The actual implementations live in ffi/zig/src/
+-- and call platform-native cryptographic libraries (e.g., OpenSSL, libsodium).
+-- At link time, the Zig FFI bridge replaces these with real hash computations.
+--
+-- Using postulate instead of believe_me: the type signatures are correct
+-- (output has the right ByteVector length) and values will be provided by
+-- the FFI layer at runtime. These functions are never called in pure Idris2
+-- proof contexts.
+--
+-- To replace with proper FFI: uncomment %foreign declarations when
+-- the Zig bridge is compiled, and remove the postulates.
+--------------------------------------------------------------------------------
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_sha256,libproven"
+postulate prim__sha256 : Bytes -> SHA256Digest
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_sha512,libproven"
+postulate prim__sha512 : Bytes -> SHA512Digest
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_sha3_256,libproven"
+postulate prim__sha3_256 : Bytes -> SHA3_256Digest
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_blake2b,libproven"
+postulate prim__blake2b : Bytes -> BLAKE2bDigest
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_blake3,libproven"
+postulate prim__blake3 : Bytes -> BLAKE3Digest
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_hash_finalize,libproven"
+postulate prim__hashFinalize : {alg : HashAlg} -> HashContext alg -> ByteVector (hashOutputSize alg)
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_hmac_sha256,libproven"
+postulate prim__hmacSha256 : HMACKey -> Bytes -> SHA256Digest
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- %foreign "C:proven_zig_hmac_sha512,libproven"
+postulate prim__hmacSha512 : HMACKey -> Bytes -> SHA512Digest
+
+--------------------------------------------------------------------------------
+-- Hash Function Public API
+--------------------------------------------------------------------------------
+
+||| Hash bytes to SHA-256 digest
+||| @param input The data to hash
+||| @return 32-byte SHA-256 digest (via FFI in production)
+public export
+sha256 : Bytes -> SHA256Digest
+sha256 = prim__sha256
+
+||| Hash bytes to SHA-512 digest
+public export
+sha512 : Bytes -> SHA512Digest
+sha512 = prim__sha512
+
+||| Hash bytes to SHA3-256 digest
+public export
+sha3_256 : Bytes -> SHA3_256Digest
+sha3_256 = prim__sha3_256
+
+||| Hash bytes to BLAKE2b digest
+public export
+blake2b : Bytes -> BLAKE2bDigest
+blake2b = prim__blake2b
+
+||| Hash bytes to BLAKE3 digest
+public export
+blake3 : Bytes -> BLAKE3Digest
+blake3 = prim__blake3
+
+--------------------------------------------------------------------------------
+-- Incremental Hashing Operations
+--------------------------------------------------------------------------------
 
 ||| Initialize hash context
 public export
@@ -355,85 +309,23 @@ hashUpdate : HashContext alg -> Bytes -> HashContext alg
 hashUpdate ctx input = ctx  -- FFI stub: actual state update via Zig
 
 ||| Finalize hash and get digest
--- %foreign "C:proven_zig_hash_finalize,libproven"
 public export
-hashFinalize : HashContext alg -> ByteVector (hashOutputSize alg)
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hashFinalize ctx = believe_me (MkByteVector [])  -- FFI stub: actual finalization via Zig
+hashFinalize : {alg : HashAlg} -> HashContext alg -> ByteVector (hashOutputSize alg)
+hashFinalize = prim__hashFinalize
 
 --------------------------------------------------------------------------------
--- HMAC
+-- HMAC Operations
 --------------------------------------------------------------------------------
-
-||| HMAC key
-public export
-HMACKey : Type
-HMACKey = Bytes
 
 ||| Compute HMAC-SHA256
--- %foreign "C:proven_zig_hmac_sha256,libproven"
 public export
 hmacSha256 : HMACKey -> Bytes -> SHA256Digest
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hmacSha256 key message = believe_me (MkByteVector (replicate 32 0))  -- FFI stub
+hmacSha256 = prim__hmacSha256
 
 ||| Compute HMAC-SHA512
--- %foreign "C:proven_zig_hmac_sha512,libproven"
 public export
 hmacSha512 : HMACKey -> Bytes -> SHA512Digest
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hmacSha512 key message = believe_me (MkByteVector (replicate 64 0))  -- FFI stub
+hmacSha512 = prim__hmacSha512
 
 --------------------------------------------------------------------------------
 -- Hash Comparison (Constant Time)

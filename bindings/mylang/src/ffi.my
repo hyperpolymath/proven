@@ -1,0 +1,200 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// | FFI declarations to libproven C ABI.
+//
+// MyLang uses extern "C" fn declarations for foreign function binding.
+// All foreign function declarations map to the libproven shared library
+// which is compiled from Idris 2 source with dependent types and totality
+// checking. NO safety logic is reimplemented in MyLang.
+//
+// Architecture:
+//   MyLang (.my)
+//     |  extern "C" fn ...
+//     v
+//   libproven.so (Zig FFI layer)
+//     |  Zig -> Idris2 RefC calls
+//     v
+//   Idris 2 (dependent types, totality checking)
+
+module Proven.FFI
+
+// ============================================================================
+// Result types matching the C ABI structs
+// ============================================================================
+
+// IntResult: struct { int32 status; int64 value; }
+@repr("C")
+type IntResult = struct {
+  status : i32,
+  value  : i64,
+}
+
+// BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+type BoolResult = struct {
+  status : i32,
+  value  : i32,
+}
+
+// StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+type StringResult = struct {
+  status : i32,
+  ptr    : *u8,
+  len    : usize,
+}
+
+// FloatResult: struct { int32 status; double value; }
+@repr("C")
+type FloatResult = struct {
+  status : i32,
+  value  : f64,
+}
+
+// ============================================================================
+// Lifecycle
+// ============================================================================
+
+extern "C" fn proven_init() -> i32
+
+extern "C" fn proven_deinit() -> void
+
+extern "C" fn proven_is_initialized() -> bool
+
+// ============================================================================
+// Memory management
+// ============================================================================
+
+extern "C" fn proven_free_string(ptr : *u8) -> void
+
+// ============================================================================
+// Version info
+// ============================================================================
+
+extern "C" fn proven_ffi_abi_version() -> u32
+
+extern "C" fn proven_version_major() -> u32
+
+extern "C" fn proven_version_minor() -> u32
+
+extern "C" fn proven_version_patch() -> u32
+
+extern "C" fn proven_module_count() -> u32
+
+// ============================================================================
+// SafeMath
+// ============================================================================
+
+extern "C" fn proven_math_add_checked(a : i64, b : i64) -> IntResult
+
+extern "C" fn proven_math_sub_checked(a : i64, b : i64) -> IntResult
+
+extern "C" fn proven_math_mul_checked(a : i64, b : i64) -> IntResult
+
+extern "C" fn proven_math_div(a : i64, b : i64) -> IntResult
+
+extern "C" fn proven_math_mod(a : i64, b : i64) -> IntResult
+
+extern "C" fn proven_math_abs_safe(n : i64) -> IntResult
+
+extern "C" fn proven_math_clamp(lo : i64, hi : i64, value : i64) -> i64
+
+extern "C" fn proven_math_pow_checked(base : i64, exp : u32) -> IntResult
+
+// ============================================================================
+// SafeString
+// ============================================================================
+
+extern "C" fn proven_string_is_valid_utf8(ptr : *u8, len : usize) -> BoolResult
+
+extern "C" fn proven_string_escape_sql(ptr : *u8, len : usize) -> StringResult
+
+extern "C" fn proven_string_escape_html(ptr : *u8, len : usize) -> StringResult
+
+extern "C" fn proven_string_escape_js(ptr : *u8, len : usize) -> StringResult
+
+// ============================================================================
+// SafeEmail
+// ============================================================================
+
+extern "C" fn proven_email_is_valid(ptr : *u8, len : usize) -> BoolResult
+
+// ============================================================================
+// SafeUrl
+// ============================================================================
+
+extern "C" fn proven_url_parse(ptr : *u8, len : usize) -> *void
+
+extern "C" fn proven_url_free(components : *void) -> void
+
+// ============================================================================
+// SafePath
+// ============================================================================
+
+extern "C" fn proven_path_has_traversal(ptr : *u8, len : usize) -> BoolResult
+
+extern "C" fn proven_path_sanitize_filename(ptr : *u8, len : usize) -> StringResult
+
+// ============================================================================
+// SafeCrypto
+// ============================================================================
+
+extern "C" fn proven_crypto_constant_time_eq(
+  ptr1 : *u8, len1 : usize,
+  ptr2 : *u8, len2 : usize,
+) -> BoolResult
+
+extern "C" fn proven_crypto_random_bytes(ptr : *u8, len : usize) -> i32
+
+// ============================================================================
+// SafeJson
+// ============================================================================
+
+extern "C" fn proven_json_is_valid(ptr : *u8, len : usize) -> BoolResult
+
+extern "C" fn proven_json_get_type(ptr : *u8, len : usize) -> i32
+
+// ============================================================================
+// SafeFloat
+// ============================================================================
+
+extern "C" fn proven_float_div(a : f64, b : f64) -> FloatResult
+
+extern "C" fn proven_float_is_finite(x : f64) -> bool
+
+extern "C" fn proven_float_is_nan(x : f64) -> bool
+
+extern "C" fn proven_float_sqrt(x : f64) -> FloatResult
+
+extern "C" fn proven_float_ln(x : f64) -> FloatResult
+
+// ============================================================================
+// SafeHex
+// ============================================================================
+
+extern "C" fn proven_hex_encode(ptr : *u8, len : usize, uppercase : bool) -> StringResult
+
+extern "C" fn proven_hex_decode(ptr : *u8, len : usize) -> *void
+
+extern "C" fn proven_hex_free(result : *void) -> void
+
+// ============================================================================
+// SafeChecksum
+// ============================================================================
+
+extern "C" fn proven_checksum_crc32(ptr : *u8, len : usize) -> IntResult
+
+extern "C" fn proven_checksum_verify_crc32(ptr : *u8, len : usize, expected : u32) -> BoolResult
+
+// ============================================================================
+// SafeNetwork
+// ============================================================================
+
+extern "C" fn proven_network_parse_ipv4(ptr : *u8, len : usize) -> *void
+
+// ============================================================================
+// SafeCalculator
+// ============================================================================
+
+extern "C" fn proven_calculator_eval(ptr : *u8, len : usize) -> FloatResult

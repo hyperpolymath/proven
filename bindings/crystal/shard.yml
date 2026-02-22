@@ -1,15 +1,20 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 name: proven
-version: 0.4.0
-description: Safe, validated operations library for Crystal applications with 38 modules
+version: 0.5.0
+description: |
+  FFI bindings to libproven -- formally verified safety primitives.
+  All computation is performed in the Idris2/Zig core via C ABI.
 
 authors:
-  - Hyperpolymath
+  - Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
 
-license: PMPL-1.0
+license: PMPL-1.0-or-later
 
 crystal: ">= 1.0.0"
 
 repository: https://github.com/hyperpolymath/proven
+
+libraries:
+  libproven: ">= 0.3.0"

@@ -113,25 +113,10 @@ parseContentType opts raw =
                validSubtype <- validateSubtype opts s
                let (baseSubtype, suffix) = extractSuffix validSubtype
                let category = parseCategory validType
-               let media = MkMediaType validType baseSubtype suffix category
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-                             (believe_me Refl) (believe_me Refl)
+               media <- case mkMediaTypeSafe validType baseSubtype suffix category of
+                           Just m => Ok m
+                           Nothing => Err (InvalidFormat (validType ++ "/" ++ baseSubtype)
+                                             "type or subtype exceeds length bound")
                -- Parse parameters
                params <- parseParameters (filter (not . null . unpack . trim) paramStrs)
                -- Extract charset
@@ -171,25 +156,10 @@ mkContentType opts t s = do
   validSubtype <- validateSubtype opts s
   let (baseSubtype, suffix) = extractSuffix validSubtype
   let category = parseCategory validType
-  let media = MkMediaType validType baseSubtype suffix category
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-                (believe_me Refl) (believe_me Refl)
+  media <- case mkMediaTypeSafe validType baseSubtype suffix category of
+              Just m => Ok m
+              Nothing => Err (InvalidFormat (validType ++ "/" ++ baseSubtype)
+                                "type or subtype exceeds length bound")
   -- Check sniffing danger
   let fullType = validType ++ "/" ++ validSubtype
   if opts.preventSniffing && canSniffToDangerous fullType
@@ -201,7 +171,10 @@ export
 mkContentTypeDefault : String -> String -> ContentTypeResult ContentType
 mkContentTypeDefault = mkContentType defaultOptions
 
-||| Create from well-known type
+||| Create from well-known type.
+||| All well-known type names are well within the 127-char limit,
+||| so mkMediaTypeSafe always succeeds here. The Nothing branch
+||| is required for totality but is unreachable in practice.
 export
 mkWellKnown : WellKnownMediaType -> ContentType
 mkWellKnown wk =
@@ -211,26 +184,19 @@ mkWellKnown wk =
          let s = drop 1 rest
              (baseSubtype, suffix) = extractSuffix s
              category = wellKnownCategory wk
-             media = MkMediaType t baseSubtype suffix category
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-                       (believe_me Refl) (believe_me Refl)
-         in MkContentType media Nothing Nothing []
+         in case mkMediaTypeSafe t baseSubtype suffix category of
+              Just media => MkContentType media Nothing Nothing []
+              Nothing =>
+                -- Unreachable: all well-known types have short names.
+                -- Provide a valid fallback using decidable proof for "".
+                case (decLengthLTE "" maxTypeLength, decLengthLTE "" maxSubtypeLength) of
+                  (Yes tPrf, Yes sPrf) =>
+                    MkContentType (MkMediaType "" "" Nothing CustomMedia tPrf sPrf)
+                                  Nothing Nothing []
+                  _ =>
+                    -- Also unreachable: length "" = 0 <= 127 always holds.
+                    MkContentType (MkMediaType "" "" Nothing CustomMedia Refl Refl)
+                                  Nothing Nothing []
 
 --------------------------------------------------------------------------------
 -- Content-Type Building

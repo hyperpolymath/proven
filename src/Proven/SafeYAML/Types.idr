@@ -73,6 +73,12 @@ Show YAMLValue where
   show (YBinary bs) = "!!binary " ++ show (length bs) ++ " bytes"
   show (YTimestamp ts) = "!!timestamp " ++ ts
 
+||| Equality helper for lists of YAML values (structurally recursive)
+yamlListEq : List YAMLValue -> List YAMLValue -> Bool
+
+||| Equality helper for YAML object pairs (structurally recursive)
+yamlPairsEq : List (String, YAMLValue) -> List (String, YAMLValue) -> Bool
+
 public export
 Eq YAMLValue where
   YNull == YNull = True
@@ -80,11 +86,20 @@ Eq YAMLValue where
   YInt a == YInt b = a == b
   YFloat a == YFloat b = a == b
   YString a == YString b = a == b
-  YArray a == YArray b = assert_total (a == b)
-  YObject a == YObject b = assert_total (a == b)
+  YArray a == YArray b = yamlListEq a b
+  YObject a == YObject b = yamlPairsEq a b
   YBinary a == YBinary b = a == b
   YTimestamp a == YTimestamp b = a == b
   _ == _ = False
+
+yamlListEq [] [] = True
+yamlListEq (x :: xs) (y :: ys) = x == y && yamlListEq xs ys
+yamlListEq _ _ = False
+
+yamlPairsEq [] [] = True
+yamlPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
+  k1 == k2 && v1 == v2 && yamlPairsEq ps1 ps2
+yamlPairsEq _ _ = False
 
 --------------------------------------------------------------------------------
 -- YAML Document

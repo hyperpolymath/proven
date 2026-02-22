@@ -1,0 +1,243 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{= FFI declarations to libproven C ABI.
+
+   WokeLang uses @import_truth("C", ...) to declare foreign function imports
+   from the libproven shared library, which is compiled from Idris 2 source
+   with dependent types and totality checking. NO safety logic is reimplemented
+   in WokeLang.
+
+   Architecture:
+     WokeLang (.woke)
+       |  @import_truth("C", ...)
+       v
+     libproven.so (Zig FFI layer)
+       |  Zig -> Idris2 RefC calls
+       v
+     Idris 2 (dependent types, totality checking)
+=}
+
+module Proven.FFI
+
+-- ============================================================================
+-- Result types matching the C ABI structs
+-- ============================================================================
+
+-- IntResult: struct { int32 status; int64 value; }
+@repr("C")
+conscious type IntResult = {
+  status : Int32,
+  value  : Int64,
+}
+
+-- BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+conscious type BoolResult = {
+  status : Int32,
+  value  : Int32,
+}
+
+-- StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+conscious type StringResult = {
+  status : Int32,
+  ptr    : Ptr[Byte],
+  len    : USize,
+}
+
+-- FloatResult: struct { int32 status; double value; }
+@repr("C")
+conscious type FloatResult = {
+  status : Int32,
+  value  : Float64,
+}
+
+-- ============================================================================
+-- Lifecycle
+-- ============================================================================
+
+@import_truth("C", "proven_init")
+extern enlighten fn proven_init() -> Int32
+
+@import_truth("C", "proven_deinit")
+extern enlighten fn proven_deinit() -> Void
+
+@import_truth("C", "proven_is_initialized")
+extern enlighten fn proven_is_initialized() -> Bool
+
+-- ============================================================================
+-- Memory management
+-- ============================================================================
+
+@import_truth("C", "proven_free_string")
+extern enlighten fn proven_free_string(ptr : Ptr[Byte]) -> Void
+
+-- ============================================================================
+-- Version info
+-- ============================================================================
+
+@import_truth("C", "proven_ffi_abi_version")
+extern enlighten fn proven_ffi_abi_version() -> UInt32
+
+@import_truth("C", "proven_version_major")
+extern enlighten fn proven_version_major() -> UInt32
+
+@import_truth("C", "proven_version_minor")
+extern enlighten fn proven_version_minor() -> UInt32
+
+@import_truth("C", "proven_version_patch")
+extern enlighten fn proven_version_patch() -> UInt32
+
+@import_truth("C", "proven_module_count")
+extern enlighten fn proven_module_count() -> UInt32
+
+-- ============================================================================
+-- SafeMath
+-- ============================================================================
+
+@import_truth("C", "proven_math_add_checked")
+extern enlighten fn proven_math_add_checked(a : Int64, b : Int64) -> IntResult
+
+@import_truth("C", "proven_math_sub_checked")
+extern enlighten fn proven_math_sub_checked(a : Int64, b : Int64) -> IntResult
+
+@import_truth("C", "proven_math_mul_checked")
+extern enlighten fn proven_math_mul_checked(a : Int64, b : Int64) -> IntResult
+
+@import_truth("C", "proven_math_div")
+extern enlighten fn proven_math_div(a : Int64, b : Int64) -> IntResult
+
+@import_truth("C", "proven_math_mod")
+extern enlighten fn proven_math_mod(a : Int64, b : Int64) -> IntResult
+
+@import_truth("C", "proven_math_abs_safe")
+extern enlighten fn proven_math_abs_safe(n : Int64) -> IntResult
+
+@import_truth("C", "proven_math_clamp")
+extern enlighten fn proven_math_clamp(lo : Int64, hi : Int64, value : Int64) -> Int64
+
+@import_truth("C", "proven_math_pow_checked")
+extern enlighten fn proven_math_pow_checked(base : Int64, exp : UInt32) -> IntResult
+
+-- ============================================================================
+-- SafeString
+-- ============================================================================
+
+@import_truth("C", "proven_string_is_valid_utf8")
+extern enlighten fn proven_string_is_valid_utf8(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@import_truth("C", "proven_string_escape_sql")
+extern enlighten fn proven_string_escape_sql(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@import_truth("C", "proven_string_escape_html")
+extern enlighten fn proven_string_escape_html(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@import_truth("C", "proven_string_escape_js")
+extern enlighten fn proven_string_escape_js(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeEmail
+-- ============================================================================
+
+@import_truth("C", "proven_email_is_valid")
+extern enlighten fn proven_email_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+-- ============================================================================
+-- SafeUrl
+-- ============================================================================
+
+@import_truth("C", "proven_url_parse")
+extern enlighten fn proven_url_parse(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@import_truth("C", "proven_url_free")
+extern enlighten fn proven_url_free(components : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafePath
+-- ============================================================================
+
+@import_truth("C", "proven_path_has_traversal")
+extern enlighten fn proven_path_has_traversal(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@import_truth("C", "proven_path_sanitize_filename")
+extern enlighten fn proven_path_sanitize_filename(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeCrypto
+-- ============================================================================
+
+@import_truth("C", "proven_crypto_constant_time_eq")
+extern enlighten fn proven_crypto_constant_time_eq(
+  ptr1 : Ptr[Byte], len1 : USize,
+  ptr2 : Ptr[Byte], len2 : USize,
+) -> BoolResult
+
+@import_truth("C", "proven_crypto_random_bytes")
+extern enlighten fn proven_crypto_random_bytes(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeJson
+-- ============================================================================
+
+@import_truth("C", "proven_json_is_valid")
+extern enlighten fn proven_json_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@import_truth("C", "proven_json_get_type")
+extern enlighten fn proven_json_get_type(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeFloat
+-- ============================================================================
+
+@import_truth("C", "proven_float_div")
+extern enlighten fn proven_float_div(a : Float64, b : Float64) -> FloatResult
+
+@import_truth("C", "proven_float_is_finite")
+extern enlighten fn proven_float_is_finite(x : Float64) -> Bool
+
+@import_truth("C", "proven_float_is_nan")
+extern enlighten fn proven_float_is_nan(x : Float64) -> Bool
+
+@import_truth("C", "proven_float_sqrt")
+extern enlighten fn proven_float_sqrt(x : Float64) -> FloatResult
+
+@import_truth("C", "proven_float_ln")
+extern enlighten fn proven_float_ln(x : Float64) -> FloatResult
+
+-- ============================================================================
+-- SafeHex
+-- ============================================================================
+
+@import_truth("C", "proven_hex_encode")
+extern enlighten fn proven_hex_encode(ptr : Ptr[Byte], len : USize, uppercase : Bool) -> StringResult
+
+@import_truth("C", "proven_hex_decode")
+extern enlighten fn proven_hex_decode(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@import_truth("C", "proven_hex_free")
+extern enlighten fn proven_hex_free(result : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafeChecksum
+-- ============================================================================
+
+@import_truth("C", "proven_checksum_crc32")
+extern enlighten fn proven_checksum_crc32(ptr : Ptr[Byte], len : USize) -> IntResult
+
+@import_truth("C", "proven_checksum_verify_crc32")
+extern enlighten fn proven_checksum_verify_crc32(ptr : Ptr[Byte], len : USize, expected : UInt32) -> BoolResult
+
+-- ============================================================================
+-- SafeNetwork
+-- ============================================================================
+
+@import_truth("C", "proven_network_parse_ipv4")
+extern enlighten fn proven_network_parse_ipv4(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+-- ============================================================================
+-- SafeCalculator
+-- ============================================================================
+
+@import_truth("C", "proven_calculator_eval")
+extern enlighten fn proven_calculator_eval(ptr : Ptr[Byte], len : USize) -> FloatResult

@@ -1,0 +1,62 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- Safe string operations for security-sensitive contexts.
+-- Thin wrapper over libproven FFI -- all logic lives in Idris 2.
+
+require 'proven.lib_proven'
+
+-- Check if a string contains valid UTF-8 bytes.
+global function is_valid_utf8(value: string): boolean
+  if #value == 0 then
+    return true
+  end
+  local res = proven_string_is_valid_utf8(value.data, (#value))
+  if res.status == PROVEN_OK then
+    return res.value ~= 0
+  end
+  return false
+end
+
+-- Escape single quotes for SQL strings. Returns nil on error.
+-- Note: Use parameterized queries when possible.
+global function escape_sql(value: string): facultative(string)
+  if #value == 0 then
+    return (@string)("")
+  end
+  local res = proven_string_escape_sql(value.data, (#value))
+  if res.status == PROVEN_OK and res.value ~= nilptr then
+    local escaped: string = res.value
+    proven_free_string(res.value)
+    return escaped
+  end
+  return nil
+end
+
+-- Escape HTML special characters to prevent XSS attacks. Returns nil on error.
+global function escape_html(value: string): facultative(string)
+  if #value == 0 then
+    return (@string)("")
+  end
+  local res = proven_string_escape_html(value.data, (#value))
+  if res.status == PROVEN_OK and res.value ~= nilptr then
+    local escaped: string = res.value
+    proven_free_string(res.value)
+    return escaped
+  end
+  return nil
+end
+
+-- Escape JavaScript special characters. Returns nil on error.
+global function escape_js(value: string): facultative(string)
+  if #value == 0 then
+    return (@string)("")
+  end
+  local res = proven_string_escape_js(value.data, (#value))
+  if res.status == PROVEN_OK and res.value ~= nilptr then
+    local escaped: string = res.value
+    proven_free_string(res.value)
+    return escaped
+  end
+  return nil
+end

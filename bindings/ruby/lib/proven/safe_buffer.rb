@@ -1,179 +1,71 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
+# Safe buffer operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
+# Buffers are opaque pointers managed by libproven.
+
 module Proven
-  # Safe buffer operations with bounds checking.
-  #
-  # Provides bounded buffers and ring buffers with safe operations
-  # that cannot overflow or underflow.
   module SafeBuffer
-    # A bounded buffer with safe operations.
-    class BoundedBuffer
-      attr_reader :capacity
-
-      def initialize(capacity)
-        @data = []
-        @capacity = capacity
-      end
-
-      def length
-        @data.length
-      end
-
-      alias size length
-
-      def empty?
-        @data.empty?
-      end
-
-      def full?
-        @data.length >= @capacity
-      end
-
-      def remaining
-        [@capacity - @data.length, 0].max
-      end
-
-      # Push an element (fails if full).
+    class << self
+      # Create a bounded buffer with the given capacity.
+      # Returns an opaque handle (Fiddle::Pointer) or nil on error.
+      # Caller MUST call #free when done.
       #
-      # @param value [Object]
-      # @return [Result]
-      def push(value)
-        return Result.error(OutOfRangeError.new("Buffer full")) if full?
+      # @param capacity [Integer]
+      # @return [Fiddle::Pointer, nil]
+      def create(capacity)
+        # BufferResult = { i32 status, ptr buffer } = 16 bytes
+        buf = Fiddle::Pointer.malloc(16, Fiddle::RUBY_FREE)
 
-        @data.push(value)
-        Result.ok(nil)
+        fn = Fiddle::Function.new(
+          FFI.handler["proven_buffer_create"],
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          Fiddle::TYPE_VOID,
+          need_gvl: true
+        )
+        fn.call(buf, capacity)
+
+        packed = buf.to_str(16)
+        status = packed[0, 4].unpack1("l!")
+        return nil unless status == FFI::STATUS_OK
+
+        ptr_val = packed[8, 8].unpack1("Q")
+        return nil if ptr_val == 0
+        Fiddle::Pointer.new(ptr_val)
+      rescue Fiddle::DLError, TypeError
+        nil
       end
 
-      # Pop an element (fails if empty).
+      # Append data to a buffer.
+      # Returns true on success, nil on error.
       #
-      # @return [Result]
-      def pop
-        return Result.error(OutOfRangeError.new("Buffer empty")) if empty?
-
-        Result.ok(@data.pop)
+      # @param buffer [Fiddle::Pointer] opaque buffer handle
+      # @param data [String] data to append
+      # @return [Boolean, nil]
+      def append(buffer, data)
+        return nil if buffer.nil? || data.nil?
+        ptr, len = FFI.str_to_ptr(data)
+        status = FFI.invoke_i32(
+          "proven_buffer_append",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          [buffer, ptr, len]
+        )
+        status == FFI::STATUS_OK
       end
 
-      # Get element at index (fails if out of bounds).
+      # Free a buffer handle.
       #
-      # @param index [Integer]
-      # @return [Result]
-      def get(index)
-        return Result.error(OutOfRangeError.new("Index out of bounds")) if index < 0 || index >= @data.length
-
-        Result.ok(@data[index])
+      # @param buffer [Fiddle::Pointer] opaque buffer handle
+      def free(buffer)
+        return if buffer.nil?
+        FFI.invoke_void(
+          "proven_buffer_free",
+          [Fiddle::TYPE_VOIDP],
+          [buffer]
+        )
       end
-
-      # Set element at index (fails if out of bounds).
-      #
-      # @param index [Integer]
-      # @param value [Object]
-      # @return [Result]
-      def set(index, value)
-        return Result.error(OutOfRangeError.new("Index out of bounds")) if index < 0 || index >= @data.length
-
-        @data[index] = value
-        Result.ok(nil)
-      end
-
-      # Clear all elements.
-      def clear
-        @data.clear
-      end
-
-      # Get copy of data as array.
-      #
-      # @return [Array]
-      def to_a
-        @data.dup
-      end
-    end
-
-    # Ring buffer for FIFO operations.
-    class RingBuffer
-      attr_reader :capacity
-
-      def initialize(capacity)
-        @data = Array.new(capacity)
-        @head = 0
-        @tail = 0
-        @len = 0
-        @capacity = capacity
-      end
-
-      def length
-        @len
-      end
-
-      alias size length
-
-      def empty?
-        @len.zero?
-      end
-
-      def full?
-        @len >= @capacity
-      end
-
-      # Enqueue an element (fails if full).
-      #
-      # @param value [Object]
-      # @return [Result]
-      def enqueue(value)
-        return Result.error(OutOfRangeError.new("Ring buffer full")) if full?
-
-        @data[@tail] = value
-        @tail = (@tail + 1) % @capacity
-        @len += 1
-        Result.ok(nil)
-      end
-
-      # Dequeue an element (fails if empty).
-      #
-      # @return [Result]
-      def dequeue
-        return Result.error(OutOfRangeError.new("Ring buffer empty")) if empty?
-
-        value = @data[@head]
-        @data[@head] = nil
-        @head = (@head + 1) % @capacity
-        @len -= 1
-        Result.ok(value)
-      end
-
-      # Peek at front without removing.
-      #
-      # @return [Result]
-      def peek
-        return Result.error(OutOfRangeError.new("Ring buffer empty")) if empty?
-
-        Result.ok(@data[@head])
-      end
-
-      # Clear all elements.
-      def clear
-        @data = Array.new(@capacity)
-        @head = 0
-        @tail = 0
-        @len = 0
-      end
-    end
-
-    # Create a new bounded buffer.
-    #
-    # @param capacity [Integer]
-    # @return [BoundedBuffer]
-    def self.bounded_buffer(capacity)
-      BoundedBuffer.new(capacity)
-    end
-
-    # Create a new ring buffer.
-    #
-    # @param capacity [Integer]
-    # @return [RingBuffer]
-    def self.ring_buffer(capacity)
-      RingBuffer.new(capacity)
     end
   end
 end

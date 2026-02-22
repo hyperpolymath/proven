@@ -1,0 +1,243 @@
+{-- SPDX-License-Identifier: PMPL-1.0-or-later --}
+{-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> --}
+
+-- | FFI declarations to libproven C ABI.
+--
+-- Phronesis (practical wisdom) uses @sophia("C", ...) for foreign function
+-- binding, invoking sophia (wisdom) to bridge to C. All foreign function
+-- declarations map to the libproven shared library which is compiled from
+-- Idris 2 source with dependent types and totality checking. NO safety
+-- logic is reimplemented in Phronesis.
+--
+-- Architecture:
+--   Phronesis (.phr)
+--     |  @sophia("C", ...)
+--     v
+--   libproven.so (Zig FFI layer)
+--     |  Zig -> Idris2 RefC calls
+--     v
+--   Idris 2 (dependent types, totality checking)
+
+logos module Proven.FFI
+
+-- ============================================================================
+-- Result types matching the C ABI structs
+-- ============================================================================
+
+-- IntResult: struct { int32 status; int64 value; }
+@repr("C")
+logos type IntResult = {
+  status : Int32,
+  value  : Int64,
+}
+
+-- BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+logos type BoolResult = {
+  status : Int32,
+  value  : Int32,
+}
+
+-- StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+logos type StringResult = {
+  status : Int32,
+  ptr    : Ptr[Byte],
+  len    : USize,
+}
+
+-- FloatResult: struct { int32 status; double value; }
+@repr("C")
+logos type FloatResult = {
+  status : Int32,
+  value  : Float64,
+}
+
+-- ============================================================================
+-- Lifecycle
+-- ============================================================================
+
+@sophia("C", "proven_init")
+gnosis fn proven_init() -> Int32
+
+@sophia("C", "proven_deinit")
+gnosis fn proven_deinit() -> Void
+
+@sophia("C", "proven_is_initialized")
+gnosis fn proven_is_initialized() -> Bool
+
+-- ============================================================================
+-- Memory management
+-- ============================================================================
+
+@sophia("C", "proven_free_string")
+gnosis fn proven_free_string(ptr : Ptr[Byte]) -> Void
+
+-- ============================================================================
+-- Version info
+-- ============================================================================
+
+@sophia("C", "proven_ffi_abi_version")
+gnosis fn proven_ffi_abi_version() -> UInt32
+
+@sophia("C", "proven_version_major")
+gnosis fn proven_version_major() -> UInt32
+
+@sophia("C", "proven_version_minor")
+gnosis fn proven_version_minor() -> UInt32
+
+@sophia("C", "proven_version_patch")
+gnosis fn proven_version_patch() -> UInt32
+
+@sophia("C", "proven_module_count")
+gnosis fn proven_module_count() -> UInt32
+
+-- ============================================================================
+-- SafeMath
+-- ============================================================================
+
+@sophia("C", "proven_math_add_checked")
+gnosis fn proven_math_add_checked(a : Int64, b : Int64) -> IntResult
+
+@sophia("C", "proven_math_sub_checked")
+gnosis fn proven_math_sub_checked(a : Int64, b : Int64) -> IntResult
+
+@sophia("C", "proven_math_mul_checked")
+gnosis fn proven_math_mul_checked(a : Int64, b : Int64) -> IntResult
+
+@sophia("C", "proven_math_div")
+gnosis fn proven_math_div(a : Int64, b : Int64) -> IntResult
+
+@sophia("C", "proven_math_mod")
+gnosis fn proven_math_mod(a : Int64, b : Int64) -> IntResult
+
+@sophia("C", "proven_math_abs_safe")
+gnosis fn proven_math_abs_safe(n : Int64) -> IntResult
+
+@sophia("C", "proven_math_clamp")
+gnosis fn proven_math_clamp(lo : Int64, hi : Int64, value : Int64) -> Int64
+
+@sophia("C", "proven_math_pow_checked")
+gnosis fn proven_math_pow_checked(base : Int64, exp : UInt32) -> IntResult
+
+-- ============================================================================
+-- SafeString
+-- ============================================================================
+
+@sophia("C", "proven_string_is_valid_utf8")
+gnosis fn proven_string_is_valid_utf8(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@sophia("C", "proven_string_escape_sql")
+gnosis fn proven_string_escape_sql(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@sophia("C", "proven_string_escape_html")
+gnosis fn proven_string_escape_html(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@sophia("C", "proven_string_escape_js")
+gnosis fn proven_string_escape_js(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeEmail
+-- ============================================================================
+
+@sophia("C", "proven_email_is_valid")
+gnosis fn proven_email_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+-- ============================================================================
+-- SafeUrl
+-- ============================================================================
+
+@sophia("C", "proven_url_parse")
+gnosis fn proven_url_parse(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@sophia("C", "proven_url_free")
+gnosis fn proven_url_free(components : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafePath
+-- ============================================================================
+
+@sophia("C", "proven_path_has_traversal")
+gnosis fn proven_path_has_traversal(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@sophia("C", "proven_path_sanitize_filename")
+gnosis fn proven_path_sanitize_filename(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeCrypto
+-- ============================================================================
+
+@sophia("C", "proven_crypto_constant_time_eq")
+gnosis fn proven_crypto_constant_time_eq(
+  ptr1 : Ptr[Byte], len1 : USize,
+  ptr2 : Ptr[Byte], len2 : USize,
+) -> BoolResult
+
+@sophia("C", "proven_crypto_random_bytes")
+gnosis fn proven_crypto_random_bytes(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeJson
+-- ============================================================================
+
+@sophia("C", "proven_json_is_valid")
+gnosis fn proven_json_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@sophia("C", "proven_json_get_type")
+gnosis fn proven_json_get_type(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeFloat
+-- ============================================================================
+
+@sophia("C", "proven_float_div")
+gnosis fn proven_float_div(a : Float64, b : Float64) -> FloatResult
+
+@sophia("C", "proven_float_is_finite")
+gnosis fn proven_float_is_finite(x : Float64) -> Bool
+
+@sophia("C", "proven_float_is_nan")
+gnosis fn proven_float_is_nan(x : Float64) -> Bool
+
+@sophia("C", "proven_float_sqrt")
+gnosis fn proven_float_sqrt(x : Float64) -> FloatResult
+
+@sophia("C", "proven_float_ln")
+gnosis fn proven_float_ln(x : Float64) -> FloatResult
+
+-- ============================================================================
+-- SafeHex
+-- ============================================================================
+
+@sophia("C", "proven_hex_encode")
+gnosis fn proven_hex_encode(ptr : Ptr[Byte], len : USize, uppercase : Bool) -> StringResult
+
+@sophia("C", "proven_hex_decode")
+gnosis fn proven_hex_decode(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@sophia("C", "proven_hex_free")
+gnosis fn proven_hex_free(result : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafeChecksum
+-- ============================================================================
+
+@sophia("C", "proven_checksum_crc32")
+gnosis fn proven_checksum_crc32(ptr : Ptr[Byte], len : USize) -> IntResult
+
+@sophia("C", "proven_checksum_verify_crc32")
+gnosis fn proven_checksum_verify_crc32(ptr : Ptr[Byte], len : USize, expected : UInt32) -> BoolResult
+
+-- ============================================================================
+-- SafeNetwork
+-- ============================================================================
+
+@sophia("C", "proven_network_parse_ipv4")
+gnosis fn proven_network_parse_ipv4(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+-- ============================================================================
+-- SafeCalculator
+-- ============================================================================
+
+@sophia("C", "proven_calculator_eval")
+gnosis fn proven_calculator_eval(ptr : Ptr[Byte], len : USize) -> FloatResult

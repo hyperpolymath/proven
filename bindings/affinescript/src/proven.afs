@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/// Proven -- Code that cannot crash.
+///
+/// AffineScript bindings for the formally verified Proven safety library.
+/// All computation is delegated to Idris 2 via the Zig FFI layer; these
+/// bindings are thin affine wrappers that enforce at-most-once consumption
+/// of every FFI result.
+///
+/// Modules:
+///   - SafeMath:   Arithmetic without overflow/underflow/division-by-zero.
+///   - SafeString: UTF-8 and escaping without exceptions.
+///   - SafePath:   Filesystem ops without traversal attacks.
+///   - SafeEmail:  Validation without regex catastrophic backtracking.
+///   - SafeUrl:    URL parsing without malformed URL crashes.
+///   - SafeCrypto: Cryptographic primitives done right.
+///   - SafeJson:   JSON parsing with safe validation.
+
+module Proven
+
+import Proven.FFI
+import Proven.SafeMath
+import Proven.SafeString
+import Proven.SafePath
+import Proven.SafeEmail
+import Proven.SafeUrl
+import Proven.SafeCrypto
+import Proven.SafeJson
+
+// ---------------------------------------------------------------------------
+// Proven error type -- affine (consumed at most once)
+// ---------------------------------------------------------------------------
+
+/// Error type returned by all Proven operations.
+/// Affine: must be consumed at most once (inspect or discard, never copy).
+type ProvenError = own {
+  code: Int,
+  message: String
+}
+
+/// Convert a status code to a human-readable ProvenError.
+fn status_to_error(code: Int) -> own ProvenError / Pure {
+  let msg = match code {
+    -1  => "null pointer",
+    -2  => "invalid argument",
+    -3  => "overflow",
+    -4  => "underflow",
+    -5  => "division by zero",
+    -6  => "parse failure",
+    -7  => "validation failed",
+    -8  => "out of bounds",
+    -9  => "encoding error",
+    -10 => "allocation failed",
+    -99 => "not implemented",
+    _   => "unknown error (code " ++ intToString(code) ++ ")"
+  };
+  ProvenError { code: code, message: msg }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
+
+/// Initialise the Proven runtime (including the Idris 2 runtime).
+/// Must be called before any other Proven function.
+fn init() -> Result[(), ProvenError] / IO {
+  let status = extern_proven_init();
+  if status == 0 {
+    Ok(())
+  } else {
+    Err(status_to_error(status))
+  }
+}
+
+/// Shut down the Proven runtime.
+fn deinit() -> () / IO {
+  extern_proven_deinit()
+}
+
+/// Check whether the runtime is initialised.
+fn is_initialized() -> Bool / Pure {
+  extern_proven_is_initialized()
+}
+
+/// Library version.
+let VERSION: String = "0.4.0"

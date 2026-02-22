@@ -1,0 +1,37 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- Safe JSON validation and type detection.
+-- Thin wrapper over libproven FFI -- all logic lives in Idris 2.
+
+require 'proven.lib_proven'
+
+-- JSON value type constants.
+global JSON_NULL: int32 <comptime> = 0
+global JSON_BOOL: int32 <comptime> = 1
+global JSON_NUMBER: int32 <comptime> = 2
+global JSON_STRING: int32 <comptime> = 3
+global JSON_ARRAY: int32 <comptime> = 4
+global JSON_OBJECT: int32 <comptime> = 5
+global JSON_INVALID: int32 <comptime> = -1
+
+-- Check if a string is valid JSON.
+global function json_is_valid(value: string): boolean
+  if #value == 0 then
+    return false
+  end
+  local res = proven_json_is_valid(value.data, (#value))
+  if res.status == PROVEN_OK then
+    return res.value ~= 0
+  end
+  return false
+end
+
+-- Get the JSON value type at the root level.
+-- Returns one of the JSON_* constants. Returns JSON_INVALID for non-JSON input.
+global function json_get_type(value: string): int32
+  if #value == 0 then
+    return JSON_INVALID
+  end
+  return proven_json_get_type(value.data, (#value))
+end

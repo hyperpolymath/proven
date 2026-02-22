@@ -1,0 +1,147 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Proven Safety Library - Zsh Validation Functions
+#
+# Input validation functions that delegate to proven-cli.
+# Source this file or let proven.zsh auto-load it.
+
+# Validate an email address (RFC 5321).
+# Usage: proven-validate-email "user@example.com"
+proven-validate-email() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-email <email>" >&2
+        return 1
+    fi
+    _proven_call validate email "$1"
+}
+
+# Validate a URL.
+# Usage: proven-validate-url "https://example.com"
+proven-validate-url() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-url <url>" >&2
+        return 1
+    fi
+    _proven_call validate url "$1"
+}
+
+# Validate an IPv4 address.
+# Usage: proven-validate-ipv4 "192.168.1.1"
+proven-validate-ipv4() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-ipv4 <ip>" >&2
+        return 1
+    fi
+    _proven_call network parse-ipv4 "$1"
+}
+
+# Check if an IPv4 address is private (RFC 1918).
+# Usage: proven-ipv4-is-private "10.0.0.1"
+proven-ipv4-is-private() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-ipv4-is-private <ip>" >&2
+        return 1
+    fi
+    _proven_call network ipv4-is-private "$1"
+}
+
+# Check if an IPv4 address is loopback.
+# Usage: proven-ipv4-is-loopback "127.0.0.1"
+proven-ipv4-is-loopback() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-ipv4-is-loopback <ip>" >&2
+        return 1
+    fi
+    _proven_call network ipv4-is-loopback "$1"
+}
+
+# Check a path for directory traversal attacks.
+# Usage: proven-validate-path "../etc/passwd"
+proven-validate-path() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-path <path>" >&2
+        return 1
+    fi
+    _proven_call path has-traversal "$1"
+}
+
+# Sanitize a filename (remove dangerous characters).
+# Usage: proven-sanitize-filename "../../etc/passwd"
+proven-sanitize-filename() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-sanitize-filename <filename>" >&2
+        return 1
+    fi
+    _proven_call path sanitize-filename "$1"
+}
+
+# Check if a string is valid JSON.
+# Usage: proven-validate-json '{"key": "value"}'
+proven-validate-json() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-json <json-string>" >&2
+        return 1
+    fi
+    _proven_call json is-valid "$1"
+}
+
+# Determine the JSON value type.
+# Usage: proven-json-type '42'
+proven-json-type() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-json-type <json-string>" >&2
+        return 1
+    fi
+    _proven_call json get-type "$1"
+}
+
+# Validate password strength.
+# Usage: proven-validate-password "MyP@ssw0rd!"
+proven-validate-password() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-password <password>" >&2
+        return 1
+    fi
+    _proven_call password validate "$1"
+}
+
+# Check if a password is in the common password list.
+# Usage: proven-is-common-password "password123"
+proven-is-common-password() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-is-common-password <password>" >&2
+        return 1
+    fi
+    _proven_call password is-common "$1"
+}
+
+# Check if a string is valid UTF-8.
+# Usage: proven-is-valid-utf8 "hello"
+proven-is-valid-utf8() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-is-valid-utf8 <string>" >&2
+        return 1
+    fi
+    _proven_call string is-valid-utf8 "$1"
+}
+
+# Parse and validate a phone number.
+# Usage: proven-validate-phone "+14155551234"
+proven-validate-phone() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-phone <number>" >&2
+        return 1
+    fi
+    _proven_call phone parse "$1"
+}
+
+# Parse and validate a UUID.
+# Usage: proven-validate-uuid "550e8400-e29b-41d4-a716-446655440000"
+proven-validate-uuid() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-validate-uuid <uuid>" >&2
+        return 1
+    fi
+    _proven_call uuid parse "$1"
+}

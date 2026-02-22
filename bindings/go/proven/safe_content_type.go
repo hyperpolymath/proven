@@ -1,174 +1,138 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeContentType provides Content-Type header operations preventing MIME sniffing.
+// All computation is performed in Idris 2 via the Proven FFI.
 
 package proven
 
-import (
-	"regexp"
-	"strings"
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
+
+// Media type category constants.
+const (
+	MediaCategoryText        = 0
+	MediaCategoryImage       = 1
+	MediaCategoryAudio       = 2
+	MediaCategoryVideo       = 3
+	MediaCategoryApplication = 4
+	MediaCategoryMultipart   = 5
+	MediaCategoryMessage     = 6
+	MediaCategoryFont        = 7
+	MediaCategoryModel       = 8
+	MediaCategoryCustom      = 9
 )
 
-// ContentType represents a parsed MIME type.
+// Charset encoding constants.
+const (
+	CharsetUTF8        = 0
+	CharsetUTF16LE     = 1
+	CharsetUTF16BE     = 2
+	CharsetISO8859_1   = 3
+	CharsetASCII       = 4
+	CharsetWindows1252 = 5
+	CharsetOther       = 6
+)
+
+// ContentType represents a parsed Content-Type header.
 type ContentType struct {
-	Type       string
+	MediaType  string
 	Subtype    string
-	Parameters map[string]string
+	Suffix     string
+	Category   int32
+	Charset    int32
+	HasCharset bool
 }
 
-// String returns the full content type string.
-func (ct ContentType) String() string {
-	result := ct.Type + "/" + ct.Subtype
-	for k, v := range ct.Parameters {
-		result += "; " + k + "=" + v
-	}
-	return result
-}
+// ContentTypeParse parses a Content-Type header string.
+func ContentTypeParse(contentType string) (*ContentType, error) {
+	cs, length := cString(contentType)
+	defer unsafeFree(cs)
 
-// Essence returns type/subtype without parameters.
-func (ct ContentType) Essence() string {
-	return ct.Type + "/" + ct.Subtype
-}
-
-// Charset returns the charset parameter if present.
-func (ct ContentType) Charset() string {
-	return ct.Parameters["charset"]
-}
-
-// IsText checks if this is a text type.
-func (ct ContentType) IsText() bool {
-	return ct.Type == "text"
-}
-
-// IsJSON checks if this is JSON.
-func (ct ContentType) IsJSON() bool {
-	return ct.Essence() == "application/json" ||
-		strings.HasSuffix(ct.Subtype, "+json")
-}
-
-// IsXML checks if this is XML.
-func (ct ContentType) IsXML() bool {
-	return ct.Essence() == "application/xml" ||
-		ct.Essence() == "text/xml" ||
-		strings.HasSuffix(ct.Subtype, "+xml")
-}
-
-// IsHTML checks if this is HTML.
-func (ct ContentType) IsHTML() bool {
-	return ct.Essence() == "text/html"
-}
-
-// IsImage checks if this is an image.
-func (ct ContentType) IsImage() bool {
-	return ct.Type == "image"
-}
-
-// IsBinary checks if this is likely binary content.
-func (ct ContentType) IsBinary() bool {
-	if ct.Type == "image" || ct.Type == "audio" || ct.Type == "video" {
-		return true
-	}
-	if ct.Essence() == "application/octet-stream" {
-		return true
-	}
-	return false
-}
-
-// ParseContentType parses a Content-Type header value.
-func ParseContentType(value string) (ContentType, bool) {
-	ct := ContentType{
-		Parameters: make(map[string]string),
+	result := C.proven_content_type_parse(cs, length)
+	status := int(result.status)
+	if status != StatusOK {
+		return nil, newError(status)
 	}
 
-	// Split by semicolon
-	parts := strings.Split(value, ";")
-	if len(parts) == 0 {
-		return ct, false
+	ct := &ContentType{
+		Category:   int32(result.category),
+		Charset:    int32(result.charset),
+		HasCharset: bool(result.has_charset),
 	}
 
-	// Parse type/subtype
-	essence := strings.TrimSpace(parts[0])
-	typeParts := strings.SplitN(essence, "/", 2)
-	if len(typeParts) != 2 {
-		return ct, false
+	if result.media_type != nil {
+		ct.MediaType = C.GoStringN(result.media_type, C.int(result.media_type_len))
+	}
+	if result.subtype != nil {
+		ct.Subtype = C.GoStringN(result.subtype, C.int(result.subtype_len))
+	}
+	if result.suffix != nil {
+		ct.Suffix = C.GoStringN(result.suffix, C.int(result.suffix_len))
 	}
 
-	ct.Type = strings.ToLower(strings.TrimSpace(typeParts[0]))
-	ct.Subtype = strings.ToLower(strings.TrimSpace(typeParts[1]))
+	// Free the C-allocated strings.
+	C.proven_content_type_free(&result)
 
-	if ct.Type == "" || ct.Subtype == "" {
-		return ct, false
-	}
-
-	// Parse parameters
-	paramRe := regexp.MustCompile(`([^=]+)=([^;]+)`)
-	for _, part := range parts[1:] {
-		match := paramRe.FindStringSubmatch(strings.TrimSpace(part))
-		if len(match) >= 3 {
-			key := strings.ToLower(strings.TrimSpace(match[1]))
-			val := strings.Trim(strings.TrimSpace(match[2]), "\"")
-			ct.Parameters[key] = val
-		}
-	}
-
-	return ct, true
+	return ct, nil
 }
 
-// SafeParseContentType parses with fallback.
-func SafeParseContentType(value string) ContentType {
-	ct, ok := ParseContentType(value)
-	if !ok {
-		return ContentType{
-			Type:       "application",
-			Subtype:    "octet-stream",
-			Parameters: make(map[string]string),
-		}
+// ContentTypeCanSniffDangerous checks whether a content type can be sniffed
+// to something dangerous by browsers.
+func ContentTypeCanSniffDangerous(contentType string) (bool, error) {
+	cs, length := cString(contentType)
+	defer unsafeFree(cs)
+	result := C.proven_content_type_can_sniff_dangerous(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	return ct
+	return bool(result.value), nil
 }
 
-// DangerousMimeTypes lists potentially dangerous MIME types.
-var DangerousMimeTypes = []string{
-	"application/javascript",
-	"text/javascript",
-	"application/x-javascript",
-	"text/html",
-	"application/xhtml+xml",
-	"image/svg+xml",
-	"application/x-shockwave-flash",
+// ContentTypeRender renders a Content-Type header string from components.
+func ContentTypeRender(mediaType, subtype, suffix string, charset int32, hasCharset bool) (string, error) {
+	typeCS, typeLen := cString(mediaType)
+	defer unsafeFree(typeCS)
+	subtypeCS, subtypeLen := cString(subtype)
+	defer unsafeFree(subtypeCS)
+	suffixCS, suffixLen := cString(suffix)
+	defer unsafeFree(suffixCS)
+
+	return goStringResult(C.proven_content_type_render(
+		typeCS, typeLen,
+		subtypeCS, subtypeLen,
+		suffixCS, suffixLen,
+		C.int32_t(charset),
+		C._Bool(hasCharset),
+	))
 }
 
-// IsDangerousMimeType checks if content type is potentially dangerous.
-func IsDangerousMimeType(ct ContentType) bool {
-	essence := ct.Essence()
-	for _, dangerous := range DangerousMimeTypes {
-		if essence == dangerous {
-			return true
-		}
+// ContentTypeIsJSON checks whether the content type represents JSON.
+func ContentTypeIsJSON(subtype, suffix string) (bool, error) {
+	subtypeCS, subtypeLen := cString(subtype)
+	defer unsafeFree(subtypeCS)
+	suffixCS, suffixLen := cString(suffix)
+	defer unsafeFree(suffixCS)
+
+	result := C.proven_content_type_is_json(subtypeCS, subtypeLen, suffixCS, suffixLen)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	return false
+	return bool(result.value), nil
 }
 
-// Common content type constants.
-var (
-	ContentTypeJSON          = ContentType{Type: "application", Subtype: "json", Parameters: map[string]string{}}
-	ContentTypeXML           = ContentType{Type: "application", Subtype: "xml", Parameters: map[string]string{}}
-	ContentTypeHTML          = ContentType{Type: "text", Subtype: "html", Parameters: map[string]string{}}
-	ContentTypePlainText     = ContentType{Type: "text", Subtype: "plain", Parameters: map[string]string{}}
-	ContentTypeOctetStream   = ContentType{Type: "application", Subtype: "octet-stream", Parameters: map[string]string{}}
-	ContentTypeFormURLEnc    = ContentType{Type: "application", Subtype: "x-www-form-urlencoded", Parameters: map[string]string{}}
-	ContentTypeMultipartForm = ContentType{Type: "multipart", Subtype: "form-data", Parameters: map[string]string{}}
-)
+// ContentTypeIsXML checks whether the content type represents XML.
+func ContentTypeIsXML(subtype, suffix string) (bool, error) {
+	subtypeCS, subtypeLen := cString(subtype)
+	defer unsafeFree(subtypeCS)
+	suffixCS, suffixLen := cString(suffix)
+	defer unsafeFree(suffixCS)
 
-// WithCharset returns content type with charset parameter.
-func (ct ContentType) WithCharset(charset string) ContentType {
-	newCT := ContentType{
-		Type:       ct.Type,
-		Subtype:    ct.Subtype,
-		Parameters: make(map[string]string),
+	result := C.proven_content_type_is_xml(subtypeCS, subtypeLen, suffixCS, suffixLen)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	for k, v := range ct.Parameters {
-		newCT.Parameters[k] = v
-	}
-	newCT.Parameters["charset"] = charset
-	return newCT
+	return bool(result.value), nil
 }

@@ -1,15 +1,17 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeHeader - HTTP header validation without CRLF injection.
 
 Provides safe HTTP header handling with injection prevention.
+All validation is delegated to the Idris core via FFI.
 """
 
-from typing import Optional, Dict, List, NamedTuple
+from typing import Optional, List
 from dataclasses import dataclass
-import re
+
+from .core import ProvenStatus, get_lib
 
 
 @dataclass
@@ -24,12 +26,7 @@ class Header:
 
 
 class SafeHeader:
-    """Safe HTTP header operations with CRLF injection prevention."""
-
-    # Valid header name: token characters per RFC 7230
-    _HEADER_NAME_PATTERN = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
-    # Invalid characters in header values (CRLF injection)
-    _INVALID_VALUE_CHARS = re.compile(r"[\r\n\x00]")
+    """Safe HTTP header operations with CRLF injection prevention via FFI."""
 
     # Standard header names (case-insensitive canonical forms)
     CONTENT_TYPE = "Content-Type"
@@ -50,7 +47,7 @@ class SafeHeader:
     @staticmethod
     def validate_name(name: str) -> bool:
         """
-        Check if header name is valid per RFC 7230.
+        Check if header name is valid per RFC 7230 via FFI.
 
         Args:
             name: Header name to validate
@@ -60,12 +57,17 @@ class SafeHeader:
         """
         if not name:
             return False
-        return bool(SafeHeader._HEADER_NAME_PATTERN.match(name))
+        lib = get_lib()
+        encoded = name.encode("utf-8")
+        result = lib.proven_header_validate_name(encoded, len(encoded))
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     @staticmethod
     def validate_value(value: str) -> bool:
         """
-        Check if header value is safe (no CRLF injection).
+        Check if header value is safe (no CRLF injection) via FFI.
 
         Args:
             value: Header value to validate
@@ -73,12 +75,17 @@ class SafeHeader:
         Returns:
             True if safe, False if contains injection characters
         """
-        return not bool(SafeHeader._INVALID_VALUE_CHARS.search(value))
+        lib = get_lib()
+        encoded = value.encode("utf-8")
+        result = lib.proven_header_validate_value(encoded, len(encoded))
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     @staticmethod
     def create(name: str, value: str) -> Optional[Header]:
         """
-        Create a validated header.
+        Create a validated header via FFI.
 
         Args:
             name: Header name
@@ -102,7 +109,7 @@ class SafeHeader:
     @staticmethod
     def sanitize_value(value: str) -> str:
         """
-        Remove dangerous characters from header value.
+        Remove dangerous characters from header value via FFI.
 
         Args:
             value: Header value to sanitize
@@ -110,12 +117,19 @@ class SafeHeader:
         Returns:
             Sanitized value with CR/LF/NUL removed
         """
-        return SafeHeader._INVALID_VALUE_CHARS.sub("", value)
+        lib = get_lib()
+        encoded = value.encode("utf-8")
+        result = lib.proven_header_sanitize_value(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return ""
+        output = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+        return output
 
     @staticmethod
     def parse(line: str) -> Optional[Header]:
         """
-        Parse a header line (name: value).
+        Parse a header line (name: value) via FFI.
 
         Args:
             line: Raw header line
@@ -123,14 +137,26 @@ class SafeHeader:
         Returns:
             Header object, or None if parsing fails
         """
-        colon = line.find(":")
-        if colon <= 0:
+        if not line:
             return None
 
-        name = line[:colon].strip()
-        value = line[colon + 1:].strip()
+        lib = get_lib()
+        encoded = line.encode("utf-8")
+        result = lib.proven_header_parse(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return None
 
-        return SafeHeader.create(name, value)
+        # FFI returns "name\0value" format
+        raw = result.value[:result.length]
+        lib.proven_free_string(result.value)
+
+        parts = raw.split(b"\x00", 1)
+        if len(parts) != 2:
+            return None
+
+        name = parts[0].decode("utf-8")
+        value = parts[1].decode("utf-8")
+        return Header(name=name, value=value)
 
     @staticmethod
     def parse_headers(text: str) -> List[Header]:

@@ -1,17 +1,20 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeCookie - HTTP cookie validation with injection prevention.
 
 Provides safe cookie handling per RFC 6265.
+All validation is delegated to the Idris core via FFI.
 """
 
+import json
 from typing import Optional, List
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
-import re
+
+from .core import ProvenStatus, get_lib
 
 
 class SameSite(Enum):
@@ -74,17 +77,12 @@ class Cookie:
 
 
 class SafeCookie:
-    """Safe cookie validation and parsing."""
-
-    # Valid cookie name per RFC 6265 (token)
-    _NAME_PATTERN = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
-    # Invalid characters in cookie value
-    _INVALID_VALUE_CHARS = re.compile(r'[\x00-\x1f\x7f\s";\\,]')
+    """Safe cookie validation and parsing via FFI."""
 
     @staticmethod
     def validate_name(name: str) -> bool:
         """
-        Validate cookie name per RFC 6265.
+        Validate cookie name per RFC 6265 via FFI.
 
         Args:
             name: Cookie name to validate
@@ -94,12 +92,17 @@ class SafeCookie:
         """
         if not name:
             return False
-        return bool(SafeCookie._NAME_PATTERN.match(name))
+        lib = get_lib()
+        encoded = name.encode("utf-8")
+        result = lib.proven_cookie_validate_name(encoded, len(encoded))
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     @staticmethod
     def validate_value(value: str) -> bool:
         """
-        Validate cookie value per RFC 6265.
+        Validate cookie value per RFC 6265 via FFI.
 
         Args:
             value: Cookie value to validate
@@ -107,12 +110,17 @@ class SafeCookie:
         Returns:
             True if valid (no CTLs, spaces, quotes, etc.)
         """
-        return not bool(SafeCookie._INVALID_VALUE_CHARS.search(value))
+        lib = get_lib()
+        encoded = value.encode("utf-8")
+        result = lib.proven_cookie_validate_value(encoded, len(encoded))
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     @staticmethod
     def create(name: str, value: str, attributes: Optional[CookieAttributes] = None) -> Optional[Cookie]:
         """
-        Create a validated cookie.
+        Create a validated cookie via FFI.
 
         Args:
             name: Cookie name
@@ -166,7 +174,7 @@ class SafeCookie:
     @staticmethod
     def parse_cookie_header(header: str) -> List[Cookie]:
         """
-        Parse Cookie header value.
+        Parse Cookie header value via FFI.
 
         Args:
             header: Cookie header value (name=value; name=value; ...)
@@ -174,25 +182,35 @@ class SafeCookie:
         Returns:
             List of parsed cookies
         """
-        cookies = []
-        for pair in header.split(";"):
-            pair = pair.strip()
-            if not pair:
-                continue
-            eq = pair.find("=")
-            if eq <= 0:
-                continue
-            name = pair[:eq].strip()
-            value = pair[eq + 1:].strip()
-            cookie = SafeCookie.create(name, value)
-            if cookie:
-                cookies.append(cookie)
-        return cookies
+        if not header:
+            return []
+
+        lib = get_lib()
+        encoded = header.encode("utf-8")
+        result = lib.proven_cookie_parse_header(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return []
+
+        json_str = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+
+        try:
+            parsed = json.loads(json_str)
+            cookies = []
+            for item in parsed:
+                name = item.get("name", "")
+                value = item.get("value", "")
+                cookie = SafeCookie.create(name, value)
+                if cookie:
+                    cookies.append(cookie)
+            return cookies
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return []
 
     @staticmethod
     def sanitize_value(value: str) -> str:
         """
-        Remove invalid characters from cookie value.
+        Remove invalid characters from cookie value via FFI.
 
         Args:
             value: Value to sanitize
@@ -200,7 +218,14 @@ class SafeCookie:
         Returns:
             Sanitized value
         """
-        return SafeCookie._INVALID_VALUE_CHARS.sub("", value)
+        lib = get_lib()
+        encoded = value.encode("utf-8")
+        result = lib.proven_cookie_sanitize_value(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return ""
+        output = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+        return output
 
     @staticmethod
     def format_cookie_header(cookies: List[Cookie]) -> str:

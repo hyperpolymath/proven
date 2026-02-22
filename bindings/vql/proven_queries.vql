@@ -1,0 +1,166 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// proven_queries.vql - Example proven-backed VQL queries for Velociraptor
+//
+// These examples demonstrate using proven functions in VQL queries for
+// digital forensics and incident response. All functions call libproven
+// (Idris 2 verified core via Zig FFI bridge). Functions return null on
+// error rather than raising exceptions.
+
+// ============================================================================
+// SafeMath: Checked arithmetic in forensic analysis
+// ============================================================================
+
+// Compute safe file size totals across collected artifacts.
+// Prevents overflow when summing very large file sizes.
+SELECT FullPath, Size,
+       proven_math_add(a=Size, b=0) AS SafeSize
+FROM glob(globs="C:/Users/*/Documents/**")
+WHERE SafeSize != null
+
+// Calculate percentage of disk space used with safe division.
+// No division-by-zero crash if total disk size is somehow zero.
+LET disk_usage <= SELECT DeviceID, Size, FreeSpace,
+    proven_math_sub(a=Size, b=FreeSpace) AS UsedSpace,
+    proven_math_div(
+        a=proven_math_mul(
+            a=proven_math_sub(a=Size, b=FreeSpace),
+            b=100
+        ),
+        b=Size
+    ) AS UsedPercent
+FROM wmi(
+    query="SELECT DeviceID, Size, FreeSpace FROM Win32_LogicalDisk WHERE DriveType=3"
+)
+SELECT * FROM disk_usage WHERE UsedPercent != null
+
+// Safe timestamp arithmetic: add milliseconds without overflow.
+SELECT EventTime,
+       proven_math_add(a=int(int=EventTime), b=3600000) AS OneHourLater
+FROM source(artifact="Windows.EventLogs.EVTX")
+WHERE OneHourLater != null
+LIMIT 100
+
+// ============================================================================
+// Validation: Input validation in forensic evidence
+// ============================================================================
+
+// Validate email addresses found in browser history / artifacts.
+// Useful for identifying phishing or suspicious contact patterns.
+SELECT URL, Title,
+       proven_validate_email(input=URL) AS IsEmail,
+       proven_validate_url(input=URL) AS IsValidURL
+FROM source(artifact="Windows.Applications.Chrome.History")
+WHERE IsEmail OR NOT IsValidURL
+
+// Validate JSON configuration files collected during triage.
+// Identifies corrupted or tampered config files.
+SELECT FullPath, Size,
+       read_file(filename=FullPath, length=Size) AS Content,
+       proven_validate_json(input=read_file(filename=FullPath, length=Size)) AS ValidJSON
+FROM glob(globs="C:/ProgramData/**/*.json")
+WHERE NOT ValidJSON AND Size > 0 AND Size < 1048576
+LIMIT 50
+
+// Validate UTF-8 encoding in log files to detect binary injection.
+SELECT FullPath,
+       proven_validate_utf8(input=Line) AS ValidUTF8
+FROM parse_lines(filename="C:/Windows/Temp/suspicious.log")
+WHERE NOT ValidUTF8
+
+// ============================================================================
+// String operations: Evidence sanitization
+// ============================================================================
+
+// Sanitize strings from registry for safe display in reports.
+// Prevents XSS if results are rendered in web-based Velociraptor GUI.
+SELECT KeyPath, ValueName,
+       proven_string_escape_html(input=Data) AS SafeData
+FROM source(artifact="Windows.Registry.NTUser")
+WHERE SafeData != null
+LIMIT 100
+
+// Escape SQL special characters from collected evidence.
+// Useful when inserting forensic data into external databases.
+SELECT FullPath,
+       proven_string_escape_sql(input=FileName) AS SafeFileName
+FROM glob(globs="C:/Users/*/Downloads/**")
+WHERE SafeFileName != null
+
+// ============================================================================
+// Crypto: Evidence integrity verification
+// ============================================================================
+
+// Hex-encode binary data from memory dumps for display.
+SELECT Offset, Size,
+       proven_crypto_hex_encode(input=Data) AS HexData
+FROM yara(
+    rules="rule test { strings: $a = \"password\" condition: $a }",
+    files="C:/Windows/Temp/*.dmp"
+)
+WHERE HexData != null
+LIMIT 50
+
+// Compute CRC32 checksums for file integrity verification.
+SELECT FullPath, Size,
+       proven_crypto_crc32(input=read_file(filename=FullPath, length=Size)) AS CRC32
+FROM glob(globs="C:/Windows/System32/*.dll")
+WHERE CRC32 != null AND Size < 10485760
+LIMIT 100
+
+// Constant-time comparison for HMAC/hash verification.
+// Timing-attack resistant comparison of evidence hashes.
+LET known_hash <= "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+SELECT FullPath,
+       proven_crypto_hex_encode(input=read_file(filename=FullPath, length=Size)) AS FileHex,
+       proven_crypto_ct_eq(a=FileHex, b=known_hash) AS Matches
+FROM glob(globs="C:/Evidence/*.bin")
+WHERE Size < 1048576
+
+// ============================================================================
+// Combined queries: Real-world incident response
+// ============================================================================
+
+// Comprehensive evidence validation pipeline.
+// Validate, sanitize, and checksum collected artifacts.
+LET evidence_check <= SELECT
+    FullPath,
+    Size,
+    read_file(filename=FullPath, length=min(item=[Size, 1048576])) AS Content,
+    proven_validate_utf8(
+        input=read_file(filename=FullPath, length=min(item=[Size, 1048576]))
+    ) AS ValidEncoding,
+    proven_validate_json(
+        input=read_file(filename=FullPath, length=min(item=[Size, 1048576]))
+    ) AS IsJSON,
+    proven_crypto_crc32(
+        input=read_file(filename=FullPath, length=min(item=[Size, 1048576]))
+    ) AS Checksum,
+    proven_string_escape_html(
+        input=read_file(filename=FullPath, length=min(item=[Size, 256]))
+    ) AS SafePreview
+FROM glob(globs="C:/Evidence/collected/**")
+WHERE Size > 0 AND Size < 10485760
+
+SELECT FullPath, Size, ValidEncoding, IsJSON, Checksum, SafePreview
+FROM evidence_check
+ORDER BY Size DESC
+
+// Threat hunting: validate all URLs found in browser artifacts.
+LET url_analysis <= SELECT
+    URL,
+    Title,
+    LastVisitTime,
+    proven_validate_url(input=URL) AS ValidURL,
+    proven_validate_email(input=URL) AS ContainsEmail,
+    proven_string_escape_html(input=URL) AS SafeURL,
+    proven_crypto_hex_encode(input=URL) AS URLHex
+FROM source(artifact="Windows.Applications.Chrome.History")
+WHERE URL != null
+
+SELECT SafeURL, ValidURL, ContainsEmail, LastVisitTime
+FROM url_analysis
+WHERE NOT ValidURL
+ORDER BY LastVisitTime DESC
+LIMIT 200

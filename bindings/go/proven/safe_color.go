@@ -1,173 +1,59 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeColor provides color space conversions via the Proven FFI.
+// All computation is performed in Idris 2 with formal verification.
 
 package proven
 
-import (
-	"fmt"
-	"math"
-	"regexp"
-	"strconv"
-	"strings"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
 
-// RGB represents an RGB color.
+// RGB represents an RGB color with 8 bits per channel.
 type RGB struct {
-	R, G, B uint8
+	R uint8
+	G uint8
+	B uint8
 }
 
-// NewRGB creates an RGB color.
-func NewRGB(r, g, b uint8) RGB {
-	return RGB{R: r, G: g, B: b}
+// HSL represents an HSL color.
+type HSL struct {
+	H float64 // Hue: 0-360
+	S float64 // Saturation: 0-1
+	L float64 // Lightness: 0-1
 }
 
-// ParseHex parses a hex color string.
-func ParseHex(hex string) (RGB, bool) {
-	s := strings.TrimPrefix(strings.TrimSpace(hex), "#")
+// ColorParseHex parses a hex color string (#RRGGBB or #RGB).
+func ColorParseHex(hexColor string) (*RGB, error) {
+	cs, length := cString(hexColor)
+	defer unsafeFree(cs)
 
-	if len(s) == 3 {
-		s = string(s[0]) + string(s[0]) + string(s[1]) + string(s[1]) + string(s[2]) + string(s[2])
+	result := C.proven_color_parse_hex(cs, length)
+	if int(result.status) != StatusOK {
+		return nil, newError(int(result.status))
 	}
-
-	if len(s) != 6 {
-		return RGB{}, false
-	}
-
-	matched, _ := regexp.MatchString("^[0-9a-fA-F]+$", s)
-	if !matched {
-		return RGB{}, false
-	}
-
-	r, _ := strconv.ParseUint(s[0:2], 16, 8)
-	g, _ := strconv.ParseUint(s[2:4], 16, 8)
-	b, _ := strconv.ParseUint(s[4:6], 16, 8)
-
-	return RGB{R: uint8(r), G: uint8(g), B: uint8(b)}, true
+	return &RGB{
+		R: uint8(result.color.r),
+		G: uint8(result.color.g),
+		B: uint8(result.color.b),
+	}, nil
 }
 
-// ToHex converts to hex string.
-func (c RGB) ToHex() string {
-	return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B)
-}
-
-// ToCss converts to CSS rgb() string.
-func (c RGB) ToCss() string {
-	return fmt.Sprintf("rgb(%d, %d, %d)", c.R, c.G, c.B)
-}
-
-// Luminance calculates relative luminance (WCAG).
-func (c RGB) Luminance() float64 {
-	r := linearize(float64(c.R) / 255)
-	g := linearize(float64(c.G) / 255)
-	b := linearize(float64(c.B) / 255)
-	return 0.2126*r + 0.7152*g + 0.0722*b
-}
-
-func linearize(v float64) float64 {
-	if v <= 0.03928 {
-		return v / 12.92
-	}
-	return math.Pow((v+0.055)/1.055, 2.4)
-}
-
-// Contrast calculates contrast ratio with another color.
-func (c RGB) Contrast(other RGB) float64 {
-	l1 := c.Luminance()
-	l2 := other.Luminance()
-	lighter := math.Max(l1, l2)
-	darker := math.Min(l1, l2)
-	return (lighter + 0.05) / (darker + 0.05)
-}
-
-// MeetsWCAG_AA checks WCAG AA compliance for normal text.
-func (c RGB) MeetsWCAG_AA(background RGB) bool {
-	return c.Contrast(background) >= 4.5
-}
-
-// MeetsWCAG_AAA checks WCAG AAA compliance for normal text.
-func (c RGB) MeetsWCAG_AAA(background RGB) bool {
-	return c.Contrast(background) >= 7
-}
-
-// MeetsWCAG_AALarge checks WCAG AA compliance for large text.
-func (c RGB) MeetsWCAG_AALarge(background RGB) bool {
-	return c.Contrast(background) >= 3
-}
-
-// Mix blends with another color.
-func (c RGB) Mix(other RGB, amount float64) RGB {
-	t := math.Max(0, math.Min(1, amount))
-	return RGB{
-		R: uint8(float64(c.R) + (float64(other.R)-float64(c.R))*t),
-		G: uint8(float64(c.G) + (float64(other.G)-float64(c.G))*t),
-		B: uint8(float64(c.B) + (float64(other.B)-float64(c.B))*t),
+// ColorRGBToHSL converts an RGB color to HSL.
+func ColorRGBToHSL(rgb RGB) HSL {
+	cRGB := C.RGBColor{r: C.uint8_t(rgb.R), g: C.uint8_t(rgb.G), b: C.uint8_t(rgb.B)}
+	result := C.proven_color_rgb_to_hsl(cRGB)
+	return HSL{
+		H: float64(result.h),
+		S: float64(result.s),
+		L: float64(result.l),
 	}
 }
 
-// Lighten lightens the color.
-func (c RGB) Lighten(amount float64) RGB {
-	return c.Mix(White, amount)
+// ColorToHex formats an RGB color as a hex string.
+func ColorToHex(rgb RGB) (string, error) {
+	cRGB := C.RGBColor{r: C.uint8_t(rgb.R), g: C.uint8_t(rgb.G), b: C.uint8_t(rgb.B)}
+	return goStringResult(C.proven_color_to_hex(cRGB))
 }
-
-// Darken darkens the color.
-func (c RGB) Darken(amount float64) RGB {
-	return c.Mix(Black, amount)
-}
-
-// Invert inverts the color.
-func (c RGB) Invert() RGB {
-	return RGB{R: 255 - c.R, G: 255 - c.G, B: 255 - c.B}
-}
-
-// Grayscale converts to grayscale.
-func (c RGB) Grayscale() RGB {
-	gray := uint8(0.299*float64(c.R) + 0.587*float64(c.G) + 0.114*float64(c.B))
-	return RGB{R: gray, G: gray, B: gray}
-}
-
-// RGBA represents an RGBA color.
-type RGBA struct {
-	R, G, B uint8
-	A       float64
-}
-
-// NewRGBA creates an RGBA color.
-func NewRGBA(r, g, b uint8, a float64) RGBA {
-	if a < 0 {
-		a = 0
-	} else if a > 1 {
-		a = 1
-	}
-	return RGBA{R: r, G: g, B: b, A: a}
-}
-
-// ToRGB converts to RGB (drops alpha).
-func (c RGBA) ToRGB() RGB {
-	return RGB{R: c.R, G: c.G, B: c.B}
-}
-
-// ToCss converts to CSS rgba() string.
-func (c RGBA) ToCss() string {
-	return fmt.Sprintf("rgba(%d, %d, %d, %.2f)", c.R, c.G, c.B, c.A)
-}
-
-// BlendOver blends over a background color.
-func (c RGBA) BlendOver(background RGB) RGB {
-	return RGB{
-		R: uint8(float64(c.R)*c.A + float64(background.R)*(1-c.A)),
-		G: uint8(float64(c.G)*c.A + float64(background.G)*(1-c.A)),
-		B: uint8(float64(c.B)*c.A + float64(background.B)*(1-c.A)),
-	}
-}
-
-// Common colors.
-var (
-	Black   = RGB{0, 0, 0}
-	White   = RGB{255, 255, 255}
-	Red     = RGB{255, 0, 0}
-	Green   = RGB{0, 255, 0}
-	Blue    = RGB{0, 0, 255}
-	Yellow  = RGB{255, 255, 0}
-	Cyan    = RGB{0, 255, 255}
-	Magenta = RGB{255, 0, 255}
-)

@@ -1,0 +1,50 @@
+(* SPDX-License-Identifier: PMPL-1.0-or-later *)
+(* Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> *)
+
+(* proven.mlb -- ML Basis file for building with MLton.
+ *
+ * Usage:
+ *   mlton -link-opt "-lproven" proven.mlb
+ *
+ * Requires libproven.so or libproven.a on the linker search path.
+ * Set LD_LIBRARY_PATH or use -link-opt "-L/path/to/lib" as needed.
+ *)
+
+local
+  $(SML_LIB)/basis/basis.mlb
+  $(SML_LIB)/basis/mlton.mlb
+
+  (* Core FFI layer -- status codes, raw imports, marshaling *)
+  src/lib_proven.sml
+
+  (* Safe wrapper modules *)
+  src/safe_math.sml
+  src/safe_string.sml
+  src/safe_path.sml
+  src/safe_email.sml
+  src/safe_url.sml
+  src/safe_network.sml
+  src/safe_crypto.sml
+  src/safe_json.sml
+  src/safe_datetime.sml
+  src/safe_float.sml
+
+  (* Top-level re-export structure *)
+  src/proven.sml
+in
+  structure ProvenStatus
+  structure ProvenResult
+  structure ProvenMarshal
+  structure LibProven
+  structure SafeMath
+  structure SafeString
+  structure SafePath
+  structure SafeEmail
+  structure SafeUrl
+  structure SafeNetwork
+  structure SafeCrypto
+  structure SafeJson
+  structure SafeDatetime
+  structure SafeFloat
+  structure Proven
+end

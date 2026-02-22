@@ -1,120 +1,56 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-//! Safe finite state machine implementation.
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Proven SafeStateMachine - FFI bindings to libproven state machine operations.
+// All computation is performed in verified Idris 2 code via libproven.
 
 const std = @import("std");
+const c = @cImport(@cInclude("proven.h"));
 
+/// Error types for state machine operations.
 pub const StateMachineError = error{
-    InvalidTransition,
-    MaxTransitionsReached,
+    CreationFailed,
 };
 
-/// Transition definition.
-pub fn Transition(comptime State: type, comptime Event: type) type {
-    return struct {
-        from: State,
-        trigger: Event,
-        to: State,
-    };
+/// Type-safe state machine backed by libproven.
+pub const StateMachine = struct {
+    ptr: *c.ProvenStateMachine,
+
+    /// Allow a state transition via libproven.
+    pub fn allowTransition(self: StateMachine, from: u32, to: u32) bool {
+        return c.proven_state_machine_allow(self.ptr, from, to);
+    }
+
+    /// Attempt to transition to a new state via libproven.
+    pub fn transition(self: StateMachine, to: u32) bool {
+        return c.proven_state_machine_transition(self.ptr, to);
+    }
+
+    /// Get current state index via libproven.
+    pub fn state(self: StateMachine) u32 {
+        return c.proven_state_machine_state(self.ptr);
+    }
+
+    /// Free state machine via libproven.
+    pub fn deinit(self: StateMachine) void {
+        c.proven_state_machine_free(self.ptr);
+    }
+};
+
+/// Create a state machine via libproven.
+/// state_count: Total number of states (max 256).
+/// initial_state: Initial state index.
+pub fn create(state_count: u32, initial_state: u32) StateMachineError!StateMachine {
+    const ptr = c.proven_state_machine_create(state_count, initial_state);
+    if (ptr == null) return error.CreationFailed;
+    return StateMachine{ .ptr = ptr.? };
 }
 
-/// State machine with compile-time state and event types.
-pub fn StateMachine(comptime State: type, comptime Event: type, comptime max_transitions: usize) type {
-    return struct {
-        const Self = @This();
-        const Trans = Transition(State, Event);
-
-        transitions: [max_transitions]?Trans = [_]?Trans{null} ** max_transitions,
-        transition_count: usize = 0,
-        initial_state: State,
-        current_state: State,
-        final_states: [16]?State = [_]?State{null} ** 16,
-        final_count: usize = 0,
-
-        pub fn init(initial: State) Self {
-            return .{
-                .initial_state = initial,
-                .current_state = initial,
-            };
-        }
-
-        /// Add a transition.
-        pub fn addTransition(self: *Self, from: State, event: Event, to: State) StateMachineError!void {
-            if (self.transition_count >= max_transitions) return error.MaxTransitionsReached;
-            self.transitions[self.transition_count] = .{ .from = from, .trigger = event, .to = to };
-            self.transition_count += 1;
-        }
-
-        /// Mark a state as final.
-        pub fn addFinalState(self: *Self, state: State) void {
-            if (self.final_count < 16) {
-                self.final_states[self.final_count] = state;
-                self.final_count += 1;
-            }
-        }
-
-        /// Find transition for current state and event.
-        fn findTransition(self: *const Self, event: Event) ?State {
-            for (self.transitions[0..self.transition_count]) |trans_opt| {
-                if (trans_opt) |trans| {
-                    if (trans.from == self.current_state and trans.trigger == event) {
-                        return trans.to;
-                    }
-                }
-            }
-            return null;
-        }
-
-        /// Trigger an event.
-        pub fn trigger(self: *Self, event: Event) StateMachineError!void {
-            if (self.findTransition(event)) |next| {
-                self.current_state = next;
-            } else {
-                return error.InvalidTransition;
-            }
-        }
-
-        /// Check if event can be triggered.
-        pub fn canTrigger(self: *const Self, event: Event) bool {
-            return self.findTransition(event) != null;
-        }
-
-        /// Get current state.
-        pub fn getState(self: *const Self) State {
-            return self.current_state;
-        }
-
-        /// Check if in final state.
-        pub fn isInFinalState(self: *const Self) bool {
-            for (self.final_states[0..self.final_count]) |state_opt| {
-                if (state_opt) |state| {
-                    if (state == self.current_state) return true;
-                }
-            }
-            return false;
-        }
-
-        /// Reset to initial state.
-        pub fn reset(self: *Self) void {
-            self.current_state = self.initial_state;
-        }
-    };
-}
-
-test "StateMachine" {
-    const State = enum { idle, running, stopped };
-    const Event = enum { start, stop, reset };
-
-    var sm = StateMachine(State, Event, 10).init(.idle);
-    try sm.addTransition(.idle, .start, .running);
-    try sm.addTransition(.running, .stop, .stopped);
-    try sm.addTransition(.stopped, .reset, .idle);
-    sm.addFinalState(.stopped);
-
-    try std.testing.expectEqual(State.idle, sm.getState());
-    try sm.trigger(.start);
-    try std.testing.expectEqual(State.running, sm.getState());
-    try sm.trigger(.stop);
-    try std.testing.expect(sm.isInFinalState());
+test "create and transition" {
+    const sm = try create(3, 0);
+    defer sm.deinit();
+    try std.testing.expectEqual(@as(u32, 0), sm.state());
+    _ = sm.allowTransition(0, 1);
+    try std.testing.expect(sm.transition(1));
+    try std.testing.expectEqual(@as(u32, 1), sm.state());
 }

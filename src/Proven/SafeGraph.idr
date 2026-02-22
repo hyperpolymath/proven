@@ -161,25 +161,27 @@ edgesTo v g = filter (\e => e.target == v) g.edges
 
 ||| Find a path between two vertices using BFS
 ||| Returns Nothing if no path exists
-||| Uses assert_total as termination depends on finite graph
+||| Bounded by fuel derived from vertex count to guarantee termination
 public export
 findPath : Eq v => v -> v -> Graph v w -> Maybe (List v)
 findPath start end g =
   if not (hasVertex start g) || not (hasVertex end g)
     then Nothing
-    else bfs [(start, [start])] []
+    else let fuel = vertexCount g * vertexCount g + vertexCount g
+         in bfs fuel [(start, [start])] []
   where
-    bfs : List (v, List v) -> List v -> Maybe (List v)
-    bfs [] _ = Nothing
-    bfs ((current, path) :: queue) visited =
+    bfs : Nat -> List (v, List v) -> List v -> Maybe (List v)
+    bfs Z _ _ = Nothing  -- Fuel exhausted
+    bfs _ [] _ = Nothing
+    bfs (S fuel) ((current, path) :: queue) visited =
       if current == end
         then Just (reverse path)
         else if any (== current) visited
-          then assert_total $ bfs queue visited
+          then bfs fuel queue visited
           else let newVisited = current :: visited
                    nextNodes = filter (\n => not (any (== n) newVisited)) (neighbors current g)
                    newQueue = queue ++ map (\n => (n, n :: path)) nextNodes
-               in assert_total $ bfs newQueue newVisited
+               in bfs fuel newQueue newVisited
 
 ||| Check if two vertices are connected
 public export
@@ -194,46 +196,51 @@ isConnected start end g =
 --------------------------------------------------------------------------------
 
 ||| Detect if graph has a cycle (using DFS)
-||| Uses assert_total as termination depends on acyclic exploration
+||| Bounded by fuel derived from vertex count to guarantee termination
 public export
 hasCycle : Eq v => Graph v w -> Bool
 hasCycle g = any (checkFromVertex []) (vertices g)
   where
-    dfs : List v -> List v -> v -> Bool
-    dfs visited stack current =
+    dfs : Nat -> List v -> List v -> v -> Bool
+    dfs Z _ _ _ = False  -- Fuel exhausted, conservatively report no cycle
+    dfs (S fuel) visited stack current =
       if any (== current) stack
         then True  -- Back edge found, cycle exists
         else if any (== current) visited
           then False  -- Already fully explored
           else let newStack = current :: stack
                    succs = neighbors current g
-               in any (\s => assert_total (dfs visited newStack s)) succs
+               in any (\s => dfs fuel visited newStack s) succs
 
     checkFromVertex : List v -> v -> Bool
-    checkFromVertex visited v = dfs visited [] v
+    checkFromVertex visited v = dfs (vertexCount g) visited [] v
 
 --------------------------------------------------------------------------------
 -- Topological Sort
 --------------------------------------------------------------------------------
 
 ||| Visit helper for topological sort
-visitTopo : Eq v => Graph v w -> v -> List v -> List v -> (List v, List v)
-visitTopo g v visited result =
+||| Bounded by fuel derived from vertex count to guarantee termination
+visitTopo : Eq v => Nat -> Graph v w -> v -> List v -> List v -> (List v, List v)
+visitTopo Z _ _ visited result = (visited, result)  -- Fuel exhausted
+visitTopo (S fuel) g v visited result =
   if any (== v) visited
     then (visited, result)
     else let newVisited = v :: visited
              succs = neighbors v g
-             (finalVisited, afterSuccs) = foldl (\(vis, res), s => assert_total (visitTopo g s vis res)) (newVisited, result) succs
+             (finalVisited, afterSuccs) =
+               foldl (\(vis, res), s => visitTopo fuel g s vis res)
+                     (newVisited, result) succs
          in (finalVisited, v :: afterSuccs)
 
-||| Topological sort helper
-topoSortHelper : Eq v => Graph v w -> List v -> List v -> List v -> List v
-topoSortHelper g [] _ result = result
-topoSortHelper g (v :: vs) visited result =
+||| Topological sort helper (structurally recursive on vertex list)
+topoSortHelper : Eq v => Nat -> Graph v w -> List v -> List v -> List v -> List v
+topoSortHelper _ _ [] _ result = result
+topoSortHelper fuel g (v :: vs) visited result =
   if any (== v) visited
-    then topoSortHelper g vs visited result
-    else let (newVisited, newResult) = visitTopo g v visited result
-         in assert_total $ topoSortHelper g vs newVisited newResult
+    then topoSortHelper fuel g vs visited result
+    else let (newVisited, newResult) = visitTopo fuel g v visited result
+         in topoSortHelper fuel g vs newVisited newResult
 
 ||| Topological sort (returns Nothing if graph has cycles)
 public export
@@ -241,7 +248,7 @@ topologicalSort : Eq v => Graph v w -> Maybe (List v)
 topologicalSort g =
   if hasCycle g
     then Nothing
-    else Just (topoSortHelper g (vertices g) [] [])
+    else Just (topoSortHelper (vertexCount g) g (vertices g) [] [])
 
 --------------------------------------------------------------------------------
 -- Display

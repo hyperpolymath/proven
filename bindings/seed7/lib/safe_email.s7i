@@ -1,0 +1,32 @@
+(********************************************************************)
+(*  SPDX-License-Identifier: PMPL-1.0-or-later                     *)
+(*  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)         *)
+(*  <jonathan.jewell@open.ac.uk>                                    *)
+(*                                                                  *)
+(*  safe_email.s7i -- Email address validation (RFC 5321).          *)
+(*  Thin wrapper over libproven FFI -- all logic lives in Idris 2.  *)
+(********************************************************************)
+
+include "proven.s7i";
+
+(* ---------------------------------------------------------------------------
+   External C declaration (raw FFI)
+   --------------------------------------------------------------------------- *)
+
+const func integer: c_proven_email_is_valid (in string: ptr, in integer: len) is
+  external "proven_email_is_valid" integer;
+
+(* ---------------------------------------------------------------------------
+   High-level wrapper
+   --------------------------------------------------------------------------- *)
+
+(** Validate an email address per RFC 5321.
+    Returns TRUE if the email is valid, FALSE otherwise. *)
+const func boolean: isValidEmail (in string: value) is func
+  result
+    var boolean: valid is FALSE;
+  begin
+    if length(value) > 0 then
+      valid := c_proven_email_is_valid(value, length(value)) = 1;
+    end if;
+  end func;

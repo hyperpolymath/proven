@@ -1,18 +1,20 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
+# (PMPL-1.0-or-later preferred; MPL-2.0 required for Gleam/Hex ecosystem)
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 name = "proven"
 version = "1.0.0"
-description = "Code that cannot crash - verified safety functions"
+description = "Code that cannot crash - thin FFI wrapper over libproven (Idris2 verified)"
 
-licences = ["PMPL-1.0-or-later"]
+licences = ["MPL-2.0"]
 repository = { type = "github", user = "hyperpolymath", repo = "proven" }
 
-target = "javascript"
+# Target Erlang for NIF FFI to libproven
+target = "erlang"
 
 [dependencies]
 gleam_stdlib = ">= 0.34.0 and < 2.0.0"
-gleam_javascript = ">= 0.8.0 and < 1.0.0"
+gleam_erlang = ">= 0.25.0 and < 1.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

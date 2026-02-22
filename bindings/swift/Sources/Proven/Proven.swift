@@ -1,73 +1,138 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-/// Proven - Safety-first utility functions with formal verification guarantees.
+/// Proven - Thin FFI wrapper around libproven shared library.
 ///
-/// This library provides 38 modules of safe operations:
+/// All computation is delegated to the Idris 2 formally verified core
+/// via the Zig FFI bridge (libproven). This Swift package provides
+/// safe, idiomatic Swift wrappers using Result types.
 ///
-/// ## Core Types
-/// - SafeMath: Division, modulo, checked arithmetic with overflow detection
-/// - SafeFloat: IEEE 754 safe floating-point preventing NaN/Infinity
-/// - SafeString: HTML/SQL/JS/URL escaping, safe truncation
-/// - SafeJson: JSON parsing, path access, safe serialization
-/// - SafeDatetime: Date/time operations with timezone safety
-///
-/// ## Data Types
-/// - SafeVersion: Semantic versioning (SemVer) parsing and comparison
-/// - SafeColor: RGB, RGBA, HSL color types with WCAG contrast checking
-/// - SafeAngle: Degrees and radians with conversions and normalization
-/// - SafeUnit: Length, mass, temperature, time, data unit conversions
-/// - SafeProbability: Probability operations, Bayes theorem, distributions
-///
-/// ## Security
-/// - SafeCrypto: Constant-time comparison, secure zeroing
-/// - SafePassword: Password strength validation and generation
-/// - SafeHex: Hexadecimal encoding/decoding with constant-time comparison
-/// - SafeChecksum: CRC-32, Adler-32, FNV, Luhn validation
-///
-/// ## Network
-/// - SafeNetwork: IPv4 parsing, private/loopback/public classification
-/// - SafeUrl: URL parsing with full component extraction
-/// - SafeEmail: Validation, parsing, normalization
-/// - SafePhone: E.164 phone number parsing and formatting
-/// - SafeHeader: HTTP header validation and common headers
-/// - SafeCookie: HTTP cookie parsing, formatting, security attributes
-/// - SafeContentType: MIME type parsing and file extension mapping
-///
-/// ## Data Structures
-/// - SafeBuffer: BoundedBuffer, RingBuffer, GrowableBuffer
-/// - SafeQueue: BoundedQueue, PriorityQueue, BoundedDeque
-/// - SafeLRU: LRU cache with optional TTL support
-/// - SafeBloom: Bloom filter and counting Bloom filter
-/// - SafeGraph: Directed and undirected graphs with BFS, DFS, topological sort
-/// - SafeTensor: Multi-dimensional array operations
-///
-/// ## Resilience Patterns
-/// - SafeRateLimiter: Token bucket, sliding window, fixed window, leaky bucket
-/// - SafeCircuitBreaker: Circuit breaker pattern for fault tolerance
-/// - SafeRetry: Retry with exponential backoff and jitter
-///
-/// ## Utilities
-/// - SafePath: Traversal detection and filename sanitization
-/// - SafeUUID: RFC 4122 UUID parsing, formatting, and generation
-/// - SafeCurrency: Type-safe monetary values with ISO 4217 codes
-/// - SafeMonotonic: Monotonically increasing counters, timestamps, IDs
-///
-/// ## Scientific
-/// - SafeCalculator: Safe arithmetic operations and expression parsing
-/// - SafeGeo: Geographic calculations (haversine, bearing, bounding box)
-/// - SafeML: Machine learning utilities (activations, normalization, metrics)
-///
-/// ## Infrastructure
-/// - SafeStateMachine: Type-safe finite state machine
-///
-/// All modules use Swift's Result type or optionals for error handling,
-/// ensuring compile-time safety and preventing runtime crashes.
+/// Architecture:
+///   Swift (this package) -> CProven (C interop) -> libproven.so -> Zig FFI -> Idris 2
 
-import Foundation
+import CProven
 
-/// Library version.
-public let PROVEN_VERSION = "0.4.0"
+// MARK: - Error Type
 
-/// Library module count.
-public let PROVEN_MODULE_COUNT = 38
+/// Unified error type mapping libproven status codes to Swift.
+public enum ProvenError: Error, Equatable, Sendable {
+    case nullPointer
+    case invalidArgument
+    case overflow
+    case underflow
+    case divisionByZero
+    case parseFailed
+    case validationFailed
+    case outOfBounds
+    case encodingError
+    case allocationFailed
+    case notImplemented
+    case unknown(Int32)
+
+    /// Convert a ProvenStatus integer to a ProvenError.
+    /// Returns nil for PROVEN_OK (status == 0).
+    public static func fromStatus(_ status: ProvenStatus) -> ProvenError? {
+        switch status {
+        case PROVEN_OK:
+            return nil
+        case PROVEN_ERR_NULL_POINTER:
+            return .nullPointer
+        case PROVEN_ERR_INVALID_ARGUMENT:
+            return .invalidArgument
+        case PROVEN_ERR_OVERFLOW:
+            return .overflow
+        case PROVEN_ERR_UNDERFLOW:
+            return .underflow
+        case PROVEN_ERR_DIVISION_BY_ZERO:
+            return .divisionByZero
+        case PROVEN_ERR_PARSE_FAILURE:
+            return .parseFailed
+        case PROVEN_ERR_VALIDATION_FAILED:
+            return .validationFailed
+        case PROVEN_ERR_OUT_OF_BOUNDS:
+            return .outOfBounds
+        case PROVEN_ERR_ENCODING_ERROR:
+            return .encodingError
+        case PROVEN_ERR_ALLOCATION_FAILED:
+            return .allocationFailed
+        case PROVEN_ERR_NOT_IMPLEMENTED:
+            return .notImplemented
+        default:
+            return .unknown(status.rawValue)
+        }
+    }
+
+    /// Convert from raw Int32 status code.
+    public static func fromRawStatus(_ raw: Int32) -> ProvenError? {
+        if raw == 0 { return nil }
+        return fromStatus(ProvenStatus(rawValue: raw) ?? PROVEN_ERR_NOT_IMPLEMENTED)
+    }
+}
+
+// MARK: - Runtime
+
+/// Proven runtime management.
+public enum ProvenRuntime {
+    /// Initialize the Proven runtime. Call before using any other function.
+    @discardableResult
+    public static func initialize() -> Result<Void, ProvenError> {
+        let status = proven_init()
+        if status == 0 {
+            return .success(())
+        }
+        return .failure(ProvenError.fromRawStatus(status) ?? .unknown(status))
+    }
+
+    /// Deinitialize the Proven runtime. Call when done.
+    public static func deinitialize() {
+        proven_deinit()
+    }
+
+    /// Check if the runtime is initialized.
+    public static var isInitialized: Bool {
+        proven_is_initialized()
+    }
+
+    /// Get the FFI ABI version number.
+    public static var abiVersion: UInt32 {
+        proven_ffi_abi_version()
+    }
+
+    /// Get the library version as (major, minor, patch).
+    public static var version: (major: UInt32, minor: UInt32, patch: UInt32) {
+        (proven_version_major(), proven_version_minor(), proven_version_patch())
+    }
+
+    /// Get the module count.
+    public static var moduleCount: UInt32 {
+        proven_module_count()
+    }
+}
+
+// MARK: - Internal Helpers
+
+/// Convert a Swift String to a call with a (ptr, len) pair, returning Result.
+/// This helper calls a C function that returns ProvenIntResult.
+internal func withStringBytes<R>(
+    _ string: String,
+    _ body: (UnsafePointer<UInt8>, Int) -> R
+) -> R {
+    let utf8 = Array(string.utf8)
+    return utf8.withUnsafeBufferPointer { buffer in
+        body(buffer.baseAddress ?? UnsafePointer<UInt8>(bitPattern: 1)!, buffer.count)
+    }
+}
+
+/// Convert a ProvenStringResult to a Swift String, freeing the C memory.
+/// Returns nil if status is not OK or value is NULL.
+internal func consumeStringResult(_ result: ProvenStringResult) -> Result<String, ProvenError> {
+    if let error = ProvenError.fromStatus(result.status) {
+        return .failure(error)
+    }
+    guard let ptr = result.value else {
+        return .failure(.nullPointer)
+    }
+    let string = String(cString: ptr)
+    proven_free_string(ptr)
+    return .success(string)
+}

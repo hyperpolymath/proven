@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 // swift-tools-version:5.9
 
@@ -21,9 +21,17 @@ let package = Package(
     ],
     dependencies: [],
     targets: [
+        .systemLibrary(
+            name: "CProven",
+            pkgConfig: "proven",
+            providers: [
+                .brew(["proven"]),
+                .apt(["libproven-dev"]),
+            ]
+        ),
         .target(
             name: "Proven",
-            dependencies: [],
+            dependencies: ["CProven"],
             path: "Sources/Proven"
         ),
         .testTarget(

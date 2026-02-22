@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+[package]
+name = "ephapax-proven-linear"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+license = "PMPL-1.0-or-later"
+description = "Linear type variant of Ephapax bindings for the proven library (values must be consumed exactly once)"
+repository = "https://github.com/hyperpolymath/proven"
+keywords = ["formal-verification", "linear-types", "proven", "safe-ffi", "ephapax"]
+categories = ["api-bindings", "memory-management"]
+readme = "README.md"
+
+[dependencies]
+
+[lib]
+name = "ephapax_proven_linear"
+path = "src/lib.rs"
+
+[features]
+default = []

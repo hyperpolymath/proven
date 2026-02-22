@@ -1,0 +1,137 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// proven_queries.kql - Example proven-backed queries for Azure Data Explorer
+//
+// These examples demonstrate using proven functions in KQL queries.
+// All functions call libproven (Idris 2 verified core via Zig FFI bridge).
+// Functions return null on error rather than raising exceptions.
+
+// ============================================================================
+// SafeMath: Checked arithmetic in telemetry queries
+// ============================================================================
+
+// Safe aggregation that does not overflow
+Metrics
+| extend safeTotal = proven_safe_add(requestCount, errorCount)
+| where isnotnull(safeTotal)
+| summarize totalByHost = sum(safeTotal) by hostName
+| order by totalByHost desc;
+
+// Safe multiplication for cost calculations
+BillingEvents
+| extend totalCost = proven_safe_mul(unitCount, unitPriceCents)
+| where isnotnull(totalCost)
+| summarize dailyCost = sum(totalCost) by bin(timestamp, 1d)
+| render timechart;
+
+// Safe division for rate calculations (no division-by-zero crashes)
+PerformanceCounters
+| extend avgLatencyMs = proven_safe_div(totalLatencyMs, requestCount)
+| where isnotnull(avgLatencyMs)
+| project timestamp, counterName, avgLatencyMs;
+
+// Detecting overflow in financial transactions
+Transactions
+| extend newBalance = proven_safe_add(currentBalance, transactionAmount)
+| extend overflowed = isnull(newBalance)
+| where overflowed
+| project timestamp, accountId, currentBalance, transactionAmount;
+
+// ============================================================================
+// Validation: Filter and classify log data
+// ============================================================================
+
+// Validate email addresses in sign-up events
+SignUpEvents
+| extend emailValid = proven_validate_email(userEmail)
+| summarize
+    validEmails = countif(emailValid == true),
+    invalidEmails = countif(emailValid == false)
+    by bin(timestamp, 1h)
+| render timechart;
+
+// Find requests to invalid URLs
+HttpRequests
+| extend urlValid = proven_validate_url(requestUrl)
+| where urlValid == false
+| project timestamp, clientIp, requestUrl
+| take 100;
+
+// Validate source IP addresses in security logs
+SecurityEvents
+| extend ipValid = proven_validate_ipv4(sourceIp)
+| where ipValid == false
+| project timestamp, sourceIp, eventType
+| summarize count() by sourceIp
+| order by count_ desc;
+
+// Validate JSON payloads in API logs
+ApiLogs
+| extend jsonValid = proven_validate_json(requestBody)
+| where jsonValid == false
+| project timestamp, endpoint, requestBody
+| take 50;
+
+// ============================================================================
+// String operations in log processing
+// ============================================================================
+
+// Sanitize user input for safe display in dashboards
+UserEvents
+| extend safeMessage = proven_sanitize_string(userMessage)
+| project timestamp, userId, safeMessage;
+
+// Hash sensitive data for privacy-safe analytics
+LoginEvents
+| extend emailHash = proven_hash_sha256(userEmail)
+| summarize loginCount = count() by emailHash
+| order by loginCount desc
+| take 20;
+
+// Hex-encode binary data for display
+CertificateEvents
+| extend fingerprintHex = proven_hex_encode(certFingerprint)
+| project timestamp, certSubject, fingerprintHex;
+
+// ============================================================================
+// Combined queries: Real-world security monitoring
+// ============================================================================
+
+// Security audit: validate all contact info fields
+let validationReport = UserProfiles
+| extend
+    emailOk = proven_validate_email(email),
+    websiteOk = proven_validate_url(website),
+    lastIpOk = proven_validate_ipv4(lastLoginIp),
+    prefsOk = proven_validate_json(preferences)
+| summarize
+    validEmails = countif(emailOk),
+    invalidEmails = countif(not(emailOk)),
+    validUrls = countif(websiteOk),
+    invalidUrls = countif(not(websiteOk)),
+    validIps = countif(lastIpOk),
+    invalidIps = countif(not(lastIpOk)),
+    validJson = countif(prefsOk),
+    invalidJson = countif(not(prefsOk));
+validationReport;
+
+// Safe financial rollup with overflow protection
+let dailyRollup = Transactions
+| extend lineTotal = proven_safe_mul(quantity, unitPrice)
+| where isnotnull(lineTotal)
+| summarize
+    dailyTotal = sum(lineTotal),
+    txCount = count()
+    by bin(timestamp, 1d), merchantId
+| extend perTxAvg = proven_safe_div(dailyTotal, txCount);
+dailyRollup
+| order by dailyTotal desc;
+
+// Threat detection: sanitize and hash for IOC matching
+ThreatIntel
+| extend
+    sanitizedIndicator = proven_sanitize_string(indicator),
+    indicatorHash = proven_hash_sha256(indicator),
+    indicatorHex = proven_hex_encode(indicator)
+| project timestamp, indicatorType, sanitizedIndicator, indicatorHash;

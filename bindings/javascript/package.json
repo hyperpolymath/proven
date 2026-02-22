@@ -1,16 +1,51 @@
 {
   "name": "@hyperpolymath/proven",
   "version": "0.9.0",
-  "description": "Proven - Formally verified safety library for JavaScript",
+  "description": "Proven - Formally verified safety library for JavaScript (FFI bindings to libproven)",
   "type": "module",
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
+    "./ffi": "./src/ffi.js",
+    "./result": "./src/result.js",
     "./uuid": "./src/safe_uuid.js",
     "./currency": "./src/safe_currency.js",
     "./phone": "./src/safe_phone.js",
     "./hex": "./src/safe_hex.js",
-    "./result": "./src/result.js"
+    "./math": "./src/safe_math.js",
+    "./string": "./src/safe_string.js",
+    "./path": "./src/safe_path.js",
+    "./email": "./src/safe_email.js",
+    "./url": "./src/safe_url.js",
+    "./network": "./src/safe_network.js",
+    "./json": "./src/safe_json.js",
+    "./datetime": "./src/safe_datetime.js",
+    "./float": "./src/safe_float.js",
+    "./version": "./src/safe_version.js",
+    "./geo": "./src/safe_geo.js",
+    "./angle": "./src/safe_angle.js",
+    "./checksum": "./src/safe_checksum.js",
+    "./probability": "./src/safe_probability.js",
+    "./unit": "./src/safe_unit.js",
+    "./color": "./src/safe_color.js",
+    "./buffer": "./src/safe_buffer.js",
+    "./queue": "./src/safe_queue.js",
+    "./bloom": "./src/safe_bloom.js",
+    "./lru": "./src/safe_lru.js",
+    "./rate-limiter": "./src/safe_rate_limiter.js",
+    "./circuit-breaker": "./src/safe_circuit_breaker.js",
+    "./retry": "./src/safe_retry.js",
+    "./monotonic": "./src/safe_monotonic.js",
+    "./state-machine": "./src/safe_state_machine.js",
+    "./graph": "./src/safe_graph.js",
+    "./tensor": "./src/safe_tensor.js",
+    "./ml": "./src/safe_ml.js",
+    "./calculator": "./src/safe_calculator.js",
+    "./password": "./src/safe_password.js",
+    "./header": "./src/safe_header.js",
+    "./cookie": "./src/safe_cookie.js",
+    "./content-type": "./src/safe_content_type.js",
+    "./crypto": "./src/safe_crypto.js"
   },
   "files": [
     "src/**/*.js"
@@ -19,6 +54,9 @@
     "proven",
     "safe",
     "verified",
+    "ffi",
+    "idris",
+    "formal-verification",
     "uuid",
     "currency",
     "money",
@@ -26,11 +64,11 @@
     "hex",
     "validation",
     "parsing",
-    "idris",
-    "formal-verification"
+    "deno",
+    "dlopen"
   ],
-  "author": "Hyperpolymath",
-  "license": "PMPL-1.0",
+  "author": "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>",
+  "license": "PMPL-1.0-or-later",
   "repository": {
     "type": "git",
     "url": "https://github.com/hyperpolymath/proven.git",
@@ -40,7 +78,7 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "deno": ">=1.40.0"
   },
   "sideEffects": false
 }

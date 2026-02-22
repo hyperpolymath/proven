@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "ReScript bindings to proven formally verified library",
   "author": "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>",
-  "license": "AGPL-3.0-or-later",
+  "license": "PMPL-1.0-or-later",
   "keywords": [
     "rescript",
     "idris2",

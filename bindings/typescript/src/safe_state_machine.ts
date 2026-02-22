@@ -1,335 +1,170 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-export interface Result<T> {
-  ok: boolean;
-  value?: T;
-  error?: string;
-}
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Guard function type for transitions.
+ * SafeStateMachine - Typed wrapper for state machine transitions.
+ *
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * @module
  */
-export type Guard<C> = (context: C) => boolean;
+
+import {
+  StateMachine as JsStateMachine,
+  StateMachineBuilder as JsStateMachineBuilder,
+  SafeStateMachine as JsSafeStateMachine,
+} from '../../javascript/src/safe_state_machine.js';
+
+/** Result type returned by state machine operations. */
+export type Result<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: string };
 
 /**
- * Action function type for transitions.
+ * Typed wrapper around the FFI-backed StateMachine.
+ *
+ * Every method calls through to the JavaScript FFI wrapper, which in turn
+ * calls the formally verified Idris 2 code via the Zig FFI bridge.
+ * States are identified by integer IDs (0-based).
  */
-export type Action<C> = (context: C) => void;
+export class StateMachine {
+  /** The underlying JS FFI state machine instance. */
+  readonly #inner: InstanceType<typeof JsStateMachine>;
 
-/**
- * Transition definition.
- */
-export interface Transition<S, E, C> {
-  from: S;
-  event: E;
-  to: S;
-  guard?: Guard<C>;
-  action?: Action<C>;
-}
-
-/**
- * State machine configuration.
- */
-export interface StateMachineConfig<S, E, C> {
-  initial: S;
-  context: C;
-  transitions: Transition<S, E, C>[];
-  onEnter?: Map<S, Action<C>>;
-  onExit?: Map<S, Action<C>>;
-}
-
-/**
- * Transition result.
- */
-export interface TransitionResult<S> {
-  success: boolean;
-  previousState: S;
-  currentState: S;
-  error?: string;
-}
-
-/**
- * StateMachine provides a type-safe finite state machine implementation.
- */
-export class StateMachine<S extends string, E extends string, C = object> {
-  private currentState: S;
-  private context: C;
-  private readonly transitions: Map<string, Transition<S, E, C>[]>;
-  private readonly onEnter: Map<S, Action<C>>;
-  private readonly onExit: Map<S, Action<C>>;
-  private history: { state: S; event?: E; timestamp: number }[] = [];
-  private readonly maxHistorySize: number;
-
-  constructor(config: StateMachineConfig<S, E, C>, maxHistorySize: number = 100) {
-    this.currentState = config.initial;
-    this.context = config.context;
-    this.onEnter = config.onEnter ?? new Map();
-    this.onExit = config.onExit ?? new Map();
-    this.maxHistorySize = maxHistorySize;
-
-    // Index transitions by (from, event)
-    this.transitions = new Map();
-    for (const transition of config.transitions) {
-      const key = `${transition.from}:${transition.event}`;
-      const existing = this.transitions.get(key) ?? [];
-      existing.push(transition);
-      this.transitions.set(key, existing);
-    }
-
-    // Record initial state
-    this.history.push({ state: config.initial, timestamp: Date.now() });
+  /** @internal -- use StateMachine.create() or StateMachineBuilder.build(). */
+  constructor(inner: InstanceType<typeof JsStateMachine>) {
+    this.#inner = inner;
   }
 
   /**
-   * Get current state.
+   * Create a state machine via FFI.
+   * Delegates to proven_state_machine_create.
+   *
+   * @param stateCount - Total number of states.
+   * @param initialState - Initial state ID.
+   * @returns Result with the StateMachine instance, or error.
    */
-  getState(): S {
-    return this.currentState;
+  static create(stateCount: number, initialState: number): Result<StateMachine> {
+    const result = JsSafeStateMachine.create(
+      stateCount,
+      initialState,
+    ) as Result<InstanceType<typeof JsStateMachine>>;
+    if (!result.ok) return result;
+    return { ok: true, value: new StateMachine(result.value) };
   }
 
   /**
-   * Get context.
+   * Allow a transition from one state to another.
+   * Delegates to proven_state_machine_allow via FFI.
+   *
+   * @param from - Source state ID.
+   * @param to - Target state ID.
+   * @returns True if the transition was registered.
    */
-  getContext(): C {
-    return this.context;
+  allowTransition(from: number, to: number): boolean {
+    return this.#inner.allowTransition(from, to);
   }
 
   /**
-   * Update context.
+   * Try to transition to a new state.
+   * Delegates to proven_state_machine_transition via FFI.
+   *
+   * @param to - Target state ID.
+   * @returns True if the transition was valid and executed.
    */
-  setContext(context: Partial<C>): void {
-    this.context = { ...this.context, ...context };
+  transition(to: number): boolean {
+    return this.#inner.transition(to);
   }
 
   /**
-   * Check if an event can be processed in the current state.
+   * Get the current state ID.
+   * Delegates to proven_state_machine_state via FFI.
+   *
+   * @returns The current state ID.
    */
-  canHandle(event: E): boolean {
-    const key = `${this.currentState}:${event}`;
-    const transitions = this.transitions.get(key);
-    if (!transitions) return false;
-
-    return transitions.some((t) => !t.guard || t.guard(this.context));
+  getState(): number {
+    return this.#inner.getState();
   }
 
   /**
-   * Get available events from current state.
+   * Close and free the native state machine.
+   * Delegates to proven_state_machine_free via FFI.
    */
-  availableEvents(): E[] {
-    const events = new Set<E>();
-    for (const [key, transitions] of this.transitions) {
-      const [from] = key.split(':');
-      if (from === this.currentState) {
-        for (const t of transitions) {
-          if (!t.guard || t.guard(this.context)) {
-            events.add(t.event);
-          }
-        }
-      }
-    }
-    return Array.from(events);
-  }
-
-  /**
-   * Send an event to the state machine.
-   */
-  send(event: E): TransitionResult<S> {
-    const previousState = this.currentState;
-    const key = `${this.currentState}:${event}`;
-    const transitions = this.transitions.get(key);
-
-    if (!transitions || transitions.length === 0) {
-      return {
-        success: false,
-        previousState,
-        currentState: this.currentState,
-        error: `No transition from '${this.currentState}' for event '${event}'`,
-      };
-    }
-
-    // Find first transition whose guard passes
-    const transition = transitions.find((t) => !t.guard || t.guard(this.context));
-
-    if (!transition) {
-      return {
-        success: false,
-        previousState,
-        currentState: this.currentState,
-        error: `Guard condition failed for transition from '${this.currentState}' on '${event}'`,
-      };
-    }
-
-    // Execute exit action
-    const exitAction = this.onExit.get(this.currentState);
-    if (exitAction) {
-      exitAction(this.context);
-    }
-
-    // Execute transition action
-    if (transition.action) {
-      transition.action(this.context);
-    }
-
-    // Update state
-    this.currentState = transition.to;
-
-    // Execute enter action
-    const enterAction = this.onEnter.get(this.currentState);
-    if (enterAction) {
-      enterAction(this.context);
-    }
-
-    // Record history
-    this.history.push({ state: this.currentState, event, timestamp: Date.now() });
-    if (this.history.length > this.maxHistorySize) {
-      this.history.shift();
-    }
-
-    return {
-      success: true,
-      previousState,
-      currentState: this.currentState,
-    };
-  }
-
-  /**
-   * Check if in a specific state.
-   */
-  is(state: S): boolean {
-    return this.currentState === state;
-  }
-
-  /**
-   * Check if in any of the given states.
-   */
-  isAny(states: S[]): boolean {
-    return states.includes(this.currentState);
-  }
-
-  /**
-   * Get state history.
-   */
-  getHistory(): { state: S; event?: E; timestamp: number }[] {
-    return [...this.history];
-  }
-
-  /**
-   * Reset to initial state.
-   */
-  reset(initialState: S, context?: C): void {
-    this.currentState = initialState;
-    if (context !== undefined) {
-      this.context = context;
-    }
-    this.history = [{ state: initialState, timestamp: Date.now() }];
+  close(): void {
+    this.#inner.close();
   }
 }
 
 /**
- * StateMachineBuilder provides a fluent API for building state machines.
+ * Builder for constructing a state machine with named states.
+ * Maps string state names to integer IDs internally.
+ *
+ * Delegates to the JavaScript FFI StateMachineBuilder, which handles
+ * name-to-ID mapping and calls the FFI layer.
  */
-export class StateMachineBuilder<S extends string, E extends string, C = object> {
-  private initial?: S;
-  private context?: C;
-  private transitions: Transition<S, E, C>[] = [];
-  private onEnterCallbacks: Map<S, Action<C>> = new Map();
-  private onExitCallbacks: Map<S, Action<C>> = new Map();
+export class StateMachineBuilder {
+  /** The underlying JS FFI builder instance. */
+  readonly #inner: InstanceType<typeof JsStateMachineBuilder>;
 
-  /**
-   * Set initial state.
-   */
-  withInitial(state: S): this {
-    this.initial = state;
-    return this;
+  constructor() {
+    this.#inner = new JsStateMachineBuilder();
   }
 
   /**
-   * Set initial context.
+   * Set the initial state.
+   * Delegates to the JS FFI builder.
+   *
+   * @param name - State name.
+   * @returns This builder for chaining.
    */
-  withContext(context: C): this {
-    this.context = context;
+  initialState(name: string): this {
+    this.#inner.initialState(name);
     return this;
   }
 
   /**
    * Add a transition.
+   * Delegates to the JS FFI builder.
+   *
+   * @param from - Source state name.
+   * @param event - Event name (for documentation; not used in FFI).
+   * @param to - Target state name.
+   * @returns This builder for chaining.
    */
-  addTransition(from: S, event: E, to: S, options?: { guard?: Guard<C>; action?: Action<C> }): this {
-    this.transitions.push({
-      from,
-      event,
-      to,
-      guard: options?.guard,
-      action: options?.action,
-    });
-    return this;
-  }
-
-  /**
-   * Add an on-enter callback for a state.
-   */
-  onEnter(state: S, action: Action<C>): this {
-    this.onEnterCallbacks.set(state, action);
-    return this;
-  }
-
-  /**
-   * Add an on-exit callback for a state.
-   */
-  onExit(state: S, action: Action<C>): this {
-    this.onExitCallbacks.set(state, action);
+  addTransition(from: string, event: string, to: string): this {
+    this.#inner.addTransition(from, event, to);
     return this;
   }
 
   /**
    * Build the state machine.
+   * Delegates to the JS FFI builder, which constructs the native
+   * state machine via proven_state_machine_create.
+   *
+   * @returns Result with the StateMachine instance, or error.
    */
-  build(): Result<StateMachine<S, E, C>> {
-    if (!this.initial) {
-      return { ok: false, error: 'Initial state is required' };
-    }
-    if (this.context === undefined) {
-      return { ok: false, error: 'Context is required' };
-    }
-    if (this.transitions.length === 0) {
-      return { ok: false, error: 'At least one transition is required' };
-    }
-
-    return {
-      ok: true,
-      value: new StateMachine({
-        initial: this.initial,
-        context: this.context,
-        transitions: this.transitions,
-        onEnter: this.onEnterCallbacks,
-        onExit: this.onExitCallbacks,
-      }),
-    };
+  build(): Result<StateMachine> {
+    const result = this.#inner.build() as Result<InstanceType<typeof JsStateMachine>>;
+    if (!result.ok) return result;
+    return { ok: true, value: new StateMachine(result.value) };
   }
 }
 
 /**
- * Simple traffic light state machine example.
+ * SafeStateMachine namespace.
+ * All operations delegate to the JavaScript FFI binding.
  */
-export type TrafficLightState = 'red' | 'yellow' | 'green';
-export type TrafficLightEvent = 'timer' | 'emergency';
-
-export function createTrafficLight(): StateMachine<TrafficLightState, TrafficLightEvent, object> {
-  return new StateMachineBuilder<TrafficLightState, TrafficLightEvent, object>()
-    .withInitial('red')
-    .withContext({})
-    .addTransition('red', 'timer', 'green')
-    .addTransition('green', 'timer', 'yellow')
-    .addTransition('yellow', 'timer', 'red')
-    .addTransition('red', 'emergency', 'red')
-    .addTransition('green', 'emergency', 'red')
-    .addTransition('yellow', 'emergency', 'red')
-    .build().value!;
+export class SafeStateMachine {
+  /**
+   * Create a state machine.
+   * Delegates to proven_state_machine_create via FFI.
+   *
+   * @param stateCount - Total number of states.
+   * @param initialState - Initial state ID.
+   * @returns Result with the StateMachine instance, or error.
+   */
+  static create(stateCount: number, initialState: number): Result<StateMachine> {
+    return StateMachine.create(stateCount, initialState);
+  }
 }
-
-export const SafeStateMachine = {
-  StateMachine,
-  StateMachineBuilder,
-  createTrafficLight,
-};

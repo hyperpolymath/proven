@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 name: proven
 description: >-
-  A safety library for Dart providing overflow-checked arithmetic, XSS prevention,
-  path traversal protection, email validation, IP classification, and cryptographic
-  operations.
-version: 0.4.0
+  Dart FFI bindings to libproven - formally verified safety library.
+  All computation is performed in Idris 2 with dependent types; this
+  package is a thin wrapper calling the C ABI via dart:ffi.
+version: 0.5.0
 repository: https://github.com/hyperpolymath/proven
 homepage: https://github.com/hyperpolymath/proven/tree/main/bindings/dart
 
@@ -14,7 +14,7 @@ environment:
   sdk: ^3.0.0
 
 dependencies:
-  crypto: ^3.0.0
+  ffi: ^2.1.0
 
 dev_dependencies:
   lints: ^3.0.0

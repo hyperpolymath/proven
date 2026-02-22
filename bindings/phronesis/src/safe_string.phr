@@ -1,0 +1,82 @@
+{-- SPDX-License-Identifier: PMPL-1.0-or-later --}
+{-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> --}
+
+-- | SafeString - Text operations that handle encoding safely via libproven FFI.
+--
+-- Phronesis's krisis type ensures that encoding errors, null pointer errors,
+-- and allocation failures are all captured in the return type and must
+-- be handled by the caller through judgment (krisis).
+--
+-- All computation is performed in Idris 2 via the Zig FFI layer.
+-- NO string logic is reimplemented in Phronesis.
+
+logos module Proven.SafeString
+
+import Proven.FFI
+import Proven (ProvenError, krisis, bool_result_to_proven, string_result_to_proven)
+
+-- ============================================================================
+-- UTF-8 validation
+-- ============================================================================
+
+-- | Check if bytes are valid UTF-8 encoding.
+-- Returns krisis<Bool, ProvenError> where Aletheia(true) means valid UTF-8.
+-- Delegates to proven_string_is_valid_utf8 in libproven.
+gnosis fn is_valid_utf8(input : Bytes) -> krisis<Bool, ProvenError> =
+  bool_result_to_proven(
+    FFI.proven_string_is_valid_utf8(input.ptr, input.len)
+  )
+
+-- ============================================================================
+-- String escaping for injection prevention
+-- ============================================================================
+
+-- | Escape a string for safe SQL interpolation (single quotes).
+-- Returns the escaped string or an error if allocation fails.
+-- NOTE: Prefer parameterized queries over string escaping.
+-- Delegates to proven_string_escape_sql in libproven.
+gnosis fn escape_sql(input : String) -> krisis<String, ProvenError> =
+  let bytes = string_to_utf8(input)
+  string_result_to_proven(
+    FFI.proven_string_escape_sql(bytes.ptr, bytes.len)
+  )
+
+-- | Escape a string for safe HTML output (prevents XSS).
+-- Escapes &, <, >, ", and ' characters.
+-- Delegates to proven_string_escape_html in libproven.
+gnosis fn escape_html(input : String) -> krisis<String, ProvenError> =
+  let bytes = string_to_utf8(input)
+  string_result_to_proven(
+    FFI.proven_string_escape_html(bytes.ptr, bytes.len)
+  )
+
+-- | Escape a string for safe JavaScript string literals.
+-- Prevents injection when embedding data in JS contexts.
+-- Delegates to proven_string_escape_js in libproven.
+gnosis fn escape_js(input : String) -> krisis<String, ProvenError> =
+  let bytes = string_to_utf8(input)
+  string_result_to_proven(
+    FFI.proven_string_escape_js(bytes.ptr, bytes.len)
+  )
+
+-- ============================================================================
+-- Path safety
+-- ============================================================================
+
+-- | Check if a path contains directory traversal sequences ("..").
+-- Returns Aletheia(true) if traversal detected, Aletheia(false) if safe.
+-- Delegates to proven_path_has_traversal in libproven.
+gnosis fn path_has_traversal(path : String) -> krisis<Bool, ProvenError> =
+  let bytes = string_to_utf8(path)
+  bool_result_to_proven(
+    FFI.proven_path_has_traversal(bytes.ptr, bytes.len)
+  )
+
+-- | Sanitize a filename by removing dangerous characters.
+-- Returns the sanitized filename.
+-- Delegates to proven_path_sanitize_filename in libproven.
+gnosis fn sanitize_filename(name : String) -> krisis<String, ProvenError> =
+  let bytes = string_to_utf8(name)
+  string_result_to_proven(
+    FFI.proven_path_sanitize_filename(bytes.ptr, bytes.len)
+  )

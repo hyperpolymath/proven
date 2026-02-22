@@ -1,0 +1,94 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{{
+LibProven -- IO-based wrapper for the proven-cli command-line tool.
+
+All computation is performed in the Idris 2 / Zig core via the proven-cli
+binary. Unison does not have traditional FFI, so we use the IO ability
+with Process.exec to call the CLI tool and parse its output.
+
+Do NOT reimplement any logic. Every function shells out to proven-cli.
+}}
+
+-- Status codes matching the C ABI.
+unique type ProvenStatus
+  = OK
+  | ErrNullPointer
+  | ErrInvalidArgument
+  | ErrOverflow
+  | ErrUnderflow
+  | ErrDivisionByZero
+  | ErrParseFailure
+  | ErrValidationFailed
+  | ErrOutOfBounds
+  | ErrEncodingError
+  | ErrAllocationFailed
+  | ErrNotImplemented
+
+-- The proven-cli binary path. Override via environment if needed.
+proven.cliPath : Text
+proven.cliPath = "proven-cli"
+
+-- Internal helper: run proven-cli with arguments and return trimmed stdout.
+-- Returns None on non-zero exit code or execution failure.
+proven.runCli : [IO] List Text -> Optional Text
+proven.runCli args =
+  match catch '(Process.exec proven.cliPath args) with
+    Left _ -> None
+    Right output ->
+      let trimmed = Text.trim output
+      in if Text.isEmpty trimmed then None
+         else Some trimmed
+
+-- Internal helper: parse an integer result from CLI output.
+-- The CLI returns "OK <value>" on success or "ERR <code>" on failure.
+proven.parseIntResult : Text -> Optional Int
+proven.parseIntResult output =
+  match Text.split ?  output with
+    ["OK", valueStr] -> Int.fromText valueStr
+    _ -> None
+
+-- Internal helper: parse a boolean result from CLI output.
+proven.parseBoolResult : Text -> Optional Boolean
+proven.parseBoolResult output =
+  match Text.split ?  output with
+    ["OK", "true"]  -> Some true
+    ["OK", "false"] -> Some false
+    _ -> None
+
+-- Internal helper: parse a string result from CLI output.
+-- Returns the remainder after "OK " prefix.
+proven.parseStringResult : Text -> Optional Text
+proven.parseStringResult output =
+  if Text.startsWith "OK " output then
+    Some (Text.drop 3 output)
+  else
+    None
+
+-- Internal helper: parse a float result from CLI output.
+proven.parseFloatResult : Text -> Optional Float
+proven.parseFloatResult output =
+  match Text.split ?  output with
+    ["OK", valueStr] -> Float.fromText valueStr
+    _ -> None
+
+-- Initialize the Proven runtime.
+proven.init : '{IO} Optional ()
+proven.init = do
+  match proven.runCli ["init"] with
+    Some "OK" -> Some ()
+    _ -> None
+
+-- Deinitialize the Proven runtime.
+proven.deinit : '{IO} ()
+proven.deinit = do
+  _ = proven.runCli ["deinit"]
+  ()
+
+-- Check if the runtime is initialized.
+proven.isInitialized : '{IO} Boolean
+proven.isInitialized = do
+  match proven.runCli ["is-initialized"] with
+    Some "true" -> true
+    _ -> false

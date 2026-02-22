@@ -1,0 +1,292 @@
+#compdef proven-*
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Proven Safety Library - Zsh Completion File
+#
+# Provides tab-completion for all proven-* shell functions.
+# Place this file in a directory on your $fpath, or let proven.zsh handle it.
+
+# ---------------------------------------------------------------------------
+# Top-level function completion
+# ---------------------------------------------------------------------------
+
+# All proven functions grouped by category
+local -a proven_commands
+proven_commands=(
+    # Math
+    'proven-safe-add:Add two integers safely (overflow-checked)'
+    'proven-safe-sub:Subtract two integers safely (underflow-checked)'
+    'proven-safe-mul:Multiply two integers safely (overflow-checked)'
+    'proven-safe-div:Divide two integers safely (no div-by-zero)'
+    'proven-safe-mod:Modulo two integers safely (no div-by-zero)'
+    'proven-safe-abs:Absolute value (handles MIN_INT)'
+    'proven-safe-pow:Exponentiation with overflow checking'
+    'proven-safe-clamp:Clamp a value to [min, max] range'
+    'proven-float-div:Safe float division'
+    'proven-float-sqrt:Square root (rejects negatives)'
+    'proven-float-ln:Natural logarithm (rejects non-positive)'
+    'proven-calc-eval:Evaluate arithmetic expression safely'
+
+    # Validation
+    'proven-validate-email:Validate email address (RFC 5321)'
+    'proven-validate-url:Validate a URL'
+    'proven-validate-ipv4:Validate IPv4 address'
+    'proven-ipv4-is-private:Check if IPv4 is private (RFC 1918)'
+    'proven-ipv4-is-loopback:Check if IPv4 is loopback'
+    'proven-validate-path:Check path for directory traversal'
+    'proven-sanitize-filename:Sanitize filename for safe filesystem use'
+    'proven-validate-json:Check if string is valid JSON'
+    'proven-json-type:Determine JSON value type'
+    'proven-validate-password:Check password strength'
+    'proven-is-common-password:Check against common password list'
+    'proven-is-valid-utf8:Check if string is valid UTF-8'
+    'proven-validate-phone:Parse and validate phone number'
+    'proven-validate-uuid:Parse and validate UUID'
+
+    # Crypto
+    'proven-hash-sha256:Compute SHA-256 hash'
+    'proven-constant-time-eq:Timing-safe string comparison'
+    'proven-random-hex:Generate random bytes (hex-encoded)'
+    'proven-checksum-crc32:Compute CRC32 checksum'
+    'proven-hex-encode:Encode string to hexadecimal'
+    'proven-hex-decode:Decode hexadecimal to string'
+
+    # Formatting
+    'proven-format-datetime:Parse ISO 8601 datetime'
+    'proven-is-leap-year:Check if year is a leap year'
+    'proven-days-in-month:Get days in a month'
+    'proven-parse-color:Parse hex color to RGB'
+    'proven-parse-version:Parse semantic version string'
+    'proven-version-compare:Compare two semantic versions'
+    'proven-deg-to-rad:Convert degrees to radians'
+    'proven-rad-to-deg:Convert radians to degrees'
+    'proven-convert-length:Convert length between units'
+    'proven-convert-temp:Convert temperature between units'
+    'proven-uuid-v4:Generate random UUID v4'
+    'proven-parse-currency:Parse currency amount string'
+    'proven-sanitize-string:Escape string for HTML (prevent XSS)'
+    'proven-escape-sql:Escape string for SQL interpolation'
+    'proven-escape-js:Escape string for JS interpolation'
+
+    # Meta
+    'proven-info:Display plugin version and CLI status'
+)
+
+# ---------------------------------------------------------------------------
+# Per-function completions
+# ---------------------------------------------------------------------------
+
+_proven-safe-add() {
+    _arguments '1:first integer:' '2:second integer:'
+}
+
+_proven-safe-sub() {
+    _arguments '1:first integer:' '2:second integer:'
+}
+
+_proven-safe-mul() {
+    _arguments '1:first integer:' '2:second integer:'
+}
+
+_proven-safe-div() {
+    _arguments '1:dividend:' '2:divisor:'
+}
+
+_proven-safe-mod() {
+    _arguments '1:dividend:' '2:divisor:'
+}
+
+_proven-safe-abs() {
+    _arguments '1:integer:'
+}
+
+_proven-safe-pow() {
+    _arguments '1:base:' '2:exponent:'
+}
+
+_proven-safe-clamp() {
+    _arguments '1:minimum:' '2:maximum:' '3:value:'
+}
+
+_proven-float-div() {
+    _arguments '1:dividend (float):' '2:divisor (float):'
+}
+
+_proven-float-sqrt() {
+    _arguments '1:number (float):'
+}
+
+_proven-float-ln() {
+    _arguments '1:number (float):'
+}
+
+_proven-calc-eval() {
+    _arguments '1:arithmetic expression:'
+}
+
+_proven-validate-email() {
+    _arguments '1:email address:'
+}
+
+_proven-validate-url() {
+    _arguments '1:URL:'
+}
+
+_proven-validate-ipv4() {
+    _arguments '1:IPv4 address:'
+}
+
+_proven-ipv4-is-private() {
+    _arguments '1:IPv4 address:'
+}
+
+_proven-ipv4-is-loopback() {
+    _arguments '1:IPv4 address:'
+}
+
+_proven-validate-path() {
+    _arguments '1:file path:_files'
+}
+
+_proven-sanitize-filename() {
+    _arguments '1:filename:'
+}
+
+_proven-validate-json() {
+    _arguments '1:JSON string:'
+}
+
+_proven-json-type() {
+    _arguments '1:JSON string:'
+}
+
+_proven-validate-password() {
+    _arguments '1:password:'
+}
+
+_proven-is-common-password() {
+    _arguments '1:password:'
+}
+
+_proven-is-valid-utf8() {
+    _arguments '1:string:'
+}
+
+_proven-validate-phone() {
+    _arguments '1:phone number:'
+}
+
+_proven-validate-uuid() {
+    _arguments '1:UUID string:'
+}
+
+_proven-hash-sha256() {
+    _arguments '1:input string:'
+}
+
+_proven-constant-time-eq() {
+    _arguments '1:string a:' '2:string b:'
+}
+
+_proven-random-hex() {
+    _arguments '1:byte count (default 32):'
+}
+
+_proven-checksum-crc32() {
+    _arguments '1:input data:'
+}
+
+_proven-hex-encode() {
+    _arguments '1:input string:'
+}
+
+_proven-hex-decode() {
+    _arguments '1:hex string:'
+}
+
+_proven-format-datetime() {
+    _arguments '1:ISO 8601 datetime:'
+}
+
+_proven-is-leap-year() {
+    _arguments '1:year:'
+}
+
+_proven-days-in-month() {
+    _arguments '1:year:' '2:month (1-12):'
+}
+
+_proven-parse-color() {
+    _arguments '1:hex color (e.g. \#FF5733):'
+}
+
+_proven-parse-version() {
+    _arguments '1:semantic version (e.g. 1.2.3):'
+}
+
+_proven-version-compare() {
+    _arguments '1:version a:' '2:version b:'
+}
+
+_proven-deg-to-rad() {
+    _arguments '1:degrees:'
+}
+
+_proven-rad-to-deg() {
+    _arguments '1:radians:'
+}
+
+_proven-convert-length() {
+    local -a units
+    units=(meters feet inches centimeters millimeters kilometers miles yards)
+    _arguments '1:value:' "2:from unit:(${units[*]})" "3:to unit:(${units[*]})"
+}
+
+_proven-convert-temp() {
+    local -a units
+    units=(celsius fahrenheit kelvin)
+    _arguments '1:value:' "2:from unit:(${units[*]})" "3:to unit:(${units[*]})"
+}
+
+_proven-uuid-v4() {
+    # No arguments
+}
+
+_proven-parse-currency() {
+    _arguments '1:currency amount (e.g. USD 123.45):'
+}
+
+_proven-sanitize-string() {
+    _arguments '1:input string:'
+}
+
+_proven-escape-sql() {
+    _arguments '1:input string:'
+}
+
+_proven-escape-js() {
+    _arguments '1:input string:'
+}
+
+_proven-info() {
+    # No arguments
+}
+
+# ---------------------------------------------------------------------------
+# Dispatch
+# ---------------------------------------------------------------------------
+
+# If called directly as _proven, show the command list.
+# Otherwise, zsh will dispatch to the per-function completers above.
+local curcontext="${curcontext}"
+local service="${words[1]}"
+
+if (( CURRENT == 1 )); then
+    _describe -t commands 'proven command' proven_commands
+else
+    local funcname="_${service}"
+    if (( $+functions[$funcname] )); then
+        $funcname
+    fi
+fi

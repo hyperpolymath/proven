@@ -1,0 +1,87 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{- | SafeUrl - URL parsing and validation via libproven FFI.
+
+   BetLang's odds<T, E> type captures parse failures, null pointer
+   errors, and validation failures as wagering outcomes. All URL parsing
+   is performed by the Idris 2 verified core.
+
+   All computation is performed in Idris 2 via the Zig FFI layer.
+   NO URL logic is reimplemented in BetLang.
+-}
+
+module Proven.SafeUrl
+
+import Proven.FFI
+import Proven (ProvenError, odds, Lose, Win)
+
+-- ============================================================================
+-- URL components
+-- ============================================================================
+
+-- | Parsed URL components returned by the Idris 2 URL parser.
+stake type UrlComponents = {
+  scheme   : String,
+  host     : String,
+  port     : Option<UInt16>,
+  path     : String,
+  query    : Option<String>,
+  fragment : Option<String>,
+}
+
+-- ============================================================================
+-- URL parsing
+-- ============================================================================
+
+-- | Parse a URL string into its components.
+-- Returns Lose(ParseFailure) if the URL is malformed.
+-- Returns Lose(NullPointer) if the input is null.
+-- Memory allocated by libproven is freed after copying components.
+-- Delegates to proven_url_parse and proven_url_free in libproven.
+bet fn parse_url(url : String) -> odds<UrlComponents, ProvenError> =
+  let bytes = string_to_utf8(url)
+  let raw_result = FFI.proven_url_parse(bytes.ptr, bytes.len)
+  match raw_result with
+  | null => Lose(ParseFailure)
+  | ptr  =>
+    let components = read_url_components(ptr)
+    FFI.proven_url_free(ptr)
+    Win(components)
+
+-- | Validate that a string is a well-formed URL without returning components.
+-- Returns Win(true) if parseable, Win(false) if not.
+-- Delegates to proven_url_parse in libproven.
+bet fn is_valid_url(url : String) -> odds<Bool, ProvenError> =
+  let bytes = string_to_utf8(url)
+  let raw_result = FFI.proven_url_parse(bytes.ptr, bytes.len)
+  match raw_result with
+  | null => Win(false)
+  | ptr  =>
+    FFI.proven_url_free(ptr)
+    Win(true)
+
+-- ============================================================================
+-- BetLang specific: validated URL type
+-- ============================================================================
+
+-- | A validated URL type. Can only be constructed through the parse function,
+-- ensuring the URL has been validated by the Idris 2 verified parser.
+stake type ValidatedUrl = private ValidatedUrl(String, UrlComponents)
+
+-- | Get the original URL string.
+bet fn validated_url_string(url : ValidatedUrl) -> String =
+  match url with
+  | ValidatedUrl(s, _) => s
+
+-- | Get the parsed components.
+bet fn validated_url_components(url : ValidatedUrl) -> UrlComponents =
+  match url with
+  | ValidatedUrl(_, c) => c
+
+-- | Create a ValidatedUrl, returning an error if parsing fails.
+-- Uses the Idris 2 verified URL parser via FFI.
+bet fn make_validated_url(url : String) -> odds<ValidatedUrl, ProvenError> =
+  match parse_url(url) with
+  | Win(components) => Win(ValidatedUrl(url, components))
+  | Lose(e)         => Lose(e)

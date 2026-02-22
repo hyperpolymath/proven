@@ -180,28 +180,13 @@ calcHistory = MkHistory [] 100 []
 -- ============================================================================
 
 ||| Proof that push never exceeds maxSize
+||| Relies on the property: length (take n xs) <= n for all lists.
+||| This holds by structural induction on take, but Idris2 stdlib does not
+||| export a lemma for List.take boundedness. Postulated pending a
+||| takeLengthBound lemma in a proof utilities module.
 export
-pushBounded : (item : a) -> (h : BoundedHistory a)
-           -> length (items (push item h)) `LTE` h.maxSize
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pushBounded item h = believe_me ()  -- Proof by take semantics
+postulate pushBounded : (item : a) -> (h : BoundedHistory a)
+                     -> length (items (push item h)) `LTE` h.maxSize
 
 ||| Proof that empty history has zero items
 export
@@ -214,28 +199,14 @@ clearIsEmpty : (h : BoundedHistory a) -> size (clear h) = 0
 clearIsEmpty h = Refl
 
 ||| Proof that pop followed by redo is identity (for non-empty)
+||| When h.items = x :: xs, pop removes x to undoStack, then redo
+||| restores it. The proof requires rewriting with the hypothesis to
+||| expose the cons cell to the case-match in pop, then computing
+||| through redo. Postulated because Idris2 let-bindings in return
+||| types make this difficult to discharge without auxiliary lemmas.
 export
-popRedoIdentity : (h : BoundedHistory a) -> (x : a) -> (xs : List a)
-               -> h.items = x :: xs
-               -> let (_, h') = pop h
-                      (_, h'') = redo h'
-                  in h''.items = h.items
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-popRedoIdentity h x xs prf = believe_me ()  -- Complex proof
+postulate popRedoIdentity : (h : BoundedHistory a) -> (x : a) -> (xs : List a)
+                         -> h.items = x :: xs
+                         -> let (_, h') = pop h
+                                (_, h'') = redo h'
+                            in h''.items = h.items

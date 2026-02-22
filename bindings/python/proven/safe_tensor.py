@@ -1,14 +1,17 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeTensor - Bounds-checked vector/matrix operations.
 
 Provides safe tensor operations with shape validation.
+All computation is delegated to the Idris core via FFI.
 """
 
-from typing import List, Optional, Tuple, Union
-import math
+import ctypes
+from typing import List, Optional, Tuple
+
+from .core import ProvenStatus, get_lib, check_status
 
 
 class ShapeError(Exception):
@@ -16,9 +19,22 @@ class ShapeError(Exception):
     pass
 
 
+def _to_c_array(data: List[float]) -> ctypes.Array:
+    """Convert Python list to ctypes double array."""
+    arr = (ctypes.c_double * len(data))()
+    for i, v in enumerate(data):
+        arr[i] = v
+    return arr
+
+
+def _from_c_array(arr: ctypes.Array, size: int) -> List[float]:
+    """Convert ctypes double array to Python list."""
+    return [arr[i] for i in range(size)]
+
+
 class Vector:
     """
-    Bounds-checked vector operations.
+    Bounds-checked vector operations via FFI.
 
     Example:
         >>> v = Vector([1.0, 2.0, 3.0])
@@ -75,7 +91,7 @@ class Vector:
 
     def dot(self, other: "Vector") -> Optional[float]:
         """
-        Dot product.
+        Dot product via FFI.
 
         Args:
             other: Other vector
@@ -85,39 +101,73 @@ class Vector:
         """
         if len(self._data) != len(other._data):
             return None
-        return sum(a * b for a, b in zip(self._data, other._data))
+        lib = get_lib()
+        a = _to_c_array(self._data)
+        b = _to_c_array(other._data)
+        result = lib.proven_tensor_dot(a, len(self._data), b, len(other._data))
+        if result.status != ProvenStatus.OK:
+            return None
+        return result.value
 
     def magnitude(self) -> float:
-        """Calculate vector magnitude (L2 norm)."""
-        return math.sqrt(sum(x * x for x in self._data))
+        """Calculate vector magnitude (L2 norm) via FFI."""
+        lib = get_lib()
+        a = _to_c_array(self._data)
+        result = lib.proven_tensor_magnitude(a, len(self._data))
+        if result.status != ProvenStatus.OK:
+            return 0.0
+        return result.value
 
     def normalize(self) -> Optional["Vector"]:
         """
-        Return normalized vector.
+        Return normalized vector via FFI.
 
         Returns:
             Unit vector, or None if zero vector
         """
-        mag = self.magnitude()
-        if mag == 0:
+        lib = get_lib()
+        a = _to_c_array(self._data)
+        out = (ctypes.c_double * len(self._data))()
+        status = lib.proven_tensor_normalize(a, len(self._data), out)
+        if status != ProvenStatus.OK:
             return None
-        return Vector([x / mag for x in self._data])
+        return Vector(_from_c_array(out, len(self._data)))
 
     def add(self, other: "Vector") -> Optional["Vector"]:
-        """Element-wise addition."""
+        """Element-wise addition via FFI."""
         if len(self._data) != len(other._data):
             return None
-        return Vector([a + b for a, b in zip(self._data, other._data)])
+        lib = get_lib()
+        a = _to_c_array(self._data)
+        b = _to_c_array(other._data)
+        out = (ctypes.c_double * len(self._data))()
+        status = lib.proven_tensor_add(a, len(self._data), b, len(other._data), out)
+        if status != ProvenStatus.OK:
+            return None
+        return Vector(_from_c_array(out, len(self._data)))
 
     def sub(self, other: "Vector") -> Optional["Vector"]:
-        """Element-wise subtraction."""
+        """Element-wise subtraction via FFI."""
         if len(self._data) != len(other._data):
             return None
-        return Vector([a - b for a, b in zip(self._data, other._data)])
+        lib = get_lib()
+        a = _to_c_array(self._data)
+        b = _to_c_array(other._data)
+        out = (ctypes.c_double * len(self._data))()
+        status = lib.proven_tensor_sub(a, len(self._data), b, len(other._data), out)
+        if status != ProvenStatus.OK:
+            return None
+        return Vector(_from_c_array(out, len(self._data)))
 
     def mul(self, scalar: float) -> "Vector":
-        """Scalar multiplication."""
-        return Vector([x * scalar for x in self._data])
+        """Scalar multiplication via FFI."""
+        lib = get_lib()
+        a = _to_c_array(self._data)
+        out = (ctypes.c_double * len(self._data))()
+        status = lib.proven_tensor_scale(a, len(self._data), scalar, out)
+        if status != ProvenStatus.OK:
+            return Vector(list(self._data))
+        return Vector(_from_c_array(out, len(self._data)))
 
     def __add__(self, other: "Vector") -> "Vector":
         result = self.add(other)
@@ -140,7 +190,7 @@ class Vector:
 
 class Matrix:
     """
-    Bounds-checked matrix operations.
+    Bounds-checked matrix operations via FFI.
 
     Example:
         >>> m = Matrix([[1, 2], [3, 4]])
@@ -172,6 +222,21 @@ class Matrix:
         self._data = [list(row) for row in data]
         self._rows = len(data)
         self._cols = cols
+
+    def _to_flat(self) -> List[float]:
+        """Flatten matrix to row-major array."""
+        flat = []
+        for row in self._data:
+            flat.extend(row)
+        return flat
+
+    @staticmethod
+    def _from_flat(flat: List[float], rows: int, cols: int) -> "Matrix":
+        """Create matrix from flat row-major array."""
+        data = []
+        for r in range(rows):
+            data.append(flat[r * cols:(r + 1) * cols])
+        return Matrix(data)
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -242,27 +307,47 @@ class Matrix:
         return Matrix(transposed)
 
     def add(self, other: "Matrix") -> Optional["Matrix"]:
-        """Element-wise addition."""
+        """Element-wise addition via FFI."""
         if self.shape != other.shape:
             return None
-        result = [[self._data[r][c] + other._data[r][c] for c in range(self._cols)] for r in range(self._rows)]
-        return Matrix(result)
+        lib = get_lib()
+        a = _to_c_array(self._to_flat())
+        b = _to_c_array(other._to_flat())
+        total = self._rows * self._cols
+        out = (ctypes.c_double * total)()
+        status = lib.proven_tensor_add(a, total, b, total, out)
+        if status != ProvenStatus.OK:
+            return None
+        return Matrix._from_flat(_from_c_array(out, total), self._rows, self._cols)
 
     def sub(self, other: "Matrix") -> Optional["Matrix"]:
-        """Element-wise subtraction."""
+        """Element-wise subtraction via FFI."""
         if self.shape != other.shape:
             return None
-        result = [[self._data[r][c] - other._data[r][c] for c in range(self._cols)] for r in range(self._rows)]
-        return Matrix(result)
+        lib = get_lib()
+        a = _to_c_array(self._to_flat())
+        b = _to_c_array(other._to_flat())
+        total = self._rows * self._cols
+        out = (ctypes.c_double * total)()
+        status = lib.proven_tensor_sub(a, total, b, total, out)
+        if status != ProvenStatus.OK:
+            return None
+        return Matrix._from_flat(_from_c_array(out, total), self._rows, self._cols)
 
     def mul_scalar(self, scalar: float) -> "Matrix":
-        """Scalar multiplication."""
-        result = [[self._data[r][c] * scalar for c in range(self._cols)] for r in range(self._rows)]
-        return Matrix(result)
+        """Scalar multiplication via FFI."""
+        lib = get_lib()
+        a = _to_c_array(self._to_flat())
+        total = self._rows * self._cols
+        out = (ctypes.c_double * total)()
+        status = lib.proven_tensor_scale(a, total, scalar, out)
+        if status != ProvenStatus.OK:
+            return Matrix([list(row) for row in self._data])
+        return Matrix._from_flat(_from_c_array(out, total), self._rows, self._cols)
 
     def matmul(self, other: "Matrix") -> Optional["Matrix"]:
         """
-        Matrix multiplication.
+        Matrix multiplication via FFI.
 
         Args:
             other: Right-hand matrix
@@ -272,20 +357,23 @@ class Matrix:
         """
         if self._cols != other._rows:
             return None
-
-        result = []
-        for i in range(self._rows):
-            row = []
-            for j in range(other._cols):
-                val = sum(self._data[i][k] * other._data[k][j] for k in range(self._cols))
-                row.append(val)
-            result.append(row)
-
-        return Matrix(result)
+        lib = get_lib()
+        a = _to_c_array(self._to_flat())
+        b = _to_c_array(other._to_flat())
+        out_total = self._rows * other._cols
+        out = (ctypes.c_double * out_total)()
+        status = lib.proven_tensor_matmul(
+            a, self._rows, self._cols,
+            b, other._rows, other._cols,
+            out,
+        )
+        if status != ProvenStatus.OK:
+            return None
+        return Matrix._from_flat(_from_c_array(out, out_total), self._rows, other._cols)
 
     def mul_vector(self, v: Vector) -> Optional[Vector]:
         """
-        Matrix-vector multiplication.
+        Matrix-vector multiplication via FFI.
 
         Args:
             v: Vector to multiply
@@ -295,13 +383,12 @@ class Matrix:
         """
         if self._cols != v.size:
             return None
-
-        result = []
-        for i in range(self._rows):
-            val = sum(self._data[i][j] * v._data[j] for j in range(self._cols))
-            result.append(val)
-
-        return Vector(result)
+        # Treat vector as Nx1 matrix
+        v_mat = Matrix([[x] for x in v.to_list()])
+        result = self.matmul(v_mat)
+        if result is None:
+            return None
+        return Vector([result.get(r, 0) for r in range(result.rows)])
 
     @staticmethod
     def identity(n: int) -> "Matrix":
@@ -320,7 +407,7 @@ class Matrix:
 
 
 class SafeTensor:
-    """Safe tensor utilities."""
+    """Safe tensor utilities via FFI."""
 
     @staticmethod
     def vector(data: List[float]) -> Vector:

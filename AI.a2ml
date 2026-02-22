@@ -1,11 +1,13 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 # AI Assistant Instructions
 
 ## Repository Focus
-- `proven` is a formally verified safety library: 104 Idris2 modules with dependent type proofs, Zig FFI bridge, 89 language binding targets.
+- `proven` is a formally verified safety library: 104 Idris2 core modules (258 total .idr files) with dependent type proofs, Zig FFI bridge (65 exports), 120+ language binding targets (18 complete, 102 scaffolded).
 - Treated as a Rhodium Standard Repository; obey the Rhodium policies, maintain `.bot_directives`, and keep `.machine_readable/` authoritative.
 - License: PMPL-1.0-or-later. Copyright: Jonathan D.A. Jewell (hyperpolymath).
-- Prefer to keep generated files out of source control, and regenerate them with the documented commands before committing.
+- Read `0-AI-MANIFEST.a2ml` FIRST for canonical locations and invariants.
 
 ## Architecture (CRITICAL)
 - ALL computation happens in Idris2 (`src/Proven/`). Bindings MUST NOT reimplement logic.
@@ -14,16 +16,25 @@
 - See `.claude/CLAUDE.md` for detailed constraints and common mistakes.
 
 ## Workflow
-1. Inspect `.machine_readable/STATE.scm` for blockers and next actions.
-2. Respect any constraints listed inside `.machine_readable/AGENTIC.scm` when tooling changes are requested.
-3. After finishing edits, update STATE with your outcomes and commit with a concise, imperative message.
+1. Read `0-AI-MANIFEST.a2ml` first for session startup protocol.
+2. Inspect `.machine_readable/STATE.scm` for blockers and next actions.
+3. Respect any constraints listed inside `.machine_readable/AGENTIC.scm` when tooling changes are requested.
+4. After finishing edits, update STATE with your outcomes and commit with a concise, imperative message.
 
-## Current State (v1.1.0)
+## Current State (v1.2.0, 2026-02-22)
 - 104 core Idris2 modules with dependent types and totality checking
-- 14 FFI exports in Zig bridge layer
-- ~283 `believe_me` instances across 38 files (FFI stubs and axiomatised lemmas)
-- 18 language bindings complete, 71 remaining targets scaffolded
+- 65 FFI exports in Zig bridge layer
+- **believe_me = 0** (eliminated from ~4,566 instances)
+- **assert_total = 0** (all eliminated)
+- 18 language bindings complete, 102 scaffolded
+- Overall project ~55% complete (core solid, ecosystem incomplete)
+- Apps: 1/13 (proven-bgp only), GPU/crypto: 0%, convenience modules: 0%
+
+## Security
+- `Trustfile.a2ml` defines the security specification: threat model, policies, integrity hashes, Lean4 proof references.
+- `.github/workflows/trustfile.yml` enforces Trustfile policies in CI.
+- All changes must comply with architecture invariants defined in the Trustfile.
 
 ## Delivery Promises
-- Mention in summaries whether STATE, `contractiles/`, or `.bot_directives/` changed.
+- Mention in summaries whether STATE, `contractiles/`, `.bot_directives/`, or `Trustfile.a2ml` changed.
 - Keep this file in sync with the repository's status; update it if the governance changes.

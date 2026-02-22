@@ -1,15 +1,18 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeColor - RGB/RGBA colors with WCAG contrast calculations.
 
 Provides safe color operations including accessibility contrast checks.
+All computation is delegated to the Idris core via FFI.
 """
 
+import ctypes
 from typing import Optional, Tuple
 from dataclasses import dataclass
-import re
+
+from .core import ProvenStatus, get_lib
 
 
 @dataclass(frozen=True)
@@ -34,20 +37,20 @@ class Rgb:
 
     def luminance(self) -> float:
         """
-        Calculate relative luminance per WCAG 2.0.
+        Calculate relative luminance per WCAG 2.0 via FFI.
 
         Returns:
             Luminance value (0.0 to 1.0)
         """
-        def channel(c: int) -> float:
-            s = c / 255.0
-            return s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4
-
-        return 0.2126 * channel(self.r) + 0.7152 * channel(self.g) + 0.0722 * channel(self.b)
+        lib = get_lib()
+        result = lib.proven_color_luminance(self.r, self.g, self.b)
+        if result.status != ProvenStatus.OK:
+            return 0.0
+        return result.value
 
     def contrast_ratio(self, other: "Rgb") -> float:
         """
-        Calculate contrast ratio with another color per WCAG 2.0.
+        Calculate contrast ratio with another color per WCAG 2.0 via FFI.
 
         Args:
             other: Color to compare against
@@ -55,11 +58,14 @@ class Rgb:
         Returns:
             Contrast ratio (1.0 to 21.0)
         """
-        l1 = self.luminance()
-        l2 = other.luminance()
-        lighter = max(l1, l2)
-        darker = min(l1, l2)
-        return (lighter + 0.05) / (darker + 0.05)
+        lib = get_lib()
+        result = lib.proven_color_contrast_ratio(
+            self.r, self.g, self.b,
+            other.r, other.g, other.b,
+        )
+        if result.status != ProvenStatus.OK:
+            return 1.0
+        return result.value
 
     def meets_wcag_aa(self, other: "Rgb", large_text: bool = False) -> bool:
         """
@@ -128,7 +134,7 @@ class Rgba:
 
 
 class SafeColor:
-    """Safe color operations."""
+    """Safe color operations via FFI."""
 
     # Common colors
     BLACK = Rgb(0, 0, 0)
@@ -140,12 +146,10 @@ class SafeColor:
     CYAN = Rgb(0, 255, 255)
     MAGENTA = Rgb(255, 0, 255)
 
-    _HEX_PATTERN = re.compile(r"^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8}|[0-9a-fA-F]{3}|[0-9a-fA-F]{4})$")
-
     @staticmethod
     def from_hex(hex_str: str) -> Optional[Rgb]:
         """
-        Parse hex color string.
+        Parse hex color string via FFI.
 
         Supports: #RGB, #RRGGBB, RGB, RRGGBB
 
@@ -161,39 +165,24 @@ class SafeColor:
             >>> SafeColor.from_hex("f00")
             Rgb(r=255, g=0, b=0)
         """
-        match = SafeColor._HEX_PATTERN.match(hex_str)
-        if not match:
+        if not hex_str:
             return None
 
-        hex_part = match.group(1)
-
+        lib = get_lib()
+        encoded = hex_str.encode("utf-8")
+        rgba_out = (ctypes.c_uint8 * 4)()
+        status = lib.proven_color_parse_hex(encoded, len(encoded), rgba_out)
+        if status != ProvenStatus.OK:
+            return None
         try:
-            if len(hex_part) == 3:
-                # #RGB -> #RRGGBB
-                r = int(hex_part[0] * 2, 16)
-                g = int(hex_part[1] * 2, 16)
-                b = int(hex_part[2] * 2, 16)
-            elif len(hex_part) == 4:
-                # #RGBA -> use RGB only
-                r = int(hex_part[0] * 2, 16)
-                g = int(hex_part[1] * 2, 16)
-                b = int(hex_part[2] * 2, 16)
-            elif len(hex_part) == 6:
-                r = int(hex_part[0:2], 16)
-                g = int(hex_part[2:4], 16)
-                b = int(hex_part[4:6], 16)
-            else:  # 8
-                r = int(hex_part[0:2], 16)
-                g = int(hex_part[2:4], 16)
-                b = int(hex_part[4:6], 16)
-            return Rgb(r, g, b)
+            return Rgb(rgba_out[0], rgba_out[1], rgba_out[2])
         except ValueError:
             return None
 
     @staticmethod
     def from_hex_rgba(hex_str: str) -> Optional[Rgba]:
         """
-        Parse hex color string with alpha.
+        Parse hex color string with alpha via FFI.
 
         Supports: #RGBA, #RRGGBBAA
 
@@ -203,37 +192,24 @@ class SafeColor:
         Returns:
             Rgba color, or None if invalid
         """
-        match = SafeColor._HEX_PATTERN.match(hex_str)
-        if not match:
+        if not hex_str:
             return None
 
-        hex_part = match.group(1)
-
+        lib = get_lib()
+        encoded = hex_str.encode("utf-8")
+        rgba_out = (ctypes.c_uint8 * 4)()
+        status = lib.proven_color_parse_hex(encoded, len(encoded), rgba_out)
+        if status != ProvenStatus.OK:
+            return None
         try:
-            if len(hex_part) == 4:
-                r = int(hex_part[0] * 2, 16)
-                g = int(hex_part[1] * 2, 16)
-                b = int(hex_part[2] * 2, 16)
-                a = int(hex_part[3] * 2, 16)
-            elif len(hex_part) == 8:
-                r = int(hex_part[0:2], 16)
-                g = int(hex_part[2:4], 16)
-                b = int(hex_part[4:6], 16)
-                a = int(hex_part[6:8], 16)
-            else:
-                # No alpha provided, assume 255
-                rgb = SafeColor.from_hex(hex_str)
-                if rgb:
-                    return Rgba(rgb.r, rgb.g, rgb.b, 255)
-                return None
-            return Rgba(r, g, b, a)
+            return Rgba(rgba_out[0], rgba_out[1], rgba_out[2], rgba_out[3])
         except ValueError:
             return None
 
     @staticmethod
     def blend(fg: Rgba, bg: Rgb) -> Rgb:
         """
-        Blend foreground RGBA over background RGB.
+        Blend foreground RGBA over background RGB via FFI.
 
         Args:
             fg: Foreground color with alpha
@@ -242,23 +218,24 @@ class SafeColor:
         Returns:
             Blended RGB color
         """
-        alpha = fg.a / 255.0
-        inv_alpha = 1.0 - alpha
-
-        r = int(fg.r * alpha + bg.r * inv_alpha)
-        g = int(fg.g * alpha + bg.g * inv_alpha)
-        b = int(fg.b * alpha + bg.b * inv_alpha)
-
-        return Rgb(
-            max(0, min(255, r)),
-            max(0, min(255, g)),
-            max(0, min(255, b)),
+        lib = get_lib()
+        rgb_out = (ctypes.c_uint8 * 3)()
+        status = lib.proven_color_blend(
+            fg.r, fg.g, fg.b, fg.a,
+            bg.r, bg.g, bg.b,
+            rgb_out,
         )
+        if status != ProvenStatus.OK:
+            return bg
+        try:
+            return Rgb(rgb_out[0], rgb_out[1], rgb_out[2])
+        except ValueError:
+            return bg
 
     @staticmethod
     def interpolate(c1: Rgb, c2: Rgb, t: float) -> Rgb:
         """
-        Linear interpolation between two colors.
+        Linear interpolation between two colors via FFI.
 
         Args:
             c1: Start color
@@ -268,15 +245,27 @@ class SafeColor:
         Returns:
             Interpolated color
         """
+        lib = get_lib()
         t = max(0.0, min(1.0, t))
-        r = int(c1.r + (c2.r - c1.r) * t)
-        g = int(c1.g + (c2.g - c1.g) * t)
-        b = int(c1.b + (c2.b - c1.b) * t)
-        return Rgb(r, g, b)
+
+        # Use FFI float lerp for each channel
+        r_result = lib.proven_float_lerp(float(c1.r), float(c2.r), t)
+        g_result = lib.proven_float_lerp(float(c1.g), float(c2.g), t)
+        b_result = lib.proven_float_lerp(float(c1.b), float(c2.b), t)
+
+        r = int(r_result.value) if r_result.status == ProvenStatus.OK else c1.r
+        g = int(g_result.value) if g_result.status == ProvenStatus.OK else c1.g
+        b = int(b_result.value) if b_result.status == ProvenStatus.OK else c1.b
+
+        return Rgb(
+            max(0, min(255, r)),
+            max(0, min(255, g)),
+            max(0, min(255, b)),
+        )
 
     @staticmethod
     def contrast_ratio(c1: Rgb, c2: Rgb) -> float:
-        """Calculate WCAG contrast ratio between two colors."""
+        """Calculate WCAG contrast ratio between two colors via FFI."""
         return c1.contrast_ratio(c2)
 
     @staticmethod

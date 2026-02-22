@@ -1,0 +1,47 @@
+{{! SPDX-License-Identifier: PMPL-1.0-or-later }}
+{{! Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> }}
+{{!
+  Proven Safety Library - Status Display Template
+
+  Renders the current status of the proven library including version,
+  module count, and health check results.
+
+  Expected context:
+    {
+      "library_name": "proven",
+      "version": "0.9.1",
+      "module_count": 35,
+      "cli_available": true,
+      "cli_path": "/usr/local/bin/proven-cli",
+      "modules": [
+        { "name": "SafeMath", "status": "ok", "ok": true },
+        { "name": "SafeString", "status": "ok", "ok": true },
+        ...
+      ],
+      "timestamp": "2026-01-15T10:30:00Z"
+    }
+}}
+================================================================================
+  Proven Safety Library - Status Report
+================================================================================
+
+  Library:       {{ library_name }}
+  Version:       {{ version }}
+  Modules:       {{ module_count }}
+  CLI Available: {{# cli_available }}YES ({{ cli_path }}){{/ cli_available }}{{^ cli_available }}NO - proven-cli not found{{/ cli_available }}
+  Timestamp:     {{ timestamp }}
+
+--------------------------------------------------------------------------------
+  Module Status
+--------------------------------------------------------------------------------
+
+{{# modules }}
+  [{{# ok }}OK{{/ ok }}{{^ ok }}FAIL{{/ ok }}]  {{ name }}{{^ ok }} - {{ status }}{{/ ok }}
+{{/ modules }}
+{{^ modules }}
+  No modules loaded.
+{{/ modules }}
+
+--------------------------------------------------------------------------------
+  Summary: {{# cli_available }}All systems operational.{{/ cli_available }}{{^ cli_available }}WARNING: proven-cli binary not found.{{/ cli_available }}
+================================================================================

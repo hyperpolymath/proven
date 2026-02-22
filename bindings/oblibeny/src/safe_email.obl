@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/* SafeEmail - Validace emailu pres libproven FFI.
+ *
+ * Oblibeny typ Vysledek<T, Ch> zachytava vysledky validace.
+ * Navratovy typ Vysledek<Bool, ProvenChyba> nuti volatele obsoudit
+ * jak vysledek validace tak potencialni FFI chyby.
+ *
+ * Veskere vypocty provadi Idris 2 pres Zig FFI vrstvu.
+ * ZADNA logika validace emailu neni reimplementovana v Oblibeny.
+ */
+
+modul Proven.SafeEmail
+
+import Proven.FFI
+import Proven (ProvenChyba, Výsledek, Úspěch, Neúspěch, bool_vysledek_prevod)
+
+// ============================================================================
+// Validace emailu
+// ============================================================================
+
+// Validuje emailovou adresu podle RFC 5321 (zjednodusene).
+// Vraci Uspech(true) pokud je email platny, Uspech(false) pokud neplatny.
+// Vraci Neuspech(NulovyUkazatel) pokud je vstupni ukazatel nulovy.
+// Deleguje na proven_email_is_valid v libproven.
+fn je_platný_email(email : String) -> Výsledek<Bool, ProvenChyba> =
+  let bajty = string_to_utf8(email)
+  bool_vysledek_prevod(
+    FFI.proven_email_is_valid(bajty.ptr, bajty.len)
+  )
+
+// Validuje emailovou adresu, vraci popisnou chybu pri selhani.
+// Pomocny obal ktery mapuje Uspech(false) na Neuspech(ValidaceNeuspela).
+fn validovat_email(email : String) -> Výsledek<String, ProvenChyba> =
+  match je_platný_email(email) with
+  | Úspěch(true)  => Úspěch(email)
+  | Úspěch(false) => Neúspěch(ValidaceNeuspela)
+  | Neúspěch(e)   => Neúspěch(e)
+
+// ============================================================================
+// Oblibeny specificke: typovana validace emailu
+// ============================================================================
+
+// Validovany typ emailove adresy. Lze zkonstruovat pouze pres
+// validacni funkci, coz zarucuje, ze email prosel kontrolami RFC 5321
+// v Idris 2 overenem jadru.
+typ OvěřenýEmail = private OvěřenýEmail(String)
+
+// Ziska retezovou reprezentaci overeneho emailu.
+fn overeny_email_na_retezec(email : OvěřenýEmail) -> String =
+  match email with
+  | OvěřenýEmail(s) => s
+
+// Vytvori OverenyEmail, vraci chybu pokud validace selze.
+// Pouziva Idris 2 overenou validaci emailu pres FFI.
+fn vytvoř_ověřený_email(email : String) -> Výsledek<OvěřenýEmail, ProvenChyba> =
+  match je_platný_email(email) with
+  | Úspěch(true)  => Úspěch(OvěřenýEmail(email))
+  | Úspěch(false) => Neúspěch(ValidaceNeuspela)
+  | Neúspěch(e)   => Neúspěch(e)

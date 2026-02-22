@@ -91,30 +91,11 @@ isInfixOf key cache = any (\e => e.key == key) cache.entries
 ||| Find the least recently used entry
 findLRU : List (CacheEntry k v) -> Maybe (CacheEntry k v)
 findLRU [] = Nothing
-findLRU entries = Just (foldl1 (\a, b => if a.accessOrder < b.accessOrder then a else b) entries)
+findLRU (x :: xs) = Just (foldl oldest x xs)
   where
-    foldl1 : (a -> a -> a) -> List a -> a
-    foldl1 f [x] = x
-    foldl1 f (x :: xs) = foldl f x xs
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    foldl1 f [] = believe_me ()  -- unreachable
+    ||| Pick the entry with the lower (older) access order
+    oldest : CacheEntry k v -> CacheEntry k v -> CacheEntry k v
+    oldest a b = if a.accessOrder < b.accessOrder then a else b
 
 ||| Put a value in the cache (evicts LRU if full)
 public export

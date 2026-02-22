@@ -151,13 +151,18 @@ addEvent evt deps hist =
     happensBefore := map (\d => (d, eventId evt)) deps ++ happensBefore hist } hist
 
 ||| Check if one event causally precedes another
-||| Uses assert_total as termination depends on acyclic causal graph
+||| Bounded by fuel derived from happens-before relation count to guarantee termination
 public export
 causallyPrecedes : EventId -> EventId -> CausalHistory -> Bool
 causallyPrecedes e1 e2 hist =
-  elem (e1, e2) (happensBefore hist) ||
-  any (\mid => assert_total (causallyPrecedes e1 mid hist) && elem (mid, e2) (happensBefore hist))
-      (map fst (happensBefore hist))
+  causallyPrecedesFuel (length (happensBefore hist)) e1 e2 hist
+  where
+    causallyPrecedesFuel : Nat -> EventId -> EventId -> CausalHistory -> Bool
+    causallyPrecedesFuel Z _ _ _ = False  -- Fuel exhausted
+    causallyPrecedesFuel (S fuel) ev1 ev2 h =
+      elem (ev1, ev2) (happensBefore h) ||
+      any (\mid => causallyPrecedesFuel fuel ev1 mid h && elem (mid, ev2) (happensBefore h))
+          (map fst (happensBefore h))
 
 ||| Causal delivery - events delivered in causal order
 public export
@@ -186,15 +191,19 @@ addPending : Event -> List EventId -> CausalDelivery -> CausalDelivery
 addPending evt deps cd = { pending := (evt, deps) :: pending cd } cd
 
 ||| Process pending events
-||| Uses assert_total as termination depends on finite pending list
+||| Bounded by the number of pending events to guarantee termination
 public export
 processPending : CausalDelivery -> CausalDelivery
-processPending cd =
-  case find (\p => canDeliver (fst p) (snd p) cd) (pending cd) of
-    Nothing => cd
-    Just (evt, deps) =>
-      assert_total $ processPending ({ delivered := evt :: delivered cd,
-                        pending := filter (\p => eventId (fst p) /= eventId evt) (pending cd) } cd)
+processPending cd = go (length (pending cd)) cd
+  where
+    go : Nat -> CausalDelivery -> CausalDelivery
+    go Z cd' = cd'  -- Fuel exhausted
+    go (S fuel) cd' =
+      case find (\p => canDeliver (fst p) (snd p) cd') (pending cd') of
+        Nothing => cd'
+        Just (evt, deps) =>
+          go fuel ({ delivered := evt :: delivered cd',
+                     pending := filter (\p => eventId (fst p) /= eventId evt) (pending cd') } cd')
 
 ||| Interval timestamp for efficient causal ordering
 public export

@@ -1,36 +1,25 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 --
--- | Bounded value types
+-- | Bounded - Bounded value types using libproven FFI for clamping
+-- |
+-- | Uses SafeMath.clamp which delegates to Idris 2 via the Zig FFI layer.
 
 module Proven.Bounded
-  ( Bounded
-  , BoundedInt(..)
-  , BoundedNumber(..)
+  ( BoundedInt(..)
   , mkBoundedInt
-  , mkBoundedNumber
   , getValue
   , getBounds
-  , inRange
-  , requireInRange
-  , increment
-  , decrement
   , isAtMin
   , isAtMax
   ) where
 
 import Prelude
 
-import Proven.Result (Result(..), ProvenError(..))
-import Proven.SafeMath (clamp, safeAdd, safeSub)
-import Data.Int (toNumber, floor)
+import Proven.SafeMath (clamp)
 
--- | Bounded type class
-class Bounded a where
-  minBound :: a -> a
-  maxBound :: a -> a
-
--- | Bounded integer with min/max constraints
+-- | Bounded integer with min/max constraints.
+-- | Uses libproven clamp for range enforcement.
 newtype BoundedInt = BoundedInt
   { value :: Int
   , min :: Int
@@ -44,94 +33,26 @@ instance showBoundedInt :: Show BoundedInt where
     <> ", min: " <> show r.min
     <> ", max: " <> show r.max <> " }"
 
--- | Create a bounded integer (clamped to range)
+-- | Create a bounded integer, clamped to range using libproven (delegates to Idris 2).
 mkBoundedInt :: Int -> Int -> Int -> BoundedInt
-mkBoundedInt value minVal maxVal = BoundedInt
-  { value: clampInt minVal maxVal value
-  , min: minVal
-  , max: maxVal
-  }
-  where
-    clampInt :: Int -> Int -> Int -> Int
-    clampInt mi ma v
-      | v < mi = mi
-      | v > ma = ma
-      | otherwise = v
-
--- | Bounded number with min/max constraints
-newtype BoundedNumber = BoundedNumber
-  { value :: Number
-  , min :: Number
-  , max :: Number
-  }
-
-derive instance eqBoundedNumber :: Eq BoundedNumber
-
-instance showBoundedNumber :: Show BoundedNumber where
-  show (BoundedNumber r) = "BoundedNumber { value: " <> show r.value
-    <> ", min: " <> show r.min
-    <> ", max: " <> show r.max <> " }"
-
--- | Create a bounded number (clamped to range)
-mkBoundedNumber :: Number -> Number -> Number -> BoundedNumber
-mkBoundedNumber value minVal maxVal = BoundedNumber
+mkBoundedInt minVal maxVal value = BoundedInt
   { value: clamp minVal maxVal value
   , min: minVal
   , max: maxVal
   }
 
--- | Get the value from a bounded integer
+-- | Get the value from a bounded integer.
 getValue :: BoundedInt -> Int
 getValue (BoundedInt r) = r.value
 
--- | Get the bounds from a bounded integer
+-- | Get the bounds from a bounded integer.
 getBounds :: BoundedInt -> { min :: Int, max :: Int }
 getBounds (BoundedInt r) = { min: r.min, max: r.max }
 
--- | Check if value is in range
-inRange :: forall a. Ord a => a -> a -> a -> Boolean
-inRange minVal maxVal value = value >= minVal && value <= maxVal
-
--- | Require value in range or return error
-requireInRange :: forall a. Ord a => a -> a -> a -> Result a ProvenError
-requireInRange minVal maxVal value
-  | inRange minVal maxVal value = Ok value
-  | otherwise = Err OutOfBounds
-
--- | Increment bounded integer with clamping
-increment :: Int -> BoundedInt -> Result BoundedInt ProvenError
-increment delta (BoundedInt r) =
-  case safeAdd (toNumber r.value) (toNumber delta) of
-    Ok result ->
-      let newVal = clampInt r.min r.max (floor result)
-      in Ok (BoundedInt r { value = newVal })
-    Err e -> Err e
-  where
-    clampInt :: Int -> Int -> Int -> Int
-    clampInt mi ma v
-      | v < mi = mi
-      | v > ma = ma
-      | otherwise = v
-
--- | Decrement bounded integer with clamping
-decrement :: Int -> BoundedInt -> Result BoundedInt ProvenError
-decrement delta (BoundedInt r) =
-  case safeSub (toNumber r.value) (toNumber delta) of
-    Ok result ->
-      let newVal = clampInt r.min r.max (floor result)
-      in Ok (BoundedInt r { value = newVal })
-    Err e -> Err e
-  where
-    clampInt :: Int -> Int -> Int -> Int
-    clampInt mi ma v
-      | v < mi = mi
-      | v > ma = ma
-      | otherwise = v
-
--- | Check if bounded integer is at minimum
+-- | Check if bounded integer is at minimum.
 isAtMin :: BoundedInt -> Boolean
 isAtMin (BoundedInt r) = r.value <= r.min
 
--- | Check if bounded integer is at maximum
+-- | Check if bounded integer is at maximum.
 isAtMax :: BoundedInt -> Boolean
 isAtMax (BoundedInt r) = r.value >= r.max

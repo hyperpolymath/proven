@@ -1,0 +1,135 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- proven_gql.gql - GQL (ISO/IEC 39075) function definitions using libproven
+--
+-- GQL is the ISO standard graph query language. These function definitions
+-- describe proven-backed UDFs for use in graph databases implementing GQL.
+--
+-- ALL computation is performed in Idris 2 via the Zig FFI bridge.
+-- These definitions are declarative specifications; the actual implementation
+-- is provided by the Neo4j stored procedures (proven_procedures.java) or
+-- equivalent native plugins for other GQL-compliant databases.
+--
+-- Functions return NULL on error (overflow, invalid input, etc.).
+
+-- ============================================================================
+-- Schema: proven
+-- ============================================================================
+
+-- Create a catalog schema for proven functions.
+-- GQL syntax per ISO/IEC 39075:2024 Section 12.
+CREATE GRAPH TYPE provenFunctionSchema AS {
+    -- No graph type elements; this schema holds procedural functions only.
+};
+
+-- ============================================================================
+-- SafeMath: Checked arithmetic
+-- ============================================================================
+
+-- Checked addition with overflow detection.
+-- Returns NULL if the result would overflow INT64.
+CREATE FUNCTION proven.safeAdd(a :: INT64, b :: INT64) :: INT64
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_math_add_checked';
+
+-- Checked subtraction with underflow detection.
+-- Returns NULL if the result would underflow INT64.
+CREATE FUNCTION proven.safeSub(a :: INT64, b :: INT64) :: INT64
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_math_sub_checked';
+
+-- Checked multiplication with overflow detection.
+-- Returns NULL if the result would overflow INT64.
+CREATE FUNCTION proven.safeMul(a :: INT64, b :: INT64) :: INT64
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_math_mul_checked';
+
+-- Safe integer division.
+-- Returns NULL on division by zero or INT64_MIN / -1 overflow.
+CREATE FUNCTION proven.safeDiv(a :: INT64, b :: INT64) :: INT64
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_math_div';
+
+-- ============================================================================
+-- Validation functions
+-- ============================================================================
+
+-- Validate email address (RFC 5321 simplified).
+-- Returns TRUE if valid, FALSE otherwise.
+CREATE FUNCTION proven.validateEmail(addr :: STRING) :: BOOLEAN
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_email_is_valid';
+
+-- Validate URL by attempting to parse it.
+-- Returns TRUE if parseable, FALSE otherwise.
+CREATE FUNCTION proven.validateUrl(url :: STRING) :: BOOLEAN
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_url_parse';
+
+-- Validate IPv4 address string.
+-- Returns TRUE if valid, FALSE otherwise.
+CREATE FUNCTION proven.validateIpv4(addr :: STRING) :: BOOLEAN
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_network_parse_ipv4';
+
+-- Validate JSON string.
+-- Returns TRUE if valid JSON, FALSE otherwise.
+CREATE FUNCTION proven.validateJson(doc :: STRING) :: BOOLEAN
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_json_is_valid';
+
+-- ============================================================================
+-- String operations
+-- ============================================================================
+
+-- Sanitize string by escaping HTML entities (XSS prevention).
+-- Returns the escaped string, or NULL on error.
+CREATE FUNCTION proven.sanitizeString(input :: STRING) :: STRING
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_string_escape_html';
+
+-- Compute hash of input string (CRC32 as hex via libproven).
+-- For production SHA-256, use the database's native crypto functions.
+CREATE FUNCTION proven.hashSha256(input :: STRING) :: STRING
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_checksum_crc32_hex';
+
+-- Encode bytes as lowercase hexadecimal string.
+CREATE FUNCTION proven.hexEncode(input :: STRING) :: STRING
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_hex_encode';
+
+-- Decode hexadecimal string to bytes.
+CREATE FUNCTION proven.hexDecode(input :: STRING) :: STRING
+    RETURNS NULL ON NULL INPUT
+    DETERMINISTIC
+    EXTERNAL NAME 'libproven:proven_hex_decode';
+
+-- ============================================================================
+-- Example usage in GQL queries
+-- ============================================================================
+
+-- Safe arithmetic on graph node properties
+-- MATCH (a:Account)
+-- RETURN a.name, proven.safeAdd(a.balance, a.pending) AS totalBalance;
+
+-- Validate email properties
+-- MATCH (u:User)
+-- WHERE proven.validateEmail(u.email)
+-- RETURN u.name, u.email;
+
+-- Sanitize user input in graph properties
+-- MATCH (p:Post)
+-- RETURN p.id, proven.sanitizeString(p.title) AS safeTitle;

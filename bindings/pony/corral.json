@@ -1,0 +1,13 @@
+{
+  "//": "SPDX-License-Identifier: PMPL-1.0-or-later",
+  "//": "Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>",
+  "info": {
+    "name": "proven",
+    "version": "0.9.0",
+    "description": "FFI bindings to libproven - a formally verified safety library",
+    "homepage": "https://github.com/hyperpolymath/proven",
+    "license": "PMPL-1.0-or-later"
+  },
+  "packages": [],
+  "deps": []
+}

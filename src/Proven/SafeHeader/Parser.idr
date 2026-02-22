@@ -34,25 +34,9 @@ validateName opts name =
                   Nothing => Err (InvalidNameChar name ' ')
            else if opts.blockDangerous && isDangerousHeader name
              then Err (InvalidNameChar name ':')  -- Block dangerous
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-             else Ok (MkHeaderName (toLower name) name (believe_me Refl))
+             else case decHeaderNameBounded (toLower name) of
+                    Yes prf => Ok (MkHeaderName (toLower name) name prf)
+                    No  _   => Err (NameTooLong name len)
 
 ||| Validate header name with default options
 export
@@ -75,25 +59,9 @@ validateValue opts name value =
          then Err (HeaderInjection name trimmed)
          else if not opts.allowEmptyValues && null (unpack trimmed)
            then Err (InvalidValueFormat name value "empty value not allowed")
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-           else Ok (MkHeaderValue trimmed (believe_me Refl))
+           else case decHeaderValueBounded trimmed of
+                  Yes prf => Ok (MkHeaderValue trimmed prf)
+                  No  _   => Err (ValueTooLong name len)
 
 ||| Validate header value with default options
 export

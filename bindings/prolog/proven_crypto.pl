@@ -1,80 +1,94 @@
 %% SPDX-License-Identifier: PMPL-1.0-or-later
-%% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%% Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 %%
-%% Proven SafeCrypto - Cryptographic utilities for Prolog
+%% Proven SafeCrypto - FFI bindings to libproven cryptographic operations.
+%% All crypto operations are performed in verified Idris 2 code via libproven.
 
 :- module(proven_crypto, [
     constant_time_equals/2,
-    simple_hash/2,
     bytes_to_hex/2,
     generate_token/2,
     random_int/3
 ]).
 
-:- use_module(library(lists)).
+:- use_foreign_library(foreign(libproven)).
 
-%% constant_time_equals(+A, +B)
-%% Succeeds if A and B are equal (constant-time comparison)
-%% Prevents timing attacks by always comparing all bytes
+%% FFI declarations
+:- foreign(proven_crypto_constant_time_eq_ffi, c,
+           proven_crypto_constant_time_eq(+string, +integer,
+                                          +string, +integer,
+                                          [-integer], [-integer])).
+:- foreign(proven_hex_encode_ffi, c,
+           proven_hex_encode(+string, +integer, +integer, [-integer], [-string])).
+:- foreign(proven_crypto_random_bytes_ffi, c,
+           proven_crypto_random_bytes(+integer, [-string], [-integer])).
+
+%! constant_time_equals(+A, +B) is semidet.
+%
+%  Constant-time byte comparison via libproven (timing-attack safe).
 constant_time_equals(A, B) :-
-    atom_codes(A, CodesA),
-    atom_codes(B, CodesB),
-    length(CodesA, Len),
-    length(CodesB, Len),
-    constant_time_compare(CodesA, CodesB, 0, Diff),
-    Diff =:= 0.
+    atom_string(A, AStr),
+    atom_string(B, BStr),
+    atom_length(A, LenA),
+    atom_length(B, LenB),
+    proven_crypto_constant_time_eq_ffi(AStr, LenA, BStr, LenB, Status, Value),
+    Status =:= 0,
+    Value =:= 1.
 
-constant_time_compare([], [], Diff, Diff).
-constant_time_compare([A|RestA], [B|RestB], Acc, Diff) :-
-    NewAcc is Acc \/ (A xor B),
-    constant_time_compare(RestA, RestB, NewAcc, Diff).
-
-%% simple_hash(+Input, -Hash)
-%% Compute FNV-1a hash of Input
-simple_hash(Input, Hash) :-
-    atom_codes(Input, Codes),
-    fnv1a(Codes, 16'811c9dc5, Hash).
-
-fnv1a([], Hash, Result) :-
-    Result is Hash /\ 16'FFFFFFFF.
-fnv1a([C|Rest], Hash, Result) :-
-    H1 is (Hash xor C) * 16'01000193,
-    H2 is H1 /\ 16'FFFFFFFF,
-    fnv1a(Rest, H2, Result).
-
-%% bytes_to_hex(+Bytes, -Hex)
-%% Convert list of bytes to hexadecimal string
+%! bytes_to_hex(+Bytes, -Hex) is det.
+%
+%  Convert list of bytes to hexadecimal string via libproven.
 bytes_to_hex(Bytes, Hex) :-
-    maplist(byte_to_hex, Bytes, HexPairs),
-    append(HexPairs, HexCodes),
-    atom_codes(Hex, HexCodes).
+    length(Bytes, Len),
+    atom_codes(ByteAtom, Bytes),
+    atom_string(ByteAtom, ByteStr),
+    proven_hex_encode_ffi(ByteStr, Len, 0, Status, HexStr),
+    (   Status =:= 0
+    ->  atom_string(Hex, HexStr)
+    ;   Hex = ''
+    ).
 
-byte_to_hex(Byte, [H1, H2]) :-
-    High is Byte >> 4,
-    Low is Byte /\ 16'F,
-    hex_digit(High, H1),
-    hex_digit(Low, H2).
-
-hex_digit(N, C) :- N < 10, !, C is N + 0'0.
-hex_digit(N, C) :- C is N - 10 + 0'a.
-
-%% generate_token(+Length, -Token)
-%% Generate a random hexadecimal token
+%! generate_token(+Length, -Token) is det.
+%
+%  Generate a random hexadecimal token via libproven.
+%  Uses cryptographically secure random bytes from libproven.
 generate_token(Length, Token) :-
-    HexChars = "0123456789abcdef",
-    length(Codes, Length),
-    maplist(random_hex_char(HexChars), Codes),
-    atom_codes(Token, Codes).
+    ByteLen is (Length + 1) // 2,
+    proven_crypto_random_bytes_ffi(ByteLen, BytesStr, Status),
+    (   Status =:= 0
+    ->  proven_hex_encode_ffi(BytesStr, ByteLen, 0, HStatus, HexStr),
+        (   HStatus =:= 0
+        ->  atom_string(FullToken, HexStr),
+            atom_length(FullToken, FullLen),
+            (   FullLen > Length
+            ->  sub_atom(FullToken, 0, Length, _, Token)
+            ;   Token = FullToken
+            )
+        ;   Token = ''
+        )
+    ;   Token = ''
+    ).
 
-random_hex_char(HexChars, Char) :-
-    random_between(0, 15, Index),
-    nth0(Index, HexChars, Char).
+%! random_int(+Min, +Max, -Result) is det.
+%
+%  Generate a random integer in range [Min, Max] via libproven.
+%  Uses proven_crypto_random_bytes for the entropy source.
+random_int(Min, Max, Result) :-
+    (   Min >= Max
+    ->  Result = Min
+    ;   Range is Max - Min + 1,
+        proven_crypto_random_bytes_ffi(8, BytesStr, Status),
+        (   Status =:= 0
+        ->  atom_codes(BytesStr, Codes),
+            codes_to_int(Codes, 0, RawInt),
+            AbsInt is abs(RawInt),
+            Result is Min + (AbsInt mod Range)
+        ;   Result = Min
+        )
+    ).
 
-%% random_int(+Min, +Max, -Result)
-%% Generate a random integer in range [Min, Max]
-random_int(Min, Max, Result) :-
-    Min >= Max,
-    !,
-    Result = Min.
-random_int(Min, Max, Result) :-
-    random_between(Min, Max, Result).
+%% Helper: convert byte codes to an integer
+codes_to_int([], Acc, Acc).
+codes_to_int([C|Rest], Acc, Result) :-
+    NewAcc is (Acc << 8) \/ C,
+    codes_to_int(Rest, NewAcc, Result).

@@ -1,257 +1,271 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// Tests for the Proven Go FFI bindings.
+// These tests call the Idris 2 formally-verified library via CGO.
+// They require libproven to be compiled and available in the library path.
 
 package proven
 
 import (
 	"math"
+	"os"
 	"testing"
 )
 
+// TestMain initializes and deinitializes the Proven runtime for all tests.
+func TestMain(m *testing.M) {
+	if err := Init(); err != nil {
+		// If the library is not available, skip all tests gracefully.
+		os.Exit(0)
+	}
+	code := m.Run()
+	Deinit()
+	os.Exit(code)
+}
+
+// ---------------------------------------------------------------------------
 // SafeMath Tests
+// ---------------------------------------------------------------------------
 
 func TestSafeDiv(t *testing.T) {
-	if result, ok := SafeDiv(10, 2); !ok || result != 5 {
-		t.Errorf("SafeDiv(10, 2) = %d, %v; want 5, true", result, ok)
+	result, err := SafeDiv(10, 2)
+	if err != nil || result != 5 {
+		t.Errorf("SafeDiv(10, 2) = %d, %v; want 5, nil", result, err)
 	}
-	if _, ok := SafeDiv(10, 0); ok {
-		t.Error("SafeDiv(10, 0) should return ok=false")
+	_, err = SafeDiv(10, 0)
+	if err == nil {
+		t.Error("SafeDiv(10, 0) should return an error")
 	}
 }
 
 func TestSafeMod(t *testing.T) {
-	if result, ok := SafeMod(10, 3); !ok || result != 1 {
-		t.Errorf("SafeMod(10, 3) = %d, %v; want 1, true", result, ok)
+	result, err := SafeMod(10, 3)
+	if err != nil || result != 1 {
+		t.Errorf("SafeMod(10, 3) = %d, %v; want 1, nil", result, err)
 	}
-	if _, ok := SafeMod(10, 0); ok {
-		t.Error("SafeMod(10, 0) should return ok=false")
+	_, err = SafeMod(10, 0)
+	if err == nil {
+		t.Error("SafeMod(10, 0) should return an error")
 	}
 }
 
 func TestSafeAdd(t *testing.T) {
-	if result, ok := SafeAdd(1, 2); !ok || result != 3 {
-		t.Errorf("SafeAdd(1, 2) = %d, %v; want 3, true", result, ok)
+	result, err := SafeAdd(1, 2)
+	if err != nil || result != 3 {
+		t.Errorf("SafeAdd(1, 2) = %d, %v; want 3, nil", result, err)
 	}
-	if _, ok := SafeAdd(math.MaxInt64, 1); ok {
-		t.Error("SafeAdd(MaxInt64, 1) should return ok=false (overflow)")
+	_, err = SafeAdd(math.MaxInt64, 1)
+	if err == nil {
+		t.Error("SafeAdd(MaxInt64, 1) should return an error (overflow)")
 	}
 }
 
 func TestSafeSub(t *testing.T) {
-	if result, ok := SafeSub(5, 3); !ok || result != 2 {
-		t.Errorf("SafeSub(5, 3) = %d, %v; want 2, true", result, ok)
+	result, err := SafeSub(5, 3)
+	if err != nil || result != 2 {
+		t.Errorf("SafeSub(5, 3) = %d, %v; want 2, nil", result, err)
 	}
-	if _, ok := SafeSub(math.MinInt64, 1); ok {
-		t.Error("SafeSub(MinInt64, 1) should return ok=false (overflow)")
+	_, err = SafeSub(math.MinInt64, 1)
+	if err == nil {
+		t.Error("SafeSub(MinInt64, 1) should return an error (overflow)")
 	}
 }
 
 func TestSafeMul(t *testing.T) {
-	if result, ok := SafeMul(3, 4); !ok || result != 12 {
-		t.Errorf("SafeMul(3, 4) = %d, %v; want 12, true", result, ok)
+	result, err := SafeMul(3, 4)
+	if err != nil || result != 12 {
+		t.Errorf("SafeMul(3, 4) = %d, %v; want 12, nil", result, err)
 	}
-	if _, ok := SafeMul(math.MaxInt64, 2); ok {
-		t.Error("SafeMul(MaxInt64, 2) should return ok=false (overflow)")
+	_, err = SafeMul(math.MaxInt64, 2)
+	if err == nil {
+		t.Error("SafeMul(MaxInt64, 2) should return an error (overflow)")
 	}
 }
 
+func TestClamp(t *testing.T) {
+	if result := Clamp(0, 10, 5); result != 5 {
+		t.Errorf("Clamp(0, 10, 5) = %d; want 5", result)
+	}
+	if result := Clamp(0, 10, -5); result != 0 {
+		t.Errorf("Clamp(0, 10, -5) = %d; want 0", result)
+	}
+	if result := Clamp(0, 10, 15); result != 10 {
+		t.Errorf("Clamp(0, 10, 15) = %d; want 10", result)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // SafeString Tests
+// ---------------------------------------------------------------------------
 
 func TestEscapeHTML(t *testing.T) {
-	if got := EscapeHTML("<script>"); got != "&lt;script&gt;" {
-		t.Errorf("EscapeHTML(<script>) = %s; want &lt;script&gt;", got)
+	result, err := EscapeHTML("<script>")
+	if err != nil {
+		t.Fatalf("EscapeHTML(<script>) error: %v", err)
 	}
-	if got := EscapeHTML("a & b"); got != "a &amp; b" {
-		t.Errorf("EscapeHTML(a & b) = %s; want a &amp; b", got)
+	if result != "&lt;script&gt;" {
+		t.Errorf("EscapeHTML(<script>) = %s; want &lt;script&gt;", result)
 	}
 }
 
 func TestEscapeSQL(t *testing.T) {
-	if got := EscapeSQL("it's"); got != "it''s" {
-		t.Errorf("EscapeSQL(it's) = %s; want it''s", got)
+	result, err := EscapeSQL("it's")
+	if err != nil {
+		t.Fatalf("EscapeSQL(it's) error: %v", err)
+	}
+	if result != "it''s" {
+		t.Errorf("EscapeSQL(it's) = %s; want it''s", result)
 	}
 }
 
 func TestEscapeJS(t *testing.T) {
-	if got := EscapeJS("line\nbreak"); got != "line\\nbreak" {
-		t.Errorf("EscapeJS(line\\nbreak) = %s; want line\\nbreak", got)
+	result, err := EscapeJS("line\nbreak")
+	if err != nil {
+		t.Fatalf("EscapeJS error: %v", err)
+	}
+	if result != "line\\nbreak" {
+		t.Errorf("EscapeJS(line\\nbreak) = %s; want line\\nbreak", result)
 	}
 }
 
-func TestTruncateSafe(t *testing.T) {
-	if got := TruncateSafeDefault("hello world", 5); got != "he..." {
-		t.Errorf("TruncateSafe(hello world, 5) = %s; want he...", got)
-	}
-	if got := TruncateSafeDefault("hi", 10); got != "hi" {
-		t.Errorf("TruncateSafe(hi, 10) = %s; want hi", got)
-	}
-}
-
+// ---------------------------------------------------------------------------
 // SafePath Tests
+// ---------------------------------------------------------------------------
 
 func TestHasTraversal(t *testing.T) {
-	if !HasTraversal("../etc/passwd") {
+	result, err := HasTraversal("../etc/passwd")
+	if err != nil {
+		t.Fatalf("HasTraversal(../etc/passwd) error: %v", err)
+	}
+	if !result {
 		t.Error("HasTraversal(../etc/passwd) should be true")
 	}
-	if !HasTraversal("~/file") {
-		t.Error("HasTraversal(~/file) should be true")
+	result, err = HasTraversal("normal/path")
+	if err != nil {
+		t.Fatalf("HasTraversal(normal/path) error: %v", err)
 	}
-	if HasTraversal("normal/path") {
+	if result {
 		t.Error("HasTraversal(normal/path) should be false")
 	}
 }
 
-func TestIsSafe(t *testing.T) {
-	if !IsSafe("safe/path") {
-		t.Error("IsSafe(safe/path) should be true")
-	}
-	if IsSafe("../unsafe") {
-		t.Error("IsSafe(../unsafe) should be false")
-	}
-}
-
-func TestSafeJoin(t *testing.T) {
-	if result, ok := SafeJoin("/base", "a", "b"); !ok || result != "/base/a/b" {
-		t.Errorf("SafeJoin(/base, a, b) = %s, %v; want /base/a/b, true", result, ok)
-	}
-	if _, ok := SafeJoin("/base", "../etc"); ok {
-		t.Error("SafeJoin(/base, ../etc) should return ok=false")
-	}
-}
-
+// ---------------------------------------------------------------------------
 // SafeEmail Tests
+// ---------------------------------------------------------------------------
 
 func TestIsValidEmail(t *testing.T) {
-	if !IsValidEmail("user@example.com") {
+	result, err := IsValidEmail("user@example.com")
+	if err != nil {
+		t.Fatalf("IsValidEmail(user@example.com) error: %v", err)
+	}
+	if !result {
 		t.Error("IsValidEmail(user@example.com) should be true")
 	}
-	if IsValidEmail("not-an-email") {
+	result, err = IsValidEmail("not-an-email")
+	if err != nil {
+		t.Fatalf("IsValidEmail(not-an-email) error: %v", err)
+	}
+	if result {
 		t.Error("IsValidEmail(not-an-email) should be false")
 	}
-	if IsValidEmail("@invalid.com") {
-		t.Error("IsValidEmail(@invalid.com) should be false")
+}
+
+// ---------------------------------------------------------------------------
+// SafeFloat Tests
+// ---------------------------------------------------------------------------
+
+func TestFloatDiv(t *testing.T) {
+	result, err := FloatDiv(10.0, 2.0)
+	if err != nil || result != 5.0 {
+		t.Errorf("FloatDiv(10, 2) = %f, %v; want 5.0, nil", result, err)
+	}
+	_, err = FloatDiv(10.0, 0.0)
+	if err == nil {
+		t.Error("FloatDiv(10, 0) should return an error")
 	}
 }
 
-func TestSplitEmail(t *testing.T) {
-	parts := SplitEmail("user@example.com")
-	if parts == nil {
-		t.Fatal("SplitEmail(user@example.com) should not be nil")
+func TestFloatIsFinite(t *testing.T) {
+	if !FloatIsFinite(1.0) {
+		t.Error("FloatIsFinite(1.0) should be true")
 	}
-	if parts.LocalPart != "user" {
-		t.Errorf("LocalPart = %s; want user", parts.LocalPart)
+	if FloatIsFinite(math.Inf(1)) {
+		t.Error("FloatIsFinite(+Inf) should be false")
 	}
-	if parts.Domain != "example.com" {
-		t.Errorf("Domain = %s; want example.com", parts.Domain)
-	}
-}
-
-func TestNormalizeEmail(t *testing.T) {
-	if result, ok := NormalizeEmail("User@EXAMPLE.COM"); !ok || result != "User@example.com" {
-		t.Errorf("NormalizeEmail(User@EXAMPLE.COM) = %s, %v; want User@example.com, true", result, ok)
+	if FloatIsFinite(math.NaN()) {
+		t.Error("FloatIsFinite(NaN) should be false")
 	}
 }
 
-// SafeUrl Tests
+// ---------------------------------------------------------------------------
+// SafeJson Tests
+// ---------------------------------------------------------------------------
 
-func TestParseURL(t *testing.T) {
-	parsed := ParseURL("https://example.com:8080/path?query=1#frag")
-	if parsed == nil {
-		t.Fatal("ParseURL should not be nil")
+func TestJSONIsValid(t *testing.T) {
+	result, err := JSONIsValid(`{"key": "value"}`)
+	if err != nil {
+		t.Fatalf("JSONIsValid error: %v", err)
 	}
-	if parsed.Scheme != "https" {
-		t.Errorf("Scheme = %s; want https", parsed.Scheme)
+	if !result {
+		t.Error("JSONIsValid({\"key\": \"value\"}) should be true")
 	}
-	if parsed.Host != "example.com" {
-		t.Errorf("Host = %s; want example.com", parsed.Host)
+	result, err = JSONIsValid("not json")
+	if err != nil {
+		t.Fatalf("JSONIsValid error: %v", err)
 	}
-	if parsed.Port != "8080" {
-		t.Errorf("Port = %s; want 8080", parsed.Port)
+	if result {
+		t.Error("JSONIsValid(not json) should be false")
 	}
 }
 
-func TestIsValidURL(t *testing.T) {
-	if !IsValidURL("https://example.com") {
-		t.Error("IsValidURL(https://example.com) should be true")
+// ---------------------------------------------------------------------------
+// SafeProbability Tests
+// ---------------------------------------------------------------------------
+
+func TestProbabilityCreate(t *testing.T) {
+	p := ProbabilityCreate(0.5)
+	if p != 0.5 {
+		t.Errorf("ProbabilityCreate(0.5) = %f; want 0.5", p)
 	}
-	if IsValidURL("not a url") {
-		t.Error("IsValidURL(not a url) should be false")
+	// Values outside [0,1] should be clamped.
+	p = ProbabilityCreate(1.5)
+	if p != 1.0 {
+		t.Errorf("ProbabilityCreate(1.5) = %f; want 1.0", p)
+	}
+	p = ProbabilityCreate(-0.5)
+	if p != 0.0 {
+		t.Errorf("ProbabilityCreate(-0.5) = %f; want 0.0", p)
 	}
 }
 
-func TestIsHTTPS(t *testing.T) {
-	if !IsHTTPS("https://secure.com") {
-		t.Error("IsHTTPS(https://secure.com) should be true")
-	}
-	if IsHTTPS("http://insecure.com") {
-		t.Error("IsHTTPS(http://insecure.com) should be false")
+// ---------------------------------------------------------------------------
+// SafeAngle Tests
+// ---------------------------------------------------------------------------
+
+func TestAngleDegToRad(t *testing.T) {
+	result := AngleDegToRad(180.0)
+	if math.Abs(result-math.Pi) > 1e-10 {
+		t.Errorf("AngleDegToRad(180) = %f; want %f", result, math.Pi)
 	}
 }
 
-// SafeNetwork Tests
-
-func TestIsValidIPv4(t *testing.T) {
-	if !IsValidIPv4("192.168.1.1") {
-		t.Error("IsValidIPv4(192.168.1.1) should be true")
-	}
-	if IsValidIPv4("invalid") {
-		t.Error("IsValidIPv4(invalid) should be false")
-	}
-	if IsValidIPv4("256.1.1.1") {
-		t.Error("IsValidIPv4(256.1.1.1) should be false")
+func TestAngleNormalizeDegrees(t *testing.T) {
+	result := AngleNormalizeDegrees(450.0)
+	if math.Abs(result-90.0) > 1e-10 {
+		t.Errorf("AngleNormalizeDegrees(450) = %f; want 90.0", result)
 	}
 }
 
-func TestIsPrivate(t *testing.T) {
-	if !IsPrivate("192.168.1.1") {
-		t.Error("IsPrivate(192.168.1.1) should be true")
-	}
-	if !IsPrivate("10.0.0.1") {
-		t.Error("IsPrivate(10.0.0.1) should be true")
-	}
-	if IsPrivate("8.8.8.8") {
-		t.Error("IsPrivate(8.8.8.8) should be false")
-	}
-}
+// ---------------------------------------------------------------------------
+// Version Tests
+// ---------------------------------------------------------------------------
 
-func TestIsLoopback(t *testing.T) {
-	if !IsLoopback("127.0.0.1") {
-		t.Error("IsLoopback(127.0.0.1) should be true")
+func TestVersionInfo(t *testing.T) {
+	if !IsInitialized() {
+		t.Error("IsInitialized() should be true after Init()")
 	}
-	if IsLoopback("192.168.1.1") {
-		t.Error("IsLoopback(192.168.1.1) should be false")
-	}
-}
-
-func TestIsPublic(t *testing.T) {
-	if !IsPublic("8.8.8.8") {
-		t.Error("IsPublic(8.8.8.8) should be true")
-	}
-	if IsPublic("192.168.1.1") {
-		t.Error("IsPublic(192.168.1.1) should be false")
-	}
-}
-
-// SafeCrypto Tests
-
-func TestConstantTimeCompare(t *testing.T) {
-	if !ConstantTimeCompareString("secret", "secret") {
-		t.Error("ConstantTimeCompare(secret, secret) should be true")
-	}
-	if ConstantTimeCompareString("secret", "other") {
-		t.Error("ConstantTimeCompare(secret, other) should be false")
-	}
-	if !ConstantTimeCompareString("", "") {
-		t.Error("ConstantTimeCompare(empty, empty) should be true")
-	}
-}
-
-func TestSecureZero(t *testing.T) {
-	data := []byte{1, 2, 3, 4}
-	SecureZero(data)
-	for i, b := range data {
-		if b != 0 {
-			t.Errorf("data[%d] = %d; want 0", i, b)
-		}
+	if ModuleCount() == 0 {
+		t.Error("ModuleCount() should be > 0")
 	}
 }

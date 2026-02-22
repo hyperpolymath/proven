@@ -1,1 +1,33 @@
-content of dustfile
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Dustfile - proven library recovery and rollback semantics
+version: 1
+recovery:
+  proofs:
+    - name: believe-me-regression
+      description: "If believe_me reappears after elimination"
+      detection: "grep -r 'believe_me' src/ --include='*.idr'"
+      rollback: "git checkout HEAD~1 -- src/"
+      notes: "Revert to last known believe_me-free state"
+  ffi:
+    - name: ffi-bridge-broken
+      description: "Zig FFI fails to compile or test"
+      detection: "cd ffi/zig && zig build test 2>&1 | grep -q error"
+      rollback: "git checkout HEAD~1 -- ffi/zig/"
+      notes: "Revert FFI bridge to last working state"
+  bindings:
+    - name: binding-reimplementation
+      description: "A binding reimplements logic instead of calling FFI"
+      detection: "hypatia scan --rule=binding-delegation-correctness"
+      rollback: "git checkout HEAD~1 -- bindings/"
+      notes: "Revert binding to FFI-only version"
+  architecture:
+    - name: architecture-violation
+      description: "Core architecture invariant violated"
+      event: "hypatia.critical"
+      undo: "git revert --no-commit HEAD && git commit -m 'revert: architecture violation detected'"
+      notes: "Auto-revert commits that break architecture invariants"
+  dust-events:
+    - name: proof-regression-log
+      source: ".machine_readable/RUPTURE.a2ml"
+      transform: "dustify --input .machine_readable/RUPTURE.a2ml --output logs/dust-events.json"
+      notes: "Map rupture events into reversible dust events for robot-repo-automaton"

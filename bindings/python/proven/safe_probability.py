@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeProbability - Probability values clamped to [0,1].
 
 Provides type-safe probability operations with automatic clamping.
+All computation is delegated to the Idris core via FFI.
 """
 
 from typing import Optional
 from dataclasses import dataclass
 from functools import total_ordering
-import math
+
+from .core import ProvenStatus, get_lib
 
 
 @total_ordering
@@ -29,14 +31,23 @@ class Probability:
     value: float
 
     def __new__(cls, value: float) -> "Probability":
-        """Create with clamping to [0, 1]."""
+        """Create with clamping to [0, 1] via FFI."""
         instance = object.__new__(cls)
-        clamped = max(0.0, min(1.0, value))
+        lib = get_lib()
+        result = lib.proven_probability_clamp(value)
+        if result.status == ProvenStatus.OK:
+            clamped = result.value
+        else:
+            clamped = max(0.0, min(1.0, value))
         object.__setattr__(instance, "value", clamped)
         return instance
 
     def complement(self) -> "Probability":
-        """Get complement (1 - p)."""
+        """Get complement (1 - p) via FFI."""
+        lib = get_lib()
+        result = lib.proven_probability_not(self.value)
+        if result.status == ProvenStatus.OK:
+            return Probability(result.value)
         return Probability(1.0 - self.value)
 
     def __eq__(self, other: object) -> bool:
@@ -56,7 +67,11 @@ class Probability:
         return self.value
 
     def __mul__(self, other: "Probability") -> "Probability":
-        """Multiply probabilities (AND for independent events)."""
+        """Multiply probabilities (AND for independent events) via FFI."""
+        lib = get_lib()
+        result = lib.proven_probability_and(self.value, other.value)
+        if result.status == ProvenStatus.OK:
+            return Probability(result.value)
         return Probability(self.value * other.value)
 
     def is_certain(self) -> bool:
@@ -76,11 +91,19 @@ class Probability:
         """
         if abs(self.value - 1.0) < 1e-10:
             return None
-        return self.value / (1.0 - self.value)
+        lib = get_lib()
+        result = lib.proven_float_div(self.value, 1.0 - self.value)
+        if result.status != ProvenStatus.OK:
+            return None
+        return result.value
 
     def to_percentage(self) -> float:
         """Convert to percentage (0-100)."""
-        return self.value * 100.0
+        lib = get_lib()
+        result = lib.proven_float_mul(self.value, 100.0)
+        if result.status != ProvenStatus.OK:
+            return self.value * 100.0
+        return result.value
 
     @staticmethod
     def from_odds(odds: float) -> "Probability":
@@ -95,7 +118,11 @@ class Probability:
         """
         if odds < 0:
             return Probability(0.0)
-        return Probability(odds / (1.0 + odds))
+        lib = get_lib()
+        result = lib.proven_float_div(odds, 1.0 + odds)
+        if result.status != ProvenStatus.OK:
+            return Probability(0.0)
+        return Probability(result.value)
 
     @staticmethod
     def from_percentage(percent: float) -> "Probability":
@@ -108,12 +135,16 @@ class Probability:
         Returns:
             Probability
         """
-        return Probability(percent / 100.0)
+        lib = get_lib()
+        result = lib.proven_float_div(percent, 100.0)
+        if result.status != ProvenStatus.OK:
+            return Probability(percent / 100.0)
+        return Probability(result.value)
 
     @staticmethod
     def and_(a: "Probability", b: "Probability") -> "Probability":
         """
-        P(A and B) for independent events.
+        P(A and B) for independent events via FFI.
 
         Args:
             a: P(A)
@@ -122,12 +153,16 @@ class Probability:
         Returns:
             P(A and B) = P(A) * P(B)
         """
+        lib = get_lib()
+        result = lib.proven_probability_and(a.value, b.value)
+        if result.status == ProvenStatus.OK:
+            return Probability(result.value)
         return Probability(a.value * b.value)
 
     @staticmethod
     def or_(a: "Probability", b: "Probability") -> "Probability":
         """
-        P(A or B) for independent events.
+        P(A or B) for independent events via FFI.
 
         Args:
             a: P(A)
@@ -136,12 +171,16 @@ class Probability:
         Returns:
             P(A or B) = P(A) + P(B) - P(A)*P(B)
         """
+        lib = get_lib()
+        result = lib.proven_probability_or(a.value, b.value)
+        if result.status == ProvenStatus.OK:
+            return Probability(result.value)
         return Probability(a.value + b.value - a.value * b.value)
 
     @staticmethod
     def not_(p: "Probability") -> "Probability":
         """
-        P(not A).
+        P(not A) via FFI.
 
         Args:
             p: P(A)
@@ -154,7 +193,7 @@ class Probability:
     @staticmethod
     def conditional(a_given_b: "Probability", b: "Probability") -> "Probability":
         """
-        P(A and B) given P(A|B) and P(B).
+        P(A and B) given P(A|B) and P(B) via FFI.
 
         Args:
             a_given_b: P(A|B)
@@ -163,7 +202,7 @@ class Probability:
         Returns:
             P(A and B) = P(A|B) * P(B)
         """
-        return Probability(a_given_b.value * b.value)
+        return Probability.and_(a_given_b, b)
 
     @staticmethod
     def bayes(
@@ -172,7 +211,7 @@ class Probability:
         evidence: "Probability",    # P(B)
     ) -> Optional["Probability"]:
         """
-        Bayes' theorem: P(A|B) = P(B|A) * P(A) / P(B).
+        Bayes' theorem: P(A|B) = P(B|A) * P(A) / P(B) via FFI.
 
         Args:
             likelihood: P(B|A)
@@ -184,12 +223,16 @@ class Probability:
         """
         if evidence.is_impossible():
             return None
-        return Probability(likelihood.value * prior.value / evidence.value)
+        lib = get_lib()
+        result = lib.proven_probability_bayes(likelihood.value, prior.value, evidence.value)
+        if result.status != ProvenStatus.OK:
+            return None
+        return Probability(result.value)
 
     @staticmethod
     def binomial(n: int, k: int, p: "Probability") -> "Probability":
         """
-        Binomial probability: P(X = k) for n trials with probability p.
+        Binomial probability: P(X = k) for n trials with probability p via FFI.
 
         Args:
             n: Number of trials
@@ -202,17 +245,15 @@ class Probability:
         if k < 0 or k > n or n < 0:
             return Probability(0.0)
 
-        # Calculate n choose k
-        coeff = 1
-        for i in range(min(k, n - k)):
-            coeff = coeff * (n - i) // (i + 1)
-
-        prob = coeff * (p.value ** k) * ((1 - p.value) ** (n - k))
-        return Probability(prob)
+        lib = get_lib()
+        result = lib.proven_probability_binomial(n, k, p.value)
+        if result.status != ProvenStatus.OK:
+            return Probability(0.0)
+        return Probability(result.value)
 
 
 class SafeProbability:
-    """Safe probability utilities."""
+    """Safe probability utilities via FFI."""
 
     CERTAIN = Probability(1.0)
     IMPOSSIBLE = Probability(0.0)
@@ -231,7 +272,7 @@ class SafeProbability:
     @staticmethod
     def weighted_average(probs: list, weights: list) -> Optional[Probability]:
         """
-        Calculate weighted average of probabilities.
+        Calculate weighted average of probabilities via FFI.
 
         Args:
             probs: List of Probability values
@@ -245,9 +286,20 @@ class SafeProbability:
         if any(w < 0 for w in weights):
             return None
 
+        lib = get_lib()
         total_weight = sum(weights)
         if total_weight == 0:
             return None
 
-        weighted_sum = sum(p.value * w for p, w in zip(probs, weights))
-        return Probability(weighted_sum / total_weight)
+        weighted_sum = 0.0
+        for p, w in zip(probs, weights):
+            product = lib.proven_float_mul(p.value, w)
+            if product.status == ProvenStatus.OK:
+                weighted_sum += product.value
+            else:
+                weighted_sum += p.value * w
+
+        result = lib.proven_float_div(weighted_sum, total_weight)
+        if result.status != ProvenStatus.OK:
+            return None
+        return Probability(result.value)

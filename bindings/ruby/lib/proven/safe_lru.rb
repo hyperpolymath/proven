@@ -1,153 +1,73 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
+# Safe LRU cache operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
+# LRU caches are opaque pointers managed by libproven.
+
 module Proven
-  # Safe LRU (Least Recently Used) cache implementation.
-  #
-  # Provides a bounded cache with automatic eviction of
-  # least recently used entries.
   module SafeLru
-    # LRU cache with bounded capacity.
-    class LruCache
-      attr_reader :capacity
-
-      def initialize(capacity)
-        @capacity = capacity
-        @data = {}
-        @order = [] # Most recent at end, least recent at front
-      end
-
-      def length
-        @data.length
-      end
-
-      alias size length
-
-      def empty?
-        @data.empty?
-      end
-
-      def full?
-        @data.length >= @capacity
-      end
-
-      # Get a value by key, marking it as recently used.
+    class << self
+      # Create an LRU cache with the given capacity.
+      # Returns an opaque handle or nil on error.
+      # Caller MUST call #free when done.
       #
-      # @param key [Object]
-      # @return [Object, nil]
-      def get(key)
-        return nil unless @data.key?(key)
-
-        # Move to end (most recent)
-        @order.delete(key)
-        @order.push(key)
-        @data[key]
+      # @param capacity [Integer]
+      # @return [Fiddle::Pointer, nil]
+      def create(capacity)
+        FFI.invoke_ptr(
+          "proven_lru_create",
+          [Fiddle::TYPE_SIZE_T],
+          [capacity]
+        )
       end
 
-      # Get a value without updating recency.
+      # Get a value by key. Returns nil if not found or error.
       #
-      # @param key [Object]
-      # @return [Object, nil]
-      def peek(key)
-        @data[key]
+      # @param cache [Fiddle::Pointer]
+      # @param key [Integer] u64 key
+      # @return [Integer, nil]
+      def get(cache, key)
+        return nil if cache.nil?
+        result = FFI.invoke_int_result(
+          "proven_lru_get",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG_LONG],
+          [cache, key]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
 
       # Insert a key-value pair, evicting LRU if necessary.
+      # Returns true on success, nil on error.
       #
-      # @param key [Object]
-      # @param value [Object]
-      # @return [Object, nil] evicted value if any
-      def put(key, value)
-        evicted = nil
-
-        # If key exists, update and move to front
-        if @data.key?(key)
-          old_value = @data[key]
-          @data[key] = value
-          @order.delete(key)
-          @order.push(key)
-          return old_value
-        end
-
-        # Need to evict?
-        evicted = evict_lru if full?
-
-        @data[key] = value
-        @order.push(key)
-
-        evicted
+      # @param cache [Fiddle::Pointer]
+      # @param key [Integer] u64 key
+      # @param value [Integer] i64 value
+      # @return [Boolean, nil]
+      def put(cache, key, value)
+        return nil if cache.nil?
+        status = FFI.invoke_i32(
+          "proven_lru_put",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [cache, key, value]
+        )
+        status == FFI::STATUS_OK
       end
 
-      # Remove a key from the cache.
+      # Free an LRU cache handle.
       #
-      # @param key [Object]
-      # @return [Object, nil]
-      def remove(key)
-        return nil unless @data.key?(key)
-
-        @order.delete(key)
-        @data.delete(key)
+      # @param cache [Fiddle::Pointer]
+      def free(cache)
+        return if cache.nil?
+        FFI.invoke_void(
+          "proven_lru_free",
+          [Fiddle::TYPE_VOIDP],
+          [cache]
+        )
       end
-
-      alias delete remove
-
-      # Check if key exists.
-      #
-      # @param key [Object]
-      # @return [Boolean]
-      def contains?(key)
-        @data.key?(key)
-      end
-
-      alias key? contains?
-      alias has_key? contains?
-
-      # Clear all entries.
-      def clear
-        @data.clear
-        @order.clear
-      end
-
-      # Get all keys in LRU order (least recent first).
-      #
-      # @return [Array]
-      def keys
-        @order.dup
-      end
-
-      # Get all values in LRU order (least recent first).
-      #
-      # @return [Array]
-      def values
-        @order.map { |k| @data[k] }
-      end
-
-      # Iterate over key-value pairs in LRU order.
-      #
-      # @yield [key, value]
-      def each(&block)
-        @order.each do |key|
-          block.call(key, @data[key])
-        end
-      end
-
-      private
-
-      def evict_lru
-        return nil if @order.empty?
-
-        lru_key = @order.shift
-        @data.delete(lru_key)
-      end
-    end
-
-    # Create a new LRU cache.
-    #
-    # @param capacity [Integer]
-    # @return [LruCache]
-    def self.lru_cache(capacity)
-      LruCache.new(capacity)
     end
   end
 end

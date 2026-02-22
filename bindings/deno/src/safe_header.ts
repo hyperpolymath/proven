@@ -1,126 +1,124 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Safe HTTP Header operations that prevent CRLF injection attacks.
+ * SafeHeader - HTTP header operations that prevent CRLF injection.
  *
- * All operations handle injection attacks and size limits without throwing.
- * Operations return Result on failure.
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
  *
  * @module
  */
 
-import { type Result, ok, err } from './result.ts';
+import { getLib, ProvenStatus, readAndFreeString, statusToError } from './ffi.ts';
+import { err, ok, type Result } from './result.ts';
 
-/** HTTP header name/value pair */
-export interface Header {
-  readonly name: string;
-  readonly value: string;
+/**
+ * Safe HTTP header operations backed by formally verified Idris 2 code.
+ */
+export class SafeHeader {
+  /**
+   * Check for CRLF injection characters in a header value.
+   *
+   * @param value - The header value to check.
+   * @returns Result containing a boolean or an error string.
+   */
+  static hasCrlf(value: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(value);
+    const result = symbols.proven_header_has_crlf(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Check if a header name is a valid token per RFC 7230.
+   *
+   * @param name - The header name to validate.
+   * @returns Result containing a boolean or an error string.
+   */
+  static isValidName(name: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(name);
+    const result = symbols.proven_header_is_valid_name(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Check if a header name is in the dangerous headers list.
+   *
+   * @param name - The header name to check.
+   * @returns Result containing a boolean or an error string.
+   */
+  static isDangerous(name: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(name);
+    const result = symbols.proven_header_is_dangerous(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Create a validated header string "Name: Value".
+   *
+   * @param name - The header name.
+   * @param value - The header value.
+   * @returns Result containing the rendered header or an error string.
+   */
+  static render(name: string, value: string): Result<string> {
+    const symbols = getLib();
+    const nameBytes = new TextEncoder().encode(name);
+    const valueBytes = new TextEncoder().encode(value);
+    const result = symbols.proven_header_render(
+      nameBytes,
+      nameBytes.length,
+      valueBytes,
+      valueBytes.length,
+    );
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const rendered = readAndFreeString(result[1], Number(result[2]));
+    if (rendered === null) return err('Null string returned');
+    return ok(rendered);
+  }
+
+  /**
+   * Build Content-Security-Policy header value from directives JSON.
+   *
+   * @param directivesJson - JSON string of CSP directives.
+   * @returns Result containing the CSP header value or an error string.
+   */
+  static buildCsp(directivesJson: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(directivesJson);
+    const result = symbols.proven_header_build_csp(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const csp = readAndFreeString(result[1], Number(result[2]));
+    if (csp === null) return err('Null string returned');
+    return ok(csp);
+  }
+
+  /**
+   * Build HSTS (Strict-Transport-Security) header value.
+   *
+   * @param maxAge - Max age in seconds.
+   * @param includeSubdomains - Whether to include subdomains.
+   * @param preload - Whether to include preload directive.
+   * @returns Result containing the HSTS header value or an error string.
+   */
+  static buildHsts(
+    maxAge: number,
+    includeSubdomains: boolean,
+    preload: boolean,
+  ): Result<string> {
+    const symbols = getLib();
+    const result = symbols.proven_header_build_hsts(
+      BigInt(maxAge),
+      includeSubdomains,
+      preload,
+    );
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const hsts = readAndFreeString(result[1], Number(result[2]));
+    if (hsts === null) return err('Null string returned');
+    return ok(hsts);
+  }
 }
-
-/** Dangerous headers that should not be set by user code */
-const DANGEROUS_HEADERS = new Set([
-  'proxy-authorization',
-  'proxy-authenticate',
-  'proxy-connection',
-  'transfer-encoding',
-  'content-length',
-  'host',
-  'connection',
-  'keep-alive',
-  'upgrade',
-  'te',
-  'trailer',
-]);
-
-/** Valid token characters per RFC 7230 */
-const TOKEN_CHARS = new Set(
-  '!#$%&\'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-);
-
-/** Safe header operations */
-export const SafeHeader = {
-  /** Check if a string contains CRLF injection characters */
-  hasCrlf(s: string): boolean {
-    return s.includes('\r') || s.includes('\n');
-  },
-
-  /** Check if header name is a valid token per RFC 7230 */
-  isValidName(name: string): boolean {
-    if (name.length === 0 || name.length > 256) {
-      return false;
-    }
-    for (const char of name) {
-      if (!TOKEN_CHARS.has(char)) {
-        return false;
-      }
-    }
-    return true;
-  },
-
-  /** Check if header name is in the dangerous headers list */
-  isDangerous(name: string): boolean {
-    return DANGEROUS_HEADERS.has(name.toLowerCase());
-  },
-
-  /** Create a validated header */
-  make(name: string, value: string): Result<Header, string> {
-    const trimmedName = name.trim();
-    const trimmedValue = value.trim();
-
-    if (!this.isValidName(trimmedName)) {
-      return err('Invalid header name');
-    }
-
-    if (this.hasCrlf(trimmedValue)) {
-      return err('Header value contains CRLF injection characters');
-    }
-
-    if (trimmedValue.length > 8192) {
-      return err('Header value too long');
-    }
-
-    return ok({ name: trimmedName, value: trimmedValue });
-  },
-
-  /** Create header, blocking dangerous headers */
-  makeSafe(name: string, value: string): Result<Header, string> {
-    if (this.isDangerous(name)) {
-      return err('Dangerous header not allowed');
-    }
-    return this.make(name, value);
-  },
-
-  /** Render header to "Name: Value" format */
-  render(header: Header): string {
-    return `${header.name}: ${header.value}`;
-  },
-
-  /** Build Strict-Transport-Security header value */
-  buildHsts(maxAge: number, includeSubdomains = false, preload = false): string {
-    let value = `max-age=${maxAge}`;
-    if (includeSubdomains) {
-      value += '; includeSubDomains';
-    }
-    if (preload) {
-      value += '; preload';
-    }
-    return value;
-  },
-
-  /** Build Content-Security-Policy header value from directives */
-  buildCsp(directives: Array<[string, string[]]>): string {
-    return directives
-      .map(([name, sources]) => (sources.length === 0 ? name : `${name} ${sources.join(' ')}`))
-      .join('; ');
-  },
-
-  /** Get common security headers preset */
-  securityHeaders(): Header[] {
-    return [
-      { name: 'X-Frame-Options', value: 'DENY' },
-      { name: 'X-Content-Type-Options', value: 'nosniff' },
-      { name: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      { name: 'X-XSS-Protection', value: '1; mode=block' },
-    ];
-  },
-} as const;

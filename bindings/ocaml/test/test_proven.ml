@@ -1,94 +1,248 @@
 (* SPDX-License-Identifier: PMPL-1.0-or-later *)
-(* SPDX-FileCopyrightText: 2025 Hyperpolymath *)
+(* Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> *)
 
-open Proven
+(** Tests for the Proven OCaml FFI bindings.
 
-let test_safe_div () =
-  Alcotest.(check (option int)) "10/2=5" (Some 5) (Safe_math.safe_div 10 2);
-  Alcotest.(check (option int)) "10/0=None" None (Safe_math.safe_div 10 0)
+    These tests call through to libproven via ctypes.  They require
+    [libproven.so] to be loadable at runtime (e.g., via LD_LIBRARY_PATH). *)
 
-let test_safe_mod () =
-  Alcotest.(check (option int)) "10%3=1" (Some 1) (Safe_math.safe_mod 10 3);
-  Alcotest.(check (option int)) "10%0=None" None (Safe_math.safe_mod 10 0)
+(* -------------------------------------------------------------------------- *)
+(* Test helpers                                                               *)
+(* -------------------------------------------------------------------------- *)
 
-let test_safe_add () =
-  Alcotest.(check (option int)) "1+2=3" (Some 3) (Safe_math.safe_add 1 2)
+let option_int    = Alcotest.(option int)
+let option_string = Alcotest.(option string)
+let option_float  = Alcotest.(option (float 1e-6))
 
-let test_safe_sub () =
-  Alcotest.(check (option int)) "5-3=2" (Some 2) (Safe_math.safe_sub 5 3)
+(* -------------------------------------------------------------------------- *)
+(* Lifecycle                                                                  *)
+(* -------------------------------------------------------------------------- *)
 
-let test_safe_mul () =
-  Alcotest.(check (option int)) "3*4=12" (Some 12) (Safe_math.safe_mul 3 4)
+let test_init () =
+  let ok = Proven.Lifecycle.init () in
+  Alcotest.(check bool) "init succeeds" true ok;
+  Alcotest.(check bool) "is_initialized" true (Proven.Lifecycle.is_initialized ())
 
-let test_escape_html () =
-  Alcotest.(check string) "escape <" "&lt;script&gt;" (Safe_string.escape_html "<script>");
-  Alcotest.(check string) "escape &" "a &amp; b" (Safe_string.escape_html "a & b")
+(* -------------------------------------------------------------------------- *)
+(* SafeMath                                                                   *)
+(* -------------------------------------------------------------------------- *)
 
-let test_escape_sql () =
-  Alcotest.(check string) "escape '" "it''s" (Safe_string.escape_sql "it's")
+let test_math_div () =
+  Alcotest.(check option_int) "10/2=5" (Some 5) (Proven.SafeMath.div 10 2);
+  Alcotest.(check option_int) "10/0=None" None (Proven.SafeMath.div 10 0)
 
-let test_truncate_safe () =
-  Alcotest.(check string) "truncate" "he..." (Safe_string.truncate_safe "hello world" 5);
-  Alcotest.(check string) "no truncate" "hi" (Safe_string.truncate_safe "hi" 10)
+let test_math_mod () =
+  Alcotest.(check option_int) "10%3=1" (Some 1) (Proven.SafeMath.modulo 10 3);
+  Alcotest.(check option_int) "10%0=None" None (Proven.SafeMath.modulo 10 0)
 
-let test_has_traversal () =
-  Alcotest.(check bool) "../ detected" true (Safe_path.has_traversal "../etc");
-  Alcotest.(check bool) "~ detected" true (Safe_path.has_traversal "~/file");
-  Alcotest.(check bool) "safe path" false (Safe_path.has_traversal "normal/path")
+let test_math_add () =
+  Alcotest.(check option_int) "1+2=3" (Some 3) (Proven.SafeMath.add 1 2)
+
+let test_math_sub () =
+  Alcotest.(check option_int) "5-3=2" (Some 2) (Proven.SafeMath.sub 5 3)
+
+let test_math_mul () =
+  Alcotest.(check option_int) "3*4=12" (Some 12) (Proven.SafeMath.mul 3 4)
+
+let test_math_abs () =
+  Alcotest.(check option_int) "abs(-7)=7" (Some 7) (Proven.SafeMath.abs (-7));
+  Alcotest.(check option_int) "abs(0)=0" (Some 0) (Proven.SafeMath.abs 0)
+
+let test_math_clamp () =
+  Alcotest.(check int) "clamp 5 [0,10]" 5 (Proven.SafeMath.clamp ~lo:0 ~hi:10 5);
+  Alcotest.(check int) "clamp -1 [0,10]" 0 (Proven.SafeMath.clamp ~lo:0 ~hi:10 (-1));
+  Alcotest.(check int) "clamp 20 [0,10]" 10 (Proven.SafeMath.clamp ~lo:0 ~hi:10 20)
+
+let test_math_pow () =
+  Alcotest.(check option_int) "2^10=1024" (Some 1024) (Proven.SafeMath.pow 2 10)
+
+(* -------------------------------------------------------------------------- *)
+(* SafeString                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
+let test_string_escape_html () =
+  Alcotest.(check option_string) "escape <"
+    (Some "&lt;script&gt;")
+    (Proven.SafeString.escape_html "<script>")
+
+let test_string_escape_sql () =
+  Alcotest.(check option_string) "escape '"
+    (Some "it''s")
+    (Proven.SafeString.escape_sql "it's")
+
+let test_string_utf8 () =
+  Alcotest.(check bool) "valid utf8" true
+    (Proven.SafeString.is_valid_utf8 "hello")
+
+(* -------------------------------------------------------------------------- *)
+(* SafePath                                                                   *)
+(* -------------------------------------------------------------------------- *)
+
+let test_path_traversal () =
+  Alcotest.(check bool) "../ detected" true (Proven.SafePath.has_traversal "../etc");
+  Alcotest.(check bool) "safe path" false (Proven.SafePath.has_traversal "normal/path")
+
+(* -------------------------------------------------------------------------- *)
+(* SafeEmail                                                                  *)
+(* -------------------------------------------------------------------------- *)
 
 let test_email_valid () =
-  Alcotest.(check bool) "valid email" true (Safe_email.is_valid "user@example.com");
-  Alcotest.(check bool) "invalid email" false (Safe_email.is_valid "not-an-email")
+  Alcotest.(check bool) "valid" true (Proven.SafeEmail.is_valid "user@example.com");
+  Alcotest.(check bool) "invalid" false (Proven.SafeEmail.is_valid "not-an-email")
 
-let test_email_normalize () =
-  Alcotest.(check (option string)) "normalize"
-    (Some "User@example.com")
-    (Safe_email.normalize "User@EXAMPLE.COM")
+(* -------------------------------------------------------------------------- *)
+(* SafeCrypto                                                                 *)
+(* -------------------------------------------------------------------------- *)
 
-let test_ipv4_valid () =
-  Alcotest.(check bool) "valid ipv4" true (Safe_network.is_valid_ipv4 "192.168.1.1");
-  Alcotest.(check bool) "invalid ipv4" false (Safe_network.is_valid_ipv4 "256.1.1.1")
+let test_crypto_constant_time_eq () =
+  Alcotest.(check bool) "equal" true (Proven.SafeCrypto.constant_time_eq "secret" "secret");
+  Alcotest.(check bool) "not equal" false (Proven.SafeCrypto.constant_time_eq "secret" "other!")
 
-let test_ipv4_private () =
-  Alcotest.(check bool) "192.168 private" true (Safe_network.is_private "192.168.1.1");
-  Alcotest.(check bool) "8.8.8.8 public" false (Safe_network.is_private "8.8.8.8")
+let test_crypto_random_bytes () =
+  match Proven.SafeCrypto.random_bytes 16 with
+  | Some s -> Alcotest.(check int) "16 bytes" 16 (String.length s)
+  | None -> Alcotest.fail "random_bytes returned None"
 
-let test_constant_time_compare () =
-  Alcotest.(check bool) "equal" true (Safe_crypto.constant_time_compare "secret" "secret");
-  Alcotest.(check bool) "not equal" false (Safe_crypto.constant_time_compare "secret" "other!")
+(* -------------------------------------------------------------------------- *)
+(* SafeFloat                                                                  *)
+(* -------------------------------------------------------------------------- *)
 
-let test_secure_zero () =
-  let zeroed = Safe_crypto.secure_zero 4 in
-  Alcotest.(check int) "length" 4 (String.length zeroed);
-  Alcotest.(check string) "content" "\000\000\000\000" zeroed
+let test_float_div () =
+  Alcotest.(check option_float) "10/2=5" (Some 5.0) (Proven.SafeFloat.div 10.0 2.0);
+  Alcotest.(check option_float) "10/0=None" None (Proven.SafeFloat.div 10.0 0.0)
+
+let test_float_sqrt () =
+  Alcotest.(check option_float) "sqrt(4)=2" (Some 2.0) (Proven.SafeFloat.sqrt 4.0);
+  Alcotest.(check option_float) "sqrt(-1)=None" None (Proven.SafeFloat.sqrt (-1.0))
+
+let test_float_ln () =
+  Alcotest.(check option_float) "ln(e)~1" (Some 1.0) (Proven.SafeFloat.ln (exp 1.0));
+  Alcotest.(check option_float) "ln(-1)=None" None (Proven.SafeFloat.ln (-1.0))
+
+let test_float_finite () =
+  Alcotest.(check bool) "1.0 finite" true (Proven.SafeFloat.is_finite 1.0);
+  Alcotest.(check bool) "nan not finite" false (Proven.SafeFloat.is_finite Float.nan)
+
+(* -------------------------------------------------------------------------- *)
+(* SafeDateTime                                                               *)
+(* -------------------------------------------------------------------------- *)
+
+let test_datetime_leap_year () =
+  Alcotest.(check bool) "2000 leap" true (Proven.SafeDateTime.is_leap_year 2000);
+  Alcotest.(check bool) "1900 not leap" false (Proven.SafeDateTime.is_leap_year 1900);
+  Alcotest.(check bool) "2024 leap" true (Proven.SafeDateTime.is_leap_year 2024)
+
+let test_datetime_days_in_month () =
+  Alcotest.(check int) "Feb 2024" 29 (Proven.SafeDateTime.days_in_month ~year:2024 ~month:2);
+  Alcotest.(check int) "Feb 2023" 28 (Proven.SafeDateTime.days_in_month ~year:2023 ~month:2);
+  Alcotest.(check int) "Jan" 31 (Proven.SafeDateTime.days_in_month ~year:2023 ~month:1)
+
+(* -------------------------------------------------------------------------- *)
+(* SafeAngle                                                                  *)
+(* -------------------------------------------------------------------------- *)
+
+let test_angle_conversion () =
+  let rad = Proven.SafeAngle.deg_to_rad 180.0 in
+  Alcotest.(check (float 1e-6)) "180 deg = pi rad" Float.pi rad;
+  let deg = Proven.SafeAngle.rad_to_deg Float.pi in
+  Alcotest.(check (float 1e-6)) "pi rad = 180 deg" 180.0 deg
+
+let test_angle_normalize () =
+  let n = Proven.SafeAngle.normalize_degrees 450.0 in
+  Alcotest.(check (float 1e-6)) "450 -> 90" 90.0 n;
+  let n2 = Proven.SafeAngle.normalize_degrees (-90.0) in
+  Alcotest.(check (float 1e-6)) "-90 -> 270" 270.0 n2
+
+(* -------------------------------------------------------------------------- *)
+(* SafeProbability                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+let test_probability () =
+  let p = Proven.SafeProbability.create 0.5 in
+  Alcotest.(check (float 1e-6)) "create 0.5" 0.5 p;
+  let clamped = Proven.SafeProbability.create 1.5 in
+  Alcotest.(check (float 1e-6)) "clamp 1.5 -> 1.0" 1.0 clamped;
+  let comp = Proven.SafeProbability.complement 0.3 in
+  Alcotest.(check (float 1e-6)) "not 0.3 = 0.7" 0.7 comp
+
+(* -------------------------------------------------------------------------- *)
+(* SafeML                                                                     *)
+(* -------------------------------------------------------------------------- *)
+
+let test_ml_sigmoid () =
+  let s = Proven.SafeMl.sigmoid 0.0 in
+  Alcotest.(check (float 1e-6)) "sigmoid(0)=0.5" 0.5 s
+
+let test_ml_relu () =
+  Alcotest.(check (float 1e-6)) "relu(5)=5" 5.0 (Proven.SafeMl.relu 5.0);
+  Alcotest.(check (float 1e-6)) "relu(-5)=0" 0.0 (Proven.SafeMl.relu (-5.0))
+
+(* -------------------------------------------------------------------------- *)
+(* Version                                                                    *)
+(* -------------------------------------------------------------------------- *)
+
+let test_version_info () =
+  let m = Proven.Version.major () in
+  Alcotest.(check bool) "major >= 0" true (m >= 0);
+  let mc = Proven.Version.module_count () in
+  Alcotest.(check bool) "modules > 0" true (mc > 0)
+
+(* -------------------------------------------------------------------------- *)
+(* Test runner                                                                *)
+(* -------------------------------------------------------------------------- *)
 
 let () =
-  Alcotest.run "Proven" [
-    "Safe_math", [
-      Alcotest.test_case "safe_div" `Quick test_safe_div;
-      Alcotest.test_case "safe_mod" `Quick test_safe_mod;
-      Alcotest.test_case "safe_add" `Quick test_safe_add;
-      Alcotest.test_case "safe_sub" `Quick test_safe_sub;
-      Alcotest.test_case "safe_mul" `Quick test_safe_mul;
+  Alcotest.run "Proven FFI" [
+    "Lifecycle", [
+      Alcotest.test_case "init" `Quick test_init;
     ];
-    "Safe_string", [
-      Alcotest.test_case "escape_html" `Quick test_escape_html;
-      Alcotest.test_case "escape_sql" `Quick test_escape_sql;
-      Alcotest.test_case "truncate_safe" `Quick test_truncate_safe;
+    "SafeMath", [
+      Alcotest.test_case "div" `Quick test_math_div;
+      Alcotest.test_case "mod" `Quick test_math_mod;
+      Alcotest.test_case "add" `Quick test_math_add;
+      Alcotest.test_case "sub" `Quick test_math_sub;
+      Alcotest.test_case "mul" `Quick test_math_mul;
+      Alcotest.test_case "abs" `Quick test_math_abs;
+      Alcotest.test_case "clamp" `Quick test_math_clamp;
+      Alcotest.test_case "pow" `Quick test_math_pow;
     ];
-    "Safe_path", [
-      Alcotest.test_case "has_traversal" `Quick test_has_traversal;
+    "SafeString", [
+      Alcotest.test_case "escape_html" `Quick test_string_escape_html;
+      Alcotest.test_case "escape_sql" `Quick test_string_escape_sql;
+      Alcotest.test_case "utf8" `Quick test_string_utf8;
     ];
-    "Safe_email", [
+    "SafePath", [
+      Alcotest.test_case "traversal" `Quick test_path_traversal;
+    ];
+    "SafeEmail", [
       Alcotest.test_case "is_valid" `Quick test_email_valid;
-      Alcotest.test_case "normalize" `Quick test_email_normalize;
     ];
-    "Safe_network", [
-      Alcotest.test_case "is_valid_ipv4" `Quick test_ipv4_valid;
-      Alcotest.test_case "is_private" `Quick test_ipv4_private;
+    "SafeCrypto", [
+      Alcotest.test_case "constant_time_eq" `Quick test_crypto_constant_time_eq;
+      Alcotest.test_case "random_bytes" `Quick test_crypto_random_bytes;
     ];
-    "Safe_crypto", [
-      Alcotest.test_case "constant_time_compare" `Quick test_constant_time_compare;
-      Alcotest.test_case "secure_zero" `Quick test_secure_zero;
+    "SafeFloat", [
+      Alcotest.test_case "div" `Quick test_float_div;
+      Alcotest.test_case "sqrt" `Quick test_float_sqrt;
+      Alcotest.test_case "ln" `Quick test_float_ln;
+      Alcotest.test_case "finite" `Quick test_float_finite;
+    ];
+    "SafeDateTime", [
+      Alcotest.test_case "leap_year" `Quick test_datetime_leap_year;
+      Alcotest.test_case "days_in_month" `Quick test_datetime_days_in_month;
+    ];
+    "SafeAngle", [
+      Alcotest.test_case "conversion" `Quick test_angle_conversion;
+      Alcotest.test_case "normalize" `Quick test_angle_normalize;
+    ];
+    "SafeProbability", [
+      Alcotest.test_case "basic" `Quick test_probability;
+    ];
+    "SafeML", [
+      Alcotest.test_case "sigmoid" `Quick test_ml_sigmoid;
+      Alcotest.test_case "relu" `Quick test_ml_relu;
+    ];
+    "Version", [
+      Alcotest.test_case "info" `Quick test_version_info;
     ];
   ]

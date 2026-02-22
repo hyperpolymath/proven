@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 plugins {
     id 'groovy'
@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.hyperpolymath'
-version = '0.9.0'
+version = '1.0.0'
 
 repositories {
     mavenCentral()
@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     implementation 'org.apache.groovy:groovy:4.0.18'
-    implementation project(':java')  // Reuse Java bindings
+    implementation 'net.java.dev.jna:jna:5.14.0'
 
     testImplementation 'org.spockframework:spock-core:2.4-groovy-4.0'
 }
@@ -33,19 +33,19 @@ publishing {
 
             pom {
                 name = 'Proven Groovy Bindings'
-                description = 'Groovy bindings for Proven - formally verified safety primitives'
+                description = 'Groovy bindings for Proven - formally verified safety primitives via JNA FFI'
                 url = 'https://github.com/hyperpolymath/proven'
                 licenses {
                     license {
-                        name = 'PMPL-1.0'
+                        name = 'PMPL-1.0-or-later'
                         url = 'https://github.com/hyperpolymath/proven/blob/main/LICENSE'
                     }
                 }
                 developers {
                     developer {
                         id = 'hyperpolymath'
-                        name = 'Hyperpolymath'
-                        url = 'https://github.com/hyperpolymath'
+                        name = 'Jonathan D.A. Jewell'
+                        email = 'jonathan.jewell@open.ac.uk'
                     }
                 }
                 scm {

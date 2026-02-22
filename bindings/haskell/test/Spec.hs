@@ -1,85 +1,128 @@
 {- SPDX-License-Identifier: PMPL-1.0-or-later -}
-{- SPDX-FileCopyrightText: 2025 Hyperpolymath -}
+{- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> -}
+
+-- | Tests for the proven Haskell FFI binding.
+--
+-- These tests verify that the FFI marshaling correctly communicates
+-- with libproven. All actual computation is performed by the
+-- Idris 2 verified core; these tests only validate the binding layer.
+--
+-- Requires libproven to be built and available at link time:
+--   cd ../../ffi/zig && zig build
+--   cd ../../bindings/haskell && cabal test
 
 import Test.Hspec
-import Proven
+import Proven.FFI (c_proven_init, c_proven_version_major, c_proven_version_minor,
+                   c_proven_version_patch, c_proven_module_count)
+import Proven.SafeMath (safeDiv, safeMod, safeAdd, safeSub, safeMul, safeAbs,
+                        safeClamp, safePow)
+import Proven.SafeFloat (safeFloatDiv, isFinite, isNaN', safeSqrt, safeLn)
+import Proven.SafeAngle (degToRad, radToDeg, normalizeDegrees)
+import Proven.SafeProbability (createProbability, probabilityNot)
+import Proven.SafeML (sigmoid, relu, leakyRelu, mlClamp)
+import Proven.SafeDateTime (isLeapYear, daysInMonth)
 
 main :: IO ()
-main = hspec $ do
-  describe "SafeMath" $ do
-    it "safeDiv divides correctly" $
-      safeDiv 10 2 `shouldBe` Just 5
+main = do
+  -- Initialize libproven runtime before all tests
+  initResult <- c_proven_init
+  if initResult /= 0
+    then putStrLn "WARNING: proven_init failed; tests requiring libproven will fail"
+    else return ()
+  hspec $ do
+    describe "Lifecycle" $ do
+      it "proven_init returns 0 (ok)" $
+        initResult `shouldBe` 0
 
-    it "safeDiv returns Nothing on division by zero" $
-      safeDiv 10 0 `shouldBe` Nothing
+      it "version_major returns a value" $ do
+        v <- c_proven_version_major
+        v `shouldSatisfy` (>= 0)
 
-    it "safeMod computes modulo correctly" $
-      safeMod 10 3 `shouldBe` Just 1
+      it "module_count returns > 0" $ do
+        c <- c_proven_module_count
+        c `shouldSatisfy` (> 0)
 
-    it "safeMod returns Nothing on mod by zero" $
-      safeMod 10 0 `shouldBe` Nothing
+    describe "SafeMath (FFI -> Idris2)" $ do
+      it "safeDiv divides correctly" $ do
+        result <- safeDiv 10 2
+        result `shouldBe` Just 5
 
-    it "safeAdd adds correctly" $
-      safeAdd 1 2 `shouldBe` Just 3
+      it "safeDiv returns Nothing on division by zero" $ do
+        result <- safeDiv 10 0
+        result `shouldBe` Nothing
 
-    it "safeSub subtracts correctly" $
-      safeSub 5 3 `shouldBe` Just 2
+      it "safeMod computes modulo correctly" $ do
+        result <- safeMod 10 3
+        result `shouldBe` Just 1
 
-    it "safeMul multiplies correctly" $
-      safeMul 3 4 `shouldBe` Just 12
+      it "safeMod returns Nothing on mod by zero" $ do
+        result <- safeMod 10 0
+        result `shouldBe` Nothing
 
-  describe "SafeString" $ do
-    it "escapeHtml escapes HTML entities" $ do
-      escapeHtml "<script>" `shouldBe` "&lt;script&gt;"
-      escapeHtml "a & b" `shouldBe` "a &amp; b"
+      it "safeAdd adds correctly" $ do
+        result <- safeAdd 1 2
+        result `shouldBe` Just 3
 
-    it "escapeSql escapes single quotes" $
-      escapeSql "it's" `shouldBe` "it''s"
+      it "safeSub subtracts correctly" $ do
+        result <- safeSub 5 3
+        result `shouldBe` Just 2
 
-    it "truncateSafe truncates with suffix" $ do
-      truncateSafe "hello world" 5 "..." `shouldBe` "he..."
-      truncateSafe "hi" 10 "..." `shouldBe` "hi"
+      it "safeMul multiplies correctly" $ do
+        result <- safeMul 3 4
+        result `shouldBe` Just 12
 
-  describe "SafePath" $ do
-    it "hasTraversal detects traversal sequences" $ do
-      hasTraversal "../etc/passwd" `shouldBe` True
-      hasTraversal "~/file" `shouldBe` True
-      hasTraversal "normal/path" `shouldBe` False
+      it "safeClamp clamps to range" $ do
+        result <- safeClamp 0 10 15
+        result `shouldBe` 10
 
-    it "isSafe validates safe paths" $ do
-      isSafe "safe/path" `shouldBe` True
-      isSafe "../unsafe" `shouldBe` False
+      it "safeClamp returns value in range" $ do
+        result <- safeClamp 0 10 5
+        result `shouldBe` 5
 
-  describe "SafeEmail" $ do
-    it "isValid validates email addresses" $ do
-      isValid "user@example.com" `shouldBe` True
-      isValid "not-an-email" `shouldBe` False
-      isValid "@invalid.com" `shouldBe` False
+    describe "SafeFloat (FFI -> Idris2)" $ do
+      it "safeFloatDiv divides correctly" $ do
+        result <- safeFloatDiv 10.0 2.0
+        case result of
+          Just v  -> v `shouldSatisfy` (\x -> abs (x - 5.0) < 0.001)
+          Nothing -> expectationFailure "Expected Just value"
 
-    it "normalize lowercases domain" $
-      normalize "User@EXAMPLE.COM" `shouldBe` Just "User@example.com"
+      it "safeFloatDiv returns Nothing on division by zero" $ do
+        result <- safeFloatDiv 10.0 0.0
+        result `shouldBe` Nothing
 
-  describe "SafeNetwork" $ do
-    it "isValidIPv4 validates IPv4 addresses" $ do
-      isValidIPv4 "192.168.1.1" `shouldBe` True
-      isValidIPv4 "invalid" `shouldBe` False
-      isValidIPv4 "256.1.1.1" `shouldBe` False
+    describe "SafeDateTime (FFI -> Idris2)" $ do
+      it "isLeapYear detects leap years" $ do
+        r2000 <- isLeapYear 2000
+        r2000 `shouldBe` True
+        r1900 <- isLeapYear 1900
+        r1900 `shouldBe` False
+        r2024 <- isLeapYear 2024
+        r2024 `shouldBe` True
 
-    it "isPrivate detects private addresses" $ do
-      isPrivate "192.168.1.1" `shouldBe` True
-      isPrivate "10.0.0.1" `shouldBe` True
-      isPrivate "8.8.8.8" `shouldBe` False
+      it "daysInMonth returns correct values" $ do
+        feb <- daysInMonth 2024 2
+        feb `shouldBe` 29
+        jan <- daysInMonth 2024 1
+        jan `shouldBe` 31
 
-    it "isLoopback detects loopback addresses" $ do
-      isLoopback "127.0.0.1" `shouldBe` True
-      isLoopback "192.168.1.1" `shouldBe` False
+    describe "SafeProbability (FFI -> Idris2)" $ do
+      it "createProbability clamps to [0, 1]" $ do
+        result <- createProbability 1.5
+        result `shouldSatisfy` (<= 1.0)
 
-  describe "SafeCrypto" $ do
-    it "constantTimeCompare compares strings correctly" $ do
-      constantTimeCompare "secret" "secret" `shouldBe` True
-      constantTimeCompare "secret" "other!" `shouldBe` False
-      constantTimeCompare "" "" `shouldBe` True
+      it "probabilityNot is complement" $ do
+        result <- probabilityNot 0.3
+        result `shouldSatisfy` (\x -> abs (x - 0.7) < 0.001)
 
-    it "secureZero creates zeroed string" $ do
-      length (secureZero 4) `shouldBe` 4
-      secureZero 4 `shouldBe` "\0\0\0\0"
+    describe "SafeML (FFI -> Idris2)" $ do
+      it "sigmoid(0) is 0.5" $ do
+        result <- sigmoid 0.0
+        result `shouldSatisfy` (\x -> abs (x - 0.5) < 0.001)
+
+      it "relu of negative is 0" $ do
+        result <- relu (-5.0)
+        result `shouldSatisfy` (\x -> abs x < 0.001)
+
+      it "relu of positive is identity" $ do
+        result <- relu 3.0
+        result `shouldSatisfy` (\x -> abs (x - 3.0) < 0.001)

@@ -1,14 +1,17 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeUnit - Physical unit conversions.
 
 Provides type-safe unit conversions for length, mass, temperature, time, and data.
+All conversions are delegated to the Idris core via FFI.
 """
 
 from enum import Enum
 from typing import Optional
+
+from .core import ProvenStatus, get_lib
 
 
 class LengthUnit(Enum):
@@ -22,34 +25,6 @@ class LengthUnit(Enum):
     FEET = "ft"
     INCHES = "in"
 
-    def to_meters(self, value: float) -> float:
-        """Convert to meters (base unit)."""
-        factors = {
-            LengthUnit.METERS: 1.0,
-            LengthUnit.KILOMETERS: 1000.0,
-            LengthUnit.CENTIMETERS: 0.01,
-            LengthUnit.MILLIMETERS: 0.001,
-            LengthUnit.MILES: 1609.344,
-            LengthUnit.YARDS: 0.9144,
-            LengthUnit.FEET: 0.3048,
-            LengthUnit.INCHES: 0.0254,
-        }
-        return value * factors[self]
-
-    def from_meters(self, meters: float) -> float:
-        """Convert from meters."""
-        factors = {
-            LengthUnit.METERS: 1.0,
-            LengthUnit.KILOMETERS: 0.001,
-            LengthUnit.CENTIMETERS: 100.0,
-            LengthUnit.MILLIMETERS: 1000.0,
-            LengthUnit.MILES: 1 / 1609.344,
-            LengthUnit.YARDS: 1 / 0.9144,
-            LengthUnit.FEET: 1 / 0.3048,
-            LengthUnit.INCHES: 1 / 0.0254,
-        }
-        return meters * factors[self]
-
 
 class MassUnit(Enum):
     """Mass units."""
@@ -59,30 +34,6 @@ class MassUnit(Enum):
     POUNDS = "lb"
     OUNCES = "oz"
     STONES = "st"
-
-    def to_kilograms(self, value: float) -> float:
-        """Convert to kilograms (base unit)."""
-        factors = {
-            MassUnit.KILOGRAMS: 1.0,
-            MassUnit.GRAMS: 0.001,
-            MassUnit.MILLIGRAMS: 0.000001,
-            MassUnit.POUNDS: 0.453592,
-            MassUnit.OUNCES: 0.0283495,
-            MassUnit.STONES: 6.35029,
-        }
-        return value * factors[self]
-
-    def from_kilograms(self, kg: float) -> float:
-        """Convert from kilograms."""
-        factors = {
-            MassUnit.KILOGRAMS: 1.0,
-            MassUnit.GRAMS: 1000.0,
-            MassUnit.MILLIGRAMS: 1000000.0,
-            MassUnit.POUNDS: 1 / 0.453592,
-            MassUnit.OUNCES: 1 / 0.0283495,
-            MassUnit.STONES: 1 / 6.35029,
-        }
-        return kg * factors[self]
 
 
 class TemperatureUnit(Enum):
@@ -103,34 +54,6 @@ class TimeUnit(Enum):
     DAYS = "d"
     WEEKS = "w"
 
-    def to_seconds(self, value: float) -> float:
-        """Convert to seconds (base unit)."""
-        factors = {
-            TimeUnit.SECONDS: 1.0,
-            TimeUnit.MILLISECONDS: 0.001,
-            TimeUnit.MICROSECONDS: 0.000001,
-            TimeUnit.NANOSECONDS: 0.000000001,
-            TimeUnit.MINUTES: 60.0,
-            TimeUnit.HOURS: 3600.0,
-            TimeUnit.DAYS: 86400.0,
-            TimeUnit.WEEKS: 604800.0,
-        }
-        return value * factors[self]
-
-    def from_seconds(self, secs: float) -> float:
-        """Convert from seconds."""
-        factors = {
-            TimeUnit.SECONDS: 1.0,
-            TimeUnit.MILLISECONDS: 1000.0,
-            TimeUnit.MICROSECONDS: 1000000.0,
-            TimeUnit.NANOSECONDS: 1000000000.0,
-            TimeUnit.MINUTES: 1 / 60.0,
-            TimeUnit.HOURS: 1 / 3600.0,
-            TimeUnit.DAYS: 1 / 86400.0,
-            TimeUnit.WEEKS: 1 / 604800.0,
-        }
-        return secs * factors[self]
-
 
 class DataUnit(Enum):
     """Data size units."""
@@ -144,40 +67,39 @@ class DataUnit(Enum):
     GIBIBYTES = "GiB"
     TEBIBYTES = "TiB"
 
-    def to_bytes(self, value: float) -> float:
-        """Convert to bytes (base unit)."""
-        factors = {
-            DataUnit.BYTES: 1.0,
-            DataUnit.KILOBYTES: 1000.0,
-            DataUnit.MEGABYTES: 1000000.0,
-            DataUnit.GIGABYTES: 1000000000.0,
-            DataUnit.TERABYTES: 1000000000000.0,
-            DataUnit.KIBIBYTES: 1024.0,
-            DataUnit.MEBIBYTES: 1048576.0,
-            DataUnit.GIBIBYTES: 1073741824.0,
-            DataUnit.TEBIBYTES: 1099511627776.0,
-        }
-        return value * factors[self]
 
-    def from_bytes(self, bytes_val: float) -> float:
-        """Convert from bytes."""
-        factors = {
-            DataUnit.BYTES: 1.0,
-            DataUnit.KILOBYTES: 1 / 1000.0,
-            DataUnit.MEGABYTES: 1 / 1000000.0,
-            DataUnit.GIGABYTES: 1 / 1000000000.0,
-            DataUnit.TERABYTES: 1 / 1000000000000.0,
-            DataUnit.KIBIBYTES: 1 / 1024.0,
-            DataUnit.MEBIBYTES: 1 / 1048576.0,
-            DataUnit.GIBIBYTES: 1 / 1073741824.0,
-            DataUnit.TEBIBYTES: 1 / 1099511627776.0,
-        }
-        return bytes_val * factors[self]
+# Maps from enum to FFI integer codes
+_LENGTH_CODES = {
+    LengthUnit.METERS: 0, LengthUnit.KILOMETERS: 1, LengthUnit.CENTIMETERS: 2,
+    LengthUnit.MILLIMETERS: 3, LengthUnit.MILES: 4, LengthUnit.YARDS: 5,
+    LengthUnit.FEET: 6, LengthUnit.INCHES: 7,
+}
+
+_MASS_CODES = {
+    MassUnit.KILOGRAMS: 0, MassUnit.GRAMS: 1, MassUnit.MILLIGRAMS: 2,
+    MassUnit.POUNDS: 3, MassUnit.OUNCES: 4, MassUnit.STONES: 5,
+}
+
+_TEMP_CODES = {
+    TemperatureUnit.CELSIUS: 0, TemperatureUnit.FAHRENHEIT: 1, TemperatureUnit.KELVIN: 2,
+}
+
+_TIME_CODES = {
+    TimeUnit.SECONDS: 0, TimeUnit.MILLISECONDS: 1, TimeUnit.MICROSECONDS: 2,
+    TimeUnit.NANOSECONDS: 3, TimeUnit.MINUTES: 4, TimeUnit.HOURS: 5,
+    TimeUnit.DAYS: 6, TimeUnit.WEEKS: 7,
+}
+
+_DATA_CODES = {
+    DataUnit.BYTES: 0, DataUnit.KILOBYTES: 1, DataUnit.MEGABYTES: 2,
+    DataUnit.GIGABYTES: 3, DataUnit.TERABYTES: 4, DataUnit.KIBIBYTES: 5,
+    DataUnit.MEBIBYTES: 6, DataUnit.GIBIBYTES: 7, DataUnit.TEBIBYTES: 8,
+}
 
 
 def convert_length(value: float, from_unit: LengthUnit, to_unit: LengthUnit) -> float:
     """
-    Convert length between units.
+    Convert length between units via FFI.
 
     Args:
         value: Value to convert
@@ -191,13 +113,16 @@ def convert_length(value: float, from_unit: LengthUnit, to_unit: LengthUnit) -> 
         >>> convert_length(1.0, LengthUnit.KILOMETERS, LengthUnit.METERS)
         1000.0
     """
-    meters = from_unit.to_meters(value)
-    return to_unit.from_meters(meters)
+    lib = get_lib()
+    result = lib.proven_unit_convert_length(value, _LENGTH_CODES[from_unit], _LENGTH_CODES[to_unit])
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 def convert_mass(value: float, from_unit: MassUnit, to_unit: MassUnit) -> float:
     """
-    Convert mass between units.
+    Convert mass between units via FFI.
 
     Args:
         value: Value to convert
@@ -207,13 +132,16 @@ def convert_mass(value: float, from_unit: MassUnit, to_unit: MassUnit) -> float:
     Returns:
         Converted value
     """
-    kg = from_unit.to_kilograms(value)
-    return to_unit.from_kilograms(kg)
+    lib = get_lib()
+    result = lib.proven_unit_convert_mass(value, _MASS_CODES[from_unit], _MASS_CODES[to_unit])
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 def convert_temperature(value: float, from_unit: TemperatureUnit, to_unit: TemperatureUnit) -> float:
     """
-    Convert temperature between units.
+    Convert temperature between units via FFI.
 
     Args:
         value: Value to convert
@@ -227,26 +155,16 @@ def convert_temperature(value: float, from_unit: TemperatureUnit, to_unit: Tempe
         >>> convert_temperature(0, TemperatureUnit.CELSIUS, TemperatureUnit.FAHRENHEIT)
         32.0
     """
-    # Convert to Kelvin first
-    if from_unit == TemperatureUnit.CELSIUS:
-        kelvin = value + 273.15
-    elif from_unit == TemperatureUnit.FAHRENHEIT:
-        kelvin = (value - 32) * 5 / 9 + 273.15
-    else:  # Kelvin
-        kelvin = value
-
-    # Convert from Kelvin
-    if to_unit == TemperatureUnit.CELSIUS:
-        return kelvin - 273.15
-    elif to_unit == TemperatureUnit.FAHRENHEIT:
-        return (kelvin - 273.15) * 9 / 5 + 32
-    else:  # Kelvin
-        return kelvin
+    lib = get_lib()
+    result = lib.proven_unit_convert_temperature(value, _TEMP_CODES[from_unit], _TEMP_CODES[to_unit])
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 def convert_time(value: float, from_unit: TimeUnit, to_unit: TimeUnit) -> float:
     """
-    Convert time between units.
+    Convert time between units via FFI.
 
     Args:
         value: Value to convert
@@ -256,13 +174,16 @@ def convert_time(value: float, from_unit: TimeUnit, to_unit: TimeUnit) -> float:
     Returns:
         Converted value
     """
-    secs = from_unit.to_seconds(value)
-    return to_unit.from_seconds(secs)
+    lib = get_lib()
+    result = lib.proven_unit_convert_time(value, _TIME_CODES[from_unit], _TIME_CODES[to_unit])
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 def convert_data(value: float, from_unit: DataUnit, to_unit: DataUnit) -> float:
     """
-    Convert data size between units.
+    Convert data size between units via FFI.
 
     Args:
         value: Value to convert
@@ -276,12 +197,15 @@ def convert_data(value: float, from_unit: DataUnit, to_unit: DataUnit) -> float:
         >>> convert_data(1.0, DataUnit.GIGABYTES, DataUnit.MEGABYTES)
         1000.0
     """
-    bytes_val = from_unit.to_bytes(value)
-    return to_unit.from_bytes(bytes_val)
+    lib = get_lib()
+    result = lib.proven_unit_convert_data(value, _DATA_CODES[from_unit], _DATA_CODES[to_unit])
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 class SafeUnit:
-    """Safe unit conversion utilities."""
+    """Safe unit conversion utilities via FFI."""
 
     convert_length = staticmethod(convert_length)
     convert_mass = staticmethod(convert_mass)

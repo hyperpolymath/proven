@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# pkg-config file for libproven
+#
+# Usage:
+#   gcc $(pkg-config --cflags --libs proven) myapp.c -o myapp
+#
+# Install by placing this file at:
+#   /usr/local/lib/pkgconfig/proven.pc
+#   (or wherever PKG_CONFIG_PATH points)
+
+prefix=@PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: proven
+Description: Formally verified safety library (Idris 2 + Zig C ABI)
+URL: https://github.com/hyperpolymath/proven
+Version: 0.9.0
+Libs: -L${libdir} -lproven
+Cflags: -I${includedir}

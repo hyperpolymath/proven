@@ -1,0 +1,153 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{- | Proven - FFI bindings to libproven (Idris 2 verified safety library)
+   for BetLang.
+
+   BetLang specializes in probabilistic programming with betting metaphors.
+   This module provides the core error types and result wrappers using
+   BetLang's odds<T, E> type that all Proven modules build upon.
+
+   All computation is performed in Idris 2 via the Zig FFI layer.
+   NO safety logic is reimplemented in BetLang.
+
+   Architecture:
+     BetLang (.bet)
+       |  @wager("C", ...)
+       v
+     libproven.so (Zig FFI layer)
+       |  Zig -> Idris2 RefC calls
+       v
+     Idris 2 (dependent types, totality checking)
+-}
+
+module Proven
+
+import Proven.FFI
+import Proven.SafeMath
+import Proven.SafeString
+import Proven.SafeEmail
+import Proven.SafeUrl
+import Proven.SafeCrypto
+import Proven.SafeJson
+
+-- ============================================================================
+-- Core error type for Proven operations
+-- ============================================================================
+
+{- | ProvenError enumerates all possible failure modes from the libproven
+   C ABI. Each variant carries the semantic meaning of the failure,
+   enabling exhaustive pattern matching in bet handlers. -}
+stake type ProvenError =
+  | Overflow            -- ^ Arithmetic overflow (status -3)
+  | Underflow           -- ^ Arithmetic underflow (status -4)
+  | DivByZero           -- ^ Division by zero (status -5)
+  | NullPointer         -- ^ Null pointer passed (status -1)
+  | InvalidArgument     -- ^ Invalid argument (status -2)
+  | ParseFailure        -- ^ Parse failure (status -6)
+  | ValidationFailed    -- ^ Validation failed (status -7)
+  | OutOfBounds         -- ^ Index out of bounds (status -8)
+  | EncodingError       -- ^ Encoding error (status -9)
+  | AllocationFailed    -- ^ Memory allocation failed (status -10)
+  | NotImplemented      -- ^ Feature not implemented (status -99)
+  | UnknownError(Int32) -- ^ Unrecognized status code
+
+-- | Convert a raw C ABI status code to a ProvenError.
+-- This function is total: every possible Int32 maps to exactly one error.
+bet fn status_to_error(code : Int32) -> ProvenError =
+  match code with
+  | -1  => NullPointer
+  | -2  => InvalidArgument
+  | -3  => Overflow
+  | -4  => Underflow
+  | -5  => DivByZero
+  | -6  => ParseFailure
+  | -7  => ValidationFailed
+  | -8  => OutOfBounds
+  | -9  => EncodingError
+  | -10 => AllocationFailed
+  | -99 => NotImplemented
+  | n   => UnknownError(n)
+
+-- ============================================================================
+-- odds<T, E> result type (BetLang's Result)
+-- ============================================================================
+
+{- | The core result type for all Proven operations.
+   odds<T, ProvenError> is the canonical return type, combining a success
+   value of type T with a ProvenError for failure cases.
+   In BetLang, "winning" the wager means success, "losing" means error. -}
+stake type odds<T, E> =
+  | Win(T)
+  | Lose(E)
+
+-- | Convert an FFI IntResult into odds<Int64, ProvenError>.
+bet fn int_result_to_odds(ir : FFI.IntResult) -> odds<Int64, ProvenError> =
+  match ir.status with
+  | 0 => Win(ir.value)
+  | s => Lose(status_to_error(s))
+
+-- | Convert an FFI BoolResult into odds<Bool, ProvenError>.
+bet fn bool_result_to_odds(br : FFI.BoolResult) -> odds<Bool, ProvenError> =
+  match br.status with
+  | 0 => Win(br.value != 0)
+  | s => Lose(status_to_error(s))
+
+-- | Convert an FFI FloatResult into odds<Float64, ProvenError>.
+bet fn float_result_to_odds(fr : FFI.FloatResult) -> odds<Float64, ProvenError> =
+  match fr.status with
+  | 0 => Win(fr.value)
+  | s => Lose(status_to_error(s))
+
+-- | Convert an FFI StringResult into odds<String, ProvenError>,
+-- freeing the C-allocated string after copying.
+bet fn string_result_to_odds(sr : FFI.StringResult) -> odds<String, ProvenError> =
+  match sr.status with
+  | 0 =>
+    let result = string_from_ptr(sr.ptr, sr.len)
+    FFI.proven_free_string(sr.ptr)
+    Win(result)
+  | s => Lose(status_to_error(s))
+
+-- ============================================================================
+-- Lifecycle management
+-- ============================================================================
+
+-- | Initialize the Proven runtime. Must be called before any other function.
+-- Returns Win(()) on success.
+bet fn init() -> odds<Unit, ProvenError> =
+  let status = FFI.proven_init()
+  match status with
+  | 0 => Win(())
+  | s => Lose(status_to_error(s))
+
+-- | Deinitialize the Proven runtime. Call when done.
+bet fn deinit() -> Unit =
+  FFI.proven_deinit()
+
+-- | Check if the Proven runtime is initialized.
+bet fn is_initialized() -> Bool =
+  FFI.proven_is_initialized()
+
+-- | Get the library version as a tuple (major, minor, patch).
+bet fn version() -> (UInt32, UInt32, UInt32) =
+  (FFI.proven_version_major(), FFI.proven_version_minor(), FFI.proven_version_patch())
+
+-- | Get the FFI ABI version for compatibility checking.
+bet fn abi_version() -> UInt32 =
+  FFI.proven_ffi_abi_version()
+
+-- | Get the total module count in libproven.
+bet fn module_count() -> UInt32 =
+  FFI.proven_module_count()
+
+-- ============================================================================
+-- Re-exports
+-- ============================================================================
+
+export Proven.SafeMath.*
+export Proven.SafeString.*
+export Proven.SafeEmail.*
+export Proven.SafeUrl.*
+export Proven.SafeCrypto.*
+export Proven.SafeJson.*

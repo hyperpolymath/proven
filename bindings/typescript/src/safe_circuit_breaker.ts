@@ -1,354 +1,141 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-export interface Result<T> {
-  ok: boolean;
-  value?: T;
-  error?: string;
-}
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Circuit breaker states.
+ * SafeCircuitBreaker - Typed wrapper for the circuit breaker pattern.
+ *
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * @module
  */
-export enum CircuitState {
-  Closed = 'closed',
-  Open = 'open',
-  HalfOpen = 'half_open',
-}
+
+import {
+  CircuitBreaker as JsCircuitBreaker,
+  CircuitState as JsCircuitState,
+  SafeCircuitBreaker as JsSafeCircuitBreaker,
+} from '../../javascript/src/safe_circuit_breaker.js';
+
+/** Result type returned by circuit breaker operations. */
+export type Result<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: string };
 
 /**
- * Circuit breaker configuration.
+ * Circuit breaker state enumeration (matches the FFI CircuitState).
+ * @readonly
  */
-export interface CircuitBreakerConfig {
-  failureThreshold: number;
-  successThreshold: number;
-  timeout: number; // milliseconds
-  halfOpenMaxCalls?: number;
-}
+export const CircuitState = JsCircuitState as {
+  readonly CLOSED: 0;
+  readonly OPEN: 1;
+  readonly HALF_OPEN: 2;
+};
+
+/** Circuit state type derived from the FFI enum values. */
+export type CircuitStateValue = 0 | 1 | 2;
 
 /**
- * Circuit breaker statistics.
- */
-export interface CircuitStats {
-  state: CircuitState;
-  failures: number;
-  successes: number;
-  consecutiveFailures: number;
-  consecutiveSuccesses: number;
-  totalCalls: number;
-  lastFailure?: number;
-  lastSuccess?: number;
-}
-
-/**
- * CircuitBreaker implements the circuit breaker pattern.
+ * Typed wrapper around the FFI-backed CircuitBreaker.
+ *
+ * Every method calls through to the JavaScript FFI wrapper, which in turn
+ * calls the formally verified Idris 2 code via the Zig FFI bridge.
  */
 export class CircuitBreaker {
-  private state: CircuitState = CircuitState.Closed;
-  private failures: number = 0;
-  private successes: number = 0;
-  private consecutiveFailures: number = 0;
-  private consecutiveSuccesses: number = 0;
-  private totalCalls: number = 0;
-  private lastFailure?: number;
-  private lastSuccess?: number;
-  private openedAt?: number;
-  private halfOpenCalls: number = 0;
+  /** The underlying JS FFI circuit breaker instance. */
+  readonly #inner: InstanceType<typeof JsCircuitBreaker>;
 
-  private readonly config: Required<CircuitBreakerConfig>;
-  private readonly getNow: () => number;
-
-  constructor(config: CircuitBreakerConfig, getNow: () => number = Date.now) {
-    this.config = {
-      failureThreshold: Math.max(1, config.failureThreshold),
-      successThreshold: Math.max(1, config.successThreshold),
-      timeout: Math.max(0, config.timeout),
-      halfOpenMaxCalls: config.halfOpenMaxCalls ?? 1,
-    };
-    this.getNow = getNow;
+  /** Private constructor -- use CircuitBreaker.create() instead. */
+  private constructor(inner: InstanceType<typeof JsCircuitBreaker>) {
+    this.#inner = inner;
   }
 
   /**
-   * Create a circuit breaker with default settings.
+   * Create a circuit breaker via FFI.
+   * Delegates to proven_circuit_breaker_create.
+   *
+   * @param failureThreshold - Number of failures before opening.
+   * @param successThreshold - Number of successes to close from half-open.
+   * @param timeoutMs - Timeout in milliseconds before entering half-open.
+   * @returns Result with the CircuitBreaker instance, or error.
    */
-  static withDefaults(getNow?: () => number): CircuitBreaker {
-    return new CircuitBreaker(
-      {
-        failureThreshold: 5,
-        successThreshold: 2,
-        timeout: 30000,
-        halfOpenMaxCalls: 1,
-      },
-      getNow
-    );
+  static create(
+    failureThreshold: number,
+    successThreshold: number,
+    timeoutMs: number,
+  ): Result<CircuitBreaker> {
+    const result = JsSafeCircuitBreaker.create(
+      failureThreshold,
+      successThreshold,
+      timeoutMs,
+    ) as Result<InstanceType<typeof JsCircuitBreaker>>;
+    if (!result.ok) return result;
+    return { ok: true, value: new CircuitBreaker(result.value) };
   }
 
   /**
-   * Check if the circuit allows calls.
+   * Check if a request should be allowed through.
+   * Delegates to proven_circuit_breaker_allow via FFI.
+   *
+   * @returns True if the circuit allows calls.
    */
-  canCall(): boolean {
-    this.maybeTransitionFromOpen();
-
-    if (this.state === CircuitState.Closed) {
-      return true;
-    }
-
-    if (this.state === CircuitState.HalfOpen) {
-      return this.halfOpenCalls < this.config.halfOpenMaxCalls;
-    }
-
-    return false;
+  allow(): boolean {
+    return this.#inner.allow();
   }
 
   /**
-   * Record a successful call.
+   * Record a successful operation.
+   * Delegates to proven_circuit_breaker_success via FFI.
    */
-  recordSuccess(): void {
-    this.maybeTransitionFromOpen();
-    this.totalCalls++;
-    this.successes++;
-    this.consecutiveSuccesses++;
-    this.consecutiveFailures = 0;
-    this.lastSuccess = this.getNow();
-
-    if (this.state === CircuitState.HalfOpen) {
-      if (this.consecutiveSuccesses >= this.config.successThreshold) {
-        this.transitionToClosed();
-      }
-    }
+  success(): void {
+    this.#inner.success();
   }
 
   /**
-   * Record a failed call.
+   * Record a failed operation.
+   * Delegates to proven_circuit_breaker_failure via FFI.
    */
-  recordFailure(): void {
-    this.maybeTransitionFromOpen();
-    this.totalCalls++;
-    this.failures++;
-    this.consecutiveFailures++;
-    this.consecutiveSuccesses = 0;
-    this.lastFailure = this.getNow();
-
-    if (this.state === CircuitState.HalfOpen) {
-      this.transitionToOpen();
-    } else if (this.state === CircuitState.Closed) {
-      if (this.consecutiveFailures >= this.config.failureThreshold) {
-        this.transitionToOpen();
-      }
-    }
+  failure(): void {
+    this.#inner.failure();
   }
 
   /**
-   * Execute a function through the circuit breaker.
+   * Get the current circuit state.
+   * Delegates to proven_circuit_breaker_state via FFI.
+   *
+   * @returns A CircuitState enum value.
    */
-  call<T>(fn: () => T): Result<T> {
-    if (!this.canCall()) {
-      return { ok: false, error: 'Circuit breaker is open' };
-    }
-
-    if (this.state === CircuitState.HalfOpen) {
-      this.halfOpenCalls++;
-    }
-
-    try {
-      const result = fn();
-      this.recordSuccess();
-      return { ok: true, value: result };
-    } catch (error) {
-      this.recordFailure();
-      return { ok: false, error: String(error) };
-    }
+  getState(): CircuitStateValue {
+    return this.#inner.getState() as CircuitStateValue;
   }
 
   /**
-   * Execute an async function through the circuit breaker.
+   * Close and free the native circuit breaker.
+   * Delegates to proven_circuit_breaker_free via FFI.
    */
-  async callAsync<T>(fn: () => Promise<T>): Promise<Result<T>> {
-    if (!this.canCall()) {
-      return { ok: false, error: 'Circuit breaker is open' };
-    }
-
-    if (this.state === CircuitState.HalfOpen) {
-      this.halfOpenCalls++;
-    }
-
-    try {
-      const result = await fn();
-      this.recordSuccess();
-      return { ok: true, value: result };
-    } catch (error) {
-      this.recordFailure();
-      return { ok: false, error: String(error) };
-    }
-  }
-
-  /**
-   * Get current state.
-   */
-  getState(): CircuitState {
-    this.maybeTransitionFromOpen();
-    return this.state;
-  }
-
-  /**
-   * Get statistics.
-   */
-  getStats(): CircuitStats {
-    this.maybeTransitionFromOpen();
-    return {
-      state: this.state,
-      failures: this.failures,
-      successes: this.successes,
-      consecutiveFailures: this.consecutiveFailures,
-      consecutiveSuccesses: this.consecutiveSuccesses,
-      totalCalls: this.totalCalls,
-      lastFailure: this.lastFailure,
-      lastSuccess: this.lastSuccess,
-    };
-  }
-
-  /**
-   * Reset the circuit breaker.
-   */
-  reset(): void {
-    this.state = CircuitState.Closed;
-    this.failures = 0;
-    this.successes = 0;
-    this.consecutiveFailures = 0;
-    this.consecutiveSuccesses = 0;
-    this.totalCalls = 0;
-    this.lastFailure = undefined;
-    this.lastSuccess = undefined;
-    this.openedAt = undefined;
-    this.halfOpenCalls = 0;
-  }
-
-  /**
-   * Force the circuit open.
-   */
-  forceOpen(): void {
-    this.transitionToOpen();
-  }
-
-  /**
-   * Force the circuit closed.
-   */
-  forceClosed(): void {
-    this.transitionToClosed();
-  }
-
-  private maybeTransitionFromOpen(): void {
-    if (this.state === CircuitState.Open && this.openedAt) {
-      const elapsed = this.getNow() - this.openedAt;
-      if (elapsed >= this.config.timeout) {
-        this.transitionToHalfOpen();
-      }
-    }
-  }
-
-  private transitionToOpen(): void {
-    this.state = CircuitState.Open;
-    this.openedAt = this.getNow();
-    this.halfOpenCalls = 0;
-  }
-
-  private transitionToHalfOpen(): void {
-    this.state = CircuitState.HalfOpen;
-    this.consecutiveSuccesses = 0;
-    this.halfOpenCalls = 0;
-  }
-
-  private transitionToClosed(): void {
-    this.state = CircuitState.Closed;
-    this.consecutiveFailures = 0;
-    this.openedAt = undefined;
-    this.halfOpenCalls = 0;
+  close(): void {
+    this.#inner.close();
   }
 }
 
 /**
- * CircuitBreakerGroup manages multiple circuit breakers by key.
+ * SafeCircuitBreaker namespace.
+ * All operations delegate to the JavaScript FFI binding.
  */
-export class CircuitBreakerGroup {
-  private readonly breakers: Map<string, CircuitBreaker> = new Map();
-  private readonly config: CircuitBreakerConfig;
-  private readonly getNow: () => number;
-
-  constructor(config: CircuitBreakerConfig, getNow: () => number = Date.now) {
-    this.config = config;
-    this.getNow = getNow;
-  }
-
+export class SafeCircuitBreaker {
   /**
-   * Get or create a circuit breaker for a key.
+   * Create a circuit breaker.
+   * Delegates to proven_circuit_breaker_create via FFI.
+   *
+   * @param failureThreshold - Number of failures before opening.
+   * @param successThreshold - Number of successes to close from half-open.
+   * @param timeoutMs - Timeout in milliseconds before entering half-open.
+   * @returns Result with the CircuitBreaker instance, or error.
    */
-  get(key: string): CircuitBreaker {
-    let breaker = this.breakers.get(key);
-    if (!breaker) {
-      breaker = new CircuitBreaker(this.config, this.getNow);
-      this.breakers.set(key, breaker);
-    }
-    return breaker;
-  }
-
-  /**
-   * Check if a key allows calls.
-   */
-  canCall(key: string): boolean {
-    return this.get(key).canCall();
-  }
-
-  /**
-   * Record success for a key.
-   */
-  recordSuccess(key: string): void {
-    this.get(key).recordSuccess();
-  }
-
-  /**
-   * Record failure for a key.
-   */
-  recordFailure(key: string): void {
-    this.get(key).recordFailure();
-  }
-
-  /**
-   * Get state of all breakers.
-   */
-  getAllStats(): Map<string, CircuitStats> {
-    const stats = new Map<string, CircuitStats>();
-    for (const [key, breaker] of this.breakers) {
-      stats.set(key, breaker.getStats());
-    }
-    return stats;
-  }
-
-  /**
-   * Reset all breakers.
-   */
-  resetAll(): void {
-    for (const breaker of this.breakers.values()) {
-      breaker.reset();
-    }
-  }
-
-  /**
-   * Remove a breaker.
-   */
-  remove(key: string): boolean {
-    return this.breakers.delete(key);
-  }
-
-  /**
-   * Get number of managed breakers.
-   */
-  get size(): number {
-    return this.breakers.size;
+  static create(
+    failureThreshold: number,
+    successThreshold: number,
+    timeoutMs: number,
+  ): Result<CircuitBreaker> {
+    return CircuitBreaker.create(failureThreshold, successThreshold, timeoutMs);
   }
 }
-
-export const SafeCircuitBreaker = {
-  CircuitBreaker,
-  CircuitBreakerGroup,
-  CircuitState,
-};

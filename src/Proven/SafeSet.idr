@@ -268,30 +268,12 @@ minimum (MkSet (x :: _)) = Just x  -- First element is min (sorted)
 public export
 maximum : Set a -> Maybe a
 maximum (MkSet []) = Nothing
-maximum (MkSet xs) = Just (last xs)
+maximum (MkSet (x :: xs)) = Just (last x xs)
   where
-    last : List a -> a
-    last [x] = x
-    last (_ :: y :: ys) = last (y :: ys)
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    last [] = believe_me ()  -- Never reached
+    ||| Get last element of a non-empty list (head + tail form)
+    last : a -> List a -> a
+    last x [] = x
+    last _ (y :: ys) = last y ys
 
 ||| Delete minimum element
 public export

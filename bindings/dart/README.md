@@ -1,6 +1,24 @@
 # Proven for Dart
 
-Safe, validated operations library for Dart and Flutter applications.
+Dart FFI bindings to **libproven** -- a formally verified safety library.
+
+All computation is performed in Idris 2 with dependent types and totality
+checking. This package is a **thin wrapper** that marshals arguments across
+the C ABI boundary via `dart:ffi`. No logic is reimplemented in Dart.
+
+## Prerequisites
+
+The `libproven` shared library must be available on the library load path:
+
+- Linux: `libproven.so`
+- macOS: `libproven.dylib`
+- Windows: `proven.dll`
+
+Build from the `proven` repo root:
+
+```bash
+cd ffi/zig && zig build -Doptimize=ReleaseSafe
+```
 
 ## Installation
 
@@ -20,211 +38,96 @@ dependencies:
 import 'package:proven/proven.dart';
 
 void main() {
-  // Safe math with overflow checking
-  final result = SafeMath.add(1000000000000, 2000000000000);
-  if (result.isOk) {
-    print('Sum: ${result.value}');
+  // Safe math with overflow checking (returns null on overflow)
+  final sum = SafeMath.add(1000000000000, 2000000000000);
+  if (sum != null) {
+    print('Sum: $sum');
   } else {
     print('Overflow!');
   }
 
-  // XSS prevention
-  final userInput = '<script>alert("xss")</script>';
-  final safeHtml = SafeString.escapeHtml(userInput);
-  print(safeHtml); // &lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;
+  // XSS prevention (returns null on FFI error)
+  final safeHtml = SafeString.escapeHtml('<script>alert("xss")</script>');
+  print(safeHtml); // &lt;script&gt;...
 
-  // Path safety
-  if (SafePath.hasTraversal('../../../etc/passwd')) {
+  // Path traversal detection
+  final hasTrav = SafePath.hasTraversal('../../../etc/passwd');
+  if (hasTrav == true) {
     print('Dangerous path detected!');
   }
 
   // Email validation
-  final email = 'user@example.com';
-  if (SafeEmail.isValid(email)) {
+  if (SafeEmail.isValid('user@example.com') == true) {
     print('Valid email');
-    print('Domain: ${SafeEmail.getDomain(email)}');
   }
 
   // IP classification
-  final ip = IPv4Address.parse('192.168.1.1');
-  if (ip != null) {
-    print('Is private: ${ip.isPrivate}'); // true
-    print('Classification: ${ip.classification}'); // private
-  }
+  final classification = SafeNetwork.classifyIPv4('192.168.1.1');
+  print(classification); // IpClassification.private_
 
-  // Secure tokens
-  final token = SafeCrypto.generateToken();
-  print('CSRF token: $token');
+  // Secure random bytes
+  final bytes = SafeCrypto.randomBytes(32);
+  print('Random: $bytes');
 
-  // Password hashing
-  final hash = SafeCrypto.sha256Hash('password');
-  print('Hash: $hash');
+  // UUID generation
+  final uuid = SafeUuid.v4();
+  print('UUID: $uuid');
 }
 ```
+
+## API Design
+
+All methods return **nullable types** instead of throwing exceptions:
+
+- `int?` for integer operations (null = overflow/error)
+- `double?` for float operations (null = NaN/Infinity/error)
+- `String?` for string operations (null = FFI error)
+- `bool?` for validation operations (null = FFI error)
+- Custom value types for complex results (null = parse error)
+
+This ensures callers must handle error cases explicitly.
 
 ## Modules
 
-### SafeMath
+| Module | Description |
+|--------|-------------|
+| `SafeMath` | Overflow-checked integer arithmetic |
+| `SafeString` | HTML/SQL/JS escaping, UTF-8 validation |
+| `SafeFloat` | NaN/Infinity-safe floating-point operations |
+| `SafePath` | Directory traversal detection, filename sanitization |
+| `SafeEmail` | Email address validation |
+| `SafeNetwork` | IPv4 parsing and classification |
+| `SafeCrypto` | Constant-time comparison, secure random bytes |
+| `SafeHex` | Hexadecimal encoding/decoding |
+| `SafeUuid` | UUID v4 generation and validation (RFC 4122) |
+| `SafeJson` | JSON validation |
+| `SafeColor` | Color parsing (hex) and RGB/HSL conversion |
+| `SafeAngle` | Angle unit conversion and normalization |
+| `SafeUnit` | Physical unit conversions (length, temperature) |
+| `SafeCurrency` | Currency parsing (ISO 4217) |
+| `SafePhone` | Phone number parsing (E.164) |
+| `SafeDateTime` | ISO 8601 parsing, leap year, days-in-month |
+| `SafeVersion` | Semantic version parsing (SemVer 2.0.0) |
+| `SafeUrl` | URL encoding and decoding |
 
-Overflow-checked arithmetic operations:
+## Architecture
 
-```dart
-// All operations return CheckedInt
-final sum = SafeMath.add(a, b);
-final diff = SafeMath.sub(a, b);
-final prod = SafeMath.mul(a, b);
-final quot = SafeMath.div(a, b);
-
-// Check result
-if (sum.isOk) {
-  print(sum.value);
-}
-
-// Or use unwrap (throws on overflow)
-try {
-  final value = SafeMath.mul(bigNumber, anotherBig).unwrap();
-} on OverflowException {
-  print('Overflow!');
-}
-
-// Safe default
-final value = SafeMath.div(x, y).unwrapOr(0);
 ```
-
-### SafeString
-
-XSS prevention and string sanitization:
-
-```dart
-// HTML escaping
-final safe = SafeString.escapeHtml('<script>');
-
-// SQL escaping (prefer parameterized queries!)
-final safeSql = SafeString.escapeSql("O'Brien");
-
-// JavaScript escaping
-final safeJs = SafeString.escapeJs(userInput);
-
-// URL encoding
-final encoded = SafeString.urlEncode('hello world');
-
-// String sanitization
-final clean = SafeString.sanitize(input, allowed: r'a-zA-Z0-9');
+Dart app
+  |
+  v
+lib/src/safe_*.dart   (thin wrappers, nullable return types)
+  |
+  v
+lib/src/ffi.dart      (dart:ffi bindings, struct definitions)
+  |
+  v
+libproven.so          (Zig FFI layer)
+  |
+  v
+Idris 2 RefC          (formally verified core with dependent types)
 ```
-
-### SafePath
-
-Directory traversal protection:
-
-```dart
-// Check for traversal
-if (SafePath.hasTraversal(userPath)) {
-  throw SecurityException('Path traversal detected');
-}
-
-// Sanitize filename
-final safe = SafePath.sanitizeFilename(userFilename);
-
-// Safe path joining
-final result = SafePath.join('/base', ['subdir', 'file.txt']);
-if (result.isOk) {
-  print(result.path);
-}
-
-// Resolve within base directory
-final resolved = SafePath.resolveWithin('/var/www', userPath);
-if (resolved.isOk) {
-  // Safe to use
-}
-```
-
-### SafeEmail
-
-Email validation:
-
-```dart
-// Simple validation
-if (SafeEmail.isValid(email)) {
-  // Valid
-}
-
-// Parse with error details
-final result = SafeEmail.parse(email);
-if (result.isOk) {
-  print('Local: ${result.localPart}');
-  print('Domain: ${result.domain}');
-} else {
-  print('Error: ${result.error}');
-}
-
-// Check for disposable emails
-if (SafeEmail.isDisposable(email)) {
-  print('Please use a non-disposable email');
-}
-
-// Normalize
-final normalized = SafeEmail.normalize('User@EXAMPLE.COM');
-// -> User@example.com
-```
-
-### SafeNetwork
-
-IP address validation and classification:
-
-```dart
-// Parse IPv4
-final ip = IPv4Address.parse('192.168.1.1');
-if (ip != null) {
-  print('Loopback: ${ip.isLoopback}');
-  print('Private: ${ip.isPrivate}');
-  print('Public: ${ip.isPublic}');
-  print('Classification: ${ip.classification}');
-}
-
-// Validate port
-if (SafeNetwork.isValidPort(8080)) {
-  // OK
-}
-
-// SSRF protection
-if (SafeNetwork.isPrivateUrl(url)) {
-  throw SecurityException('Cannot access private URLs');
-}
-```
-
-### SafeCrypto
-
-Cryptographic operations:
-
-```dart
-// Secure random generation
-final bytes = SafeCrypto.randomBytes(32);
-final hex = SafeCrypto.randomHex(16);
-final token = SafeCrypto.generateToken();
-
-// Hashing
-final hash = SafeCrypto.sha256Hash('data');
-final hash512 = SafeCrypto.sha512Hash('data');
-
-// HMAC
-final mac = SafeCrypto.hmacSha256(key, message);
-if (SafeCrypto.verifyHmacSha256(key, message, expectedMac)) {
-  // Valid
-}
-
-// Constant-time comparison (timing attack prevention)
-if (SafeCrypto.constantTimeEquals(actual, expected)) {
-  // Match
-}
-
-// Key derivation
-final derived = SafeCrypto.pbkdf2(password, salt, iterations: 100000);
-```
-
-## Flutter Support
-
-This library works with Flutter for mobile, web, and desktop applications. Note that `SafePath` filesystem operations require `dart:io` and won't work on Flutter web.
 
 ## License
 
-PMPL-1.0
+PMPL-1.0-or-later

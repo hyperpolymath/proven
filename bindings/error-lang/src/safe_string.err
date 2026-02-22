@@ -1,0 +1,82 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- | SafeString - Text operations that handle encoding safely via libproven FFI.
+--
+-- Error-Lang's dependent error types ensure that encoding errors, null pointer
+-- errors, and allocation failures are all captured in the return type and must
+-- be handled by the caller.
+--
+-- All computation is performed in Idris 2 via the Zig FFI layer.
+-- NO string logic is reimplemented in Error-Lang.
+
+module Proven.SafeString
+
+import Proven.FFI
+import Proven (ProvenError, Proven, bool_result_to_proven, string_result_to_proven)
+
+-- ============================================================================
+-- UTF-8 validation
+-- ============================================================================
+
+-- | Check if bytes are valid UTF-8 encoding.
+-- Returns Proven<Bool, ProvenError> where Ok(true) means valid UTF-8.
+-- Delegates to proven_string_is_valid_utf8 in libproven.
+fn is_valid_utf8(input : Bytes) -> Proven<Bool, ProvenError> =
+  bool_result_to_proven(
+    FFI.proven_string_is_valid_utf8(input.ptr, input.len)
+  )
+
+-- ============================================================================
+-- String escaping for injection prevention
+-- ============================================================================
+
+-- | Escape a string for safe SQL interpolation (single quotes).
+-- Returns the escaped string or an error if allocation fails.
+-- NOTE: Prefer parameterized queries over string escaping.
+-- Delegates to proven_string_escape_sql in libproven.
+fn escape_sql(input : String) -> Proven<String, ProvenError> =
+  let bytes = string_to_utf8(input)
+  string_result_to_proven(
+    FFI.proven_string_escape_sql(bytes.ptr, bytes.len)
+  )
+
+-- | Escape a string for safe HTML output (prevents XSS).
+-- Escapes &, <, >, ", and ' characters.
+-- Delegates to proven_string_escape_html in libproven.
+fn escape_html(input : String) -> Proven<String, ProvenError> =
+  let bytes = string_to_utf8(input)
+  string_result_to_proven(
+    FFI.proven_string_escape_html(bytes.ptr, bytes.len)
+  )
+
+-- | Escape a string for safe JavaScript string literals.
+-- Prevents injection when embedding data in JS contexts.
+-- Delegates to proven_string_escape_js in libproven.
+fn escape_js(input : String) -> Proven<String, ProvenError> =
+  let bytes = string_to_utf8(input)
+  string_result_to_proven(
+    FFI.proven_string_escape_js(bytes.ptr, bytes.len)
+  )
+
+-- ============================================================================
+-- Path safety
+-- ============================================================================
+
+-- | Check if a path contains directory traversal sequences ("..").
+-- Returns Ok(true) if traversal detected, Ok(false) if safe.
+-- Delegates to proven_path_has_traversal in libproven.
+fn path_has_traversal(path : String) -> Proven<Bool, ProvenError> =
+  let bytes = string_to_utf8(path)
+  bool_result_to_proven(
+    FFI.proven_path_has_traversal(bytes.ptr, bytes.len)
+  )
+
+-- | Sanitize a filename by removing dangerous characters.
+-- Returns the sanitized filename.
+-- Delegates to proven_path_sanitize_filename in libproven.
+fn sanitize_filename(name : String) -> Proven<String, ProvenError> =
+  let bytes = string_to_utf8(name)
+  string_result_to_proven(
+    FFI.proven_path_sanitize_filename(bytes.ptr, bytes.len)
+  )

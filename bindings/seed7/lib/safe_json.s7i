@@ -1,0 +1,54 @@
+(********************************************************************)
+(*  SPDX-License-Identifier: PMPL-1.0-or-later                     *)
+(*  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)         *)
+(*  <jonathan.jewell@open.ac.uk>                                    *)
+(*                                                                  *)
+(*  safe_json.s7i -- Safe JSON validation and type detection.       *)
+(*  Thin wrapper over libproven FFI -- all logic lives in Idris 2.  *)
+(********************************************************************)
+
+include "proven.s7i";
+
+(* JSON value type constants. *)
+const integer: JSON_NULL    is  0;
+const integer: JSON_BOOL    is  1;
+const integer: JSON_NUMBER  is  2;
+const integer: JSON_STRING  is  3;
+const integer: JSON_ARRAY   is  4;
+const integer: JSON_OBJECT  is  5;
+const integer: JSON_INVALID is -1;
+
+(* ---------------------------------------------------------------------------
+   External C declarations (raw FFI)
+   --------------------------------------------------------------------------- *)
+
+const func integer: c_proven_json_is_valid (in string: ptr, in integer: len) is
+  external "proven_json_is_valid" integer;
+
+const func integer: c_proven_json_get_type (in string: ptr, in integer: len) is
+  external "proven_json_get_type" integer;
+
+(* ---------------------------------------------------------------------------
+   High-level wrappers
+   --------------------------------------------------------------------------- *)
+
+(** Check if a string is valid JSON. *)
+const func boolean: jsonIsValid (in string: value) is func
+  result
+    var boolean: valid is FALSE;
+  begin
+    if length(value) > 0 then
+      valid := c_proven_json_is_valid(value, length(value)) = 1;
+    end if;
+  end func;
+
+(** Get the JSON value type at the root level.
+    Returns one of the JSON_* constants. Returns JSON_INVALID for non-JSON. *)
+const func integer: jsonGetType (in string: value) is func
+  result
+    var integer: jsonType is JSON_INVALID;
+  begin
+    if length(value) > 0 then
+      jsonType := c_proven_json_get_type(value, length(value));
+    end if;
+  end func;

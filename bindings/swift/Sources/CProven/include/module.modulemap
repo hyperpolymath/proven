@@ -1,0 +1,5 @@
+module CProven {
+    header "proven.h"
+    link "proven"
+    export *
+}

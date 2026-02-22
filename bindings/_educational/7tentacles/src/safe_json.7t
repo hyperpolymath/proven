@@ -1,0 +1,112 @@
+~~ SPDX-License-Identifier: PMPL-1.0-or-later
+~~ Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+~{ | SafeJson - JSON validation and type detection via libproven FFI.
+ |
+ | 7Tentacles' ink type makes JSON validation expressive: the return type
+ | precisely captures whether JSON is valid and what root type the document
+ | has. Parse failures are typed Squirts (ink), not exceptions.
+ |
+ | All computation is performed in Idris 2 via the Zig FFI layer.
+ | NO JSON logic is reimplemented in 7Tentacles.
+}~
+
+sucker module Proven.SafeJson
+
+import Proven.FFI
+import Proven (ProvenError, ink, Catch, Squirt, bool_result_to_proven, float_result_to_proven)
+
+~~ ============================================================================
+~~ JSON types matching the C ABI enum
+~~ ============================================================================
+
+~~ | JSON value types as returned by the Idris 2 JSON parser.
+sucker type JsonType =
+  | JsonNull
+  | JsonBool
+  | JsonNumber
+  | JsonString
+  | JsonArray
+  | JsonObject
+  | JsonInvalid
+
+~~ | Convert a raw C ABI type code to a JsonType.
+grasp fn int_to_json_type(code : Int32) -> JsonType =
+  match code with
+  | 0  => JsonNull
+  | 1  => JsonBool
+  | 2  => JsonNumber
+  | 3  => JsonString
+  | 4  => JsonArray
+  | 5  => JsonObject
+  | _  => JsonInvalid
+
+~~ ============================================================================
+~~ JSON validation
+~~ ============================================================================
+
+~~ | Check if a string is valid JSON.
+~~ Returns Catch(true) if valid, Catch(false) if not.
+~~ Delegates to proven_json_is_valid in libproven.
+grasp fn is_valid_json(input : String) -> ink<Bool, ProvenError> =
+  let bytes = string_to_utf8(input)
+  bool_result_to_proven(
+    FFI.proven_json_is_valid(bytes.ptr, bytes.len)
+  )
+
+~~ | Get the JSON value type at the root level.
+~~ Returns JsonInvalid if the string is not valid JSON.
+~~ Delegates to proven_json_get_type in libproven.
+grasp fn json_type(input : String) -> JsonType =
+  let bytes = string_to_utf8(input)
+  int_to_json_type(FFI.proven_json_get_type(bytes.ptr, bytes.len))
+
+~~ | Validate JSON and return the type in one step.
+~~ Returns Squirt(ParseFailure) if the input is not valid JSON.
+~~ Combines proven_json_is_valid and proven_json_get_type from libproven.
+grasp fn validate_json(input : String) -> ink<JsonType, ProvenError> =
+  match is_valid_json(input) with
+  | Catch(true)  => Catch(json_type(input))
+  | Catch(false) => Squirt(ParseFailure)
+  | Squirt(e)    => Squirt(e)
+
+~~ ============================================================================
+~~ Safe expression evaluation
+~~ ============================================================================
+
+~~ | Safely evaluate an arithmetic expression string.
+~~ Supports +, -, *, /, parentheses, negative and decimal numbers.
+~~ Returns Squirt(ParseFailure) for invalid expressions.
+~~ Returns Squirt(DivByZero) for division by zero.
+~~ Delegates to proven_calculator_eval in libproven.
+grasp fn eval_expression(expr : String) -> ink<Float64, ProvenError> =
+  let bytes = string_to_utf8(expr)
+  float_result_to_proven(
+    FFI.proven_calculator_eval(bytes.ptr, bytes.len)
+  )
+
+~~ ============================================================================
+~~ 7Tentacles specific: validated JSON type
+~~ ============================================================================
+
+~{ | A validated JSON string type. The tentacle has grasped and verified
+ | this JSON through the Idris 2 verified JSON validator. Once caught,
+ | the validation is guaranteed.
+}~
+sucker type ValidatedJson = private ValidatedJson(String, JsonType)
+
+~~ | Get the original JSON string.
+grasp fn validated_json_string(json : ValidatedJson) -> String =
+  match json with
+  | ValidatedJson(s, _) => s
+
+~~ | Get the root type of the validated JSON.
+grasp fn validated_json_type(json : ValidatedJson) -> JsonType =
+  match json with
+  | ValidatedJson(_, t) => t
+
+~~ | Create a ValidatedJson value, returning an error if validation fails.
+grasp fn make_validated_json(input : String) -> ink<ValidatedJson, ProvenError> =
+  match validate_json(input) with
+  | Catch(t)  => Catch(ValidatedJson(input, t))
+  | Squirt(e) => Squirt(e)

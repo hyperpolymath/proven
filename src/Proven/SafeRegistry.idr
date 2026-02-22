@@ -238,28 +238,13 @@ toCanonical = toString . normalize
 ||| For any valid canonical reference, parsing and re-rendering gives same result.
 ||| This is a key correctness property.
 |||
-||| @ Note: Axiomatised; provable by case analysis on parse/render composition
+||| Axiomatised as a postulate: provable by case analysis on the parse/render
+||| composition over all ImageReference constructors, but requires detailed
+||| reasoning about string splitting/joining that Idris2 cannot easily automate.
+||| The property is validated by the unit tests in exampleSimple..exampleWithDigest.
+export postulate
 parseRenderIdempotent : (ref : ImageReference) ->
   parseReference (toCanonical ref) = normalize ref
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-parseRenderIdempotent ref = believe_me ()  -- Proof obligation
 
 ||| Proof: Parser always terminates
 |||

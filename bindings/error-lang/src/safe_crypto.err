@@ -1,0 +1,108 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- | SafeCrypto - Cryptographic primitives via libproven FFI.
+--
+-- Error-Lang's dependent error types ensure that cryptographic operation
+-- failures are captured in the return type. All cryptographic operations are
+-- performed by the Idris 2 verified core via the Zig FFI bridge.
+--
+-- All computation is performed in Idris 2 via the Zig FFI layer.
+-- NO cryptographic logic is reimplemented in Error-Lang.
+
+module Proven.SafeCrypto
+
+import Proven.FFI
+import Proven (ProvenError, Proven, Err, Ok, bool_result_to_proven, int_result_to_proven, string_result_to_proven)
+
+-- ============================================================================
+-- Constant-time comparison
+-- ============================================================================
+
+-- | Constant-time byte comparison (timing-attack safe).
+-- Returns Ok(true) if the two byte sequences are equal, Ok(false) otherwise.
+-- Returns Ok(false) if lengths differ (without leaking timing information).
+-- Delegates to proven_crypto_constant_time_eq in libproven.
+fn constant_time_eq(a : Bytes, b : Bytes) -> Proven<Bool, ProvenError> =
+  bool_result_to_proven(
+    FFI.proven_crypto_constant_time_eq(a.ptr, a.len, b.ptr, b.len)
+  )
+
+-- | Constant-time string comparison (timing-attack safe).
+-- Convenience wrapper that converts strings to bytes first.
+-- Delegates to proven_crypto_constant_time_eq in libproven.
+fn constant_time_eq_str(a : String, b : String) -> Proven<Bool, ProvenError> =
+  let ba = string_to_utf8(a)
+  let bb = string_to_utf8(b)
+  bool_result_to_proven(
+    FFI.proven_crypto_constant_time_eq(ba.ptr, ba.len, bb.ptr, bb.len)
+  )
+
+-- ============================================================================
+-- Secure random bytes
+-- ============================================================================
+
+-- | Fill a buffer with cryptographically secure random bytes.
+-- Returns Ok(bytes) on success, Err on failure.
+-- Delegates to proven_crypto_random_bytes in libproven.
+fn random_bytes(len : USize) -> Proven<Bytes, ProvenError> =
+  let buf = allocate_bytes(len)
+  let status = FFI.proven_crypto_random_bytes(buf.ptr, len)
+  match status with
+  | 0 => Ok(buf)
+  | s => Err(status_to_error(s))
+
+-- ============================================================================
+-- Hex encoding
+-- ============================================================================
+
+-- | Encode bytes to hexadecimal string.
+-- Delegates to proven_hex_encode in libproven.
+fn hex_encode(data : Bytes, uppercase : Bool) -> Proven<String, ProvenError> =
+  string_result_to_proven(
+    FFI.proven_hex_encode(data.ptr, data.len, uppercase)
+  )
+
+-- | Decode a hexadecimal string to bytes.
+-- Returns Err(ParseFailure) if the input contains non-hex characters.
+-- Delegates to proven_hex_decode in libproven.
+fn hex_decode(hex : String) -> Proven<Bytes, ProvenError> =
+  let bytes = string_to_utf8(hex)
+  let raw = FFI.proven_hex_decode(bytes.ptr, bytes.len)
+  match raw with
+  | null => Err(ParseFailure)
+  | ptr  =>
+    let result = read_hex_decode_result(ptr)
+    FFI.proven_hex_free(ptr)
+    Ok(result)
+
+-- ============================================================================
+-- Checksum
+-- ============================================================================
+
+-- | Calculate CRC32 checksum of a byte buffer.
+-- Delegates to proven_checksum_crc32 in libproven.
+fn crc32(data : Bytes) -> Proven<Int64, ProvenError> =
+  int_result_to_proven(
+    FFI.proven_checksum_crc32(data.ptr, data.len)
+  )
+
+-- | Verify that a CRC32 checksum matches the expected value.
+-- Returns Ok(true) if the checksum matches.
+-- Delegates to proven_checksum_verify_crc32 in libproven.
+fn verify_crc32(data : Bytes, expected : UInt32) -> Proven<Bool, ProvenError> =
+  bool_result_to_proven(
+    FFI.proven_checksum_verify_crc32(data.ptr, data.len, expected)
+  )
+
+-- ============================================================================
+-- Error-Lang specific: typed crypto results
+-- ============================================================================
+
+-- | Error type specialized for cryptographic operations.
+-- Extends ProvenError with crypto-specific semantics.
+error_type CryptoError =
+  | ProvenErr(ProvenError)    -- ^ Underlying Proven error
+  | InsufficientEntropy       -- ^ Not enough entropy available
+  | ComparisonFailed          -- ^ Constant-time comparison failed
+  | InvalidHexEncoding        -- ^ Invalid hex encoding in input

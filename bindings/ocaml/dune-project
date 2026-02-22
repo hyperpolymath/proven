@@ -1,9 +1,10 @@
 (lang dune 3.0)
 
 ; SPDX-License-Identifier: PMPL-1.0-or-later
-; SPDX-FileCopyrightText: 2025 Hyperpolymath
+; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 (name proven)
-(version 0.9.1)
+(version 1.0.0)
 
 (generate_opam_files true)
 
@@ -14,9 +15,16 @@
 
 (package
  (name proven)
- (synopsis "Formally verified safety primitives for OCaml")
- (description "Safe operations with bounds checking, overflow detection, and security-focused string handling.")
+ (synopsis "FFI bindings to libproven: formally verified safety primitives")
+ (description
+  "Thin ctypes-based FFI wrapper around libproven, which provides formally
+   verified (Idris 2) safety primitives for arithmetic, string handling,
+   cryptography, networking, and more. All computation is performed in
+   the verified Idris 2 core via the Zig FFI bridge -- this OCaml package
+   is a data-marshaling layer only.")
  (depends
   (ocaml (>= 4.14.0))
   (dune (>= 3.0))
+  (ctypes (>= 0.20.0))
+  (ctypes-foreign (>= 0.20.0))
   (alcotest :with-test)))

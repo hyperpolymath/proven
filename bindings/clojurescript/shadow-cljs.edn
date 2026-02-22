@@ -1,0 +1,35 @@
+;; SPDX-License-Identifier: PMPL-1.0-or-later
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+;; Shadow CLJS build configuration for the proven ClojureScript bindings.
+;;
+;; This targets Node.js since the FFI layer requires native library access.
+;; The compiled JS calls the Deno/Node proven JS binding, which in turn
+;; calls libproven.so via native FFI.
+
+{:source-paths ["src"]
+
+ :dependencies
+ [[org.clojure/clojurescript "1.11.132"]]
+
+ :builds
+ {:lib
+  {:target    :node-library
+   :output-to "dist/proven.js"
+   :exports   {:safe-math    proven.safe-math
+               :safe-string  proven.safe-string
+               :safe-path    proven.safe-path
+               :safe-email   proven.safe-email
+               :safe-url     proven.safe-url
+               :safe-crypto  proven.safe-crypto
+               :safe-json    proven.safe-json}
+   :compiler-options
+   {:optimizations :advanced
+    :output-feature-set :es2020}}
+
+  :test
+  {:target    :node-test
+   :output-to "dist/test.js"
+   :ns-regexp "-test$"
+   :compiler-options
+   {:optimizations :none}}}}

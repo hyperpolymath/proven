@@ -1,255 +1,118 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
+# Safe semantic versioning operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
+
 module Proven
-  # Safe semantic versioning operations.
-  #
-  # Provides parsing, comparison, and manipulation of SemVer strings
-  # with validation and safe operations.
   module SafeVersion
-    # Semantic version representation.
-    class SemVer
-      include Comparable
-
-      attr_reader :major, :minor, :patch, :prerelease, :build_metadata
-
-      def initialize(major:, minor:, patch:, prerelease: nil, build_metadata: nil)
-        @major = major
-        @minor = minor
-        @patch = patch
-        @prerelease = prerelease
-        @build_metadata = build_metadata
-      end
-
-      def <=>(other)
-        return nil unless other.is_a?(SemVer)
-
-        result = major <=> other.major
-        return result unless result.zero?
-
-        result = minor <=> other.minor
-        return result unless result.zero?
-
-        result = patch <=> other.patch
-        return result unless result.zero?
-
-        # Pre-release versions have lower precedence
-        case [prerelease.nil?, other.prerelease.nil?]
-        when [true, true]
-          0
-        when [true, false]
-          1
-        when [false, true]
-          -1
-        else
-          compare_prerelease(prerelease, other.prerelease)
-        end
-      end
-
+    # Parsed semantic version from libproven.
+    SemVer = Struct.new(:major, :minor, :patch, :prerelease, keyword_init: true) do
       def to_s
         version = "#{major}.#{minor}.#{patch}"
         version += "-#{prerelease}" if prerelease
-        version += "+#{build_metadata}" if build_metadata
         version
       end
+    end
 
-      def stable?
-        prerelease.nil?
-      end
+    class << self
+      # Parse a semantic version string.
+      # Returns nil on invalid input.
+      #
+      # @param version_string [String]
+      # @return [SemVer, nil]
+      def parse(version_string)
+        return nil if version_string.nil?
+        ptr, len = FFI.str_to_ptr(version_string)
 
-      def prerelease?
-        !prerelease.nil?
-      end
+        # VersionResult = { i32 status, SemanticVersion { u32 major, u32 minor, u32 patch, size_t prerelease_len, ptr prerelease } }
+        # Layout: 4(status) + 4pad + 4(major) + 4(minor) + 4(patch) + 4pad + 8(len) + 8(ptr) = 40 bytes
+        buf = Fiddle::Pointer.malloc(48, Fiddle::RUBY_FREE)
 
-      private
+        fn = Fiddle::Function.new(
+          FFI.handler["proven_version_parse"],
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          Fiddle::TYPE_VOID,
+          need_gvl: true
+        )
+        fn.call(buf, ptr, len)
 
-      def compare_prerelease(pre1, pre2)
-        parts1 = pre1.split(".")
-        parts2 = pre2.split(".")
+        packed = buf.to_str(40)
+        status = packed[0, 4].unpack1("l!")
+        return nil unless status == FFI::STATUS_OK
 
-        [parts1.length, parts2.length].max.times do |i|
-          p1 = parts1[i]
-          p2 = parts2[i]
+        major = packed[4, 4].unpack1("L") # u32
+        minor = packed[8, 4].unpack1("L")
+        patch = packed[12, 4].unpack1("L")
+        prerelease_len = packed[16, 8].unpack1("Q") # size_t
+        prerelease_ptr_val = packed[24, 8].unpack1("Q")
 
-          return 1 if p1.nil?
-          return -1 if p2.nil?
-
-          # Numeric identifiers have lower precedence than non-numeric
-          num1 = Integer(p1) rescue nil
-          num2 = Integer(p2) rescue nil
-
-          if num1 && num2
-            result = num1 <=> num2
-            return result unless result.zero?
-          elsif num1
-            return -1
-          elsif num2
-            return 1
-          else
-            result = p1 <=> p2
-            return result unless result.zero?
-          end
+        prerelease = nil
+        if prerelease_ptr_val != 0 && prerelease_len > 0
+          pre_ptr = Fiddle::Pointer.new(prerelease_ptr_val)
+          prerelease = pre_ptr.to_str(prerelease_len).dup
         end
 
-        0
+        SemVer.new(
+          major: major,
+          minor: minor,
+          patch: patch,
+          prerelease: prerelease
+        )
+      rescue Fiddle::DLError, TypeError
+        nil
       end
-    end
 
-    # SemVer regex pattern
-    SEMVER_REGEX = /\A
-      v?                           # Optional 'v' prefix
-      (0|[1-9]\d*)                 # Major
-      \.
-      (0|[1-9]\d*)                 # Minor
-      \.
-      (0|[1-9]\d*)                 # Patch
-      (?:-([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?  # Pre-release
-      (?:\+([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))? # Build metadata
-    \z/x.freeze
-
-    # Parse a version string.
-    #
-    # @param version_string [String]
-    # @return [Result]
-    def self.parse(version_string)
-      return Result.error(InvalidInputError.new("Version cannot be nil")) if version_string.nil?
-
-      trimmed = version_string.strip
-      match = SEMVER_REGEX.match(trimmed)
-
-      return Result.error(InvalidFormatError.new("Invalid version format")) unless match
-
-      Result.ok(SemVer.new(
-        major: match[1].to_i,
-        minor: match[2].to_i,
-        patch: match[3].to_i,
-        prerelease: match[4],
-        build_metadata: match[5]
-      ))
-    end
-
-    # Check if a string is a valid SemVer.
-    #
-    # @param version_string [String]
-    # @return [Boolean]
-    def self.valid?(version_string)
-      parse(version_string).ok?
-    end
-
-    # Compare two version strings.
-    #
-    # @param v1 [String]
-    # @param v2 [String]
-    # @return [Result] containing -1, 0, or 1
-    def self.compare(v1, v2)
-      parse(v1).and_then do |ver1|
-        parse(v2).and_then do |ver2|
-          Result.ok(ver1 <=> ver2)
-        end
+      # Check if a string is valid SemVer.
+      #
+      # @param version_string [String]
+      # @return [Boolean]
+      def valid?(version_string)
+        !parse(version_string).nil?
       end
-    end
 
-    # Check if v1 > v2.
-    #
-    # @param v1 [String]
-    # @param v2 [String]
-    # @return [Boolean]
-    def self.greater?(v1, v2)
-      result = compare(v1, v2)
-      result.ok? && result.value == 1
-    end
+      # Compare two semantic version structs.
+      # Returns -1, 0, or 1.
+      # Returns nil on error.
+      #
+      # @param v1 [String]
+      # @param v2 [String]
+      # @return [Integer, nil]
+      def compare(v1, v2)
+        sv1 = parse(v1)
+        sv2 = parse(v2)
+        return nil if sv1.nil? || sv2.nil?
 
-    # Check if v1 < v2.
-    #
-    # @param v1 [String]
-    # @param v2 [String]
-    # @return [Boolean]
-    def self.less?(v1, v2)
-      result = compare(v1, v2)
-      result.ok? && result.value == -1
-    end
+        # Pack two SemanticVersion structs for proven_version_compare
+        # SemanticVersion = { u32, u32, u32, size_t, ptr } = 32 bytes each
+        # Pass by value -- this is complex with Fiddle.
+        # Use a simpler comparison approach: pack into the struct layout.
+        pack_a = [sv1.major, sv1.minor, sv1.patch, 0, 0].pack("LLLQQ")
+        pack_b = [sv2.major, sv2.minor, sv2.patch, 0, 0].pack("LLLQQ")
 
-    # Check if v1 == v2 (ignoring build metadata).
-    #
-    # @param v1 [String]
-    # @param v2 [String]
-    # @return [Boolean]
-    def self.equal?(v1, v2)
-      result = compare(v1, v2)
-      result.ok? && result.value.zero?
-    end
+        buf_a = Fiddle::Pointer.to_ptr(pack_a)
+        buf_b = Fiddle::Pointer.to_ptr(pack_b)
 
-    # Increment major version.
-    #
-    # @param version [SemVer, String]
-    # @return [Result]
-    def self.increment_major(version)
-      ver = version.is_a?(SemVer) ? version : parse(version).value
-      return Result.error(InvalidInputError.new("Invalid version")) if ver.nil?
-
-      Result.ok(SemVer.new(major: ver.major + 1, minor: 0, patch: 0))
-    end
-
-    # Increment minor version.
-    #
-    # @param version [SemVer, String]
-    # @return [Result]
-    def self.increment_minor(version)
-      ver = version.is_a?(SemVer) ? version : parse(version).value
-      return Result.error(InvalidInputError.new("Invalid version")) if ver.nil?
-
-      Result.ok(SemVer.new(major: ver.major, minor: ver.minor + 1, patch: 0))
-    end
-
-    # Increment patch version.
-    #
-    # @param version [SemVer, String]
-    # @return [Result]
-    def self.increment_patch(version)
-      ver = version.is_a?(SemVer) ? version : parse(version).value
-      return Result.error(InvalidInputError.new("Invalid version")) if ver.nil?
-
-      Result.ok(SemVer.new(major: ver.major, minor: ver.minor, patch: ver.patch + 1))
-    end
-
-    # Check if version satisfies a constraint.
-    #
-    # @param version [String]
-    # @param constraint [String] e.g., ">=1.0.0", "^2.0.0", "~1.2.3"
-    # @return [Boolean]
-    def self.satisfies?(version, constraint)
-      ver = parse(version)
-      return false unless ver.ok?
-
-      ver = ver.value
-
-      case constraint
-      when /\A>=\s*(.+)\z/
-        other = parse(Regexp.last_match(1))
-        other.ok? && ver >= other.value
-      when /\A<=\s*(.+)\z/
-        other = parse(Regexp.last_match(1))
-        other.ok? && ver <= other.value
-      when /\A>\s*(.+)\z/
-        other = parse(Regexp.last_match(1))
-        other.ok? && ver > other.value
-      when /\A<\s*(.+)\z/
-        other = parse(Regexp.last_match(1))
-        other.ok? && ver < other.value
-      when /\A=\s*(.+)\z/
-        other = parse(Regexp.last_match(1))
-        other.ok? && ver == other.value
-      when /\A\^\s*(.+)\z/
-        # Caret: compatible with version (same major)
-        other = parse(Regexp.last_match(1))
-        other.ok? && ver.major == other.value.major && ver >= other.value
-      when /\A~\s*(.+)\z/
-        # Tilde: same major and minor
-        other = parse(Regexp.last_match(1))
-        other.ok? && ver.major == other.value.major && ver.minor == other.value.minor && ver >= other.value
-      else
-        false
+        # proven_version_compare takes two SemanticVersion by value.
+        # Each is 32 bytes on 64-bit. Since > 16 bytes, they would be
+        # passed by pointer on some ABIs. Use the direct int approach
+        # for the numeric fields only (ignoring prerelease for FFI compare).
+        result = FFI.invoke_i32(
+          "proven_version_compare",
+          # Two structs by value: pass each field individually
+          # SemanticVersion a: u32, u32, u32, size_t, ptr
+          # SemanticVersion b: u32, u32, u32, size_t, ptr
+          [Fiddle::TYPE_INT, Fiddle::TYPE_INT, Fiddle::TYPE_INT,
+           Fiddle::TYPE_SIZE_T, Fiddle::TYPE_VOIDP,
+           Fiddle::TYPE_INT, Fiddle::TYPE_INT, Fiddle::TYPE_INT,
+           Fiddle::TYPE_SIZE_T, Fiddle::TYPE_VOIDP],
+          [sv1.major, sv1.minor, sv1.patch, 0, Fiddle::Pointer.new(0),
+           sv2.major, sv2.minor, sv2.patch, 0, Fiddle::Pointer.new(0)]
+        )
+        result
+      rescue Fiddle::DLError, TypeError
+        nil
       end
     end
   end

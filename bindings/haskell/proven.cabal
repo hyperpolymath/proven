@@ -1,22 +1,29 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- Thin FFI binding to libproven shared library.
+-- All computation is performed by the Idris 2 verified core via Zig FFI.
+-- This Haskell package contains ZERO reimplemented logic.
 
 cabal-version:      3.0
 name:               proven
-version:            0.9.0
-synopsis:           Formally verified safety primitives for Haskell
-description:        Safe operations with bounds checking, overflow detection,
-                    and security-focused string handling.
-license:            LicenseRef-PMPL-1.0
+version:            0.10.0
+synopsis:           Haskell FFI bindings to libproven (formally verified safety primitives)
+description:        Thin FFI wrapper calling libproven shared library via Haskell's
+                    Foreign Function Interface. All safety proofs and computation
+                    live in the Idris 2 core; this package only marshals data.
+license:            LicenseRef-PMPL-1.0-or-later
 license-file:       LICENSE
-author:             Hyperpolymath
-maintainer:         hyperpolymath
-category:           Security
+author:             Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+maintainer:         jonathan.jewell@open.ac.uk
+category:           Security, FFI
 build-type:         Simple
 
 library
   exposed-modules:
     Proven
+    Proven.FFI
+    Proven.FFI.Types
     Proven.SafeMath
     Proven.SafeString
     Proven.SafePath
@@ -27,12 +34,31 @@ library
     Proven.SafeCurrency
     Proven.SafePhone
     Proven.SafeHex
+    Proven.SafeUrl
+    Proven.SafeJson
+    Proven.SafeDateTime
+    Proven.SafeFloat
+    Proven.SafeVersion
+    Proven.SafeColor
+    Proven.SafeAngle
+    Proven.SafeUnit
+    Proven.SafeHeader
+    Proven.SafeCookie
+    Proven.SafeContentType
+    Proven.SafeGeo
+    Proven.SafeChecksum
+    Proven.SafeProbability
+    Proven.SafeCalculator
+    Proven.SafePassword
+    Proven.SafeML
+    Proven.SafeRetry
   hs-source-dirs:   src
   build-depends:
     base >= 4.14 && < 5,
     bytestring >= 0.10,
-    text >= 1.2,
-    entropy >= 0.4
+    text >= 1.2
+  extra-libraries:  proven
+  extra-lib-dirs:   ../../ffi/zig/zig-out/lib
   default-language: Haskell2010
   ghc-options:      -Wall
 

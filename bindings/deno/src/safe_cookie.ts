@@ -1,188 +1,99 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Safe HTTP Cookie operations that prevent injection attacks.
+ * SafeCookie - HTTP cookie operations that prevent injection attacks.
  *
- * All operations handle injection attacks (semicolons, newlines) and
- * enforce security requirements without throwing.
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
  *
  * @module
  */
 
-import { type Result, ok, err } from './result.ts';
+import { getLib, ProvenStatus, readAndFreeString, statusToError } from './ffi.ts';
+import { err, ok, type Result } from './result.ts';
 
-/** SameSite attribute values */
-export type SameSite = 'Strict' | 'Lax' | 'None';
-
-/** Cookie prefix type */
-export type CookiePrefix = 'none' | 'secure' | 'host';
-
-/** Cookie attributes */
-export interface CookieAttributes {
-  readonly domain?: string;
-  readonly path?: string;
-  readonly maxAge?: number;
-  readonly secure: boolean;
-  readonly httpOnly: boolean;
-  readonly sameSite?: SameSite;
-  readonly partitioned: boolean;
-}
-
-/** Complete cookie */
-export interface Cookie {
-  readonly name: string;
-  readonly value: string;
-  readonly attributes: CookieAttributes;
-}
-
-/** Default secure attributes */
-export const DEFAULT_ATTRIBUTES: CookieAttributes = {
-  path: '/',
-  secure: true,
-  httpOnly: true,
-  sameSite: 'Lax',
-  partitioned: false,
-};
-
-/** Session cookie attributes */
-export const SESSION_ATTRIBUTES: CookieAttributes = {
-  path: '/',
-  secure: true,
-  httpOnly: true,
-  sameSite: 'Strict',
-  partitioned: false,
-};
-
-/** Safe cookie operations */
-export const SafeCookie = {
-  /** Check for injection characters (semicolon, CR, LF) */
-  hasInjection(s: string): boolean {
-    return s.includes(';') || s.includes('\r') || s.includes('\n');
-  },
-
-  /** Get prefix from cookie name */
-  getPrefix(name: string): CookiePrefix {
-    if (name.startsWith('__Host-')) {
-      return 'host';
-    }
-    if (name.startsWith('__Secure-')) {
-      return 'secure';
-    }
-    return 'none';
-  },
-
-  /** Validate cookie name */
-  validateName(name: string): Result<string, string> {
-    if (name.length === 0 || name.length > 256) {
-      return err('Cookie name length invalid');
-    }
-    if (this.hasInjection(name)) {
-      return err('Cookie name contains injection characters');
-    }
-    return ok(name);
-  },
-
-  /** Validate cookie value */
-  validateValue(value: string): Result<string, string> {
-    if (value.length > 4096) {
-      return err('Cookie value too long');
-    }
-    if (this.hasInjection(value)) {
-      return err('Cookie value contains injection characters');
-    }
-    return ok(value);
-  },
-
-  /** Create a validated cookie */
-  make(name: string, value: string, attrs: CookieAttributes): Result<Cookie, string> {
-    const nameResult = this.validateName(name);
-    if (!nameResult.ok) return nameResult;
-
-    const valueResult = this.validateValue(value);
-    if (!valueResult.ok) return valueResult;
-
-    // Validate prefix requirements
-    const prefix = this.getPrefix(name);
-    if (prefix === 'secure' && !attrs.secure) {
-      return err('__Secure- prefix requires Secure flag');
-    }
-    if (prefix === 'host' && (!attrs.secure || attrs.domain || attrs.path !== '/')) {
-      return err('__Host- prefix requires Secure, no Domain, Path=/');
-    }
-
-    // Validate SameSite=None requires Secure
-    if (attrs.sameSite === 'None' && !attrs.secure) {
-      return err('SameSite=None requires Secure');
-    }
-
-    return ok({ name, value, attributes: attrs });
-  },
-
-  /** Create cookie with default secure attributes */
-  makeDefault(name: string, value: string): Result<Cookie, string> {
-    return this.make(name, value, DEFAULT_ATTRIBUTES);
-  },
-
-  /** Create session cookie */
-  makeSession(name: string, value: string): Result<Cookie, string> {
-    return this.make(name, value, SESSION_ATTRIBUTES);
-  },
-
-  /** Build Set-Cookie header value */
-  buildSetCookie(cookie: Cookie): string {
-    const parts = [`${cookie.name}=${cookie.value}`];
-
-    if (cookie.attributes.domain) {
-      parts.push(`Domain=${cookie.attributes.domain}`);
-    }
-    if (cookie.attributes.path) {
-      parts.push(`Path=${cookie.attributes.path}`);
-    }
-    if (cookie.attributes.maxAge !== undefined) {
-      parts.push(`Max-Age=${cookie.attributes.maxAge}`);
-    }
-    if (cookie.attributes.secure) {
-      parts.push('Secure');
-    }
-    if (cookie.attributes.httpOnly) {
-      parts.push('HttpOnly');
-    }
-    if (cookie.attributes.sameSite) {
-      parts.push(`SameSite=${cookie.attributes.sameSite}`);
-    }
-    if (cookie.attributes.partitioned) {
-      parts.push('Partitioned');
-    }
-
-    return parts.join('; ');
-  },
-
-  /** Build delete cookie header value */
-  buildDelete(name: string): Result<string, string> {
-    const nameResult = this.validateName(name);
-    if (!nameResult.ok) return nameResult;
-    return ok(`${name}=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
-  },
-
-  /** Parse Cookie header into name-value pairs */
-  parseCookieHeader(header: string): Array<[string, string]> {
-    return header
-      .split(';')
-      .map((pair) => pair.trim())
-      .filter((pair) => pair.length > 0)
-      .map((pair) => {
-        const idx = pair.indexOf('=');
-        if (idx === -1) {
-          return [pair, ''] as [string, string];
-        }
-        return [pair.slice(0, idx).trim(), pair.slice(idx + 1).trim()] as [string, string];
-      });
-  },
-
-  /** Common expiration durations in seconds */
-  ONE_HOUR: 3600,
-  ONE_DAY: 86400,
-  ONE_WEEK: 604800,
-  THIRTY_DAYS: 2592000,
-  ONE_YEAR: 31536000,
+/**
+ * Cookie prefix type constants.
+ */
+export const CookiePrefix = {
+  NONE: 0,
+  SECURE: 1,
+  HOST: 2,
 } as const;
+
+/**
+ * Safe cookie operations backed by formally verified Idris 2 code.
+ */
+export class SafeCookie {
+  /**
+   * Check for cookie injection characters (semicolon, CR, LF).
+   *
+   * @param value - The value to check.
+   * @returns Result containing a boolean or an error string.
+   */
+  static hasInjection(value: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(value);
+    const result = symbols.proven_cookie_has_injection(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Validate a cookie name.
+   *
+   * @param name - The cookie name.
+   * @returns Result containing a boolean or an error string.
+   */
+  static validateName(name: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(name);
+    const result = symbols.proven_cookie_validate_name(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Validate a cookie value.
+   *
+   * @param value - The cookie value.
+   * @returns Result containing a boolean or an error string.
+   */
+  static validateValue(value: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(value);
+    const result = symbols.proven_cookie_validate_value(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
+  }
+
+  /**
+   * Get cookie prefix type (0=none, 1=__Secure-, 2=__Host-).
+   *
+   * @param name - The cookie name.
+   * @returns Result containing the prefix type or an error string.
+   */
+  static getPrefix(name: string): Result<number> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(name);
+    const result = symbols.proven_cookie_get_prefix(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
+  }
+
+  /**
+   * Build a delete cookie header value (expired Set-Cookie).
+   *
+   * @param name - The cookie name to delete.
+   * @returns Result containing the Set-Cookie header or an error string.
+   */
+  static buildDelete(name: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(name);
+    const result = symbols.proven_cookie_build_delete(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const header = readAndFreeString(result[1], Number(result[2]));
+    if (header === null) return err('Null string returned');
+    return ok(header);
+  }
+}

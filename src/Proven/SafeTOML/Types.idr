@@ -160,6 +160,12 @@ Show TOMLValue where
       showKV (k, v) = k ++ " = " ++ show v
   show (TTable kvs) = "[table: " ++ show (length kvs) ++ " keys]"
 
+||| Equality helper for lists of TOML values (structurally recursive)
+tomlListEq : List TOMLValue -> List TOMLValue -> Bool
+
+||| Equality helper for TOML key-value pairs (structurally recursive)
+tomlPairsEq : List (String, TOMLValue) -> List (String, TOMLValue) -> Bool
+
 public export
 Eq TOMLValue where
   TString a == TString b = a == b
@@ -169,10 +175,19 @@ Eq TOMLValue where
   TDateTime a == TDateTime b = a == b
   TDate a == TDate b = a == b
   TTime a == TTime b = a == b
-  TArray a == TArray b = assert_total (a == b)
-  TInlineTable a == TInlineTable b = assert_total (a == b)
-  TTable a == TTable b = assert_total (a == b)
+  TArray a == TArray b = tomlListEq a b
+  TInlineTable a == TInlineTable b = tomlPairsEq a b
+  TTable a == TTable b = tomlPairsEq a b
   _ == _ = False
+
+tomlListEq [] [] = True
+tomlListEq (x :: xs) (y :: ys) = x == y && tomlListEq xs ys
+tomlListEq _ _ = False
+
+tomlPairsEq [] [] = True
+tomlPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
+  k1 == k2 && v1 == v2 && tomlPairsEq ps1 ps2
+tomlPairsEq _ _ = False
 
 --------------------------------------------------------------------------------
 -- TOML Document

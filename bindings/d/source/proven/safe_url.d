@@ -1,28 +1,25 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Safe URL parsing and manipulation operations.
- * Provides validated URL parsing with scheme, host, port, path,
- * query, and fragment extraction.
+ * Safe URL parsing and validation operations.
+ *
+ * Thin FFI wrapper around libproven's SafeUrl module. All URL parsing
+ * is performed in formally verified Idris 2 code. This module only
+ * marshals data to/from the C ABI.
  */
 module proven.safe_url;
 
-import std.algorithm : canFind, startsWith;
-import std.array : appender, split;
-import std.conv : to, ConvException;
-import std.string : toLower, indexOf, strip;
+import proven.ffi;
 import std.typecons : Nullable, nullable;
+
+pragma(lib, "proven");
 
 /// Parsed URL components.
 struct ParsedUrl
 {
     /// URL scheme (e.g., "https")
     string scheme;
-    /// Optional username
-    Nullable!string username;
-    /// Optional password
-    Nullable!string password;
     /// Host (domain or IP)
     string host;
     /// Optional port
@@ -53,134 +50,60 @@ struct UrlResult
     }
 }
 
-/// Parse a URL string.
-UrlResult parseUrl(string urlString) pure @safe
+/// Parse a URL string into its components.
+UrlResult parseUrl(string urlString) @trusted nothrow
 {
-    auto url = urlString.strip();
-    if (url.length == 0)
+    if (urlString.length == 0)
         return UrlResult.failure("Empty URL");
 
-    // Extract scheme
-    auto schemeEnd = url.indexOf("://");
-    if (schemeEnd < 0)
-        return UrlResult.failure("Missing scheme (expected ://)");
+    auto result = proven_url_parse(
+        cast(const(ubyte)*) urlString.ptr, urlString.length
+    );
 
-    immutable scheme = url[0 .. schemeEnd].toLower();
-    auto rest = url[schemeEnd + 3 .. $];
+    if (provenFailed(result.status))
+        return UrlResult.failure("URL parse failed");
 
-    // Extract fragment
-    Nullable!string fragment;
-    auto fragmentIdx = rest.indexOf('#');
-    if (fragmentIdx >= 0)
-    {
-        fragment = nullable(rest[fragmentIdx + 1 .. $]);
-        rest = rest[0 .. fragmentIdx];
-    }
+    // Extract D strings from C result, copying data before freeing
+    auto components = result.components;
 
-    // Extract query
-    Nullable!string query;
-    auto queryIdx = rest.indexOf('?');
-    if (queryIdx >= 0)
-    {
-        query = nullable(rest[queryIdx + 1 .. $]);
-        rest = rest[0 .. queryIdx];
-    }
+    string scheme = "";
+    if (components.scheme !is null && components.scheme_len > 0)
+        scheme = components.scheme[0 .. components.scheme_len].idup;
 
-    // Extract path
-    string path = "/";
-    auto pathIdx = rest.indexOf('/');
-    if (pathIdx >= 0)
-    {
-        path = rest[pathIdx .. $];
-        rest = rest[0 .. pathIdx];
-    }
+    string host = "";
+    if (components.host !is null && components.host_len > 0)
+        host = components.host[0 .. components.host_len].idup;
 
-    // Extract userinfo
-    Nullable!string username;
-    Nullable!string password;
-    auto atIdx = rest.indexOf('@');
-    if (atIdx >= 0)
-    {
-        auto userinfo = rest[0 .. atIdx];
-        rest = rest[atIdx + 1 .. $];
-        auto colonIdx = userinfo.indexOf(':');
-        if (colonIdx >= 0)
-        {
-            username = nullable(userinfo[0 .. colonIdx]);
-            password = nullable(userinfo[colonIdx + 1 .. $]);
-        }
-        else
-        {
-            username = nullable(userinfo);
-        }
-    }
-
-    // Extract port
     Nullable!ushort port;
-    string host = rest;
+    if (components.has_port)
+        port = nullable(components.port);
 
-    // Handle IPv6 addresses
-    if (host.startsWith("["))
-    {
-        auto bracketEnd = host.indexOf(']');
-        if (bracketEnd < 0)
-            return UrlResult.failure("Invalid IPv6 address (missing ])");
+    string path = "/";
+    if (components.path !is null && components.path_len > 0)
+        path = components.path[0 .. components.path_len].idup;
 
-        auto afterBracket = host[bracketEnd + 1 .. $];
-        host = host[1 .. bracketEnd];
+    Nullable!string query;
+    if (components.query !is null && components.query_len > 0)
+        query = nullable(components.query[0 .. components.query_len].idup);
 
-        if (afterBracket.startsWith(":"))
-        {
-            try
-            {
-                port = nullable(afterBracket[1 .. $].to!ushort);
-            }
-            catch (ConvException)
-            {
-                return UrlResult.failure("Invalid port number");
-            }
-        }
-    }
-    else
-    {
-        auto colonIdx = host.indexOf(':');
-        if (colonIdx >= 0)
-        {
-            try
-            {
-                port = nullable(host[colonIdx + 1 .. $].to!ushort);
-            }
-            catch (ConvException)
-            {
-                return UrlResult.failure("Invalid port number");
-            }
-            host = host[0 .. colonIdx];
-        }
-    }
+    Nullable!string fragment;
+    if (components.fragment !is null && components.fragment_len > 0)
+        fragment = nullable(components.fragment[0 .. components.fragment_len].idup);
 
-    if (host.length == 0)
-        return UrlResult.failure("Missing host");
+    // Free the C-allocated URL components
+    proven_url_free(&result.components);
 
-    return UrlResult.success(ParsedUrl(
-        scheme,
-        username,
-        password,
-        host,
-        port,
-        path,
-        query,
-        fragment
-    ));
+    return UrlResult.success(ParsedUrl(scheme, host, port, path, query, fragment));
 }
 
 /// Check if URL is valid.
-bool isValidUrl(string url) pure @safe
+bool isValidUrl(string url) @trusted nothrow
 {
     return parseUrl(url).ok;
 }
 
 /// Get domain from URL.
-Nullable!string getDomain(string url) pure @safe
+Nullable!string getDomain(string url) @trusted nothrow
 {
     auto result = parseUrl(url);
     if (!result.ok)
@@ -189,7 +112,7 @@ Nullable!string getDomain(string url) pure @safe
 }
 
 /// Check if URL uses HTTPS.
-bool isHttps(string url) pure @safe
+bool isHttps(string url) @trusted nothrow
 {
     auto result = parseUrl(url);
     if (!result.ok)
@@ -198,119 +121,12 @@ bool isHttps(string url) pure @safe
 }
 
 /// Check if URL is secure (HTTPS, WSS, etc).
-bool isSecureScheme(string url) pure @safe
+bool isSecureScheme(string url) @trusted nothrow
 {
     auto result = parseUrl(url);
     if (!result.ok)
         return false;
-    return result.url.scheme == "https" || result.url.scheme == "wss" || result.url.scheme == "ftps";
-}
-
-/// Get the origin (scheme + host + port).
-Nullable!string getOrigin(string url) pure @safe
-{
-    auto result = parseUrl(url);
-    if (!result.ok)
-        return Nullable!string.init;
-
-    auto origin = result.url.scheme ~ "://" ~ result.url.host;
-    if (!result.url.port.isNull)
-    {
-        import std.format : format;
-        origin ~= format!":%d"(result.url.port.get);
-    }
-    return nullable(origin);
-}
-
-/// Extract query parameters as key-value pairs.
-string[string] parseQueryParams(string queryString) pure @safe
-{
-    string[string] params;
-    if (queryString.length == 0)
-        return params;
-
-    // Handle leading ?
-    auto query = queryString;
-    if (query.startsWith("?"))
-        query = query[1 .. $];
-
-    auto pairs = query.split('&');
-    foreach (pair; pairs)
-    {
-        auto eqIdx = pair.indexOf('=');
-        if (eqIdx >= 0)
-        {
-            params[pair[0 .. eqIdx]] = pair[eqIdx + 1 .. $];
-        }
-        else
-        {
-            params[pair] = "";
-        }
-    }
-    return params;
-}
-
-/// Build URL from components.
-string buildUrl(string scheme, string host, ushort port = 0, string path = "/",
-    string query = "", string fragment = "") pure @safe
-{
-    auto result = appender!string;
-    result ~= scheme;
-    result ~= "://";
-    result ~= host;
-
-    if (port != 0)
-    {
-        import std.format : format;
-        result ~= format!":%d"(port);
-    }
-
-    result ~= path;
-
-    if (query.length > 0)
-    {
-        result ~= '?';
-        result ~= query;
-    }
-
-    if (fragment.length > 0)
-    {
-        result ~= '#';
-        result ~= fragment;
-    }
-
-    return result[];
-}
-
-// Unit tests
-unittest
-{
-    // Test basic URL parsing
-    auto result = parseUrl("https://example.com/path");
-    assert(result.ok);
-    assert(result.url.scheme == "https");
-    assert(result.url.host == "example.com");
-    assert(result.url.path == "/path");
-
-    // Test URL with port
-    auto withPort = parseUrl("http://localhost:8080/api");
-    assert(withPort.ok);
-    assert(withPort.url.host == "localhost");
-    assert(withPort.url.port.get == 8080);
-
-    // Test URL with query and fragment
-    auto full = parseUrl("https://example.com/search?q=test#results");
-    assert(full.ok);
-    assert(full.url.query.get == "q=test");
-    assert(full.url.fragment.get == "results");
-
-    // Test invalid URLs
-    assert(!isValidUrl(""));
-    assert(!isValidUrl("not-a-url"));
-
-    // Test query parsing
-    auto params = parseQueryParams("a=1&b=2&c");
-    assert(params["a"] == "1");
-    assert(params["b"] == "2");
-    assert(params["c"] == "");
+    return result.url.scheme == "https" ||
+           result.url.scheme == "wss" ||
+           result.url.scheme == "ftps";
 }

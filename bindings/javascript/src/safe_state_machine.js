@@ -1,537 +1,175 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * SafeStateMachine - Type-safe finite state machines.
+ * SafeStateMachine - Type-safe state transitions.
  *
- * Provides deterministic state transitions with validation.
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
  * @module
  */
 
+import { getLib } from './ffi.js';
 import { ok, err } from './result.js';
 
 /**
- * Transition definition.
- *
- * @typedef {Object} Transition
- * @property {string} from - Source state
- * @property {string} to - Target state
- * @property {string} event - Triggering event
- * @property {((context: any) => boolean)} [guard] - Optional guard function
- * @property {((context: any) => void)} [action] - Optional action function
- */
-
-/**
- * State machine configuration.
- *
- * @typedef {Object} StateMachineConfig
- * @property {string[]} states - Valid states
- * @property {string} initial - Initial state
- * @property {Transition[]} transitions - Valid transitions
- * @property {Object.<string, (context: any) => void>} [onEnter] - State entry callbacks
- * @property {Object.<string, (context: any) => void>} [onExit] - State exit callbacks
- */
-
-/**
- * Finite state machine.
- *
- * @template C Context type
+ * State machine backed by the libproven FFI.
+ * States are identified by integer IDs (0-based).
  */
 export class StateMachine {
-  /** @type {Set<string>} */
-  #states;
-  /** @type {string} */
-  #current;
-  /** @type {string} */
-  #initial;
-  /** @type {Map<string, Map<string, Transition>>} */
-  #transitions;
-  /** @type {Map<string, (context: C) => void>} */
-  #onEnter;
-  /** @type {Map<string, (context: C) => void>} */
-  #onExit;
-  /** @type {C} */
-  #context;
-  /** @type {string[]} */
-  #history;
-  /** @type {number} */
-  #maxHistory;
+  /** @type {Deno.PointerObject|null} */
+  #ptr = null;
 
   /**
    * Create a state machine.
    *
-   * @param {StateMachineConfig} config - Configuration
-   * @param {C} [context] - Initial context
-   * @param {number} [maxHistory=100] - Maximum history length
+   * @param {number} stateCount - Total number of states.
+   * @param {number} initialState - Initial state ID.
+   * @returns {{ ok: true, value: StateMachine } | { ok: false, error: string }}
    */
-  constructor(config, context = /** @type {C} */ ({}), maxHistory = 100) {
-    const { states, initial, transitions, onEnter = {}, onExit = {} } = config;
-
-    if (!states || states.length === 0) {
-      throw new Error('States cannot be empty');
-    }
-    if (!states.includes(initial)) {
-      throw new Error('Initial state must be in states list');
-    }
-
-    this.#states = new Set(states);
-    this.#initial = initial;
-    this.#current = initial;
-    this.#context = context;
-    this.#history = [initial];
-    this.#maxHistory = maxHistory;
-
-    // Build transition map: state -> event -> transition
-    this.#transitions = new Map();
-    for (const state of states) {
-      this.#transitions.set(state, new Map());
-    }
-
-    for (const transition of transitions) {
-      if (!this.#states.has(transition.from)) {
-        throw new Error(`Invalid source state: ${transition.from}`);
-      }
-      if (!this.#states.has(transition.to)) {
-        throw new Error(`Invalid target state: ${transition.to}`);
-      }
-
-      const stateTransitions = this.#transitions.get(transition.from);
-      if (stateTransitions.has(transition.event)) {
-        throw new Error(`Duplicate transition: ${transition.from} + ${transition.event}`);
-      }
-      stateTransitions.set(transition.event, transition);
-    }
-
-    // Store callbacks
-    this.#onEnter = new Map(Object.entries(onEnter));
-    this.#onExit = new Map(Object.entries(onExit));
-
-    // Call initial state onEnter
-    const enterCallback = this.#onEnter.get(initial);
-    if (enterCallback) {
-      enterCallback(this.#context);
-    }
+  static create(stateCount, initialState) {
+    const symbols = getLib();
+    const ptr = symbols.proven_state_machine_create(stateCount >>> 0, initialState >>> 0);
+    if (ptr === null) return err('Failed to create state machine');
+    const sm = new StateMachine();
+    sm.#ptr = ptr;
+    return ok(sm);
   }
 
   /**
-   * Get current state.
+   * Allow a transition from one state to another.
    *
-   * @returns {string}
+   * @param {number} from - Source state ID.
+   * @param {number} to - Target state ID.
+   * @returns {boolean} True if the transition was registered.
    */
-  get current() {
-    return this.#current;
+  allowTransition(from, to) {
+    if (this.#ptr === null) return false;
+    const symbols = getLib();
+    return symbols.proven_state_machine_allow(this.#ptr, from >>> 0, to >>> 0);
   }
 
   /**
-   * Get context.
+   * Try to transition to a new state.
    *
-   * @returns {C}
+   * @param {number} to - Target state ID.
+   * @returns {boolean} True if the transition was valid and executed.
    */
-  get context() {
-    return this.#context;
+  transition(to) {
+    if (this.#ptr === null) return false;
+    const symbols = getLib();
+    return symbols.proven_state_machine_transition(this.#ptr, to >>> 0);
   }
 
   /**
-   * Get all valid states.
+   * Get the current state ID.
    *
-   * @returns {string[]}
+   * @returns {number}
    */
-  get states() {
-    return Array.from(this.#states);
+  getState() {
+    if (this.#ptr === null) return 0;
+    const symbols = getLib();
+    return symbols.proven_state_machine_state(this.#ptr);
   }
 
   /**
-   * Get state history.
-   *
-   * @returns {string[]}
+   * Close and free the native state machine.
    */
-  get history() {
-    return [...this.#history];
-  }
-
-  /**
-   * Check if in a specific state.
-   *
-   * @param {string} state - State to check
-   * @returns {boolean}
-   */
-  isIn(state) {
-    return this.#current === state;
-  }
-
-  /**
-   * Check if an event can be triggered.
-   *
-   * @param {string} event - Event to check
-   * @returns {boolean}
-   */
-  canTrigger(event) {
-    const stateTransitions = this.#transitions.get(this.#current);
-    if (!stateTransitions) {
-      return false;
+  close() {
+    if (this.#ptr !== null) {
+      const symbols = getLib();
+      symbols.proven_state_machine_free(this.#ptr);
+      this.#ptr = null;
     }
-
-    const transition = stateTransitions.get(event);
-    if (!transition) {
-      return false;
-    }
-
-    // Check guard if present
-    if (transition.guard && !transition.guard(this.#context)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Trigger an event to transition.
-   *
-   * @param {string} event - Event to trigger
-   * @returns {{ ok: true, value: string } | { ok: false, error: string }}
-   */
-  trigger(event) {
-    const stateTransitions = this.#transitions.get(this.#current);
-    if (!stateTransitions) {
-      return err(`Invalid current state: ${this.#current}`);
-    }
-
-    const transition = stateTransitions.get(event);
-    if (!transition) {
-      return err(`No transition for event '${event}' from state '${this.#current}'`);
-    }
-
-    // Check guard
-    if (transition.guard && !transition.guard(this.#context)) {
-      return err(`Guard prevented transition on '${event}'`);
-    }
-
-    const fromState = this.#current;
-    const toState = transition.to;
-
-    // Call exit callback
-    const exitCallback = this.#onExit.get(fromState);
-    if (exitCallback) {
-      exitCallback(this.#context);
-    }
-
-    // Call transition action
-    if (transition.action) {
-      transition.action(this.#context);
-    }
-
-    // Update state
-    this.#current = toState;
-
-    // Add to history
-    this.#history.push(toState);
-    if (this.#history.length > this.#maxHistory) {
-      this.#history.shift();
-    }
-
-    // Call enter callback
-    const enterCallback = this.#onEnter.get(toState);
-    if (enterCallback) {
-      enterCallback(this.#context);
-    }
-
-    return ok(toState);
-  }
-
-  /**
-   * Get available events from current state.
-   *
-   * @returns {string[]}
-   */
-  availableEvents() {
-    const stateTransitions = this.#transitions.get(this.#current);
-    if (!stateTransitions) {
-      return [];
-    }
-
-    const events = [];
-    for (const [event, transition] of stateTransitions) {
-      // Include event if no guard or guard passes
-      if (!transition.guard || transition.guard(this.#context)) {
-        events.push(event);
-      }
-    }
-
-    return events;
-  }
-
-  /**
-   * Get all transitions from current state.
-   *
-   * @returns {Array<{event: string, to: string}>}
-   */
-  availableTransitions() {
-    const stateTransitions = this.#transitions.get(this.#current);
-    if (!stateTransitions) {
-      return [];
-    }
-
-    const transitions = [];
-    for (const [event, transition] of stateTransitions) {
-      if (!transition.guard || transition.guard(this.#context)) {
-        transitions.push({ event, to: transition.to });
-      }
-    }
-
-    return transitions;
-  }
-
-  /**
-   * Update context.
-   *
-   * @param {Partial<C>} updates - Context updates
-   */
-  updateContext(updates) {
-    Object.assign(this.#context, updates);
-  }
-
-  /**
-   * Reset to initial state.
-   *
-   * @param {C} [newContext] - Optional new context
-   */
-  reset(newContext) {
-    // Call exit on current state
-    const exitCallback = this.#onExit.get(this.#current);
-    if (exitCallback) {
-      exitCallback(this.#context);
-    }
-
-    // Reset state
-    this.#current = this.#initial;
-    this.#history = [this.#initial];
-
-    if (newContext !== undefined) {
-      this.#context = newContext;
-    }
-
-    // Call enter on initial state
-    const enterCallback = this.#onEnter.get(this.#initial);
-    if (enterCallback) {
-      enterCallback(this.#context);
-    }
-  }
-
-  /**
-   * Export state for persistence.
-   *
-   * @returns {Object}
-   */
-  export() {
-    return {
-      current: this.#current,
-      context: this.#context,
-      history: this.#history,
-    };
-  }
-
-  /**
-   * Import state from persistence.
-   *
-   * @param {Object} data - Exported data
-   * @returns {{ ok: true, value: void } | { ok: false, error: string }}
-   */
-  import(data) {
-    if (!this.#states.has(data.current)) {
-      return err(`Invalid state: ${data.current}`);
-    }
-
-    this.#current = data.current;
-    this.#context = data.context;
-    this.#history = data.history || [data.current];
-
-    return ok(undefined);
   }
 }
 
 /**
- * State machine builder for fluent API.
- *
- * @template C Context type
+ * Builder for constructing a state machine with named states.
+ * Maps string state names to integer IDs internally.
  */
 export class StateMachineBuilder {
-  /** @type {string[]} */
-  #states;
-  /** @type {string | undefined} */
-  #initial;
-  /** @type {Transition[]} */
-  #transitions;
-  /** @type {Object.<string, (context: C) => void>} */
-  #onEnter;
-  /** @type {Object.<string, (context: C) => void>} */
-  #onExit;
-
-  constructor() {
-    this.#states = [];
-    this.#initial = undefined;
-    this.#transitions = [];
-    this.#onEnter = {};
-    this.#onExit = {};
-  }
+  /** @type {Map<string, number>} */
+  #states = new Map();
+  /** @type {Array<[number, number]>} */
+  #transitions = [];
+  /** @type {string|null} */
+  #initialState = null;
+  /** @type {number} */
+  #nextId = 0;
 
   /**
-   * Add a state.
+   * Register a named state (called implicitly by addTransition).
    *
-   * @param {string} state - State name
-   * @returns {StateMachineBuilder<C>}
+   * @param {string} name - State name.
+   * @returns {number} The integer ID for this state.
    */
-  addState(state) {
-    if (!this.#states.includes(state)) {
-      this.#states.push(state);
+  #getOrAddState(name) {
+    if (!this.#states.has(name)) {
+      this.#states.set(name, this.#nextId++);
     }
-    return this;
+    return this.#states.get(name);
   }
 
   /**
-   * Add multiple states.
+   * Set the initial state.
    *
-   * @param {string[]} states - State names
-   * @returns {StateMachineBuilder<C>}
+   * @param {string} name - State name.
+   * @returns {StateMachineBuilder}
    */
-  addStates(states) {
-    for (const state of states) {
-      this.addState(state);
-    }
-    return this;
-  }
-
-  /**
-   * Set initial state.
-   *
-   * @param {string} state - Initial state
-   * @returns {StateMachineBuilder<C>}
-   */
-  setInitial(state) {
-    this.#initial = state;
+  initialState(name) {
+    this.#initialState = name;
+    this.#getOrAddState(name);
     return this;
   }
 
   /**
    * Add a transition.
    *
-   * @param {string} from - Source state
-   * @param {string} event - Triggering event
-   * @param {string} to - Target state
-   * @param {Object} [options] - Options
-   * @param {(context: C) => boolean} [options.guard] - Guard function
-   * @param {(context: C) => void} [options.action] - Action function
-   * @returns {StateMachineBuilder<C>}
+   * @param {string} from - Source state name.
+   * @param {string} _event - Event name (for documentation; not used in FFI).
+   * @param {string} to - Target state name.
+   * @returns {StateMachineBuilder}
    */
-  addTransition(from, event, to, options = {}) {
-    this.#transitions.push({
-      from,
-      to,
-      event,
-      guard: options.guard,
-      action: options.action,
-    });
-    return this;
-  }
-
-  /**
-   * Add state entry callback.
-   *
-   * @param {string} state - State name
-   * @param {(context: C) => void} callback - Callback function
-   * @returns {StateMachineBuilder<C>}
-   */
-  onEnter(state, callback) {
-    this.#onEnter[state] = callback;
-    return this;
-  }
-
-  /**
-   * Add state exit callback.
-   *
-   * @param {string} state - State name
-   * @param {(context: C) => void} callback - Callback function
-   * @returns {StateMachineBuilder<C>}
-   */
-  onExit(state, callback) {
-    this.#onExit[state] = callback;
+  addTransition(from, _event, to) {
+    const fromId = this.#getOrAddState(from);
+    const toId = this.#getOrAddState(to);
+    this.#transitions.push([fromId, toId]);
     return this;
   }
 
   /**
    * Build the state machine.
    *
-   * @param {C} [context] - Initial context
-   * @returns {{ ok: true, value: StateMachine<C> } | { ok: false, error: string }}
+   * @returns {{ ok: true, value: StateMachine } | { ok: false, error: string }}
    */
-  build(context) {
-    if (this.#states.length === 0) {
-      return err('No states defined');
-    }
-    if (!this.#initial) {
-      return err('No initial state set');
-    }
+  build() {
+    if (this.#initialState === null) return err('No initial state set');
+    const initialId = this.#states.get(this.#initialState);
+    if (initialId === undefined) return err('Initial state not found');
 
-    try {
-      const machine = new StateMachine(
-        {
-          states: this.#states,
-          initial: this.#initial,
-          transitions: this.#transitions,
-          onEnter: this.#onEnter,
-          onExit: this.#onExit,
-        },
-        context,
-      );
-      return ok(machine);
-    } catch (error) {
-      return err(error instanceof Error ? error.message : String(error));
+    const result = StateMachine.create(this.#nextId, initialId);
+    if (!result.ok) return result;
+
+    const sm = result.value;
+    for (const [from, to] of this.#transitions) {
+      sm.allowTransition(from, to);
     }
+    return ok(sm);
   }
 }
 
 /**
- * Safe state machine utilities.
+ * SafeStateMachine namespace.
  */
 export class SafeStateMachine {
   /**
-   * Create a state machine builder.
+   * Create a state machine.
    *
-   * @template C
-   * @returns {StateMachineBuilder<C>}
+   * @param {number} stateCount
+   * @param {number} initialState
+   * @returns {{ ok: true, value: StateMachine } | { ok: false, error: string }}
    */
-  static builder() {
-    return new StateMachineBuilder();
-  }
-
-  /**
-   * Create a state machine from config.
-   *
-   * @template C
-   * @param {StateMachineConfig} config - Configuration
-   * @param {C} [context] - Initial context
-   * @returns {{ ok: true, value: StateMachine<C> } | { ok: false, error: string }}
-   */
-  static create(config, context) {
-    try {
-      return ok(new StateMachine(config, context));
-    } catch (error) {
-      return err(error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  /**
-   * Create a simple traffic light state machine (example).
-   *
-   * @returns {StateMachine<{}>}
-   */
-  static trafficLight() {
-    return new StateMachine({
-      states: ['red', 'yellow', 'green'],
-      initial: 'red',
-      transitions: [
-        { from: 'red', event: 'timer', to: 'green' },
-        { from: 'green', event: 'timer', to: 'yellow' },
-        { from: 'yellow', event: 'timer', to: 'red' },
-      ],
-    });
+  static create(stateCount, initialState) {
+    return StateMachine.create(stateCount, initialState);
   }
 }

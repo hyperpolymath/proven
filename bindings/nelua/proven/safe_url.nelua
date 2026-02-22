@@ -1,0 +1,50 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- Safe URL parsing and validation.
+-- Thin wrapper over libproven FFI -- all logic lives in Idris 2.
+
+require 'proven.lib_proven'
+
+-- Parsed URL components in Nelua-native strings.
+global ParsedUrl = @record{
+  scheme: string,
+  host: string,
+  port: uint16,
+  has_port: boolean,
+  path: string,
+  query: string,
+  fragment: string,
+}
+
+-- Parse a URL into components. Returns nil on invalid URL.
+-- All returned strings are Nelua-owned copies; no manual freeing needed.
+global function parse_url(value: string): facultative(ParsedUrl)
+  if #value == 0 then
+    return nil
+  end
+  local res = proven_url_parse(value.data, (#value))
+  if res.status == PROVEN_OK then
+    local parsed: ParsedUrl
+    if res.components.scheme ~= nilptr then
+      parsed.scheme = res.components.scheme
+    end
+    if res.components.host ~= nilptr then
+      parsed.host = res.components.host
+    end
+    parsed.port = res.components.port
+    parsed.has_port = res.components.has_port
+    if res.components.path ~= nilptr then
+      parsed.path = res.components.path
+    end
+    if res.components.query ~= nilptr then
+      parsed.query = res.components.query
+    end
+    if res.components.fragment ~= nilptr then
+      parsed.fragment = res.components.fragment
+    end
+    proven_url_free(&res.components)
+    return parsed
+  end
+  return nil
+end

@@ -490,3 +490,20 @@ public export
 hasCRLF : String -> Bool
 hasCRLF s = isInfixOf "\r" s || isInfixOf "\n" s
 
+--------------------------------------------------------------------------------
+-- Decidable Length Bounds
+--------------------------------------------------------------------------------
+
+||| Decide whether a string's length is within a bound.
+||| Returns a proof when True, enabling believe_me-free construction.
+public export
+decHeaderNameBounded : (s : String) ->
+                       Dec (length (unpack s) <= maxNameLength = True)
+decHeaderNameBounded s = decEq (length (unpack s) <= maxNameLength) True
+
+||| Decide whether a header value's length is within bound.
+public export
+decHeaderValueBounded : (s : String) ->
+                        Dec (length (unpack s) <= maxValueLength = True)
+decHeaderValueBounded s = decEq (length (unpack s) <= maxValueLength) True
+

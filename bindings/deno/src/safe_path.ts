@@ -1,76 +1,49 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * Safe path operations with traversal prevention.
+ * SafePath - Filesystem path operations that prevent traversal attacks.
+ *
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
+ *
+ * @module
  */
 
+import { getLib, ProvenStatus, readAndFreeString, statusToError } from './ffi.ts';
 import { err, ok, type Result } from './result.ts';
 
 /**
- * Safe path operations.
+ * Safe path operations backed by formally verified Idris 2 code.
  */
 export class SafePath {
   /**
-   * Check if a path contains traversal sequences.
+   * Check if a path attempts directory traversal (e.g. "../../../etc/passwd").
    *
-   * @example
-   * ```ts
-   * SafePath.hasTraversal("../etc/passwd"); // true
-   * SafePath.hasTraversal("foo/bar"); // false
-   * ```
+   * @param path - The path to check.
+   * @returns Result containing a boolean or an error string.
    */
-  static hasTraversal(path: string): boolean {
-    const normalized = path.replace(/\\/g, '/');
-    const parts = normalized.split('/');
-    return parts.some((p) => p === '..');
+  static hasTraversal(path: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(path);
+    const result = symbols.proven_path_has_traversal(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
   }
 
-  /** Normalize a path, returning error if traversal detected. */
-  static normalize(path: string): Result<string> {
-    if (this.hasTraversal(path)) {
-      return err(`Path traversal detected: ${path}`);
-    }
-
-    const normalized = path.replace(/\\/g, '/');
-    const parts = normalized.split('/').filter((p) => p && p !== '.');
-    return ok(parts.join('/'));
-  }
-
-  /** Join paths safely, preventing traversal. */
-  static join(base: string, child: string): Result<string> {
-    if (this.hasTraversal(child)) {
-      return err(`Path traversal in child: ${child}`);
-    }
-
-    // Don't allow absolute child paths
-    if (child.startsWith('/') || /^[a-zA-Z]:/.test(child)) {
-      return err('Absolute path not allowed');
-    }
-
-    const normalizedBase = base.replace(/\\/g, '/').replace(/\/$/, '');
-    const normalizedChild = child.replace(/\\/g, '/').replace(/^\//, '');
-
-    return ok(`${normalizedBase}/${normalizedChild}`);
-  }
-
-  /** Get the file extension. */
-  static getExtension(path: string): string | undefined {
-    const normalized = path.replace(/\\/g, '/');
-    const filename = normalized.split('/').pop() || '';
-    const dotIndex = filename.lastIndexOf('.');
-    if (dotIndex > 0 && dotIndex < filename.length - 1) {
-      return filename.slice(dotIndex + 1);
-    }
-    return undefined;
-  }
-
-  /** Get the filename without extension. */
-  static getStem(path: string): string | undefined {
-    const normalized = path.replace(/\\/g, '/');
-    const filename = normalized.split('/').pop() || '';
-    const dotIndex = filename.lastIndexOf('.');
-    if (dotIndex > 0) {
-      return filename.slice(0, dotIndex);
-    }
-    return filename || undefined;
+  /**
+   * Sanitize a filename by removing dangerous characters.
+   *
+   * @param filename - The filename to sanitize.
+   * @returns Result containing the sanitized filename or an error string.
+   */
+  static sanitizeFilename(filename: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(filename);
+    const result = symbols.proven_path_sanitize_filename(bytes, bytes.length);
+    const status = result[0];
+    if (status !== ProvenStatus.OK) return err(statusToError(status));
+    const sanitized = readAndFreeString(result[1], Number(result[2]));
+    if (sanitized === null) return err('Null string returned');
+    return ok(sanitized);
   }
 }

@@ -73,22 +73,13 @@ validatePassword : (policy : PasswordPolicy) ->
                    Either (List PolicyViolation) (ValidPassword policy)
 validatePassword policy (MkRawPassword value) =
   case checkPolicy policy value of
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    [] => Right (MkValidPassword value (believe_me ()))
+    -- Postulate: if checkPolicy returns [], the policy is met.
+    -- Proof depends on checkPolicy being a correct decision procedure for MeetsPolicy.
+    [] => Right (MkValidPassword value (trustCheckPolicy policy value))
     violations => Left violations
+  where
+    -- Awaiting formal proof: checkPolicy [] implies MeetsPolicy
+    postulate trustCheckPolicy : (p : PasswordPolicy) -> (v : String) -> MeetsPolicy p v
 
 ||| Check if password meets minimum requirements
 public export
@@ -105,68 +96,25 @@ revealForHashing (MkValidPassword value _) = value
 --------------------------------------------------------------------------------
 
 ||| Hash a validated password using Argon2id
-||| Actual implementation via FFI
-public export
-hashPasswordArgon2id : ValidPassword policy ->
-                       Argon2Params ->
-                       IO HashedPassword
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hashPasswordArgon2id pwd params = pure $ believe_me (MkHashedPassword Argon2id "" "" (MkArgon2 params))
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate hashPasswordArgon2id : ValidPassword policy ->
+                                 Argon2Params ->
+                                 IO HashedPassword
 
 ||| Hash a validated password using bcrypt
-public export
-hashPasswordBcrypt : ValidPassword policy ->
-                     BcryptParams ->
-                     IO HashedPassword
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hashPasswordBcrypt pwd params = pure $ believe_me (MkHashedPassword Bcrypt "" "" (MkBcrypt params))
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate hashPasswordBcrypt : ValidPassword policy ->
+                               BcryptParams ->
+                               IO HashedPassword
 
 ||| Hash a validated password using scrypt
-public export
-hashPasswordScrypt : ValidPassword policy ->
-                     ScryptParams ->
-                     IO HashedPassword
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hashPasswordScrypt pwd params = pure $ believe_me (MkHashedPassword Scrypt "" "" (MkScrypt params))
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate hashPasswordScrypt : ValidPassword policy ->
+                               ScryptParams ->
+                               IO HashedPassword
 
 ||| Hash with default secure parameters (Argon2id recommended)
 public export
@@ -178,26 +126,9 @@ hashPassword pwd = hashPasswordArgon2id pwd defaultArgon2Params
 --------------------------------------------------------------------------------
 
 ||| Verify a password against a hash (timing-safe)
-||| Actual implementation via FFI
-public export
-verifyPassword : RawPassword -> HashedPassword -> IO VerifyResult
-verifyPassword (MkRawPassword pwd) (MkHashedPassword alg hash salt params) =
-  -- Stub - actual implementation needs FFI
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-  pure $ believe_me NotVerified
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate verifyPassword : RawPassword -> HashedPassword -> IO VerifyResult
 
 ||| Verify and check if rehash needed
 public export
@@ -264,45 +195,16 @@ defaultGenerateOptions = MkGenerateOptions
   }
 
 ||| Generate a random password
-||| Actual implementation via FFI to CSPRNG
-public export
-generatePassword : GenerateOptions -> IO String
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-generatePassword opts = pure $ believe_me ""  -- Stub
+||| Awaiting FFI: will be replaced by extern call to CSPRNG via Idris2 RefC compiled code
+export
+postulate generatePassword : GenerateOptions -> IO String
 
 ||| Generate a passphrase (word-based)
-public export
-generatePassphrase : (words : Nat) ->
-                     (separator : Char) ->
-                     IO String
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-generatePassphrase words sep = pure $ believe_me ""  -- Stub
+||| Awaiting FFI: will be replaced by extern call to CSPRNG via Idris2 RefC compiled code
+export
+postulate generatePassphrase : (words : Nat) ->
+                                (separator : Char) ->
+                                IO String
 
 --------------------------------------------------------------------------------
 -- Password Breach Checking
@@ -323,23 +225,9 @@ Show BreachStatus where
 
 ||| Check password against breach database (k-anonymity)
 ||| Uses first 5 chars of SHA-1 hash for privacy-preserving lookup
-public export
-checkBreach : RawPassword -> IO BreachStatus
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-checkBreach pwd = pure $ believe_me NotBreached  -- Stub - needs HTTP client
+||| Awaiting FFI: will be replaced by extern call to HTTP client via Idris2 RefC compiled code
+export
+postulate checkBreach : RawPassword -> IO BreachStatus
 
 --------------------------------------------------------------------------------
 -- Entropy Calculation

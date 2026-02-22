@@ -1,45 +1,45 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeCrypto provides cryptographic primitives via the Proven FFI.
+// All computation is performed in Idris 2 with formal verification.
 
 package proven
 
-import (
-	"crypto/subtle"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
+import "unsafe"
 
-// ConstantTimeCompare compares two byte slices in constant time to prevent timing attacks.
-// Uses Go's crypto/subtle.ConstantTimeCompare for correctness.
-func ConstantTimeCompare(a, b []byte) bool {
-	return subtle.ConstantTimeCompare(a, b) == 1
-}
-
-// ConstantTimeCompareString compares two strings in constant time to prevent timing attacks.
-func ConstantTimeCompareString(a, b string) bool {
-	return ConstantTimeCompare([]byte(a), []byte(b))
-}
-
-// SecureZero securely zeros out a byte slice to prevent data leakage.
-func SecureZero(data []byte) {
-	for i := range data {
-		data[i] = 0
+// ConstantTimeEq performs a constant-time comparison of two byte slices.
+// This prevents timing attacks when comparing secrets.
+func ConstantTimeEq(a, b []byte) (bool, error) {
+	ptrA, lenA := cBytes(a)
+	ptrB, lenB := cBytes(b)
+	if ptrA != nil {
+		defer C.free(unsafe.Pointer(ptrA))
 	}
-}
-
-// SecureZeroRunes securely zeros out a rune slice (for password handling).
-func SecureZeroRunes(data []rune) {
-	for i := range data {
-		data[i] = 0
+	if ptrB != nil {
+		defer C.free(unsafe.Pointer(ptrB))
 	}
+	result := C.proven_crypto_constant_time_eq(ptrA, lenA, ptrB, lenB)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
+	}
+	return bool(result.value), nil
 }
 
-// ConstantTimeSelect returns x if v is 1, or y if v is 0.
-// Uses constant-time operations.
-func ConstantTimeSelect(v int, x, y int) int {
-	return subtle.ConstantTimeSelect(v, x, y)
-}
-
-// ConstantTimeByteEq returns 1 if x == y, 0 otherwise.
-// Uses constant-time operations.
-func ConstantTimeByteEq(x, y uint8) int {
-	return subtle.ConstantTimeByteEq(x, y)
+// RandomBytes fills the provided byte slice with cryptographically secure
+// random bytes.
+func RandomBytes(buf []byte) error {
+	if len(buf) == 0 {
+		return nil
+	}
+	ptr := (*C.char)(unsafe.Pointer(&buf[0]))
+	status := int(C.proven_crypto_random_bytes(ptr, C.size_t(len(buf))))
+	if status != StatusOK {
+		return newError(status)
+	}
+	return nil
 }

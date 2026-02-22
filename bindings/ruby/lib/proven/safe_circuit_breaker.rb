@@ -1,184 +1,107 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
+# Safe circuit breaker operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
+# Circuit breakers are opaque pointers managed by libproven.
+
 module Proven
-  # Safe circuit breaker pattern for fault tolerance.
-  #
-  # Provides automatic failure detection and recovery
-  # to prevent cascading failures in distributed systems.
   module SafeCircuitBreaker
-    # Circuit breaker states.
-    module CircuitState
-      CLOSED = :closed       # Normal operation - requests are allowed
-      OPEN = :open           # Failing - requests are rejected
-      HALF_OPEN = :half_open # Testing recovery - limited requests allowed
+    # Circuit breaker state enum values (must match ffi/zig/src/main.zig CircuitState).
+    module State
+      CLOSED    = 0
+      OPEN      = 1
+      HALF_OPEN = 2
     end
 
-    # Circuit breaker configuration.
-    class CircuitConfig
-      attr_accessor :failure_threshold, :success_threshold, :timeout, :half_open_max_calls
+    STATE_NAMES = {
+      State::CLOSED => :closed,
+      State::OPEN => :open,
+      State::HALF_OPEN => :half_open,
+    }.freeze
 
-      def initialize(
-        failure_threshold: 5,
-        success_threshold: 2,
-        timeout: 30,
-        half_open_max_calls: 3
-      )
-        @failure_threshold = failure_threshold
-        @success_threshold = success_threshold
-        @timeout = timeout
-        @half_open_max_calls = half_open_max_calls
-      end
-    end
-
-    # Circuit breaker for fault tolerance.
-    class CircuitBreaker
-      attr_reader :config, :state
-
-      def initialize(config = CircuitConfig.new)
-        @config = config
-        @state = CircuitState::CLOSED
-        @failures = 0
-        @successes = 0
-        @last_failure_time = 0
-        @half_open_calls = 0
-      end
-
-      # Update state based on current time.
+    class << self
+      # Create a circuit breaker.
+      # Returns an opaque handle or nil on error.
+      # Caller MUST call #free when done.
       #
-      # @param current_time [Integer]
-      def update_state(current_time)
-        return unless should_transition_to_half_open?(current_time)
-
-        @state = CircuitState::HALF_OPEN
-        @successes = 0
-        @half_open_calls = 0
+      # @param failure_threshold [Integer]
+      # @param success_threshold [Integer]
+      # @param timeout_ms [Integer]
+      # @return [Fiddle::Pointer, nil]
+      def create(failure_threshold, success_threshold, timeout_ms)
+        FFI.invoke_ptr(
+          "proven_circuit_breaker_create",
+          [Fiddle::TYPE_INT, Fiddle::TYPE_INT, Fiddle::TYPE_LONG_LONG],
+          [failure_threshold, success_threshold, timeout_ms]
+        )
       end
 
-      # Check if a request can be executed.
+      # Check if the circuit breaker allows a request.
       #
-      # @param current_time [Integer]
-      # @return [Boolean]
-      def can_execute?(current_time)
-        update_state(current_time)
-
-        case @state
-        when CircuitState::CLOSED
-          true
-        when CircuitState::OPEN
-          false
-        when CircuitState::HALF_OPEN
-          @half_open_calls < @config.half_open_max_calls
-        end
+      # @param cb [Fiddle::Pointer]
+      # @return [Boolean, nil]
+      def allow?(cb)
+        return nil if cb.nil?
+        FFI.invoke_bool(
+          "proven_circuit_breaker_allow",
+          [Fiddle::TYPE_VOIDP],
+          [cb]
+        )
       end
 
       # Record a successful call.
-      def record_success
-        case @state
-        when CircuitState::CLOSED
-          @failures = 0
-        when CircuitState::HALF_OPEN
-          @successes += 1
-          if @successes >= @config.success_threshold
-            @state = CircuitState::CLOSED
-            @failures = 0
-            @successes = 0
-          end
-        end
+      #
+      # @param cb [Fiddle::Pointer]
+      def record_success(cb)
+        return if cb.nil?
+        FFI.invoke_void(
+          "proven_circuit_breaker_success",
+          [Fiddle::TYPE_VOIDP],
+          [cb]
+        )
       end
 
       # Record a failed call.
       #
-      # @param current_time [Integer]
-      def record_failure(current_time)
-        @last_failure_time = current_time
-
-        case @state
-        when CircuitState::CLOSED
-          @failures += 1
-          @state = CircuitState::OPEN if @failures >= @config.failure_threshold
-        when CircuitState::HALF_OPEN
-          @state = CircuitState::OPEN
-          @failures += 1
-        when CircuitState::OPEN
-          @failures += 1
-        end
+      # @param cb [Fiddle::Pointer]
+      def record_failure(cb)
+        return if cb.nil?
+        FFI.invoke_void(
+          "proven_circuit_breaker_failure",
+          [Fiddle::TYPE_VOIDP],
+          [cb]
+        )
       end
 
-      # Record an attempt (for half-open tracking).
-      def record_attempt
-        @half_open_calls += 1 if @state == CircuitState::HALF_OPEN
-      end
-
-      # Execute with circuit breaker logic.
+      # Get current state.
+      # Returns :closed, :open, or :half_open.
       #
-      # @param current_time [Integer]
-      # @param success [Boolean]
-      # @return [Boolean] whether execution was allowed
-      def execute(current_time, success)
-        update_state(current_time)
-
-        return false unless can_execute?(current_time)
-
-        record_attempt
-
-        if success
-          record_success
-        else
-          record_failure(current_time)
-        end
-
-        true
+      # @param cb [Fiddle::Pointer]
+      # @return [Symbol, nil]
+      def state(cb)
+        return nil if cb.nil?
+        val = FFI.invoke_i32(
+          "proven_circuit_breaker_state",
+          [Fiddle::TYPE_VOIDP],
+          [cb]
+        )
+        return nil if val.nil?
+        STATE_NAMES.fetch(val, :closed)
       end
 
-      # Check if circuit is healthy.
+      # Free a circuit breaker handle.
       #
-      # @return [Boolean]
-      def healthy?
-        @state == CircuitState::CLOSED
+      # @param cb [Fiddle::Pointer]
+      def free(cb)
+        return if cb.nil?
+        FFI.invoke_void(
+          "proven_circuit_breaker_free",
+          [Fiddle::TYPE_VOIDP],
+          [cb]
+        )
       end
-
-      # Time until circuit might close.
-      #
-      # @param current_time [Integer]
-      # @return [Integer]
-      def time_until_retry(current_time)
-        return 0 unless @state == CircuitState::OPEN
-
-        retry_time = @last_failure_time + @config.timeout
-        current_time >= retry_time ? 0 : retry_time - current_time
-      end
-
-      # Force reset.
-      def reset
-        @state = CircuitState::CLOSED
-        @failures = 0
-        @successes = 0
-        @half_open_calls = 0
-      end
-
-      private
-
-      def should_transition_to_half_open?(current_time)
-        @state == CircuitState::OPEN &&
-          current_time >= @last_failure_time + @config.timeout
-      end
-    end
-
-    # Create a new circuit breaker with default configuration.
-    #
-    # @return [CircuitBreaker]
-    def self.circuit_breaker
-      CircuitBreaker.new
-    end
-
-    # Create a new circuit breaker with custom configuration.
-    #
-    # @param config [CircuitConfig]
-    # @return [CircuitBreaker]
-    def self.circuit_breaker_with_config(config)
-      CircuitBreaker.new(config)
     end
   end
 end

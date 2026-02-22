@@ -1,75 +1,60 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-//! Safe floating-point operations with NaN and infinity handling.
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Proven SafeFloat - FFI bindings to libproven floating-point operations.
+// All computation is performed in verified Idris 2 code via libproven.
 
 const std = @import("std");
+const c = @cImport(@cInclude("proven.h"));
 
 /// Error types for float operations.
 pub const FloatError = error{
-    NaN,
-    Infinity,
     DivisionByZero,
+    InvalidArgument,
+    ProvenError,
 };
 
-/// Check if a float is NaN.
-pub fn isNaN(value: f64) bool {
-    return std.math.isNan(value);
+/// Map ProvenStatus to FloatError.
+fn mapStatus(status: i32) FloatError!void {
+    return switch (status) {
+        c.PROVEN_OK => {},
+        c.PROVEN_ERR_DIVISION_BY_ZERO => error.DivisionByZero,
+        c.PROVEN_ERR_INVALID_ARGUMENT => error.InvalidArgument,
+        else => error.ProvenError,
+    };
 }
 
-/// Check if a float is infinite.
-pub fn isInfinite(value: f64) bool {
-    return std.math.isInf(value);
+/// Safe floating-point division via libproven.
+pub fn safeDiv(a: f64, b: f64) FloatError!f64 {
+    const result = c.proven_float_div(a, b);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Check if a float is finite (not NaN or infinite).
-pub fn isFinite(value: f64) bool {
-    return !isNaN(value) and !isInfinite(value);
+/// Check if float is finite (not NaN or Inf) via libproven.
+pub fn isFinite(x: f64) bool {
+    return c.proven_float_is_finite(x);
 }
 
-/// Safe division that returns error on NaN, infinity, or division by zero.
-pub fn safeDiv(numerator: f64, denominator: f64) FloatError!f64 {
-    if (isNaN(numerator) or isNaN(denominator)) return error.NaN;
-    if (denominator == 0.0) return error.DivisionByZero;
-    const result = numerator / denominator;
-    if (isInfinite(result)) return error.Infinity;
-    if (isNaN(result)) return error.NaN;
-    return result;
+/// Check if float is NaN via libproven.
+pub fn isNaN(x: f64) bool {
+    return c.proven_float_is_nan(x);
 }
 
-/// Approximate equality within epsilon.
-pub fn approxEqual(a: f64, b: f64, epsilon: f64) bool {
-    if (isNaN(a) or isNaN(b)) return false;
-    return @abs(a - b) <= epsilon;
+/// Safe square root via libproven.
+/// Returns error if x is negative or NaN.
+pub fn safeSqrt(x: f64) FloatError!f64 {
+    const result = c.proven_float_sqrt(x);
+    try mapStatus(result.status);
+    return result.value;
 }
 
-/// Clamp a value between min and max.
-pub fn clamp(value: f64, min_val: f64, max_val: f64) f64 {
-    return @max(min_val, @min(max_val, value));
-}
-
-/// Linear interpolation between two values.
-pub fn lerp(a: f64, b: f64, t: f64) f64 {
-    return a + (b - a) * clamp(t, 0.0, 1.0);
-}
-
-/// Safe square root (returns error for negative values).
-pub fn safeSqrt(value: f64) FloatError!f64 {
-    if (isNaN(value)) return error.NaN;
-    if (value < 0.0) return error.NaN;
-    return @sqrt(value);
-}
-
-/// Safe natural logarithm (returns error for non-positive values).
-pub fn safeLn(value: f64) FloatError!f64 {
-    if (isNaN(value)) return error.NaN;
-    if (value <= 0.0) return error.NaN;
-    return @log(value);
-}
-
-test "isNaN" {
-    try std.testing.expect(isNaN(std.math.nan(f64)));
-    try std.testing.expect(!isNaN(1.0));
+/// Safe natural logarithm via libproven.
+/// Returns error if x <= 0 or NaN.
+pub fn safeLn(x: f64) FloatError!f64 {
+    const result = c.proven_float_ln(x);
+    try mapStatus(result.status);
+    return result.value;
 }
 
 test "safeDiv" {
@@ -77,7 +62,17 @@ test "safeDiv" {
     try std.testing.expectError(error.DivisionByZero, safeDiv(10.0, 0.0));
 }
 
-test "approxEqual" {
-    try std.testing.expect(approxEqual(1.0, 1.0000001, 0.001));
-    try std.testing.expect(!approxEqual(1.0, 2.0, 0.001));
+test "isFinite" {
+    try std.testing.expect(isFinite(1.0));
+    try std.testing.expect(!isFinite(std.math.inf(f64)));
+}
+
+test "isNaN" {
+    try std.testing.expect(isNaN(std.math.nan(f64)));
+    try std.testing.expect(!isNaN(1.0));
+}
+
+test "safeSqrt" {
+    try std.testing.expectApproxEqAbs(@as(f64, 3.0), try safeSqrt(9.0), 0.001);
+    try std.testing.expectError(error.InvalidArgument, safeSqrt(-1.0));
 }

@@ -1,44 +1,21 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
---  Safe email validation and parsing operations.
-
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+--  Safe email validation -- thin FFI wrapper over libproven.
+--  Email validation performed by the formally verified Idris2/Zig core.
 
 package Proven.Safe_Email is
 
-   type Email_Parts is record
-      Local_Part : Unbounded_String;
-      Domain     : Unbounded_String;
-   end record;
-
-   type Optional_Email_Parts (Valid : Boolean := False) is record
-      case Valid is
-         when True  => Parts : Email_Parts;
-         when False => null;
+   type Safe_Bool_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Value      : Boolean;
+         when False => Error_Code : Integer;
       end case;
    end record;
 
-   type Optional_String (Valid : Boolean := False) is record
-      case Valid is
-         when True  => Value : Unbounded_String;
-         when False => null;
-      end case;
-   end record;
-
-   --  Check if an email address is valid (basic check).
-   function Is_Valid (Email : String) return Boolean;
-
-   --  Split an email into local part and domain.
-   function Split_Email (Email : String) return Optional_Email_Parts;
-
-   --  Extract the domain from an email address.
-   function Get_Domain (Email : String) return Optional_String;
-
-   --  Extract the local part from an email address.
-   function Get_Local_Part (Email : String) return Optional_String;
-
-   --  Normalize an email address (lowercase domain).
-   function Normalize (Email : String) return Optional_String;
+   --  Check if an email address is valid (RFC 5321)
+   --  (calls proven_email_is_valid).
+   function Is_Valid (Email : String) return Safe_Bool_Result;
 
 end Proven.Safe_Email;

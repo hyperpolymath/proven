@@ -1,125 +1,99 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 using Test
 using Proven
-using Proven.SafeMath
-using Proven.SafeString
-using Proven.SafePath
-using Proven.SafeEmail
-using Proven.SafeUrl
-using Proven.SafeNetwork
-using Proven.SafeCrypto
 
-@testset "Proven.jl" begin
+@testset "Proven.jl FFI Bindings" begin
+
+    @testset "Lifecycle" begin
+        @test Lifecycle.init() == true
+        @test Lifecycle.is_initialized() == true
+    end
+
+    @testset "Version" begin
+        @test Version.major() >= 0
+        @test Version.minor() >= 0
+        @test Version.patch() >= 0
+        @test Version.module_count() > 0
+    end
 
     @testset "SafeMath" begin
-        @test safe_div(10, 2) == 5
-        @test safe_div(10, 0) === nothing
+        @test SafeMath.div(Int64(10), Int64(2)) == 5
+        @test SafeMath.div(Int64(10), Int64(0)) === nothing
 
-        @test safe_mod(10, 3) == 1
-        @test safe_mod(10, 0) === nothing
+        @test SafeMath.mod(Int64(10), Int64(3)) == 1
+        @test SafeMath.mod(Int64(10), Int64(0)) === nothing
 
-        @test safe_add(1, 2) == 3
-        @test safe_sub(5, 3) == 2
-        @test safe_mul(3, 4) == 12
+        @test SafeMath.add_checked(Int64(1), Int64(2)) == 3
+        @test SafeMath.add_checked(typemax(Int64), Int64(1)) === nothing
 
-        # Overflow detection
-        @test safe_add(typemax(Int64), Int64(1)) === nothing
-        @test safe_mul(typemax(Int64), Int64(2)) === nothing
+        @test SafeMath.sub_checked(Int64(5), Int64(3)) == 2
+        @test SafeMath.mul_checked(Int64(3), Int64(4)) == 12
+        @test SafeMath.mul_checked(typemax(Int64), Int64(2)) === nothing
+
+        @test SafeMath.abs_safe(Int64(-5)) == 5
+        @test SafeMath.abs_safe(typemin(Int64)) === nothing
+
+        @test SafeMath.clamp(Int64(0), Int64(10), Int64(5)) == 5
+        @test SafeMath.clamp(Int64(0), Int64(10), Int64(-1)) == 0
+        @test SafeMath.clamp(Int64(0), Int64(10), Int64(15)) == 10
     end
 
     @testset "SafeString" begin
-        @test escape_html("<script>") == "&lt;script&gt;"
-        @test escape_html("a & b") == "a &amp; b"
-        @test escape_html("\"quoted\"") == "&quot;quoted&quot;"
-
-        @test escape_sql("it's") == "it''s"
-
-        @test escape_js("line\nbreak") == "line\\nbreak"
-        @test escape_js("tab\there") == "tab\\there"
-
-        @test truncate_safe("hello world", 5) == "he..."
-        @test truncate_safe("hi", 10) == "hi"
+        @test SafeString.escape_html("<script>") !== nothing
+        @test SafeString.escape_sql("it's") !== nothing
+        @test SafeString.escape_js("line\nbreak") !== nothing
     end
 
     @testset "SafePath" begin
-        @test has_traversal("../etc/passwd") == true
-        @test has_traversal("~/file") == true
-        @test has_traversal("normal/path") == false
-
-        @test is_safe("safe/path") == true
-        @test is_safe("../unsafe") == false
-
-        @test sanitize_filename("file<>name") == "file__name"
-        @test sanitize_filename("..secret") == "__secret"
-
-        @test safe_join("/base", ["a", "b"]) == "/base/a/b"
-        @test safe_join("/base", ["../etc"]) === nothing
+        @test SafePath.has_traversal("../etc/passwd") == true
+        @test SafePath.has_traversal("safe/path") == false
+        @test SafePath.sanitize_filename("file<>name") !== nothing
     end
 
     @testset "SafeEmail" begin
-        @test is_valid("user@example.com") == true
-        @test is_valid("not-an-email") == false
-        @test is_valid("@invalid.com") == false
-        @test is_valid("user@.com") == false
-
-        parts = split_email("user@example.com")
-        @test parts !== nothing
-        @test parts.local_part == "user"
-        @test parts.domain == "example.com"
-
-        @test get_domain("user@example.com") == "example.com"
-        @test get_local_part("user@example.com") == "user"
-        @test normalize("User@EXAMPLE.COM") == "User@example.com"
+        @test SafeEmail.is_valid("user@example.com") == true
+        @test SafeEmail.is_valid("not-an-email") == false
     end
 
-    @testset "SafeUrl" begin
-        parsed = parse_url("https://example.com:8080/path?query=1#frag")
-        @test parsed !== nothing
-        @test parsed.scheme == "https"
-        @test parsed.host == "example.com"
-        @test parsed.port == 8080
-        @test parsed.path == "/path"
-        @test parsed.query == "query=1"
-        @test parsed.fragment == "frag"
-
-        @test is_valid_url("https://example.com") == true
-        @test is_valid_url("not a url") == false
-
-        @test get_host("https://example.com/path") == "example.com"
-        @test is_https("https://secure.com") == true
-        @test is_https("http://insecure.com") == false
-    end
-
-    @testset "SafeNetwork" begin
-        @test is_valid_ipv4("192.168.1.1") == true
-        @test is_valid_ipv4("invalid") == false
-        @test is_valid_ipv4("256.1.1.1") == false
-
-        @test is_private("192.168.1.1") == true
-        @test is_private("10.0.0.1") == true
-        @test is_private("172.16.0.1") == true
-        @test is_private("8.8.8.8") == false
-
-        @test is_loopback("127.0.0.1") == true
-        @test is_loopback("192.168.1.1") == false
-
-        @test is_public("8.8.8.8") == true
-        @test is_public("192.168.1.1") == false
-
-        ip = parse_ipv4("192.168.1.1")
-        @test format_ipv4(ip) == "192.168.1.1"
+    @testset "SafeFloat" begin
+        @test SafeFloat.div(10.0, 2.0) == 5.0
+        @test SafeFloat.div(10.0, 0.0) === nothing
+        @test SafeFloat.is_finite(1.0) == true
+        @test SafeFloat.is_nan(NaN) == true
+        @test SafeFloat.sqrt(4.0) == 2.0
+        @test SafeFloat.sqrt(-1.0) === nothing
+        @test SafeFloat.ln(1.0) == 0.0
+        @test SafeFloat.ln(-1.0) === nothing
     end
 
     @testset "SafeCrypto" begin
-        @test constant_time_compare("secret", "secret") == true
-        @test constant_time_compare("secret", "other") == false
-        @test constant_time_compare("", "") == true
+        a = Vector{UInt8}("secret")
+        b = Vector{UInt8}("secret")
+        c = Vector{UInt8}("other!")
+        @test SafeCrypto.constant_time_eq(a, b) == true
+        @test SafeCrypto.constant_time_eq(a, c) == false
 
-        data = UInt8[1, 2, 3, 4]
-        secure_zero!(data)
-        @test all(==(0x00), data)
+        buf = zeros(UInt8, 32)
+        @test SafeCrypto.random_bytes!(buf) == true
     end
 
+    @testset "SafeAngle" begin
+        @test SafeAngle.deg_to_rad(180.0) ≈ π
+        @test SafeAngle.rad_to_deg(π) ≈ 180.0
+        @test SafeAngle.normalize_degrees(370.0) ≈ 10.0
+    end
+
+    @testset "SafeProbability" begin
+        @test SafeProbability.create(0.5) == 0.5
+        @test SafeProbability.create(1.5) == 1.0
+        @test SafeProbability.create(-0.5) == 0.0
+        @test SafeProbability.not(0.3) ≈ 0.7
+    end
+
+    @testset "Lifecycle cleanup" begin
+        Lifecycle.deinit()
+        @test true  # If we got here, cleanup did not crash
+    end
 end

@@ -1,0 +1,116 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// proven_functions.vql - VQL function definitions backed by libproven
+//
+// VQL (Velociraptor Query Language) is used in Velociraptor for digital
+// forensics and incident response. These function definitions register
+// proven-backed user-defined functions that call libproven via a Go plugin.
+//
+// ALL computation is performed in Idris 2 via the Zig FFI bridge.
+// The Go plugin uses CGo to call the libproven C ABI. No algorithms
+// are reimplemented in VQL or Go.
+//
+// Prerequisites:
+//   - Velociraptor server with plugin support
+//   - libproven.so available in the Velociraptor plugin path
+//   - proven_plugin.go compiled as a Velociraptor plugin
+
+// ============================================================================
+// SafeMath: Checked arithmetic for forensic data processing
+// ============================================================================
+
+// Checked addition with overflow detection.
+// Returns null if the result would overflow int64.
+// Delegates to proven_math_add_checked via CGo FFI.
+LET proven_safe_add(a, b) = proven_math_add(a=a, b=b)
+
+// Checked subtraction with underflow detection.
+// Returns null if the result would underflow int64.
+// Delegates to proven_math_sub_checked via CGo FFI.
+LET proven_safe_sub(a, b) = proven_math_sub(a=a, b=b)
+
+// Checked multiplication with overflow detection.
+// Returns null if the result would overflow int64.
+// Delegates to proven_math_mul_checked via CGo FFI.
+LET proven_safe_mul(a, b) = proven_math_mul(a=a, b=b)
+
+// Safe division with division-by-zero protection.
+// Returns null on division by zero or INT64_MIN / -1 overflow.
+// Delegates to proven_math_div via CGo FFI.
+LET proven_safe_div(a, b) = proven_math_div(a=a, b=b)
+
+// Safe modulo with division-by-zero protection.
+// Returns null if the divisor is zero.
+// Delegates to proven_math_mod via CGo FFI.
+LET proven_safe_mod(a, b) = proven_math_mod(a=a, b=b)
+
+// Safe absolute value (handles MIN_INT correctly).
+// Returns null if the input is INT64_MIN.
+// Delegates to proven_math_abs_safe via CGo FFI.
+LET proven_safe_abs(n) = proven_math_abs(n=n)
+
+// Clamp value to range [lo, hi]. Always succeeds.
+// Delegates to proven_math_clamp via CGo FFI.
+LET proven_clamp(value, lo, hi) = proven_math_clamp(value=value, lo=lo, hi=hi)
+
+// Checked exponentiation with overflow detection.
+// Returns null if the result would overflow int64.
+// Delegates to proven_math_pow_checked via CGo FFI.
+LET proven_safe_pow(base, exp) = proven_math_pow(base=base, exp=exp)
+
+// ============================================================================
+// Validation: Input validation for forensic evidence processing
+// ============================================================================
+
+// Validate an email address (RFC 5321/5322).
+// Returns true/false. Delegates to proven_email_is_valid via CGo FFI.
+LET proven_is_valid_email(email) = proven_validate_email(input=email)
+
+// Validate a URL (RFC 3986).
+// Returns true/false. Delegates to proven_url_parse via CGo FFI.
+LET proven_is_valid_url(url) = proven_validate_url(input=url)
+
+// Validate a JSON document.
+// Returns true/false. Delegates to proven_json_is_valid via CGo FFI.
+LET proven_is_valid_json(doc) = proven_validate_json(input=doc)
+
+// Validate UTF-8 encoding.
+// Returns true/false. Delegates to proven_string_is_valid_utf8 via CGo FFI.
+LET proven_is_valid_utf8(s) = proven_validate_utf8(input=s)
+
+// ============================================================================
+// String operations: Safe string handling for evidence processing
+// ============================================================================
+
+// Escape a string for safe HTML rendering (XSS prevention).
+// Delegates to proven_string_escape_html via CGo FFI.
+LET proven_escape_html(s) = proven_string_escape_html(input=s)
+
+// Escape a string for safe SQL interpolation.
+// Delegates to proven_string_escape_sql via CGo FFI.
+LET proven_escape_sql(s) = proven_string_escape_sql(input=s)
+
+// Escape a string for safe JavaScript string literals.
+// Delegates to proven_string_escape_js via CGo FFI.
+LET proven_escape_js(s) = proven_string_escape_js(input=s)
+
+// ============================================================================
+// Crypto: Cryptographic operations for evidence integrity
+// ============================================================================
+
+// Hex-encode a byte string.
+// Delegates to proven_hex_encode via CGo FFI.
+LET proven_hex_encode(s) = proven_crypto_hex_encode(input=s)
+
+// Compute CRC32 checksum.
+// Delegates to proven_checksum_crc32 via CGo FFI.
+LET proven_crc32(s) = proven_crypto_crc32(input=s)
+
+// Verify CRC32 checksum against expected value.
+// Returns true/false. Delegates to proven_checksum_verify_crc32 via CGo FFI.
+LET proven_verify_crc32(s, expected) = proven_crypto_verify_crc32(input=s, expected=expected)
+
+// Constant-time byte comparison (timing-attack resistant).
+// Returns true/false. Delegates to proven_crypto_constant_time_eq via CGo FFI.
+LET proven_constant_time_eq(a, b) = proven_crypto_ct_eq(a=a, b=b)

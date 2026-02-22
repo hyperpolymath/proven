@@ -1,0 +1,97 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- safe_url.jtv - URL parsing and validation for Julia the Viper
+--
+-- Data-plane module: URL parsing and validation is delegated to
+-- libproven's formally verified Idris 2 core via the FFI bridge.
+-- No URL parsing logic is reimplemented in JTV.
+--
+-- URL parsing is a Control-plane operation (allocates opaque handle).
+-- The caller MUST call url_free() on parsed results.
+--
+-- @module
+
+module Proven.SafeUrl
+
+import Proven.FFI (
+    proven_url_parse,
+    proven_url_free,
+    proven_path_has_traversal,
+    proven_path_sanitize_filename,
+    proven_free_string,
+    STATUS_OK
+)
+import Proven (DataResult, Ok, Err, ProvenError)
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: URL Parsing
+-- ---------------------------------------------------------------------------
+
+-- Parse a URL string into its components via libproven.
+-- Returns an opaque handle to URL components, or error on parse failure.
+-- The caller MUST call url_free() on the returned handle when done.
+-- Delegates to proven_url_parse via FFI.
+fn url_parse(url: *u8, len: usize) -> DataResult<*void>:
+    let result = proven_url_parse(url, len)
+    if result != null:
+        return Ok(result)
+    else:
+        return Err({ code: -6, message: "URL parse failure" })
+
+-- Free URL components allocated by url_parse.
+-- Must be called after url_parse to prevent memory leaks.
+-- Delegates to proven_url_free via FFI.
+fn url_free(components: *void) -> void:
+    proven_url_free(components)
+
+-- ---------------------------------------------------------------------------
+-- Data-plane: URL Validation
+-- ---------------------------------------------------------------------------
+
+-- Validate a URL by attempting to parse it.
+-- Returns true if the URL is valid, false otherwise.
+-- Automatically frees the parsed components on success.
+-- Delegates to proven_url_parse/proven_url_free via FFI.
+fn is_valid_url(url: *u8, len: usize) -> DataResult<bool>:
+    let result = proven_url_parse(url, len)
+    if result != null:
+        proven_url_free(result)
+        return Ok(true)
+    else:
+        return Ok(false)
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Path Safety
+-- ---------------------------------------------------------------------------
+
+-- Check if a filesystem path contains directory traversal attacks.
+-- Returns true if traversal is detected (path is UNSAFE).
+-- Delegates to proven_path_has_traversal via FFI.
+fn has_path_traversal(path: *u8, len: usize) -> DataResult<bool>:
+    let result = proven_path_has_traversal(path, len)
+    if result.status == STATUS_OK:
+        return Ok(result.value != 0)
+    else:
+        return Err({ code: result.status, message: "Path traversal check FFI error" })
+
+-- Sanitize a filename by removing dangerous characters.
+-- Returns the sanitized filename, or error on failure.
+-- Delegates to proven_path_sanitize_filename via FFI.
+fn sanitize_filename(name: *u8, len: usize) -> DataResult<[u8]>:
+    let result = proven_path_sanitize_filename(name, len)
+    if result.status == STATUS_OK:
+        let sanitized = copy_ffi_string(result.ptr, result.len)
+        proven_free_string(result.ptr)
+        return Ok(sanitized)
+    else:
+        return Err({ code: result.status, message: "Filename sanitization failed" })
+
+-- ---------------------------------------------------------------------------
+-- Helper: Copy FFI string into JTV-managed memory
+-- ---------------------------------------------------------------------------
+
+fn copy_ffi_string(ptr: *u8, len: usize) -> [u8]:
+    let mut buf: [u8; len] = zeroed()
+    memcpy(buf, ptr, len)
+    return buf

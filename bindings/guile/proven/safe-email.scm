@@ -1,86 +1,40 @@
 ;;; SPDX-License-Identifier: PMPL-1.0-or-later
-;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;
-;;; SafeEmail - RFC 5321 compliant email validation for Guile Scheme
+;;; SafeEmail - FFI bindings to libproven email validation
 ;;;
-;;; Validates email addresses without regex catastrophic backtracking.
-;;; All operations are pure and cannot crash.
+;;; All computation delegates to Idris 2 via the Zig FFI layer.
+;;; This module is a thin wrapper only -- no reimplemented logic.
 
 (define-module (proven safe-email)
-  #:use-module (ice-9 regex)
-  #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-13)
-  #:export (email-valid?
-            email-parse
-            email-normalize
-            email-get-domain
-            email-get-local
-            make-email-result
-            email-result-local
-            email-result-domain
-            email-result-ok?
-            email-result-error))
+  #:use-module (system foreign)
+  #:use-module (rnrs bytevectors)
+  #:export (email-valid?))
 
-;;; Result constructor for email operations
-(define (make-email-result local domain ok error)
-  `((local . ,local) (domain . ,domain) (ok . ,ok) (error . ,error)))
+;;; Load libproven shared library
+(define libproven (dynamic-link "libproven"))
 
-;;; Result accessors
-(define (email-result-local result)
-  (assoc-ref result 'local))
+;;; FFI function binding
+(define ffi-email-is-valid
+  (pointer->procedure '* (dynamic-func "proven_email_is_valid" libproven)
+                      (list '* size_t)))
 
-(define (email-result-domain result)
-  (assoc-ref result 'domain))
+;;; Helper: convert string to (pointer, length)
+(define (string->ffi-args str)
+  (let* ((bv (string->utf8 str))
+         (len (bytevector-length bv))
+         (ptr (bytevector->pointer bv)))
+    (values ptr len)))
 
-(define (email-result-ok? result)
-  (assoc-ref result 'ok))
+;;; Helper: parse BoolResult struct { i32 status, bool value }
+(define (parse-bool-result ptr)
+  (let* ((bv (pointer->bytevector ptr 8))
+         (status (bytevector-s32-native-ref bv 0))
+         (value (bytevector-s32-native-ref bv 4)))
+    (and (= status 0) (not (= value 0)))))
 
-(define (email-result-error result)
-  (assoc-ref result 'error))
-
-;;; Basic email pattern (simplified, safe from ReDoS)
-(define email-pattern
-  (make-regexp "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"))
-
-;;; Check if string is a valid email address
+;;; Check if string is a valid email address (delegates to Idris 2)
 (define (email-valid? email)
-  (and (regexp-exec email-pattern email)
-       (<= (string-length email) 254)  ; Max email length per RFC
-       (not (string-contains email "..")))) ; No consecutive dots
-
-;;; Parse email into local and domain parts
-(define (email-parse email)
-  (if (not (email-valid? email))
-      (make-email-result "" "" #f "Invalid email format")
-      (let ((at-pos (string-index email #\@)))
-        (if (not at-pos)
-            (make-email-result "" "" #f "Invalid email format")
-            (make-email-result
-             (substring email 0 at-pos)
-             (substring email (+ at-pos 1))
-             #t
-             "")))))
-
-;;; Normalize email (lowercase domain, trim whitespace)
-(define (email-normalize email)
-  (let* ((trimmed (string-trim-both email))
-         (at-pos (string-index trimmed #\@)))
-    (if (not at-pos)
-        trimmed
-        (let ((local (substring trimmed 0 at-pos))
-              (domain (string-downcase (substring trimmed (+ at-pos 1)))))
-          (string-append local "@" domain)))))
-
-;;; Get domain from email
-(define (email-get-domain email)
-  (let ((at-pos (string-index email #\@)))
-    (if (not at-pos)
-        ""
-        (substring email (+ at-pos 1)))))
-
-;;; Get local part from email
-(define (email-get-local email)
-  (let ((at-pos (string-index email #\@)))
-    (if (not at-pos)
-        ""
-        (substring email 0 at-pos))))
+  (call-with-values (lambda () (string->ffi-args email))
+    (lambda (ptr len)
+      (parse-bool-result (ffi-email-is-valid ptr len)))))

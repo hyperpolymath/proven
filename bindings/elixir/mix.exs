@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.MixProject do
   use Mix.Project
@@ -14,12 +14,14 @@ defmodule Proven.MixProject do
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      description: "Safety-first utility functions with formal verification guarantees - 38 modules covering math, strings, data structures, networking, security, and ML",
+      description:
+        "Safety-first utility functions with formal verification guarantees — " <>
+          "thin FFI wrapper over libproven (Idris 2 verified core via Zig ABI)",
       package: package(),
       source_url: @source_url,
       docs: docs(),
 
-      # Rustler configuration for NIF bindings
+      # Rustler configuration for NIF bindings to libproven
       compilers: Mix.compilers(),
       rustler_crates: [
         proven_nif: [
@@ -38,11 +40,8 @@ defmodule Proven.MixProject do
 
   defp deps do
     [
-      # JSON support (optional — used by SafeJson if available)
-      {:jason, "~> 1.4", optional: true},
-
-      # NIF bindings via Rustler
-      {:rustler, "~> 0.35.0", optional: true},
+      # NIF bindings via Rustler — REQUIRED, links to libproven
+      {:rustler, "~> 0.35.0"},
       {:rustler_precompiled, "~> 0.8", optional: true},
 
       # Development dependencies
@@ -61,7 +60,7 @@ defmodule Proven.MixProject do
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
       },
       files: ~w(lib native .formatter.exs mix.exs README* LICENSE* CHANGELOG*),
-      maintainers: ["Hyperpolymath"]
+      maintainers: ["Jonathan D.A. Jewell"]
     ]
   end
 
@@ -72,6 +71,7 @@ defmodule Proven.MixProject do
       source_url: @source_url,
       extras: ["README.md", "CHANGELOG.md"],
       groups_for_modules: [
+        "NIF Bridge": [Proven.NIF],
         "Core Modules": [
           Proven.SafeMath,
           Proven.SafeString,
@@ -93,38 +93,6 @@ defmodule Proven.MixProject do
           Proven.SafeColor,
           Proven.SafeAngle,
           Proven.SafeUnit
-        ],
-        "Data Structure Modules": [
-          Proven.SafeBuffer,
-          Proven.SafeQueue,
-          Proven.SafeBloom,
-          Proven.SafeLru,
-          Proven.SafeGraph
-        ],
-        "Resilience Modules": [
-          Proven.SafeRateLimiter,
-          Proven.SafeCircuitBreaker,
-          Proven.SafeRetry,
-          Proven.SafeMonotonic
-        ],
-        "State Modules": [
-          Proven.SafeStateMachine,
-          Proven.SafeCalculator
-        ],
-        "Algorithm Modules": [
-          Proven.SafeGeo,
-          Proven.SafeProbability,
-          Proven.SafeChecksum,
-          Proven.SafeTensor
-        ],
-        "Security Modules": [
-          Proven.SafePassword,
-          Proven.SafeMl
-        ],
-        "HTTP Modules": [
-          Proven.SafeHeader,
-          Proven.SafeCookie,
-          Proven.SafeContentType
         ]
       ]
     ]

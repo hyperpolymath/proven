@@ -1,159 +1,94 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Safe semantic versioning operations.
+# Thin wrapper over libproven FFI -- all logic lives in Idris.
 
-## Safe semantic versioning operations.
-
-import std/[options, strutils]
+import std/options
+import lib_proven
 
 type
-  SemanticVersion* = object
-    ## A semantic version (major.minor.patch).
-    major*: int
-    minor*: int
-    patch*: int
+  NimSemanticVersion* = object
+    ## A semantic version (major.minor.patch[-prerelease]).
+    major*: uint32
+    minor*: uint32
+    patch*: uint32
     prerelease*: string
-    build*: string
 
-proc newVersion*(major, minor, patch: int): Option[SemanticVersion] =
-  ## Create a new semantic version.
-  if major < 0 or minor < 0 or patch < 0:
-    return none(SemanticVersion)
-  result = some(SemanticVersion(
+proc parseVersion*(s: string): Option[NimSemanticVersion] =
+  ## Parse a version string (e.g., "1.2.3", "1.2.3-alpha").
+  ## Returns None if the string is not valid semver.
+  if s.len == 0:
+    return none(NimSemanticVersion)
+  var res = provenVersionParse(unsafeAddr s[0], csize_t(s.len))
+  if res.status != PROVEN_OK:
+    return none(NimSemanticVersion)
+
+  # Extract all fields before freeing
+  let major = res.version.major
+  let minor = res.version.minor
+  let patch = res.version.patch
+  let pre = if res.version.prerelease != nil and res.version.prerelease_len > 0:
+    $res.version.prerelease
+  else: ""
+
+  provenVersionFree(addr res.version)
+
+  some(NimSemanticVersion(
     major: major,
     minor: minor,
     patch: patch,
-    prerelease: "",
-    build: ""
+    prerelease: pre
   ))
 
-proc parseVersion*(s: string): Option[SemanticVersion] =
-  ## Parse a version string (e.g., "1.2.3", "1.2.3-alpha", "1.2.3-alpha+build").
-  if s.len == 0 or s.len > 256:
-    return none(SemanticVersion)
+proc compare*(a, b: NimSemanticVersion): int =
+  ## Compare two versions. Returns negative, 0, or positive.
+  let sa = SemanticVersion(
+    major: a.major,
+    minor: a.minor,
+    patch: a.patch,
+    prerelease_len: csize_t(a.prerelease.len),
+    prerelease: if a.prerelease.len > 0: cstring(a.prerelease) else: nil
+  )
+  let sb = SemanticVersion(
+    major: b.major,
+    minor: b.minor,
+    patch: b.patch,
+    prerelease_len: csize_t(b.prerelease.len),
+    prerelease: if b.prerelease.len > 0: cstring(b.prerelease) else: nil
+  )
+  int(provenVersionCompare(sa, sb))
 
-  var version = s
-  var build = ""
-  var prerelease = ""
-
-  # Extract build metadata
-  let buildIdx = version.find('+')
-  if buildIdx >= 0:
-    build = version[buildIdx + 1 ..< version.len]
-    version = version[0 ..< buildIdx]
-
-  # Extract prerelease
-  let prereleaseIdx = version.find('-')
-  if prereleaseIdx >= 0:
-    prerelease = version[prereleaseIdx + 1 ..< version.len]
-    version = version[0 ..< prereleaseIdx]
-
-  # Parse major.minor.patch
-  let parts = version.split('.')
-  if parts.len < 1 or parts.len > 3:
-    return none(SemanticVersion)
-
-  try:
-    let major = parseInt(parts[0])
-    let minor = if parts.len > 1: parseInt(parts[1]) else: 0
-    let patch = if parts.len > 2: parseInt(parts[2]) else: 0
-
-    if major < 0 or minor < 0 or patch < 0:
-      return none(SemanticVersion)
-
-    result = some(SemanticVersion(
-      major: major,
-      minor: minor,
-      patch: patch,
-      prerelease: prerelease,
-      build: build
-    ))
-  except:
-    return none(SemanticVersion)
-
-proc toString*(v: SemanticVersion): string =
-  ## Convert a version to string.
+proc `$`*(v: NimSemanticVersion): string =
+  ## String representation of version.
   result = $v.major & "." & $v.minor & "." & $v.patch
   if v.prerelease.len > 0:
     result.add("-" & v.prerelease)
-  if v.build.len > 0:
-    result.add("+" & v.build)
 
-proc `$`*(v: SemanticVersion): string =
-  ## String representation of version.
-  toString(v)
-
-proc compare*(a, b: SemanticVersion): int =
-  ## Compare two versions. Returns -1, 0, or 1.
-  if a.major != b.major:
-    return if a.major < b.major: -1 else: 1
-  if a.minor != b.minor:
-    return if a.minor < b.minor: -1 else: 1
-  if a.patch != b.patch:
-    return if a.patch < b.patch: -1 else: 1
-
-  # Prerelease comparison
-  if a.prerelease.len == 0 and b.prerelease.len > 0:
-    return 1  # No prerelease > prerelease
-  if a.prerelease.len > 0 and b.prerelease.len == 0:
-    return -1
-  if a.prerelease != b.prerelease:
-    return if a.prerelease < b.prerelease: -1 else: 1
-
-  return 0
-
-proc `<`*(a, b: SemanticVersion): bool =
+proc `<`*(a, b: NimSemanticVersion): bool =
+  ## Compare less than.
   compare(a, b) < 0
 
-proc `<=`*(a, b: SemanticVersion): bool =
+proc `<=`*(a, b: NimSemanticVersion): bool =
+  ## Compare less than or equal.
   compare(a, b) <= 0
 
-proc `>`*(a, b: SemanticVersion): bool =
+proc `>`*(a, b: NimSemanticVersion): bool =
+  ## Compare greater than.
   compare(a, b) > 0
 
-proc `>=`*(a, b: SemanticVersion): bool =
+proc `>=`*(a, b: NimSemanticVersion): bool =
+  ## Compare greater than or equal.
   compare(a, b) >= 0
 
-proc `==`*(a, b: SemanticVersion): bool =
+proc `==`*(a, b: NimSemanticVersion): bool =
+  ## Check equality.
   compare(a, b) == 0
 
-proc bumpMajor*(v: SemanticVersion): SemanticVersion =
-  ## Bump major version (resets minor and patch).
-  SemanticVersion(
-    major: v.major + 1,
-    minor: 0,
-    patch: 0,
-    prerelease: "",
-    build: ""
-  )
-
-proc bumpMinor*(v: SemanticVersion): SemanticVersion =
-  ## Bump minor version (resets patch).
-  SemanticVersion(
-    major: v.major,
-    minor: v.minor + 1,
-    patch: 0,
-    prerelease: "",
-    build: ""
-  )
-
-proc bumpPatch*(v: SemanticVersion): SemanticVersion =
-  ## Bump patch version.
-  SemanticVersion(
-    major: v.major,
-    minor: v.minor,
-    patch: v.patch + 1,
-    prerelease: "",
-    build: ""
-  )
-
-proc isStable*(v: SemanticVersion): bool =
+proc isStable*(v: NimSemanticVersion): bool =
   ## Check if version is stable (major >= 1, no prerelease).
   v.major >= 1 and v.prerelease.len == 0
 
-proc isPrerelease*(v: SemanticVersion): bool =
+proc isPrerelease*(v: NimSemanticVersion): bool =
   ## Check if version is a prerelease.
   v.prerelease.len > 0
-
-proc isCompatible*(a, b: SemanticVersion): bool =
-  ## Check if two versions are compatible (same major, a >= b).
-  a.major == b.major and a >= b

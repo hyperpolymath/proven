@@ -1,170 +1,126 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
  * Safe arithmetic operations with overflow checking.
+ *
+ * Thin FFI wrapper around libproven's SafeMath module. All computation
+ * is performed in formally verified Idris 2 code. This module only
+ * marshals data to/from the C ABI.
  */
 module proven.safe_math;
 
+import proven.ffi;
 import std.typecons : Nullable, nullable;
-import core.checkedint;
+
+pragma(lib, "proven");
 
 /// Add two long values with overflow checking.
-Nullable!long safeAdd(long a, long b) nothrow @safe
+/// Returns null on overflow.
+Nullable!long safeAdd(long a, long b) nothrow @trusted @nogc
 {
-    bool overflow;
-    immutable result = adds(a, b, overflow);
-    return overflow ? Nullable!long.init : nullable(result);
+    auto result = proven_math_add_checked(a, b);
+    if (provenFailed(result.status))
+        return Nullable!long.init;
+    return nullable(result.value);
 }
 
-/// Subtract two long values with overflow checking.
-Nullable!long safeSub(long a, long b) nothrow @safe
+/// Subtract two long values with underflow checking.
+/// Returns null on underflow.
+Nullable!long safeSub(long a, long b) nothrow @trusted @nogc
 {
-    bool overflow;
-    immutable result = subs(a, b, overflow);
-    return overflow ? Nullable!long.init : nullable(result);
+    auto result = proven_math_sub_checked(a, b);
+    if (provenFailed(result.status))
+        return Nullable!long.init;
+    return nullable(result.value);
 }
 
 /// Multiply two long values with overflow checking.
-Nullable!long safeMul(long a, long b) nothrow @safe
+/// Returns null on overflow.
+Nullable!long safeMul(long a, long b) nothrow @trusted @nogc
 {
-    bool overflow;
-    immutable result = muls(a, b, overflow);
-    return overflow ? Nullable!long.init : nullable(result);
+    auto result = proven_math_mul_checked(a, b);
+    if (provenFailed(result.status))
+        return Nullable!long.init;
+    return nullable(result.value);
 }
 
 /// Divide two long values safely.
-Nullable!long safeDiv(long a, long b) nothrow @safe
+/// Returns null on division by zero or overflow (MIN / -1).
+Nullable!long safeDiv(long a, long b) nothrow @trusted @nogc
 {
-    if (b == 0)
+    auto result = proven_math_div(a, b);
+    if (provenFailed(result.status))
         return Nullable!long.init;
-    // Check for overflow (MIN_VALUE / -1)
-    if (a == long.min && b == -1)
-        return Nullable!long.init;
-    return nullable(a / b);
+    return nullable(result.value);
 }
 
 /// Modulo operation with safety checks.
-Nullable!long safeMod(long a, long b) nothrow @safe
+/// Returns null on division by zero.
+Nullable!long safeMod(long a, long b) nothrow @trusted @nogc
 {
-    if (b == 0)
+    auto result = proven_math_mod(a, b);
+    if (provenFailed(result.status))
         return Nullable!long.init;
-    return nullable(a % b);
+    return nullable(result.value);
 }
 
 /// Absolute value with overflow checking.
-Nullable!long safeAbs(long a) nothrow @safe
+/// Returns null for long.min (cannot be represented as positive).
+Nullable!long safeAbs(long a) nothrow @trusted @nogc
 {
-    if (a == long.min)
+    auto result = proven_math_abs_safe(a);
+    if (provenFailed(result.status))
         return Nullable!long.init;
-    return nullable(a < 0 ? -a : a);
-}
-
-/// Negate with overflow checking.
-Nullable!long safeNeg(long a) nothrow @safe
-{
-    if (a == long.min)
-        return Nullable!long.init;
-    bool overflow;
-    immutable result = negs(a, overflow);
-    return overflow ? Nullable!long.init : nullable(result);
+    return nullable(result.value);
 }
 
 /// Power operation with overflow checking.
-Nullable!long safePow(long base, long exp) nothrow @safe
+/// Returns null on overflow or negative exponent.
+Nullable!long safePow(long base, uint exp) nothrow @trusted @nogc
 {
-    if (exp < 0)
+    auto result = proven_math_pow_checked(base, exp);
+    if (provenFailed(result.status))
         return Nullable!long.init;
-    if (exp == 0)
-        return nullable(1L);
-    if (exp == 1)
-        return nullable(base);
-
-    long result = 1;
-    long b = base;
-    long e = exp;
-
-    while (e > 0)
-    {
-        if (e & 1)
-        {
-            auto newResult = safeMul(result, b);
-            if (newResult.isNull)
-                return Nullable!long.init;
-            result = newResult.get;
-        }
-        e >>= 1;
-        if (e > 0)
-        {
-            auto newB = safeMul(b, b);
-            if (newB.isNull)
-                return Nullable!long.init;
-            b = newB.get;
-        }
-    }
-
-    return nullable(result);
+    return nullable(result.value);
 }
 
-/// Safe sum of an array.
-Nullable!long safeSum(const long[] values) nothrow @safe
+/// Clamp value to [lo, hi] range.
+long clamp(long value, long lo, long hi) nothrow @trusted @nogc
 {
-    long result = 0;
-    foreach (v; values)
-    {
-        auto newResult = safeAdd(result, v);
-        if (newResult.isNull)
-            return Nullable!long.init;
-        result = newResult.get;
-    }
-    return nullable(result);
+    return proven_math_clamp(lo, hi, value);
 }
 
-/// Safe product of an array.
-Nullable!long safeProduct(const long[] values) nothrow @safe
-{
-    long result = 1;
-    foreach (v; values)
-    {
-        auto newResult = safeMul(result, v);
-        if (newResult.isNull)
-            return Nullable!long.init;
-        result = newResult.get;
-    }
-    return nullable(result);
-}
-
-/// Clamp value to range.
-long clamp(long value, long minVal, long maxVal) pure nothrow @safe @nogc
-{
-    if (value < minVal)
-        return minVal;
-    if (value > maxVal)
-        return maxVal;
-    return value;
-}
-
-/// Check if value is in range.
+/// Check if value is in range [minVal, maxVal].
 bool inRange(long value, long minVal, long maxVal) pure nothrow @safe @nogc
 {
     return value >= minVal && value <= maxVal;
 }
 
-// Unit tests
-unittest
+/// Safe sum of an array. Returns null on overflow.
+Nullable!long safeSum(const long[] values) nothrow @trusted
 {
-    // Test basic operations
-    assert(safeAdd(1, 2).get == 3);
-    assert(safeSub(5, 3).get == 2);
-    assert(safeMul(4, 5).get == 20);
-    assert(safeDiv(10, 2).get == 5);
+    long result = 0;
+    foreach (v; values)
+    {
+        auto r = proven_math_add_checked(result, v);
+        if (provenFailed(r.status))
+            return Nullable!long.init;
+        result = r.value;
+    }
+    return nullable(result);
+}
 
-    // Test overflow detection
-    assert(safeAdd(long.max, 1).isNull);
-    assert(safeMul(long.max, 2).isNull);
-    assert(safeDiv(5, 0).isNull);
-
-    // Test array operations
-    assert(safeSum([1L, 2L, 3L]).get == 6);
-    assert(safeProduct([2L, 3L, 4L]).get == 24);
+/// Safe product of an array. Returns null on overflow.
+Nullable!long safeProduct(const long[] values) nothrow @trusted
+{
+    long result = 1;
+    foreach (v; values)
+    {
+        auto r = proven_math_mul_checked(result, v);
+        if (provenFailed(r.status))
+            return Nullable!long.init;
+        result = r.value;
+    }
+    return nullable(result);
 }

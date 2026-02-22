@@ -1,0 +1,127 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Proven Safety Library - Zsh Safe Math Functions
+#
+# Overflow-checked arithmetic that delegates to proven-cli.
+# Source this file or let proven.zsh auto-load it.
+
+# Safe addition with overflow checking.
+# Usage: proven-safe-add 10 20
+proven-safe-add() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-safe-add <a> <b>" >&2
+        return 1
+    fi
+    _proven_call math add "$1" "$2"
+}
+
+# Safe subtraction with underflow checking.
+# Usage: proven-safe-sub 30 10
+proven-safe-sub() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-safe-sub <a> <b>" >&2
+        return 1
+    fi
+    _proven_call math sub "$1" "$2"
+}
+
+# Safe multiplication with overflow checking.
+# Usage: proven-safe-mul 6 7
+proven-safe-mul() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-safe-mul <a> <b>" >&2
+        return 1
+    fi
+    _proven_call math mul "$1" "$2"
+}
+
+# Safe division (no division-by-zero crash).
+# Usage: proven-safe-div 100 3
+proven-safe-div() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-safe-div <a> <b>" >&2
+        return 1
+    fi
+    _proven_call math div "$1" "$2"
+}
+
+# Safe modulo (no division-by-zero crash).
+# Usage: proven-safe-mod 17 5
+proven-safe-mod() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-safe-mod <a> <b>" >&2
+        return 1
+    fi
+    _proven_call math mod "$1" "$2"
+}
+
+# Safe absolute value (handles MIN_INT correctly).
+# Usage: proven-safe-abs -42
+proven-safe-abs() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-safe-abs <n>" >&2
+        return 1
+    fi
+    _proven_call math abs "$1"
+}
+
+# Safe exponentiation with overflow checking.
+# Usage: proven-safe-pow 2 10
+proven-safe-pow() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-safe-pow <base> <exp>" >&2
+        return 1
+    fi
+    _proven_call math pow "$1" "$2"
+}
+
+# Clamp a value to [min, max] range.
+# Usage: proven-safe-clamp 0 100 150
+proven-safe-clamp() {
+    if [[ $# -ne 3 ]]; then
+        echo "Usage: proven-safe-clamp <min> <max> <value>" >&2
+        return 1
+    fi
+    _proven_call math clamp "$1" "$2" "$3"
+}
+
+# Safe float division.
+# Usage: proven-float-div 10.0 3.0
+proven-float-div() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-float-div <a> <b>" >&2
+        return 1
+    fi
+    _proven_call float div "$1" "$2"
+}
+
+# Safe square root (rejects negative inputs).
+# Usage: proven-float-sqrt 16.0
+proven-float-sqrt() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-float-sqrt <n>" >&2
+        return 1
+    fi
+    _proven_call float sqrt "$1"
+}
+
+# Safe natural logarithm (rejects non-positive inputs).
+# Usage: proven-float-ln 2.718
+proven-float-ln() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-float-ln <n>" >&2
+        return 1
+    fi
+    _proven_call float ln "$1"
+}
+
+# Evaluate an arithmetic expression safely.
+# Usage: proven-calc-eval "2 + 3 * 4"
+proven-calc-eval() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-calc-eval <expression>" >&2
+        return 1
+    fi
+    _proven_call calculator eval "$1"
+}

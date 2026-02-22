@@ -1,0 +1,44 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- safe_email.jtv - Email validation for Julia the Viper
+--
+-- Data-plane module: Email validation is delegated to libproven's
+-- formally verified Idris 2 core via the FFI bridge. No validation
+-- logic is reimplemented in JTV.
+--
+-- Email validation is a pure Data operation (returns bool, no allocation).
+--
+-- @module
+
+module Proven.SafeEmail
+
+import Proven.FFI (
+    proven_email_is_valid,
+    STATUS_OK
+)
+import Proven (DataResult, Ok, Err, ProvenError)
+
+-- ---------------------------------------------------------------------------
+-- Data-plane: Email Validation
+-- ---------------------------------------------------------------------------
+
+-- Validate an email address (RFC 5321/5322).
+-- This is a pure Data operation: returns true/false without allocation.
+-- Delegates to proven_email_is_valid via FFI.
+fn is_valid_email(email: *u8, len: usize) -> DataResult<bool>:
+    let result = proven_email_is_valid(email, len)
+    if result.status == STATUS_OK:
+        return Ok(result.value != 0)
+    else:
+        return Err({ code: result.status, message: "Email validation FFI error" })
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Convenience wrapper for JTV string type
+-- ---------------------------------------------------------------------------
+
+-- Validate an email address from a JTV string.
+-- Control-plane helper that extracts pointer/length from a JTV string
+-- and delegates to the Data-plane is_valid_email function.
+fn validate_email_str(email_str: [u8]) -> DataResult<bool>:
+    return is_valid_email(email_str.ptr(), email_str.len())

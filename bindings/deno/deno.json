@@ -1,10 +1,10 @@
 {
   "name": "@hyperpolymath/proven",
   "version": "0.9.0",
-  "license": "PMPL-1.0",
+  "license": "PMPL-1.0-or-later",
   "exports": "./mod.ts",
   "tasks": {
-    "test": "deno test --allow-read",
+    "test": "deno test --allow-read --allow-ffi --allow-env",
     "fmt": "deno fmt",
     "lint": "deno lint"
   },

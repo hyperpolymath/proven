@@ -279,32 +279,16 @@ column n csv = mapMaybe (getAt n) csv
 ||| Get a column by header name
 public export
 columnByName : String -> CSV -> List String
-columnByName _ [] = Nothing
-columnByName name (headerRow :: dataRows) =
-  case findIndex (== name) headerRow of
+columnByName _ [] = []
+columnByName name (headerRow :: rows) =
+  case findPos 0 headerRow of
     Nothing => []
-    Just idx => column (finToNat idx) dataRows
+    Just idx => column idx rows
   where
-    findIndex : (a -> Bool) -> List a -> Maybe (Fin (length (headerRow)))
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    findIndex = believe_me -- Simplified
+    ||| Find the position of the first element satisfying a predicate
+    findPos : Nat -> List String -> Maybe Nat
+    findPos _ [] = Nothing
+    findPos n (x :: xs) = if x == name then Just n else findPos (S n) xs
 
 ||| Filter rows by predicate
 public export

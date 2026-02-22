@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Proven Safety Library - Zsh Crypto Functions
+#
+# Cryptographic primitives and encoding functions that delegate to proven-cli.
+# Source this file or let proven.zsh auto-load it.
+
+# Compute SHA-256 hash of input.
+# Usage: proven-hash-sha256 "hello world"
+proven-hash-sha256() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-hash-sha256 <input>" >&2
+        return 1
+    fi
+    _proven_call crypto sha256 "$1"
+}
+
+# Constant-time string comparison (timing-attack safe).
+# Usage: proven-constant-time-eq "secret" "guess"
+proven-constant-time-eq() {
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: proven-constant-time-eq <a> <b>" >&2
+        return 1
+    fi
+    _proven_call crypto constant-time-eq "$1" "$2"
+}
+
+# Generate random bytes (hex-encoded).
+# Usage: proven-random-hex 32
+proven-random-hex() {
+    local nbytes="${1:-32}"
+    _proven_call crypto random-bytes "$nbytes"
+}
+
+# Compute CRC32 checksum.
+# Usage: proven-checksum-crc32 "data"
+proven-checksum-crc32() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-checksum-crc32 <input>" >&2
+        return 1
+    fi
+    _proven_call checksum crc32 "$1"
+}
+
+# Encode a string to hexadecimal.
+# Usage: proven-hex-encode "Hello"
+proven-hex-encode() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-hex-encode <input>" >&2
+        return 1
+    fi
+    _proven_call hex encode "$1"
+}
+
+# Decode hexadecimal to string.
+# Usage: proven-hex-decode "48656c6c6f"
+proven-hex-decode() {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: proven-hex-decode <hex>" >&2
+        return 1
+    fi
+    _proven_call hex decode "$1"
+}

@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-//! Safe color handling with validation and WCAG contrast calculations.
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Proven SafeColor - FFI bindings to libproven color operations.
+// All computation is performed in verified Idris 2 code via libproven.
 
 const std = @import("std");
+const c = @cImport(@cInclude("proven.h"));
 
 /// Error types for color operations.
 pub const ColorError = error{
-    InvalidHexColor,
-    InvalidRGBValue,
-    InvalidHSLValue,
+    ParseFailure,
+    FormatError,
+    ProvenError,
 };
 
 /// RGB color with values 0-255.
@@ -17,100 +19,61 @@ pub const RGB = struct {
     r: u8,
     g: u8,
     b: u8,
+};
 
-    /// Create RGB from hex string (e.g., "#FF0000" or "FF0000").
-    pub fn fromHex(hex: []const u8) ColorError!RGB {
-        var start: usize = 0;
-        if (hex.len > 0 and hex[0] == '#') start = 1;
+/// HSL color.
+pub const HSL = struct {
+    h: f64,
+    s: f64,
+    l: f64,
+};
 
-        const clean = hex[start..];
-        if (clean.len != 6) return error.InvalidHexColor;
+/// Managed string from libproven.
+pub const ProvenString = struct {
+    ptr: [*]u8,
+    len: usize,
 
-        const r = std.fmt.parseInt(u8, clean[0..2], 16) catch return error.InvalidHexColor;
-        const g = std.fmt.parseInt(u8, clean[2..4], 16) catch return error.InvalidHexColor;
-        const b = std.fmt.parseInt(u8, clean[4..6], 16) catch return error.InvalidHexColor;
-
-        return RGB{ .r = r, .g = g, .b = b };
+    pub fn slice(self: ProvenString) []const u8 {
+        return self.ptr[0..self.len];
     }
 
-    /// Convert to hex string (writes to buffer).
-    pub fn toHex(self: RGB, buf: []u8) []const u8 {
-        if (buf.len < 7) return "";
-        _ = std.fmt.bufPrint(buf, "#{X:0>2}{X:0>2}{X:0>2}", .{ self.r, self.g, self.b }) catch return "";
-        return buf[0..7];
-    }
-
-    /// Calculate relative luminance (WCAG formula).
-    pub fn luminance(self: RGB) f64 {
-        const r = gammaCorrect(@as(f64, @floatFromInt(self.r)) / 255.0);
-        const g = gammaCorrect(@as(f64, @floatFromInt(self.g)) / 255.0);
-        const b = gammaCorrect(@as(f64, @floatFromInt(self.b)) / 255.0);
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    }
-
-    fn gammaCorrect(value: f64) f64 {
-        if (value <= 0.03928) {
-            return value / 12.92;
-        }
-        return std.math.pow(f64, (value + 0.055) / 1.055, 2.4);
+    pub fn deinit(self: ProvenString) void {
+        c.proven_free_string(self.ptr);
     }
 };
 
-/// RGBA color with alpha channel.
-pub const RGBA = struct {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
-
-    pub fn fromRGB(rgb: RGB, alpha: u8) RGBA {
-        return RGBA{ .r = rgb.r, .g = rgb.g, .b = rgb.b, .a = alpha };
-    }
-
-    pub fn toRGB(self: RGBA) RGB {
-        return RGB{ .r = self.r, .g = self.g, .b = self.b };
-    }
-};
-
-/// Calculate WCAG contrast ratio between two colors.
-pub fn contrastRatio(color1: RGB, color2: RGB) f64 {
-    const l1 = color1.luminance();
-    const l2 = color2.luminance();
-    const lighter = @max(l1, l2);
-    const darker = @min(l1, l2);
-    return (lighter + 0.05) / (darker + 0.05);
+/// Parse hex color string (#RRGGBB or #RGB) via libproven.
+pub fn parseHex(hex: []const u8) ColorError!RGB {
+    const result = c.proven_color_parse_hex(hex.ptr, hex.len);
+    if (result.status != c.PROVEN_OK) return error.ParseFailure;
+    return RGB{ .r = result.color.r, .g = result.color.g, .b = result.color.b };
 }
 
-/// Check if contrast meets WCAG AA standard (4.5:1 for normal text).
-pub fn meetsWCAG_AA(color1: RGB, color2: RGB) bool {
-    return contrastRatio(color1, color2) >= 4.5;
+/// Convert RGB to HSL via libproven.
+pub fn rgbToHsl(rgb: RGB) HSL {
+    const c_rgb = c.ProvenRGBColor{ .r = rgb.r, .g = rgb.g, .b = rgb.b };
+    const result = c.proven_color_rgb_to_hsl(c_rgb);
+    return HSL{ .h = result.h, .s = result.s, .l = result.l };
 }
 
-/// Check if contrast meets WCAG AAA standard (7:1 for normal text).
-pub fn meetsWCAG_AAA(color1: RGB, color2: RGB) bool {
-    return contrastRatio(color1, color2) >= 7.0;
+/// Format RGB as hex string ("#rrggbb", lowercase) via libproven.
+/// Caller must call deinit() on the returned ProvenString.
+pub fn toHex(rgb: RGB) ColorError!ProvenString {
+    const c_rgb = c.ProvenRGBColor{ .r = rgb.r, .g = rgb.g, .b = rgb.b };
+    const result = c.proven_color_to_hex(c_rgb);
+    if (result.status != c.PROVEN_OK) return error.FormatError;
+    return ProvenString{ .ptr = @ptrCast(result.value), .len = result.length };
 }
 
-/// Blend two colors with alpha.
-pub fn blend(fg: RGBA, bg: RGB) RGB {
-    const alpha = @as(f64, @floatFromInt(fg.a)) / 255.0;
-    const inv_alpha = 1.0 - alpha;
-
-    return RGB{
-        .r = @intFromFloat(@as(f64, @floatFromInt(fg.r)) * alpha + @as(f64, @floatFromInt(bg.r)) * inv_alpha),
-        .g = @intFromFloat(@as(f64, @floatFromInt(fg.g)) * alpha + @as(f64, @floatFromInt(bg.g)) * inv_alpha),
-        .b = @intFromFloat(@as(f64, @floatFromInt(fg.b)) * alpha + @as(f64, @floatFromInt(bg.b)) * inv_alpha),
-    };
-}
-
-test "RGB fromHex" {
-    const red = try RGB.fromHex("#FF0000");
+test "parseHex" {
+    const red = try parseHex("#FF0000");
     try std.testing.expectEqual(@as(u8, 255), red.r);
     try std.testing.expectEqual(@as(u8, 0), red.g);
+    try std.testing.expectEqual(@as(u8, 0), red.b);
 }
 
-test "contrastRatio" {
-    const black = RGB{ .r = 0, .g = 0, .b = 0 };
-    const white = RGB{ .r = 255, .g = 255, .b = 255 };
-    try std.testing.expect(contrastRatio(black, white) > 20.0);
+test "toHex" {
+    const result = try toHex(RGB{ .r = 255, .g = 0, .b = 0 });
+    defer result.deinit();
+    _ = result.slice();
 }

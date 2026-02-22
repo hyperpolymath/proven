@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+= Maintainers
+:toc: macro
+:toclevels: 2
+
+== Project Lead
+
+[cols="1,2,2,1"]
+|===
+| Name | Email | GitHub | Role
+
+| Jonathan D.A. Jewell
+| jonathan.jewell@open.ac.uk
+| https://github.com/hyperpolymath[@hyperpolymath]
+| Creator & Lead Maintainer
+|===
+
+== Responsibilities
+
+=== Core Library (`src/Proven/`)
+
+All 104 verified Idris2 modules with dependent type proofs.
+
+* **Primary:** Jonathan D.A. Jewell
+
+=== Zig FFI Bridge (`ffi/zig/`)
+
+Pure C ABI bridge layer connecting Idris2 RefC output to language bindings.
+
+* **Primary:** Jonathan D.A. Jewell
+
+=== Language Bindings (`bindings/`)
+
+120+ language binding targets. Thin wrappers only — no reimplemented logic.
+
+* **Primary:** Jonathan D.A. Jewell
+
+=== Security & Contracts (`contractiles/`, `Trustfile.a2ml`)
+
+Security specifications, threat models, and policy enforcement.
+
+* **Primary:** Jonathan D.A. Jewell
+
+=== CI/CD & Automation (`.github/workflows/`, `.bot_directives/`)
+
+27 GitHub Actions workflows plus bot orchestration directives.
+
+* **Primary:** Jonathan D.A. Jewell
+
+== Automated Agents
+
+The following bots operate on this repository under human oversight:
+
+[cols="1,3"]
+|===
+| Agent | Purpose
+
+| echidnabot | Proof verification automation — flags `believe_me`, `assert_total`, `sorry`
+| rhodibot | Rhodium Standard Repository compliance enforcement
+| finishbot | Code completion and polishing
+| glambot | Code formatting and beautification
+| seambot | Cross-repo integration
+| sustainabot | Sustainability and dependency health
+| robot-repo-automaton | Automated fixes with confidence thresholds
+|===
+
+== Contact
+
+* **Security issues:** security@hyperpolymath.org (see `SECURITY.md`)
+* **General questions:** Open a GitHub issue or discussion
+* **License inquiries:** jonathan.jewell@open.ac.uk
+
+== License
+
+This project is licensed under PMPL-1.0-or-later (Palimpsest License).

@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 Module {
 	name: 'proven'
-	description: 'Safe, verified operations for V - 38 modules providing bulletproof error handling'
-	version: '0.4.0'
-	license: 'PMPL-1.0'
+	description: 'V bindings for libproven - formally verified safe operations via FFI'
+	version: '0.9.0'
+	license: 'PMPL-1.0-or-later'
 	repo_url: 'https://github.com/hyperpolymath/proven'
 	dependencies: []
 }

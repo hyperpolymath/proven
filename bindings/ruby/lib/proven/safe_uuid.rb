@@ -1,180 +1,67 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
-require "securerandom"
+# Safe UUID operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
 
 module Proven
-  # Safe UUID generation and validation following RFC 4122.
   module SafeUuid
-    # UUID version types.
-    module Version
-      V1 = 1  # Time-based
-      V2 = 2  # DCE Security
-      V3 = 3  # Name-based (MD5)
-      V4 = 4  # Random
-      V5 = 5  # Name-based (SHA-1)
-      NIL = 0 # Nil UUID
-    end
-
-    # UUID variant types.
-    module Variant
-      NCS = :ncs
-      RFC4122 = :rfc4122
-      MICROSOFT = :microsoft
-      FUTURE = :future
-    end
-
-    # Represents a validated UUID (128 bits).
-    class Uuid
-      # The nil UUID (all zeros).
-      NIL = new([0] * 16)
-
-      # DNS namespace UUID.
-      NAMESPACE_DNS = new([
-        0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1,
-        0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
-      ])
-
-      # URL namespace UUID.
-      NAMESPACE_URL = new([
-        0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1,
-        0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
-      ])
-
-      attr_reader :bytes
-
-      # Create UUID from bytes.
-      #
-      # @param bytes [Array<Integer>] 16 bytes
-      def initialize(bytes)
-        @bytes = bytes.dup.freeze
-      end
-
-      # Get the UUID version.
-      #
-      # @return [Integer]
-      def version
-        version_nibble = (@bytes[6] >> 4) & 0x0F
-        case version_nibble
-        when 1 then Version::V1
-        when 2 then Version::V2
-        when 3 then Version::V3
-        when 4 then Version::V4
-        when 5 then Version::V5
-        else Version::NIL
-        end
-      end
-
-      # Get the UUID variant.
-      #
-      # @return [Symbol]
-      def variant
-        byte = @bytes[8]
-        if (byte >> 7).zero?
-          Variant::NCS
-        elsif (byte >> 6) == 0b10
-          Variant::RFC4122
-        elsif (byte >> 5) == 0b110
-          Variant::MICROSOFT
-        else
-          Variant::FUTURE
-        end
-      end
-
-      # Check if this is the nil UUID.
-      #
-      # @return [Boolean]
-      def nil_uuid?
-        @bytes.all?(&:zero?)
-      end
-
-      # Format as canonical string.
-      #
-      # @return [String]
-      def to_s
-        hex = @bytes.map { |b| format("%02x", b) }.join
-        "#{hex[0, 8]}-#{hex[8, 4]}-#{hex[12, 4]}-#{hex[16, 4]}-#{hex[20, 12]}"
-      end
-
-      # Format as URN.
-      #
-      # @return [String]
-      def to_urn
-        "urn:uuid:#{self}"
-      end
-
-      # Equality check.
-      #
-      # @param other [Uuid]
-      # @return [Boolean]
-      def ==(other)
-        return false unless other.is_a?(Uuid)
-
-        @bytes == other.bytes
-      end
-
-      alias eql? ==
-
-      # Hash for use in collections.
-      #
-      # @return [Integer]
-      def hash
-        @bytes.hash
-      end
-    end
-
     class << self
-      # Parse UUID from canonical string format.
+      # Generate a v4 (random) UUID string.
+      # Returns nil on error.
       #
-      # @param uuid_string [String]
-      # @return [Uuid, nil]
-      def parse(uuid_string)
-        return nil unless uuid_string.is_a?(String)
-        return nil unless uuid_string.length == 36
-
-        chars = uuid_string.chars
-        return nil unless chars[8] == "-" && chars[13] == "-" && chars[18] == "-" && chars[23] == "-"
-
-        hex_string = uuid_string.delete("-")
-        return nil unless hex_string.length == 32
-        return nil unless hex_string.match?(/\A[0-9a-fA-F]+\z/)
-
-        bytes = hex_string.scan(/../).map { |pair| pair.to_i(16) }
-        Uuid.new(bytes)
-      end
-
-      # Parse UUID, raising on failure.
-      #
-      # @param uuid_string [String]
-      # @return [Uuid]
-      # @raise [ArgumentError]
-      def parse!(uuid_string)
-        result = parse(uuid_string)
-        raise ArgumentError, "Invalid UUID format: #{uuid_string}" if result.nil?
-
-        result
-      end
-
-      # Generate a v4 (random) UUID.
-      #
-      # @return [Uuid]
+      # @return [String, nil] canonical UUID string (e.g., "550e8400-...")
       def v4
-        random_bytes = SecureRandom.random_bytes(16).bytes
-        v4_from_bytes(random_bytes)
+        # UUIDResult = { i32 status, [16]u8 uuid_bytes } = 20 bytes
+        buf = Fiddle::Pointer.malloc(24, Fiddle::RUBY_FREE)
+
+        fn = Fiddle::Function.new(
+          FFI.handler["proven_uuid_v4"],
+          [Fiddle::TYPE_VOIDP],
+          Fiddle::TYPE_VOID,
+          need_gvl: true
+        )
+        fn.call(buf)
+
+        packed = buf.to_str(20)
+        status = packed[0, 4].unpack1("l!")
+        return nil unless status == FFI::STATUS_OK
+
+        uuid_bytes = packed[4, 16]
+        uuid_to_string(uuid_bytes)
+      rescue Fiddle::DLError, TypeError
+        nil
       end
 
-      # Generate a v4 UUID from provided random bytes.
+      # Parse a UUID string, returning the canonical form.
+      # Returns nil on invalid input.
       #
-      # @param random_bytes [Array<Integer>] 16 bytes
-      # @return [Uuid]
-      def v4_from_bytes(random_bytes)
-        bytes = random_bytes.dup
-        # Set version to 4
-        bytes[6] = (bytes[6] & 0x0F) | 0x40
-        # Set variant to RFC 4122
-        bytes[8] = (bytes[8] & 0x3F) | 0x80
-        Uuid.new(bytes)
+      # @param uuid_string [String]
+      # @return [String, nil]
+      def parse(uuid_string)
+        return nil if uuid_string.nil?
+        ptr, len = FFI.str_to_ptr(uuid_string)
+
+        # UUIDResult = { i32 status, [16]u8 uuid } = 20 bytes
+        buf = Fiddle::Pointer.malloc(24, Fiddle::RUBY_FREE)
+
+        fn = Fiddle::Function.new(
+          FFI.handler["proven_uuid_parse"],
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          Fiddle::TYPE_VOID,
+          need_gvl: true
+        )
+        fn.call(buf, ptr, len)
+
+        packed = buf.to_str(20)
+        status = packed[0, 4].unpack1("l!")
+        return nil unless status == FFI::STATUS_OK
+
+        uuid_bytes = packed[4, 16]
+        uuid_to_string(uuid_bytes)
+      rescue Fiddle::DLError, TypeError
+        nil
       end
 
       # Check if string is valid UUID format.
@@ -185,27 +72,61 @@ module Proven
         !parse(uuid_string).nil?
       end
 
-      # Format a UUID as canonical string.
+      # Check if a UUID is the nil UUID (all zeros).
       #
-      # @param uuid [Uuid]
-      # @return [String]
-      def format(uuid)
-        uuid.to_s
+      # @param uuid_string [String]
+      # @return [Boolean, nil]
+      def nil_uuid?(uuid_string)
+        parsed = parse(uuid_string)
+        return nil if parsed.nil?
+        parsed == "00000000-0000-0000-0000-000000000000"
       end
 
-      # Format a UUID as URN.
+      # Get the version of a parsed UUID.
       #
-      # @param uuid [Uuid]
-      # @return [String]
-      def format_urn(uuid)
-        uuid.to_urn
+      # @param uuid_string [String]
+      # @return [Integer, nil]
+      def version(uuid_string)
+        parsed_bytes = parse_to_bytes(uuid_string)
+        return nil if parsed_bytes.nil?
+
+        # Pack bytes and call proven_uuid_version
+        packed_uuid = parsed_bytes.pack("C16")
+        uuid_ptr = Fiddle::Pointer.to_ptr(packed_uuid)
+
+        # UUID is passed as 16 bytes (struct by value), but since it's
+        # exactly 16 bytes, on x86_64 it fits in two registers.
+        # Use the int-based approach: pass as two i64 values.
+        high = parsed_bytes[0, 8].pack("C8").unpack1("Q>")
+        low = parsed_bytes[8, 8].pack("C8").unpack1("Q>")
+
+        FFI.invoke_u8(
+          "proven_uuid_version",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [high, low]
+        )
+      rescue Fiddle::DLError, TypeError
+        nil
       end
 
-      # Create nil UUID.
-      #
-      # @return [Uuid]
-      def nil_uuid
-        Uuid::NIL
+      private
+
+      # Format 16 bytes as canonical UUID string.
+      def uuid_to_string(bytes)
+        hex = bytes.unpack1("H*")
+        "#{hex[0, 8]}-#{hex[8, 4]}-#{hex[12, 4]}-#{hex[16, 4]}-#{hex[20, 12]}"
+      end
+
+      # Parse UUID string into byte array (for passing to C).
+      def parse_to_bytes(uuid_string)
+        return nil if uuid_string.nil?
+        return nil unless uuid_string.length == 36
+
+        hex = uuid_string.delete("-")
+        return nil unless hex.length == 32
+        return nil unless hex.match?(/\A[0-9a-fA-F]+\z/)
+
+        hex.scan(/../).map { |pair| pair.to_i(16) }
       end
     end
   end

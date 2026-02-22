@@ -1,138 +1,83 @@
 ! SPDX-License-Identifier: PMPL-1.0-or-later
-! SPDX-FileCopyrightText: 2025 Hyperpolymath
+! Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 !
 ! Proven SafePath - Directory traversal prevention for Fortran
 !
+! Thin wrapper around libproven's verified SafePath module.
+! All path analysis is executed in the Idris 2 core via the Zig FFI
+! bridge; this module only marshals Fortran strings to/from C pointers.
+!
+! Link with: -lproven
 
 module safe_path
+    use, intrinsic :: iso_c_binding
+    use proven_ffi
     implicit none
     private
 
-    !> Path result type
+    !> Result type for path operations
     type, public :: PathResult
-        character(len=1024) :: path = ''
-        character(len=256) :: error = ''
-        logical :: ok = .false.
+        character(len=:), allocatable :: path
+        logical                      :: ok     = .false.
+        integer(c_int32_t)           :: status = PROVEN_ERR_NOT_IMPLEMENTED
     end type PathResult
 
-    public :: has_traversal, sanitize_filename, safe_path_join, contains_string
+    public :: has_traversal, sanitize_filename
 
 contains
 
-    !> Check if path contains traversal patterns
+    ! =========================================================================
+    ! Check for directory traversal sequences  ->  proven_path_has_traversal
+    ! =========================================================================
     function has_traversal(path) result(is_dangerous)
         character(len=*), intent(in) :: path
         logical :: is_dangerous
-        character(len=:), allocatable :: lower_path
+        character(len=len_trim(path), kind=c_char), target :: c_buf
+        type(c_proven_bool_result) :: c_res
+        integer :: trimmed_len
 
-        is_dangerous = .false.
-        lower_path = to_lower_string(path)
+        trimmed_len = len_trim(path)
+        c_buf = path(1:trimmed_len)
 
-        ! Check for ".."
-        if (contains_string(path, '..')) then
+        c_res = proven_path_has_traversal(c_loc(c_buf), int(trimmed_len, c_size_t))
+
+        if (c_res%status == PROVEN_OK) then
+            is_dangerous = logical(c_res%value)
+        else
+            ! Conservative default: treat as dangerous on error
             is_dangerous = .true.
-            return
-        end if
-
-        ! Check for "./"
-        if (contains_string(path, './')) then
-            is_dangerous = .true.
-            return
-        end if
-
-        ! Check for URL-encoded ".." (%2e%2e)
-        if (contains_string(lower_path, '%2e%2e')) then
-            is_dangerous = .true.
-            return
-        end if
-
-        ! Check for null byte (%00)
-        if (contains_string(lower_path, '%00')) then
-            is_dangerous = .true.
-            return
         end if
     end function has_traversal
 
-    !> Sanitize filename by removing dangerous characters
+    ! =========================================================================
+    ! Sanitize filename  ->  proven_path_sanitize_filename
+    ! =========================================================================
     function sanitize_filename(input) result(output)
         character(len=*), intent(in) :: input
         character(len=:), allocatable :: output
-        integer :: i, pos
-        character(len=1) :: c
-        character(len=1024) :: buffer
+        character(len=len_trim(input), kind=c_char), target :: c_buf
+        type(c_proven_string_result) :: c_res
+        character(len=1, kind=c_char), pointer :: f_ptr(:)
+        integer :: trimmed_len
 
-        buffer = ''
-        pos = 1
+        trimmed_len = len_trim(input)
+        c_buf = input(1:trimmed_len)
 
-        do i = 1, len_trim(input)
-            c = input(i:i)
-            select case (c)
-                case ('/', '\', ':', '*', '?', '"', '<', '>', '|')
-                    buffer(pos:pos) = '_'
-                    pos = pos + 1
-                case default
-                    buffer(pos:pos) = c
-                    pos = pos + 1
-            end select
-        end do
+        c_res = proven_path_sanitize_filename(c_loc(c_buf), int(trimmed_len, c_size_t))
 
-        output = trim(buffer(1:pos-1))
-    end function sanitize_filename
-
-    !> Safely join base path with filename
-    function safe_path_join(base, filename) result(res)
-        character(len=*), intent(in) :: base, filename
-        type(PathResult) :: res
-        character(len=:), allocatable :: sanitized
-
-        ! Check for traversal in filename
-        if (has_traversal(filename)) then
-            res%ok = .false.
-            res%error = 'Path traversal detected in filename'
-            return
-        end if
-
-        ! Sanitize the filename
-        sanitized = sanitize_filename(filename)
-
-        ! Join paths
-        if (len_trim(base) > 0) then
-            if (base(len_trim(base):len_trim(base)) == '/') then
-                res%path = trim(base) // trim(sanitized)
-            else
-                res%path = trim(base) // '/' // trim(sanitized)
-            end if
+        if (c_res%status == PROVEN_OK .and. c_associated(c_res%value)) then
+            call c_f_pointer(c_res%value, f_ptr, [c_res%length])
+            allocate(character(len=c_res%length) :: output)
+            block
+                integer :: i
+                do i = 1, int(c_res%length)
+                    output(i:i) = f_ptr(i)
+                end do
+            end block
+            call proven_free_string(c_res%value)
         else
-            res%path = trim(sanitized)
+            output = input(1:trimmed_len)
         end if
-
-        res%ok = .true.
-    end function safe_path_join
-
-    !> Check if string contains substring
-    pure function contains_string(str, substr) result(found)
-        character(len=*), intent(in) :: str, substr
-        logical :: found
-
-        found = index(str, substr) > 0
-    end function contains_string
-
-    !> Convert string to lowercase
-    function to_lower_string(input) result(output)
-        character(len=*), intent(in) :: input
-        character(len=:), allocatable :: output
-        integer :: i
-        character(len=1) :: c
-
-        allocate(character(len=len(input)) :: output)
-        output = input
-
-        do i = 1, len(input)
-            c = input(i:i)
-            if (c >= 'A' .and. c <= 'Z') then
-                output(i:i) = achar(iachar(c) + 32)
-            end if
-        end do
-    end function to_lower_string
+    end function sanitize_filename
 
 end module safe_path

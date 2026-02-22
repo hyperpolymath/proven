@@ -1,0 +1,151 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- | Proven - FFI bindings to libproven (Idris 2 verified safety library)
+-- for Error-Lang.
+--
+-- Error-Lang specializes in formally verified error handling with dependent
+-- types. This module provides the core error types and result wrappers that
+-- all Proven modules build upon.
+--
+-- All computation is performed in Idris 2 via the Zig FFI layer.
+-- NO safety logic is reimplemented in Error-Lang.
+--
+-- Architecture:
+--   Error-Lang (.err)
+--     |  @foreign("C", ...)
+--     v
+--   libproven.so (Zig FFI layer)
+--     |  Zig -> Idris2 RefC calls
+--     v
+--   Idris 2 (dependent types, totality checking)
+
+module Proven
+
+import Proven.FFI
+import Proven.SafeMath
+import Proven.SafeString
+import Proven.SafeEmail
+import Proven.SafeUrl
+import Proven.SafeCrypto
+import Proven.SafeJson
+
+-- ============================================================================
+-- Core dependent error type for Proven operations
+-- ============================================================================
+
+-- | ProvenError is a dependent error type enumerating all possible failure
+-- modes from the libproven C ABI. Each variant carries the semantic meaning
+-- of the failure, enabling exhaustive pattern matching in error handlers.
+error_type ProvenError =
+  | Overflow            -- ^ Arithmetic overflow (status -3)
+  | Underflow           -- ^ Arithmetic underflow (status -4)
+  | DivByZero           -- ^ Division by zero (status -5)
+  | NullPointer         -- ^ Null pointer passed (status -1)
+  | InvalidArgument     -- ^ Invalid argument (status -2)
+  | ParseFailure        -- ^ Parse failure (status -6)
+  | ValidationFailed    -- ^ Validation failed (status -7)
+  | OutOfBounds         -- ^ Index out of bounds (status -8)
+  | EncodingError       -- ^ Encoding error (status -9)
+  | AllocationFailed    -- ^ Memory allocation failed (status -10)
+  | NotImplemented      -- ^ Feature not implemented (status -99)
+  | UnknownError(Int32) -- ^ Unrecognized status code
+
+-- | Convert a raw C ABI status code to a ProvenError.
+-- This function is total: every possible Int32 maps to exactly one error.
+fn status_to_error(code : Int32) -> ProvenError =
+  match code with
+  | -1  => NullPointer
+  | -2  => InvalidArgument
+  | -3  => Overflow
+  | -4  => Underflow
+  | -5  => DivByZero
+  | -6  => ParseFailure
+  | -7  => ValidationFailed
+  | -8  => OutOfBounds
+  | -9  => EncodingError
+  | -10 => AllocationFailed
+  | -99 => NotImplemented
+  | n   => UnknownError(n)
+
+-- ============================================================================
+-- Proven<T, E> result type
+-- ============================================================================
+
+-- | The core result type for all Proven operations.
+-- Proven<T, ProvenError> is the canonical return type, combining a success
+-- value of type T with a dependent error type E.
+type Proven<T, E> =
+  | Ok(T)
+  | Err(E)
+
+-- | Convert an FFI IntResult into a Proven<Int64, ProvenError>.
+fn int_result_to_proven(ir : FFI.IntResult) -> Proven<Int64, ProvenError> =
+  match ir.status with
+  | 0 => Ok(ir.value)
+  | s => Err(status_to_error(s))
+
+-- | Convert an FFI BoolResult into a Proven<Bool, ProvenError>.
+fn bool_result_to_proven(br : FFI.BoolResult) -> Proven<Bool, ProvenError> =
+  match br.status with
+  | 0 => Ok(br.value != 0)
+  | s => Err(status_to_error(s))
+
+-- | Convert an FFI FloatResult into a Proven<Float64, ProvenError>.
+fn float_result_to_proven(fr : FFI.FloatResult) -> Proven<Float64, ProvenError> =
+  match fr.status with
+  | 0 => Ok(fr.value)
+  | s => Err(status_to_error(s))
+
+-- | Convert an FFI StringResult into a Proven<String, ProvenError>,
+-- freeing the C-allocated string after copying.
+fn string_result_to_proven(sr : FFI.StringResult) -> Proven<String, ProvenError> =
+  match sr.status with
+  | 0 =>
+    let result = string_from_ptr(sr.ptr, sr.len)
+    FFI.proven_free_string(sr.ptr)
+    Ok(result)
+  | s => Err(status_to_error(s))
+
+-- ============================================================================
+-- Lifecycle management
+-- ============================================================================
+
+-- | Initialize the Proven runtime. Must be called before any other function.
+-- Returns Ok(()) on success.
+fn init() -> Proven<Unit, ProvenError> =
+  let status = FFI.proven_init()
+  match status with
+  | 0 => Ok(())
+  | s => Err(status_to_error(s))
+
+-- | Deinitialize the Proven runtime. Call when done.
+fn deinit() -> Unit =
+  FFI.proven_deinit()
+
+-- | Check if the Proven runtime is initialized.
+fn is_initialized() -> Bool =
+  FFI.proven_is_initialized()
+
+-- | Get the library version as a tuple (major, minor, patch).
+fn version() -> (UInt32, UInt32, UInt32) =
+  (FFI.proven_version_major(), FFI.proven_version_minor(), FFI.proven_version_patch())
+
+-- | Get the FFI ABI version for compatibility checking.
+fn abi_version() -> UInt32 =
+  FFI.proven_ffi_abi_version()
+
+-- | Get the total module count in libproven.
+fn module_count() -> UInt32 =
+  FFI.proven_module_count()
+
+-- ============================================================================
+-- Re-exports
+-- ============================================================================
+
+export Proven.SafeMath.*
+export Proven.SafeString.*
+export Proven.SafeEmail.*
+export Proven.SafeUrl.*
+export Proven.SafeCrypto.*
+export Proven.SafeJson.*

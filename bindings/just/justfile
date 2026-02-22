@@ -1,0 +1,78 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Proven Safety Library - Just binding (main justfile)
+#
+# Command runner recipes that delegate ALL computation to proven-cli.
+# This file does NOT reimplement any logic -- every recipe shells out to
+# the proven-cli binary built from ffi/zig/.
+#
+# Prerequisites:
+#   - proven-cli must be on PATH, or set PROVEN_CLI env var
+#
+# Usage:
+#   just safe-add 10 20
+#   just validate-email "user@example.com"
+#   just hash-sha256 "hello world"
+
+# Import the modular proven.just recipes (can be used standalone too)
+import 'proven.just'
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+
+# Path to the proven-cli binary (override with env var)
+proven_cli := env("PROVEN_CLI", "proven-cli")
+
+# ---------------------------------------------------------------------------
+# Meta recipes
+# ---------------------------------------------------------------------------
+
+# List all available proven recipes
+[doc("Show all proven recipes")]
+default:
+    @just --list
+
+# Check that proven-cli is installed and reachable
+[doc("Verify proven-cli is available")]
+check:
+    @command -v {{ proven_cli }} >/dev/null 2>&1 \
+        && echo "proven-cli found: $(command -v {{ proven_cli }})" \
+        || (echo "ERROR: proven-cli not found. Install from ffi/zig/ or set PROVEN_CLI." && exit 1)
+
+# Show proven library version
+[doc("Display library version")]
+version:
+    @{{ proven_cli }} version info
+
+# Show available module count
+[doc("Display number of available modules")]
+module-count:
+    @{{ proven_cli }} version module-count
+
+# ---------------------------------------------------------------------------
+# Batch / pipeline helpers
+# ---------------------------------------------------------------------------
+
+# Run a raw proven-cli command (escape hatch)
+# Usage: just proven-raw math add 10 20
+[doc("Run an arbitrary proven-cli subcommand")]
+proven-raw +args:
+    @{{ proven_cli }} {{ args }}
+
+# Validate multiple emails from a file (one per line)
+[doc("Validate all emails listed in a file")]
+validate-emails-file file:
+    @while IFS= read -r addr; do \
+        printf '%s -> ' "$addr"; \
+        {{ proven_cli }} validate email "$addr" 2>&1 || true; \
+    done < "{{ file }}"
+
+# Validate multiple URLs from a file (one per line)
+[doc("Validate all URLs listed in a file")]
+validate-urls-file file:
+    @while IFS= read -r url; do \
+        printf '%s -> ' "$url"; \
+        {{ proven_cli }} validate url "$url" 2>&1 || true; \
+    done < "{{ file }}"

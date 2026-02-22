@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/// SafeString -- Affine wrappers around libproven string FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Results are affine (consumed at most once).
+/// String results from FFI are owned and freed correctly.
+
+module Proven.SafeString
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI StringResult into an affine Result[String, ProvenError].
+/// Owns the FFI-allocated string pointer and frees it after copying.
+fn string_result_to_result(result: own StringResult) -> Result[String, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    let s = string_from_raw(result.ptr, result.len);
+    extern_proven_free_string(result.ptr);
+    Ok(s)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Convert an FFI BoolResult into a Result[Bool, ProvenError].
+fn bool_result_to_result(result: BoolResult) -> Result[Bool, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value != 0)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Check if a byte sequence is valid UTF-8.
+/// Delegates to proven_string_is_valid_utf8 via FFI.
+fn is_valid_utf8(input: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(input);
+  bool_result_to_result(extern_proven_string_is_valid_utf8(ptr, len))
+}
+
+/// Escape a string for safe SQL interpolation.
+/// Delegates to proven_string_escape_sql via FFI.
+fn escape_sql(value: ref String) -> Result[String, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(value);
+  string_result_to_result(extern_proven_string_escape_sql(ptr, len))
+}
+
+/// Escape a string for safe HTML insertion (prevents XSS).
+/// Delegates to proven_string_escape_html via FFI.
+fn escape_html(value: ref String) -> Result[String, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(value);
+  string_result_to_result(extern_proven_string_escape_html(ptr, len))
+}
+
+/// Escape a string for safe JavaScript string literal insertion.
+/// Delegates to proven_string_escape_js via FFI.
+fn escape_js(value: ref String) -> Result[String, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(value);
+  string_result_to_result(extern_proven_string_escape_js(ptr, len))
+}

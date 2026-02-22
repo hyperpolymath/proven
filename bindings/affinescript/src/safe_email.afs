@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/// SafeEmail -- Affine wrappers around libproven email validation FFI.
+///
+/// All validation delegates to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Results are affine (consumed at most once).
+/// Prevents regex catastrophic backtracking.
+
+module Proven.SafeEmail
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI BoolResult into a Result[Bool, ProvenError].
+fn bool_result_to_result(result: BoolResult) -> Result[Bool, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value != 0)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Check if an email address is valid.
+/// Delegates to proven_email_is_valid via FFI.
+///
+/// This uses the formally verified implementation that cannot suffer
+/// from regex catastrophic backtracking.
+fn is_valid(email: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(email);
+  bool_result_to_result(extern_proven_email_is_valid(ptr, len))
+}
+
+/// Validate an email and return it if valid, or an error if not.
+/// Returns the email string unchanged on success for safe forwarding.
+fn validate(email: ref String) -> Result[String, own ProvenError] / Pure {
+  match is_valid(email) {
+    Err(e) => Err(e),
+    Ok(false) => Err(ProvenError {
+      code: -7,
+      message: "invalid email address"
+    }),
+    Ok(true) => Ok(string_clone(email))
+  }
+}

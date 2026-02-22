@@ -66,18 +66,21 @@ fromSegment seg = MkPath False [seg]
 
 ||| Parse string to path
 public export
-partial
 parsePath : String -> Path
 parsePath s =
   let isAbs = isPrefixOf "/" s || isWindowsAbsolute s
-      cleaned = if isAbs then assert_total (strTail s) else s
+      cleaned = if isAbs then strTailSafe s else s
       parts = filter (not . (== "")) (forget (split (== pathSeparator) cleaned))
   in MkPath isAbs parts
   where
+    strTailSafe : String -> String
+    strTailSafe str = case unpack str of
+      []        => ""
+      (_ :: cs) => pack cs
     isWindowsAbsolute : String -> Bool
-    isWindowsAbsolute str = length str >= 2 &&
-                            isAlpha (assert_total $ prim__strHead str) &&
-                            prim__strIndex str 1 == ':'
+    isWindowsAbsolute str = case unpack str of
+      (d :: ':' :: _) => isAlpha d
+      _               => False
 
 ||| Create path from segments
 public export

@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// | SafeEmail - Email validation via libproven FFI.
+//
+// MyLang's Result type captures validation failures with precise error
+// semantics. The Result<bool, ProvenError> return type forces callers
+// to handle both the validation result and potential FFI errors.
+//
+// All computation is performed in Idris 2 via the Zig FFI layer.
+// NO email validation logic is reimplemented in MyLang.
+
+module Proven.SafeEmail
+
+import Proven.FFI
+import Proven (ProvenError, Result, bool_result_to_proven)
+
+// ============================================================================
+// Email validation
+// ============================================================================
+
+// | Validate an email address against RFC 5321 (simplified).
+// Returns Ok(true) if the email is valid, Ok(false) if invalid.
+// Returns Err(NullPointer) if the input pointer is null.
+// Delegates to proven_email_is_valid in libproven.
+fn is_valid_email(email : String) -> Result<bool, ProvenError> =
+  let bytes = string_to_utf8(email)
+  bool_result_to_proven(
+    FFI.proven_email_is_valid(bytes.ptr, bytes.len)
+  )
+
+// | Validate an email address, returning a descriptive error on failure.
+// This is a convenience wrapper that maps Ok(false) to Err(ValidationFailed).
+fn validate_email(email : String) -> Result<String, ProvenError> =
+  match is_valid_email(email) {
+    Result::Ok(true)  => Result::Ok(email),
+    Result::Ok(false) => Result::Err(ProvenError::ValidationFailed),
+    Result::Err(e)    => Result::Err(e),
+  }
+
+// ============================================================================
+// MyLang specific: validated email type
+// ============================================================================
+
+// | A validated email address type. Can only be constructed through
+// the validate function, ensuring the email has passed RFC 5321 checks
+// in the Idris 2 verified core.
+type ValidatedEmail = struct private {
+  inner : String,
+}
+
+// | Get the string representation of a validated email.
+fn validated_email_to_string(email : ValidatedEmail) -> String =
+  email.inner
+
+// | Create a ValidatedEmail, returning an error if validation fails.
+// Uses the Idris 2 verified email validation via FFI.
+fn make_validated_email(email : String) -> Result<ValidatedEmail, ProvenError> =
+  match is_valid_email(email) {
+    Result::Ok(true)  => Result::Ok(ValidatedEmail { inner: email }),
+    Result::Ok(false) => Result::Err(ProvenError::ValidationFailed),
+    Result::Err(e)    => Result::Err(e),
+  }

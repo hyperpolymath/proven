@@ -12,6 +12,7 @@ module Proven.SafeFile.Types
 import Proven.Core
 import Data.List
 import Data.String
+import Decidable.Equality
 
 %default total
 
@@ -42,25 +43,9 @@ record SafePath where
 public export
 safePath : (p : String) -> Maybe SafePath
 safePath p =
-  if length (unpack p) <= maxPathLength
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    then Just (MkSafePath p (believe_me Refl))
-    else Nothing
+  case decEq (length (unpack p) <= maxPathLength) True of
+    Yes prf => Just (MkSafePath p prf)
+    No _    => Nothing
 
 ||| Get raw path string
 public export
@@ -80,25 +65,9 @@ record PathComponent where
 public export
 pathComponent : (c : String) -> Maybe PathComponent
 pathComponent c =
-  if length (unpack c) <= maxFilenameLength
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    then Just (MkPathComponent c (believe_me Refl))
-    else Nothing
+  case decEq (length (unpack c) <= maxFilenameLength) True of
+    Yes prf => Just (MkPathComponent c prf)
+    No _    => Nothing
 
 --------------------------------------------------------------------------------
 -- File Handle Types
@@ -175,25 +144,9 @@ record BoundedSize where
 public export
 boundedSize : (max : Nat) -> (n : Nat) -> Maybe BoundedSize
 boundedSize max n =
-  if n <= max
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    then Just (MkBoundedSize n max (believe_me Refl))
-    else Nothing
+  case decEq (n <= max) True of
+    Yes prf => Just (MkBoundedSize n max prf)
+    No _    => Nothing
 
 ||| Default read limit (64MB)
 public export
@@ -475,25 +428,9 @@ public export
 mkReadBuffer : (max : Nat) -> (content : String) -> Maybe ReadBuffer
 mkReadBuffer max content =
   let sz = length (unpack content)
-  in if sz <= max
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-       then Just (MkReadBuffer content sz max (believe_me Refl))
-       else Nothing
+  in case decEq (sz <= max) True of
+       Yes prf => Just (MkReadBuffer content sz max prf)
+       No _    => Nothing
 
 ||| Empty read buffer
 public export

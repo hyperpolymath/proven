@@ -1,65 +1,50 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.SafeString do
   @moduledoc """
-  Safe string operations for escaping and sanitization.
+  Safe string escaping operations via libproven FFI.
+
+  All escaping is performed by the Idris 2 verified core, ensuring
+  correctness of HTML, SQL, and JavaScript escaping.
   """
 
   @doc """
   Escape a string for safe HTML insertion.
+
+  Returns `{:ok, escaped}` or `{:error, reason}`.
   """
-  @spec escape_html(String.t()) :: String.t()
-  def escape_html(value) do
-    value
-    |> String.replace("&", "&amp;")
-    |> String.replace("<", "&lt;")
-    |> String.replace(">", "&gt;")
-    |> String.replace("\"", "&quot;")
-    |> String.replace("'", "&#x27;")
+  @spec escape_html(String.t()) :: {:ok, String.t()} | {:error, atom()}
+  def escape_html(value) when is_binary(value) do
+    Proven.NIF.nif_string_escape_html(value)
   end
 
   @doc """
   Escape a string for safe SQL interpolation.
+
   Note: Prefer parameterized queries over string interpolation.
+  Returns `{:ok, escaped}` or `{:error, reason}`.
   """
-  @spec escape_sql(String.t()) :: String.t()
-  def escape_sql(value) do
-    String.replace(value, "'", "''")
+  @spec escape_sql(String.t()) :: {:ok, String.t()} | {:error, atom()}
+  def escape_sql(value) when is_binary(value) do
+    Proven.NIF.nif_string_escape_sql(value)
   end
 
   @doc """
   Escape a string for safe JavaScript string literal insertion.
+
+  Returns `{:ok, escaped}` or `{:error, reason}`.
   """
-  @spec escape_js(String.t()) :: String.t()
-  def escape_js(value) do
-    value
-    |> String.replace("\\", "\\\\")
-    |> String.replace("\"", "\\\"")
-    |> String.replace("'", "\\'")
-    |> String.replace("\n", "\\n")
-    |> String.replace("\r", "\\r")
-    |> String.replace("\t", "\\t")
+  @spec escape_js(String.t()) :: {:ok, String.t()} | {:error, atom()}
+  def escape_js(value) when is_binary(value) do
+    Proven.NIF.nif_string_escape_js(value)
   end
 
   @doc """
-  Percent-encode a string for safe URL inclusion.
+  Check if a binary is valid UTF-8.
   """
-  @spec escape_url(String.t()) :: String.t()
-  def escape_url(value) do
-    URI.encode(value, &URI.char_unreserved?/1)
-  end
-
-  @doc """
-  Safely truncate a string to a maximum length, respecting UTF-8 boundaries.
-  """
-  @spec truncate_safe(String.t(), non_neg_integer(), String.t()) :: String.t()
-  def truncate_safe(value, max_length, suffix \\ "...") do
-    cond do
-      max_length < 0 -> ""
-      String.length(value) <= max_length -> value
-      max_length <= String.length(suffix) -> String.slice(value, 0, max_length)
-      true -> String.slice(value, 0, max_length - String.length(suffix)) <> suffix
-    end
+  @spec valid_utf8?(binary()) :: boolean()
+  def valid_utf8?(data) when is_binary(data) do
+    Proven.NIF.nif_string_is_valid_utf8(data)
   end
 end

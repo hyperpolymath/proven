@@ -1,9 +1,11 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
  * Result type for operations that can fail.
  *
  * Provides a functional approach to error handling without exceptions.
+ * These are pure data wrappers -- no FFI dependency.
  * @module
  */
 
@@ -45,7 +47,7 @@ export function err(error) {
  * @returns {boolean} True if the result is successful.
  */
 export function isOk(result) {
-  return result.ok === true;
+  return result != null && result.ok === true;
 }
 
 /**
@@ -56,11 +58,11 @@ export function isOk(result) {
  * @returns {boolean} True if the result is an error.
  */
 export function isErr(result) {
-  return result.ok === false;
+  return result != null && result.ok === false;
 }
 
 /**
- * Unwrap a result, throwing if it's an error.
+ * Unwrap a result, throwing if it is an error.
  *
  * @template T, E
  * @param {{ ok: boolean, value?: T, error?: E }} result - The result to unwrap.
@@ -68,10 +70,11 @@ export function isErr(result) {
  * @throws {Error} If the result is an error.
  */
 export function unwrap(result) {
-  if (result.ok) {
+  if (result != null && result.ok) {
     return result.value;
   }
-  throw new Error(`Unwrap called on Err: ${result.error}`);
+  const msg = result != null ? result.error : 'null result';
+  throw new Error(`Unwrap called on Err: ${msg}`);
 }
 
 /**
@@ -83,5 +86,5 @@ export function unwrap(result) {
  * @returns {T} The success value or default.
  */
 export function unwrapOr(result, defaultValue) {
-  return result.ok ? result.value : defaultValue;
+  return (result != null && result.ok) ? result.value : defaultValue;
 }

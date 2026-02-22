@@ -1,0 +1,71 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- Safe cryptographic primitives.
+-- Thin wrapper over libproven FFI -- all logic lives in Idris 2.
+
+require 'proven.lib_proven'
+
+-- Constant-time byte comparison (timing-attack safe).
+-- Returns true if the two byte sequences are equal.
+global function constant_time_eq(a: string, b: string): boolean
+  local res = proven_crypto_constant_time_eq(
+    a.data, (#a),
+    b.data, (#b)
+  )
+  if res.status == PROVEN_OK then
+    return res.value ~= 0
+  end
+  return false
+end
+
+-- Fill a byte array with cryptographically secure random bytes.
+-- Returns true on success, false on failure.
+global function random_bytes(buf: *[0]uint8, len: csize): boolean
+  local status = proven_crypto_random_bytes(buf, len)
+  return status == PROVEN_OK
+end
+
+-- Encode bytes to lowercase hex string. Returns nil on error.
+global function hex_encode(data: string): facultative(string)
+  if #data == 0 then
+    return (@string)("")
+  end
+  local res = proven_hex_encode(data.data, (#data), false)
+  if res.status == PROVEN_OK and res.value ~= nilptr then
+    local encoded: string = res.value
+    proven_free_string(res.value)
+    return encoded
+  end
+  return nil
+end
+
+-- Encode bytes to uppercase hex string. Returns nil on error.
+global function hex_encode_upper(data: string): facultative(string)
+  if #data == 0 then
+    return (@string)("")
+  end
+  local res = proven_hex_encode(data.data, (#data), true)
+  if res.status == PROVEN_OK and res.value ~= nilptr then
+    local encoded: string = res.value
+    proven_free_string(res.value)
+    return encoded
+  end
+  return nil
+end
+
+-- Decode hex string to bytes. Returns nil on error.
+global function hex_decode(hex_str: string): facultative(string)
+  if #hex_str == 0 then
+    return (@string)("")
+  end
+  local res = proven_hex_decode(hex_str.data, (#hex_str))
+  if res.status == PROVEN_OK and res.data ~= nilptr then
+    -- Copy data into a Nelua string before freeing
+    local decoded: string
+    decoded = string.copy({data = (@*[0]byte)(res.data), size = res.length})
+    proven_hex_free(&res)
+    return decoded
+  end
+  return nil
+end

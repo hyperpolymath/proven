@@ -1,33 +1,23 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
---  Proven: Formally verified safety primitives for Ada.
+--  Proven: Thin FFI bindings to libproven shared library.
 --
---  This library provides safe operations with bounds checking,
---  overflow detection, and security-focused string handling.
+--  Architecture:
+--    Core implementation: Idris 2 with dependent types and totality checking
+--    FFI layer: Zig bridges Idris to C ABI (libproven.so / libproven.a)
+--    This package: Ada wrappers that call libproven via pragma Import(C, ...)
 --
---  Version: 0.4.0
+--  All computation happens in the Idris2/Zig core. Ada code only
+--  marshals data to/from the C ABI -- no logic is reimplemented.
+--
+--  Version: 0.9.0
 --  Module Count: 38
---
---  Categories:
---    Core (11): Safe_Math, Safe_String, Safe_Path, Safe_Email, Safe_Url,
---               Safe_Network, Safe_Crypto, Safe_UUID, Safe_Currency,
---               Safe_Phone, Safe_Hex
---    Data (7): Safe_Json, Safe_Datetime, Safe_Float, Safe_Version,
---              Safe_Color, Safe_Angle, Safe_Unit
---    Data Structures (5): Safe_Buffer, Safe_Queue, Safe_Bloom, Safe_LRU,
---                         Safe_Graph
---    Resilience (4): Safe_Rate_Limiter, Safe_Circuit_Breaker, Safe_Retry,
---                    Safe_Monotonic
---    State (2): Safe_State_Machine, Safe_Calculator
---    Algorithm (4): Safe_Geo, Safe_Probability, Safe_Checksum, Safe_Tensor
---    Security (2): Safe_Password, Safe_ML
---    HTTP (3): Safe_Header, Safe_Cookie, Safe_Content_Type
 
 package Proven is
-   pragma Pure;
 
-   Version      : constant String := "0.4.0";
+   Version      : constant String := "0.9.0";
    Module_Count : constant := 38;
 
 end Proven;

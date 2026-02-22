@@ -1,178 +1,137 @@
 ! SPDX-License-Identifier: PMPL-1.0-or-later
-! SPDX-FileCopyrightText: 2025 Hyperpolymath
+! Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 !
 ! Proven SafeString - XSS prevention for Fortran
 !
+! Thin wrapper around libproven's verified SafeString module.
+! All escaping logic is executed in the Idris 2 core via the Zig FFI
+! bridge; this module only marshals Fortran strings to/from C pointers.
+!
+! Link with: -lproven
 
 module safe_string
+    use, intrinsic :: iso_c_binding
+    use proven_ffi
     implicit none
     private
 
-    public :: escape_html, escape_sql, sanitize_default, slugify
-    public :: is_alpha, is_digit, is_alpha_num, to_lower
+    public :: escape_html, escape_sql, escape_js, is_valid_utf8
 
 contains
 
-    !> Escape HTML special characters
+    ! =========================================================================
+    ! Helper: convert a Fortran string into a C pointer + length, call an
+    !         FFI function that returns c_proven_string_result, and convert
+    !         the result back to an allocatable Fortran string.
+    ! =========================================================================
+
+    !> Escape HTML special characters via proven_string_escape_html.
+    !> Caller receives an allocatable Fortran string; libproven memory is freed
+    !> before returning.
     function escape_html(input) result(output)
         character(len=*), intent(in) :: input
         character(len=:), allocatable :: output
-        integer :: i, pos
-        character(len=1) :: c
-        character(len=4096) :: buffer
+        character(len=len_trim(input), kind=c_char), target :: c_buf
+        type(c_proven_string_result) :: c_res
+        character(len=1, kind=c_char), pointer :: f_ptr(:)
+        integer :: trimmed_len
 
-        buffer = ''
-        pos = 1
+        trimmed_len = len_trim(input)
+        c_buf = input(1:trimmed_len)
 
-        do i = 1, len_trim(input)
-            c = input(i:i)
-            select case (c)
-                case ('&')
-                    buffer(pos:pos+4) = '&amp;'
-                    pos = pos + 5
-                case ('<')
-                    buffer(pos:pos+3) = '&lt;'
-                    pos = pos + 4
-                case ('>')
-                    buffer(pos:pos+3) = '&gt;'
-                    pos = pos + 4
-                case ('"')
-                    buffer(pos:pos+5) = '&quot;'
-                    pos = pos + 6
-                case ("'")
-                    buffer(pos:pos+5) = '&#x27;'
-                    pos = pos + 6
-                case default
-                    buffer(pos:pos) = c
-                    pos = pos + 1
-            end select
-        end do
+        c_res = proven_string_escape_html(c_loc(c_buf), int(trimmed_len, c_size_t))
 
-        output = trim(buffer(1:pos-1))
+        if (c_res%status == PROVEN_OK .and. c_associated(c_res%value)) then
+            call c_f_pointer(c_res%value, f_ptr, [c_res%length])
+            allocate(character(len=c_res%length) :: output)
+            block
+                integer :: i
+                do i = 1, int(c_res%length)
+                    output(i:i) = f_ptr(i)
+                end do
+            end block
+            call proven_free_string(c_res%value)
+        else
+            output = input(1:trimmed_len)
+        end if
     end function escape_html
 
-    !> Escape SQL single quotes
+    !> Escape SQL single-quote characters via proven_string_escape_sql.
     function escape_sql(input) result(output)
         character(len=*), intent(in) :: input
         character(len=:), allocatable :: output
-        integer :: i, pos
-        character(len=1) :: c
-        character(len=4096) :: buffer
+        character(len=len_trim(input), kind=c_char), target :: c_buf
+        type(c_proven_string_result) :: c_res
+        character(len=1, kind=c_char), pointer :: f_ptr(:)
+        integer :: trimmed_len
 
-        buffer = ''
-        pos = 1
+        trimmed_len = len_trim(input)
+        c_buf = input(1:trimmed_len)
 
-        do i = 1, len_trim(input)
-            c = input(i:i)
-            if (c == "'") then
-                buffer(pos:pos+1) = "''"
-                pos = pos + 2
-            else
-                buffer(pos:pos) = c
-                pos = pos + 1
-            end if
-        end do
+        c_res = proven_string_escape_sql(c_loc(c_buf), int(trimmed_len, c_size_t))
 
-        output = trim(buffer(1:pos-1))
+        if (c_res%status == PROVEN_OK .and. c_associated(c_res%value)) then
+            call c_f_pointer(c_res%value, f_ptr, [c_res%length])
+            allocate(character(len=c_res%length) :: output)
+            block
+                integer :: i
+                do i = 1, int(c_res%length)
+                    output(i:i) = f_ptr(i)
+                end do
+            end block
+            call proven_free_string(c_res%value)
+        else
+            output = input(1:trimmed_len)
+        end if
     end function escape_sql
 
-    !> Sanitize to alphanumeric + underscore + hyphen
-    function sanitize_default(input) result(output)
+    !> Escape JavaScript string literal characters via proven_string_escape_js.
+    function escape_js(input) result(output)
         character(len=*), intent(in) :: input
         character(len=:), allocatable :: output
-        integer :: i, pos
-        character(len=1) :: c
-        character(len=4096) :: buffer
+        character(len=len_trim(input), kind=c_char), target :: c_buf
+        type(c_proven_string_result) :: c_res
+        character(len=1, kind=c_char), pointer :: f_ptr(:)
+        integer :: trimmed_len
 
-        buffer = ''
-        pos = 1
+        trimmed_len = len_trim(input)
+        c_buf = input(1:trimmed_len)
 
-        do i = 1, len_trim(input)
-            c = input(i:i)
-            if (is_alpha_num(c) .or. c == '_' .or. c == '-') then
-                buffer(pos:pos) = c
-                pos = pos + 1
-            end if
-        end do
+        c_res = proven_string_escape_js(c_loc(c_buf), int(trimmed_len, c_size_t))
 
-        output = trim(buffer(1:pos-1))
-    end function sanitize_default
-
-    !> Convert to URL-safe slug
-    function slugify(input) result(output)
-        character(len=*), intent(in) :: input
-        character(len=:), allocatable :: output
-        integer :: i, pos
-        character(len=1) :: c
-        character(len=4096) :: buffer
-        logical :: last_was_hyphen
-
-        buffer = ''
-        pos = 1
-        last_was_hyphen = .false.
-
-        do i = 1, len_trim(input)
-            c = input(i:i)
-
-            ! Convert to lowercase
-            c = to_lower(c)
-
-            if (is_alpha_num(c)) then
-                buffer(pos:pos) = c
-                pos = pos + 1
-                last_was_hyphen = .false.
-            else if (c == ' ' .or. c == '_' .or. c == '-') then
-                ! Add hyphen if not consecutive
-                if (.not. last_was_hyphen .and. pos > 1) then
-                    buffer(pos:pos) = '-'
-                    pos = pos + 1
-                    last_was_hyphen = .true.
-                end if
-            end if
-        end do
-
-        ! Remove trailing hyphen
-        if (pos > 1 .and. buffer(pos-1:pos-1) == '-') then
-            pos = pos - 1
-        end if
-
-        output = trim(buffer(1:pos-1))
-    end function slugify
-
-    !> Check if character is alphabetic
-    pure function is_alpha(c) result(res)
-        character(len=1), intent(in) :: c
-        logical :: res
-
-        res = (c >= 'A' .and. c <= 'Z') .or. (c >= 'a' .and. c <= 'z')
-    end function is_alpha
-
-    !> Check if character is digit
-    pure function is_digit(c) result(res)
-        character(len=1), intent(in) :: c
-        logical :: res
-
-        res = c >= '0' .and. c <= '9'
-    end function is_digit
-
-    !> Check if character is alphanumeric
-    pure function is_alpha_num(c) result(res)
-        character(len=1), intent(in) :: c
-        logical :: res
-
-        res = is_alpha(c) .or. is_digit(c)
-    end function is_alpha_num
-
-    !> Convert character to lowercase
-    pure function to_lower(c) result(lower)
-        character(len=1), intent(in) :: c
-        character(len=1) :: lower
-
-        if (c >= 'A' .and. c <= 'Z') then
-            lower = achar(iachar(c) + 32)
+        if (c_res%status == PROVEN_OK .and. c_associated(c_res%value)) then
+            call c_f_pointer(c_res%value, f_ptr, [c_res%length])
+            allocate(character(len=c_res%length) :: output)
+            block
+                integer :: i
+                do i = 1, int(c_res%length)
+                    output(i:i) = f_ptr(i)
+                end do
+            end block
+            call proven_free_string(c_res%value)
         else
-            lower = c
+            output = input(1:trimmed_len)
         end if
-    end function to_lower
+    end function escape_js
+
+    !> Check if a byte sequence is valid UTF-8 via proven_string_is_valid_utf8.
+    function is_valid_utf8(input) result(valid)
+        character(len=*), intent(in) :: input
+        logical :: valid
+        character(len=len_trim(input), kind=c_char), target :: c_buf
+        type(c_proven_bool_result) :: c_res
+        integer :: trimmed_len
+
+        trimmed_len = len_trim(input)
+        c_buf = input(1:trimmed_len)
+
+        c_res = proven_string_is_valid_utf8(c_loc(c_buf), int(trimmed_len, c_size_t))
+
+        if (c_res%status == PROVEN_OK) then
+            valid = logical(c_res%value)
+        else
+            valid = .false.
+        end if
+    end function is_valid_utf8
 
 end module safe_string

@@ -1,0 +1,84 @@
+(********************************************************************)
+(*  SPDX-License-Identifier: PMPL-1.0-or-later                     *)
+(*  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)         *)
+(*  <jonathan.jewell@open.ac.uk>                                    *)
+(*                                                                  *)
+(*  safe_string.s7i -- Safe string operations.                      *)
+(*  Thin wrapper over libproven FFI -- all logic lives in Idris 2.  *)
+(*  Returns EMPTY string on error.                                  *)
+(********************************************************************)
+
+include "proven.s7i";
+
+(* ---------------------------------------------------------------------------
+   External C declarations (raw FFI)
+   --------------------------------------------------------------------------- *)
+
+const func integer: c_proven_string_is_valid_utf8 (in string: ptr, in integer: len) is
+  external "proven_string_is_valid_utf8" integer;
+
+const func integer: c_proven_string_escape_sql (in string: ptr, in integer: len) is
+  external "proven_string_escape_sql" integer;
+
+const func integer: c_proven_string_escape_html (in string: ptr, in integer: len) is
+  external "proven_string_escape_html" integer;
+
+const func integer: c_proven_string_escape_js (in string: ptr, in integer: len) is
+  external "proven_string_escape_js" integer;
+
+(* ---------------------------------------------------------------------------
+   High-level wrappers
+   --------------------------------------------------------------------------- *)
+
+(** Check if a string contains valid UTF-8 bytes. *)
+const func boolean: isValidUtf8 (in string: value) is func
+  result
+    var boolean: valid is FALSE;
+  begin
+    if length(value) = 0 then
+      valid := TRUE;
+    else
+      valid := c_proven_string_is_valid_utf8(value, length(value)) = 1;
+    end if;
+  end func;
+
+(** Escape single quotes for SQL strings. Returns EMPTY on error.
+    Note: Use parameterized queries when possible. *)
+const func StringResult: escapeSql (in string: value) is func
+  result
+    var StringResult: res is StringResult.value;
+  begin
+    if length(value) = 0 then
+      res.status := 0;
+      res.value := "";
+    else
+      res.status := c_proven_string_escape_sql(value, length(value));
+    end if;
+  end func;
+
+(** Escape HTML special characters to prevent XSS attacks.
+    Returns EMPTY on error. *)
+const func StringResult: escapeHtml (in string: value) is func
+  result
+    var StringResult: res is StringResult.value;
+  begin
+    if length(value) = 0 then
+      res.status := 0;
+      res.value := "";
+    else
+      res.status := c_proven_string_escape_html(value, length(value));
+    end if;
+  end func;
+
+(** Escape JavaScript special characters. Returns EMPTY on error. *)
+const func StringResult: escapeJs (in string: value) is func
+  result
+    var StringResult: res is StringResult.value;
+  begin
+    if length(value) = 0 then
+      res.status := 0;
+      res.value := "";
+    else
+      res.status := c_proven_string_escape_js(value, length(value));
+    end if;
+  end func;

@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/* SafeUrl - Parsovani a validace URL pres libproven FFI.
+ *
+ * Oblibeny typ Vysledek<T, Ch> zachytava chyby parsovani, nulove
+ * ukazatele a selhani validace. Veskere parsovani URL provadi
+ * Idris 2 overene jadro.
+ *
+ * Veskere vypocty provadi Idris 2 pres Zig FFI vrstvu.
+ * ZADNA logika URL neni reimplementovana v Oblibeny.
+ */
+
+modul Proven.SafeUrl
+
+import Proven.FFI
+import Proven (ProvenChyba, Výsledek, Neúspěch, Úspěch)
+
+// ============================================================================
+// Komponenty URL
+// ============================================================================
+
+// Parsovane komponenty URL vracene Idris 2 parserem URL.
+typ KomponentyUrl = {
+  schéma   : String,
+  hostitel : String,
+  port     : Option<UInt16>,
+  cesta    : String,
+  dotaz    : Option<String>,
+  fragment : Option<String>,
+}
+
+// ============================================================================
+// Parsovani URL
+// ============================================================================
+
+// Parsuje retezec URL do jeho komponent.
+// Vraci Neuspech(ChybaParsovani) pokud je URL chybne.
+// Vraci Neuspech(NulovyUkazatel) pokud je vstup nulovy.
+// Pamet alokovana libproven je uvolnena po kopirovani komponent.
+// Deleguje na proven_url_parse a proven_url_free v libproven.
+fn parsovat_url(url : String) -> Výsledek<KomponentyUrl, ProvenChyba> =
+  let bajty = string_to_utf8(url)
+  let surovy_vysledek = FFI.proven_url_parse(bajty.ptr, bajty.len)
+  match surovy_vysledek with
+  | null => Neúspěch(ChybaParsovani)
+  | ptr  =>
+    let komponenty = cist_komponenty_url(ptr)
+    FFI.proven_url_free(ptr)
+    Úspěch(komponenty)
+
+// Validuje, ze retezec je spravne formatovane URL bez vraceni komponent.
+// Vraci Uspech(true) pokud je parsovatelne, Uspech(false) pokud ne.
+// Deleguje na proven_url_parse v libproven.
+fn je_platné_url(url : String) -> Výsledek<Bool, ProvenChyba> =
+  let bajty = string_to_utf8(url)
+  let surovy_vysledek = FFI.proven_url_parse(bajty.ptr, bajty.len)
+  match surovy_vysledek with
+  | null => Úspěch(false)
+  | ptr  =>
+    FFI.proven_url_free(ptr)
+    Úspěch(true)
+
+// ============================================================================
+// Oblibeny specificke: validovany typ URL
+// ============================================================================
+
+// Validovany typ URL. Lze zkonstruovat pouze pres funkci parsovani,
+// coz zarucuje, ze URL bylo validovano Idris 2 overenym parserem.
+typ OvěřenéUrl = private OvěřenéUrl(String, KomponentyUrl)
+
+// Ziska puvodni retezec URL.
+fn overene_url_retezec(url : OvěřenéUrl) -> String =
+  match url with
+  | OvěřenéUrl(s, _) => s
+
+// Ziska parsovane komponenty.
+fn overene_url_komponenty(url : OvěřenéUrl) -> KomponentyUrl =
+  match url with
+  | OvěřenéUrl(_, k) => k
+
+// Vytvori OvereneUrl, vraci chybu pokud parsovani selze.
+// Pouziva Idris 2 overeny parser URL pres FFI.
+fn vytvoř_ověřené_url(url : String) -> Výsledek<OvěřenéUrl, ProvenChyba> =
+  match parsovat_url(url) with
+  | Úspěch(komponenty) => Úspěch(OvěřenéUrl(url, komponenty))
+  | Neúspěch(e)        => Neúspěch(e)

@@ -1,182 +1,72 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-/// Safe mathematical operations for Dart with overflow protection.
+/// Safe mathematical operations via libproven FFI.
+///
+/// All computation is performed in Idris 2 with dependent types and
+/// totality checking. This module is a thin Dart wrapper that marshals
+/// arguments across the C ABI boundary and returns nullable types on error.
 library;
 
-/// Result of a checked integer operation.
-class CheckedInt {
-  final int? value;
-  final bool overflow;
-
-  const CheckedInt.ok(int val)
-      : value = val,
-        overflow = false;
-
-  const CheckedInt.overflow()
-      : value = null,
-        overflow = true;
-
-  bool get isOk => !overflow;
-
-  /// Get value or throw if overflow.
-  int unwrap() {
-    if (overflow) {
-      throw OverflowException('Integer overflow occurred');
-    }
-    return value!;
-  }
-
-  /// Get value or return default.
-  int unwrapOr(int defaultValue) => value ?? defaultValue;
-
-  @override
-  String toString() => overflow ? 'CheckedInt.overflow()' : 'CheckedInt.ok($value)';
-}
-
-/// Exception thrown on integer overflow.
-class OverflowException implements Exception {
-  final String message;
-  const OverflowException(this.message);
-
-  @override
-  String toString() => 'OverflowException: $message';
-}
+import 'ffi.dart';
 
 /// Safe mathematical operations with overflow checking.
+///
+/// Every method delegates to the formally verified Idris 2 implementation
+/// via the libproven C ABI. Returns null on error (overflow, division by
+/// zero, etc.) instead of crashing.
 class SafeMath {
-  /// Maximum safe integer in Dart (64-bit signed).
-  static const int maxInt = 0x7FFFFFFFFFFFFFFF;
-
-  /// Minimum safe integer in Dart (64-bit signed).
-  static const int minInt = -0x8000000000000000;
-
-  /// Checked addition that detects overflow.
-  static CheckedInt add(int a, int b) {
-    // Check for overflow before performing operation
-    if (b > 0 && a > maxInt - b) {
-      return const CheckedInt.overflow();
-    }
-    if (b < 0 && a < minInt - b) {
-      return const CheckedInt.overflow();
-    }
-    return CheckedInt.ok(a + b);
+  /// Checked addition. Returns null on overflow.
+  static int? add(int a, int b) {
+    final result = provenMathAddChecked(a, b);
+    if (result.status != ProvenStatus.ok) return null;
+    return result.value;
   }
 
-  /// Checked subtraction that detects overflow.
-  static CheckedInt sub(int a, int b) {
-    // Check for overflow before performing operation
-    if (b < 0 && a > maxInt + b) {
-      return const CheckedInt.overflow();
-    }
-    if (b > 0 && a < minInt + b) {
-      return const CheckedInt.overflow();
-    }
-    return CheckedInt.ok(a - b);
+  /// Checked subtraction. Returns null on underflow.
+  static int? sub(int a, int b) {
+    final result = provenMathSubChecked(a, b);
+    if (result.status != ProvenStatus.ok) return null;
+    return result.value;
   }
 
-  /// Checked multiplication that detects overflow.
-  static CheckedInt mul(int a, int b) {
-    if (a == 0 || b == 0) {
-      return const CheckedInt.ok(0);
-    }
-
-    // Special case for minInt * -1
-    if (a == minInt && b == -1) {
-      return const CheckedInt.overflow();
-    }
-    if (b == minInt && a == -1) {
-      return const CheckedInt.overflow();
-    }
-
-    // Use BigInt for overflow detection
-    final bigResult = BigInt.from(a) * BigInt.from(b);
-    if (bigResult > BigInt.from(maxInt) || bigResult < BigInt.from(minInt)) {
-      return const CheckedInt.overflow();
-    }
-
-    return CheckedInt.ok(a * b);
+  /// Checked multiplication. Returns null on overflow.
+  static int? mul(int a, int b) {
+    final result = provenMathMulChecked(a, b);
+    if (result.status != ProvenStatus.ok) return null;
+    return result.value;
   }
 
-  /// Checked division that handles division by zero.
-  static CheckedInt div(int numerator, int denominator) {
-    if (denominator == 0) {
-      return const CheckedInt.overflow();
-    }
-
-    // Check for overflow: minInt / -1 would overflow
-    if (numerator == minInt && denominator == -1) {
-      return const CheckedInt.overflow();
-    }
-
-    return CheckedInt.ok(numerator ~/ denominator);
+  /// Checked division. Returns null on division by zero or overflow.
+  static int? div(int a, int b) {
+    final result = provenMathDiv(a, b);
+    if (result.status != ProvenStatus.ok) return null;
+    return result.value;
   }
 
-  /// Checked modulo operation.
-  static CheckedInt mod(int a, int b) {
-    if (b == 0) {
-      return const CheckedInt.overflow();
-    }
-    return CheckedInt.ok(a % b);
+  /// Checked modulo. Returns null on division by zero.
+  static int? mod(int a, int b) {
+    final result = provenMathMod(a, b);
+    if (result.status != ProvenStatus.ok) return null;
+    return result.value;
   }
 
-  /// Checked negation.
-  static CheckedInt neg(int a) {
-    if (a == minInt) {
-      return const CheckedInt.overflow();
-    }
-    return CheckedInt.ok(-a);
+  /// Safe absolute value. Returns null if input is INT64_MIN.
+  static int? abs(int a) {
+    final result = provenMathAbsSafe(a);
+    if (result.status != ProvenStatus.ok) return null;
+    return result.value;
   }
 
-  /// Checked absolute value.
-  static CheckedInt abs(int a) {
-    if (a == minInt) {
-      return const CheckedInt.overflow();
-    }
-    return CheckedInt.ok(a.abs());
+  /// Clamp value to range [lo, hi].
+  static int clamp(int value, int lo, int hi) {
+    return provenMathClamp(lo, hi, value);
   }
 
-  /// Checked power operation.
-  static CheckedInt pow(int base, int exponent) {
-    if (exponent < 0) {
-      return const CheckedInt.overflow();
-    }
-    if (exponent == 0) {
-      return const CheckedInt.ok(1);
-    }
-    if (base == 0) {
-      return const CheckedInt.ok(0);
-    }
-    if (base == 1) {
-      return CheckedInt.ok(1);
-    }
-    if (base == -1) {
-      return CheckedInt.ok(exponent.isOdd ? -1 : 1);
-    }
-
-    // Use BigInt for overflow detection
-    final bigResult = BigInt.from(base).pow(exponent);
-    if (bigResult > BigInt.from(maxInt) || bigResult < BigInt.from(minInt)) {
-      return const CheckedInt.overflow();
-    }
-
-    return CheckedInt.ok(bigResult.toInt());
-  }
-
-  /// Clamp value to range.
-  static int clamp(int value, int min, int max) {
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
-  }
-
-  /// Check if addition would overflow without performing it.
-  static bool wouldAddOverflow(int a, int b) {
-    return add(a, b).overflow;
-  }
-
-  /// Check if multiplication would overflow without performing it.
-  static bool wouldMulOverflow(int a, int b) {
-    return mul(a, b).overflow;
+  /// Checked integer exponentiation. Returns null on overflow.
+  static int? pow(int base, int exponent) {
+    final result = provenMathPowChecked(base, exponent);
+    if (result.status != ProvenStatus.ok) return null;
+    return result.value;
   }
 }

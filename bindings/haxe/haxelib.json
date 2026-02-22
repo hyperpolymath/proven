@@ -1,0 +1,20 @@
+{
+    "name": "proven",
+    "version": "0.5.0",
+    "url": "https://github.com/hyperpolymath/proven",
+    "license": "PMPL-1.0-or-later",
+    "tags": [
+        "safety",
+        "ffi",
+        "validation",
+        "security",
+        "formally-verified"
+    ],
+    "description": "FFI binding to libproven - formally verified safety library. Safe math, string escaping, path traversal prevention, email/URL validation, and more. All computation is performed in verified Idris 2 code via the Zig FFI layer.",
+    "contributors": [
+        "hyperpolymath"
+    ],
+    "releasenote": "Initial Haxe binding release with SafeMath, SafeString, SafePath, SafeEmail, SafeUrl, SafeNetwork, SafeCrypto, SafeJson, and SafeDateTime modules.",
+    "classPath": "src",
+    "dependencies": {}
+}

@@ -1,0 +1,202 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/// FFI declarations for libproven C ABI.
+///
+/// All extern functions map directly to the Zig FFI layer, which in turn
+/// calls the formally verified Idris 2 implementation. No logic is
+/// reimplemented here -- these are pure C ABI declarations consumed at
+/// most once (affine) by the safe wrapper modules.
+
+// ---------------------------------------------------------------------------
+// Status codes (matches ProvenStatus enum in Zig)
+// ---------------------------------------------------------------------------
+
+/// Status codes returned by libproven functions.
+type ProvenStatusCode = Int
+
+let STATUS_OK: ProvenStatusCode                = 0
+let STATUS_ERR_NULL_POINTER: ProvenStatusCode   = -1
+let STATUS_ERR_INVALID_ARGUMENT: ProvenStatusCode = -2
+let STATUS_ERR_OVERFLOW: ProvenStatusCode       = -3
+let STATUS_ERR_UNDERFLOW: ProvenStatusCode      = -4
+let STATUS_ERR_DIVISION_BY_ZERO: ProvenStatusCode = -5
+let STATUS_ERR_PARSE_FAILURE: ProvenStatusCode  = -6
+let STATUS_ERR_VALIDATION_FAILED: ProvenStatusCode = -7
+let STATUS_ERR_OUT_OF_BOUNDS: ProvenStatusCode  = -8
+let STATUS_ERR_ENCODING_ERROR: ProvenStatusCode = -9
+let STATUS_ERR_ALLOCATION_FAILED: ProvenStatusCode = -10
+let STATUS_ERR_NOT_IMPLEMENTED: ProvenStatusCode = -99
+
+// ---------------------------------------------------------------------------
+// Result structures (repr(C) compatible)
+// ---------------------------------------------------------------------------
+
+/// Result for integer operations.
+@repr("C")
+type IntResult = {
+  status: Int,
+  value: Int64
+}
+
+/// Result for boolean operations.
+@repr("C")
+type BoolResult = {
+  status: Int,
+  value: Int
+}
+
+/// Result for string operations. Caller must free `ptr` via proven_free_string.
+@repr("C")
+type StringResult = {
+  status: Int,
+  ptr: own RawPtr[Byte],
+  len: Int
+}
+
+/// Result for floating-point operations.
+@repr("C")
+type FloatResult = {
+  status: Int,
+  value: Float64
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_init")
+fn extern_proven_init() -> Int / Pure
+
+@extern("C", "proven_deinit")
+fn extern_proven_deinit() -> () / Pure
+
+@extern("C", "proven_is_initialized")
+fn extern_proven_is_initialized() -> Bool / Pure
+
+// ---------------------------------------------------------------------------
+// Memory management
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_free_string")
+fn extern_proven_free_string(ptr: own RawPtr[Byte]) -> () / Pure
+
+// ---------------------------------------------------------------------------
+// SafeMath
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_math_add_checked")
+fn extern_proven_math_add_checked(a: Int64, b: Int64) -> IntResult / Pure
+
+@extern("C", "proven_math_sub_checked")
+fn extern_proven_math_sub_checked(a: Int64, b: Int64) -> IntResult / Pure
+
+@extern("C", "proven_math_mul_checked")
+fn extern_proven_math_mul_checked(a: Int64, b: Int64) -> IntResult / Pure
+
+@extern("C", "proven_math_div")
+fn extern_proven_math_div(numerator: Int64, denominator: Int64) -> IntResult / Pure
+
+@extern("C", "proven_math_mod")
+fn extern_proven_math_mod(numerator: Int64, denominator: Int64) -> IntResult / Pure
+
+@extern("C", "proven_math_abs_safe")
+fn extern_proven_math_abs_safe(n: Int64) -> IntResult / Pure
+
+@extern("C", "proven_math_clamp")
+fn extern_proven_math_clamp(lo: Int64, hi: Int64, value: Int64) -> Int64 / Pure
+
+@extern("C", "proven_math_pow_checked")
+fn extern_proven_math_pow_checked(base: Int64, exp: UInt32) -> IntResult / Pure
+
+// ---------------------------------------------------------------------------
+// SafeFloat
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_float_div")
+fn extern_proven_float_div(a: Float64, b: Float64) -> FloatResult / Pure
+
+@extern("C", "proven_float_sqrt")
+fn extern_proven_float_sqrt(x: Float64) -> FloatResult / Pure
+
+@extern("C", "proven_float_ln")
+fn extern_proven_float_ln(x: Float64) -> FloatResult / Pure
+
+@extern("C", "proven_float_is_finite")
+fn extern_proven_float_is_finite(x: Float64) -> Bool / Pure
+
+@extern("C", "proven_float_is_nan")
+fn extern_proven_float_is_nan(x: Float64) -> Bool / Pure
+
+// ---------------------------------------------------------------------------
+// SafeString
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_string_is_valid_utf8")
+fn extern_proven_string_is_valid_utf8(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+@extern("C", "proven_string_escape_sql")
+fn extern_proven_string_escape_sql(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure
+
+@extern("C", "proven_string_escape_html")
+fn extern_proven_string_escape_html(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure
+
+@extern("C", "proven_string_escape_js")
+fn extern_proven_string_escape_js(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure
+
+// ---------------------------------------------------------------------------
+// SafePath
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_path_has_traversal")
+fn extern_proven_path_has_traversal(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+@extern("C", "proven_path_sanitize_filename")
+fn extern_proven_path_sanitize_filename(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure
+
+// ---------------------------------------------------------------------------
+// SafeEmail
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_email_is_valid")
+fn extern_proven_email_is_valid(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+// ---------------------------------------------------------------------------
+// SafeUrl
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_url_parse")
+fn extern_proven_url_parse(ptr: ref RawPtr[Byte], len: Int) -> IntResult / Pure
+
+// ---------------------------------------------------------------------------
+// SafeCrypto
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_crypto_constant_time_eq")
+fn extern_proven_crypto_constant_time_eq(
+  ptr1: ref RawPtr[Byte], len1: Int,
+  ptr2: ref RawPtr[Byte], len2: Int
+) -> BoolResult / Pure
+
+@extern("C", "proven_crypto_random_bytes")
+fn extern_proven_crypto_random_bytes(ptr: mut RawPtr[Byte], len: Int) -> Int / Pure
+
+// ---------------------------------------------------------------------------
+// SafeJson
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_json_is_valid")
+fn extern_proven_json_is_valid(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+@extern("C", "proven_json_get_type")
+fn extern_proven_json_get_type(ptr: ref RawPtr[Byte], len: Int) -> Int / Pure
+
+// ---------------------------------------------------------------------------
+// SafeHex
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_hex_encode")
+fn extern_proven_hex_encode(ptr: ref RawPtr[Byte], len: Int, uppercase: Bool) -> StringResult / Pure
+
+@extern("C", "proven_hex_decode")
+fn extern_proven_hex_decode(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure

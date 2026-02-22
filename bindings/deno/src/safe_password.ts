@@ -1,122 +1,43 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * Safe password handling and validation.
+ * SafePassword - Password validation that cannot crash.
+ *
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
+ * Note: proven_password_validate returns a PasswordResult struct which
+ * requires buffer-based marshaling. proven_password_is_common is directly
+ * callable.
+ *
+ * @module
  */
 
-import { err, ok, type Result } from './result.ts';
-
-export enum PasswordStrength {
-  VeryWeak = 'very-weak',
-  Weak = 'weak',
-  Fair = 'fair',
-  Strong = 'strong',
-  VeryStrong = 'very-strong',
-}
-
-export interface PasswordPolicy {
-  minLength: number;
-  maxLength: number;
-  requireUppercase: boolean;
-  requireLowercase: boolean;
-  requireDigit: boolean;
-  requireSpecial: boolean;
-}
+import { getLib } from './ffi.ts';
 
 /**
- * Safe password operations.
+ * Password strength levels.
+ */
+export const PasswordStrength = {
+  VERY_WEAK: 0,
+  WEAK: 1,
+  FAIR: 2,
+  STRONG: 3,
+  VERY_STRONG: 4,
+} as const;
+
+/**
+ * Safe password operations backed by formally verified Idris 2 code.
  */
 export class SafePassword {
-  /** NIST SP 800-63B compliant policy. */
-  static nistPolicy(): PasswordPolicy {
-    return {
-      minLength: 8,
-      maxLength: 64,
-      requireUppercase: false,
-      requireLowercase: false,
-      requireDigit: false,
-      requireSpecial: false,
-    };
-  }
-
-  /** PCI-DSS compliant policy. */
-  static pciDssPolicy(): PasswordPolicy {
-    return {
-      minLength: 7,
-      maxLength: 128,
-      requireUppercase: true,
-      requireLowercase: true,
-      requireDigit: true,
-      requireSpecial: false,
-    };
-  }
-
-  /** HIPAA compliant policy. */
-  static hipaaPolicy(): PasswordPolicy {
-    return {
-      minLength: 8,
-      maxLength: 128,
-      requireUppercase: true,
-      requireLowercase: true,
-      requireDigit: true,
-      requireSpecial: true,
-    };
-  }
-
-  /** Validate password against a policy. */
-  static validate(password: string, policy: PasswordPolicy): Result<void> {
-    if (password.length < policy.minLength) {
-      return err(`Password must be at least ${policy.minLength} characters`);
-    }
-    if (password.length > policy.maxLength) {
-      return err(`Password must be at most ${policy.maxLength} characters`);
-    }
-    if (policy.requireUppercase && !/[A-Z]/.test(password)) {
-      return err('Password must contain uppercase letter');
-    }
-    if (policy.requireLowercase && !/[a-z]/.test(password)) {
-      return err('Password must contain lowercase letter');
-    }
-    if (policy.requireDigit && !/[0-9]/.test(password)) {
-      return err('Password must contain digit');
-    }
-    if (policy.requireSpecial && !/[^a-zA-Z0-9]/.test(password)) {
-      return err('Password must contain special character');
-    }
-    return ok(undefined);
-  }
-
-  /** Check password strength. */
-  static strength(password: string): PasswordStrength {
-    const len = password.length;
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasDigit = /[0-9]/.test(password);
-    const hasSpecial = /[^a-zA-Z0-9]/.test(password);
-
-    const variety = [hasUpper, hasLower, hasDigit, hasSpecial].filter(Boolean).length;
-
-    if (len <= 5) return PasswordStrength.VeryWeak;
-    if (len <= 7) return variety <= 1 ? PasswordStrength.VeryWeak : PasswordStrength.Weak;
-    if (len <= 11) return variety <= 2 ? PasswordStrength.Weak : PasswordStrength.Fair;
-    if (len <= 15) return variety <= 2 ? PasswordStrength.Fair : PasswordStrength.Strong;
-    return variety >= 4 ? PasswordStrength.VeryStrong : PasswordStrength.Strong;
-  }
-
-  /** Check for common password patterns. */
-  static hasCommonPattern(password: string): boolean {
-    const common = [
-      'password',
-      '123456',
-      'qwerty',
-      'admin',
-      'letmein',
-      'welcome',
-      'monkey',
-      'dragon',
-      'master',
-      'login',
-    ];
-    const lower = password.toLowerCase();
-    return common.some((p) => lower.includes(p));
+  /**
+   * Check if a password is in the common passwords list.
+   *
+   * @param password - The password to check.
+   * @returns True if the password is common.
+   */
+  static isCommon(password: string): boolean {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(password);
+    return symbols.proven_password_is_common(bytes, bytes.length);
   }
 }

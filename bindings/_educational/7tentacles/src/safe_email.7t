@@ -1,0 +1,63 @@
+~~ SPDX-License-Identifier: PMPL-1.0-or-later
+~~ Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+~{ | SafeEmail - Email validation via libproven FFI.
+ |
+ | 7Tentacles' ink type captures validation failures with precise error
+ | semantics. The ink<Bool, ProvenError> return type forces callers
+ | to handle both the Catch (success) and Squirt (error) cases.
+ |
+ | All computation is performed in Idris 2 via the Zig FFI layer.
+ | NO email validation logic is reimplemented in 7Tentacles.
+}~
+
+sucker module Proven.SafeEmail
+
+import Proven.FFI
+import Proven (ProvenError, ink, Catch, Squirt, bool_result_to_proven)
+
+~~ ============================================================================
+~~ Email validation
+~~ ============================================================================
+
+~~ | Validate an email address against RFC 5321 (simplified).
+~~ Returns Catch(true) if the email is valid, Catch(false) if invalid.
+~~ Returns Squirt(NullPointer) if the input pointer is null.
+~~ Delegates to proven_email_is_valid in libproven.
+grasp fn is_valid_email(email : String) -> ink<Bool, ProvenError> =
+  let bytes = string_to_utf8(email)
+  bool_result_to_proven(
+    FFI.proven_email_is_valid(bytes.ptr, bytes.len)
+  )
+
+~~ | Validate an email address, returning a descriptive error on failure.
+~~ This is a convenience wrapper that maps Catch(false) to Squirt(ValidationFailed).
+grasp fn validate_email(email : String) -> ink<String, ProvenError> =
+  match is_valid_email(email) with
+  | Catch(true)  => Catch(email)
+  | Catch(false) => Squirt(ValidationFailed)
+  | Squirt(e)    => Squirt(e)
+
+~~ ============================================================================
+~~ 7Tentacles specific: validated email type
+~~ ============================================================================
+
+~{ | A validated email address type. Can only be constructed through
+ | the validate function, ensuring the email has passed RFC 5321 checks
+ | in the Idris 2 verified core. The tentacle has grasped this value
+ | and confirmed it is safe.
+}~
+sucker type ValidatedEmail = private ValidatedEmail(String)
+
+~~ | Get the string representation of a validated email.
+grasp fn validated_email_to_string(email : ValidatedEmail) -> String =
+  match email with
+  | ValidatedEmail(s) => s
+
+~~ | Create a ValidatedEmail, returning an error if validation fails.
+~~ Uses the Idris 2 verified email validation via FFI.
+grasp fn make_validated_email(email : String) -> ink<ValidatedEmail, ProvenError> =
+  match is_valid_email(email) with
+  | Catch(true)  => Catch(ValidatedEmail(email))
+  | Catch(false) => Squirt(ValidationFailed)
+  | Squirt(e)    => Squirt(e)

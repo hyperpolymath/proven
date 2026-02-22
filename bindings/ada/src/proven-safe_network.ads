@@ -1,7 +1,9 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
---  Safe network operations for IP address validation and classification.
+--  Safe network operations -- thin FFI wrapper over libproven.
+--  IPv4 parsing and classification done by the Idris2/Zig core.
 
 package Proven.Safe_Network is
 
@@ -9,29 +11,22 @@ package Proven.Safe_Network is
       A, B, C, D : Natural range 0 .. 255;
    end record;
 
-   type Optional_IPv4 (Valid : Boolean := False) is record
-      case Valid is
-         when True  => Value : IPv4;
-         when False => null;
+   type IPv4_Parse_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Address    : IPv4;
+         when False => Error_Code : Integer;
       end case;
    end record;
 
-   --  Parse an IPv4 address string.
-   function Parse_IPv4 (Address : String) return Optional_IPv4;
+   --  Parse an IPv4 address string (calls proven_network_parse_ipv4).
+   function Parse_IPv4 (Address : String) return IPv4_Parse_Result;
 
-   --  Check if a string is a valid IPv4 address.
-   function Is_Valid_IPv4 (Address : String) return Boolean;
+   --  Check if an IPv4 address is in a private range
+   --  (calls proven_network_ipv4_is_private).
+   function Is_Private (Addr : IPv4) return Boolean;
 
-   --  Check if an IPv4 address is in a private range.
-   function Is_Private (Address : String) return Boolean;
-
-   --  Check if an IPv4 address is a loopback address (127.0.0.0/8).
-   function Is_Loopback (Address : String) return Boolean;
-
-   --  Check if an IPv4 address is public (not private or loopback).
-   function Is_Public (Address : String) return Boolean;
-
-   --  Format an IPv4 address as a string.
-   function Format_IPv4 (IP : IPv4) return String;
+   --  Check if an IPv4 address is a loopback address
+   --  (calls proven_network_ipv4_is_loopback).
+   function Is_Loopback (Addr : IPv4) return Boolean;
 
 end Proven.Safe_Network;

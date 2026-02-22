@@ -1,37 +1,28 @@
 {- SPDX-License-Identifier: PMPL-1.0-or-later -}
-{- SPDX-FileCopyrightText: 2025 Hyperpolymath -}
+{- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> -}
 
--- | Safe filesystem path operations with traversal attack prevention.
+-- | Safe filesystem path operations via libproven FFI.
+--
+-- Prevents directory traversal attacks. All checking is performed
+-- by the Idris 2 verified core.
 module Proven.SafePath
   ( hasTraversal
-  , isSafe
   , sanitizeFilename
-  , safeJoin
   ) where
 
-import Data.List (isInfixOf, intercalate)
+import Proven.FFI (c_proven_path_has_traversal, c_proven_path_sanitize_filename,
+                   c_proven_free_string)
+import Proven.Core (withCStringLen', boolResultToBool, stringResultToMaybe)
 
 -- | Check if a path contains directory traversal sequences.
-hasTraversal :: String -> Bool
-hasTraversal path = ".." `isInfixOf` path || '~' `elem` path
-
--- | Check if a path is safe (no traversal attacks).
-isSafe :: String -> Bool
-isSafe = not . hasTraversal
+-- Delegates to @proven_path_has_traversal@ in libproven.
+hasTraversal :: String -> IO (Maybe Bool)
+hasTraversal path = withCStringLen' path $ \ptr len ->
+  boolResultToBool <$> c_proven_path_has_traversal ptr len
 
 -- | Sanitize a filename by removing dangerous characters.
-sanitizeFilename :: String -> String
-sanitizeFilename = map sanitizeChar . replaceDotDot
-  where
-    sanitizeChar c
-      | c `elem` "/<>:\"|?*\0\\" = '_'
-      | otherwise = c
-    replaceDotDot [] = []
-    replaceDotDot ('.':'.':xs) = '_':'_': replaceDotDot xs
-    replaceDotDot (x:xs) = x : replaceDotDot xs
-
--- | Safely join path components, rejecting traversal attempts.
-safeJoin :: String -> [String] -> Maybe String
-safeJoin base parts
-  | any hasTraversal parts = Nothing
-  | otherwise = Just $ intercalate "/" (base : map sanitizeFilename parts)
+-- Delegates to @proven_path_sanitize_filename@ in libproven.
+sanitizeFilename :: String -> IO (Maybe String)
+sanitizeFilename name = withCStringLen' name $ \ptr len -> do
+  sr <- c_proven_path_sanitize_filename ptr len
+  stringResultToMaybe c_proven_free_string sr

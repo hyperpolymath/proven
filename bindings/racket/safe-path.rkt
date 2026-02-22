@@ -1,48 +1,31 @@
 #lang racket/base
 
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;
-;; Proven SafePath - Directory traversal prevention for Racket
+;; SafePath - FFI bindings to libproven path validation
 ;;
+;; All computation delegates to Idris 2 via the Zig FFI layer.
 
-(require racket/string)
+(require ffi/unsafe)
 
-(provide
- (struct-out path-result)
- has-traversal?
- sanitize-filename
- safe-path-join)
+(provide has-traversal? sanitize-filename)
 
-;; Path result struct
-(struct path-result (path error ok?) #:transparent)
+(define libproven (ffi-lib "libproven"))
 
-;; Check for path traversal patterns
+(define ffi-path-has-traversal
+  (get-ffi-obj "proven_path_has_traversal" libproven
+               (_fun _string/utf-8 -> _pointer)))
+
+(define ffi-path-sanitize-filename
+  (get-ffi-obj "proven_path_sanitize_filename" libproven
+               (_fun _string/utf-8 -> _string/utf-8)))
+
+;; Check for path traversal (delegates to Idris 2)
 (define (has-traversal? path)
-  (define lower-path (string-downcase path))
-  (or (string-contains? path "..")
-      (string-contains? path "./")
-      (string-contains? lower-path "%2e%2e")
-      (string-contains? lower-path "%00")))
+  (define result (ffi-path-has-traversal path))
+  (not (ptr-equal? result #f)))
 
-;; Sanitize filename by removing dangerous characters
-(define (sanitize-filename input)
-  (list->string
-   (map (lambda (c)
-          (if (member c '(#\/ #\\ #\: #\* #\? #\" #\< #\> #\|))
-              #\_
-              c))
-        (string->list input))))
-
-;; Safely join paths
-(define (safe-path-join base filename)
-  (cond
-    [(has-traversal? filename)
-     (path-result "" "Path traversal detected" #f)]
-    [else
-     (define safe-name (sanitize-filename filename))
-     (define joined
-       (if (string-suffix? base "/")
-           (string-append base safe-name)
-           (string-append base "/" safe-name)))
-     (path-result joined "" #t)]))
+;; Sanitize filename (delegates to Idris 2)
+(define (sanitize-filename filename)
+  (ffi-path-sanitize-filename filename))

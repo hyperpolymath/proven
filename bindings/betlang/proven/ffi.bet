@@ -1,0 +1,243 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{- | FFI declarations to libproven C ABI.
+
+   BetLang uses @wager("C", ...) to declare foreign function wagers against
+   the libproven shared library, which is compiled from Idris 2 source with
+   dependent types and totality checking. NO safety logic is reimplemented
+   in BetLang.
+
+   Architecture:
+     BetLang (.bet)
+       |  @wager("C", ...)
+       v
+     libproven.so (Zig FFI layer)
+       |  Zig -> Idris2 RefC calls
+       v
+     Idris 2 (dependent types, totality checking)
+-}
+
+module Proven.FFI
+
+-- ============================================================================
+-- Result types matching the C ABI structs
+-- ============================================================================
+
+-- IntResult: struct { int32 status; int64 value; }
+@repr("C")
+stake type IntResult = {
+  status : Int32,
+  value  : Int64,
+}
+
+-- BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+stake type BoolResult = {
+  status : Int32,
+  value  : Int32,
+}
+
+-- StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+stake type StringResult = {
+  status : Int32,
+  ptr    : Ptr[Byte],
+  len    : USize,
+}
+
+-- FloatResult: struct { int32 status; double value; }
+@repr("C")
+stake type FloatResult = {
+  status : Int32,
+  value  : Float64,
+}
+
+-- ============================================================================
+-- Lifecycle
+-- ============================================================================
+
+@wager("C", "proven_init")
+extern bet fn proven_init() -> Int32
+
+@wager("C", "proven_deinit")
+extern bet fn proven_deinit() -> Void
+
+@wager("C", "proven_is_initialized")
+extern bet fn proven_is_initialized() -> Bool
+
+-- ============================================================================
+-- Memory management
+-- ============================================================================
+
+@wager("C", "proven_free_string")
+extern bet fn proven_free_string(ptr : Ptr[Byte]) -> Void
+
+-- ============================================================================
+-- Version info
+-- ============================================================================
+
+@wager("C", "proven_ffi_abi_version")
+extern bet fn proven_ffi_abi_version() -> UInt32
+
+@wager("C", "proven_version_major")
+extern bet fn proven_version_major() -> UInt32
+
+@wager("C", "proven_version_minor")
+extern bet fn proven_version_minor() -> UInt32
+
+@wager("C", "proven_version_patch")
+extern bet fn proven_version_patch() -> UInt32
+
+@wager("C", "proven_module_count")
+extern bet fn proven_module_count() -> UInt32
+
+-- ============================================================================
+-- SafeMath
+-- ============================================================================
+
+@wager("C", "proven_math_add_checked")
+extern bet fn proven_math_add_checked(a : Int64, b : Int64) -> IntResult
+
+@wager("C", "proven_math_sub_checked")
+extern bet fn proven_math_sub_checked(a : Int64, b : Int64) -> IntResult
+
+@wager("C", "proven_math_mul_checked")
+extern bet fn proven_math_mul_checked(a : Int64, b : Int64) -> IntResult
+
+@wager("C", "proven_math_div")
+extern bet fn proven_math_div(a : Int64, b : Int64) -> IntResult
+
+@wager("C", "proven_math_mod")
+extern bet fn proven_math_mod(a : Int64, b : Int64) -> IntResult
+
+@wager("C", "proven_math_abs_safe")
+extern bet fn proven_math_abs_safe(n : Int64) -> IntResult
+
+@wager("C", "proven_math_clamp")
+extern bet fn proven_math_clamp(lo : Int64, hi : Int64, value : Int64) -> Int64
+
+@wager("C", "proven_math_pow_checked")
+extern bet fn proven_math_pow_checked(base : Int64, exp : UInt32) -> IntResult
+
+-- ============================================================================
+-- SafeString
+-- ============================================================================
+
+@wager("C", "proven_string_is_valid_utf8")
+extern bet fn proven_string_is_valid_utf8(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@wager("C", "proven_string_escape_sql")
+extern bet fn proven_string_escape_sql(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@wager("C", "proven_string_escape_html")
+extern bet fn proven_string_escape_html(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@wager("C", "proven_string_escape_js")
+extern bet fn proven_string_escape_js(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeEmail
+-- ============================================================================
+
+@wager("C", "proven_email_is_valid")
+extern bet fn proven_email_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+-- ============================================================================
+-- SafeUrl
+-- ============================================================================
+
+@wager("C", "proven_url_parse")
+extern bet fn proven_url_parse(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@wager("C", "proven_url_free")
+extern bet fn proven_url_free(components : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafePath
+-- ============================================================================
+
+@wager("C", "proven_path_has_traversal")
+extern bet fn proven_path_has_traversal(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@wager("C", "proven_path_sanitize_filename")
+extern bet fn proven_path_sanitize_filename(ptr : Ptr[Byte], len : USize) -> StringResult
+
+-- ============================================================================
+-- SafeCrypto
+-- ============================================================================
+
+@wager("C", "proven_crypto_constant_time_eq")
+extern bet fn proven_crypto_constant_time_eq(
+  ptr1 : Ptr[Byte], len1 : USize,
+  ptr2 : Ptr[Byte], len2 : USize,
+) -> BoolResult
+
+@wager("C", "proven_crypto_random_bytes")
+extern bet fn proven_crypto_random_bytes(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeJson
+-- ============================================================================
+
+@wager("C", "proven_json_is_valid")
+extern bet fn proven_json_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@wager("C", "proven_json_get_type")
+extern bet fn proven_json_get_type(ptr : Ptr[Byte], len : USize) -> Int32
+
+-- ============================================================================
+-- SafeFloat
+-- ============================================================================
+
+@wager("C", "proven_float_div")
+extern bet fn proven_float_div(a : Float64, b : Float64) -> FloatResult
+
+@wager("C", "proven_float_is_finite")
+extern bet fn proven_float_is_finite(x : Float64) -> Bool
+
+@wager("C", "proven_float_is_nan")
+extern bet fn proven_float_is_nan(x : Float64) -> Bool
+
+@wager("C", "proven_float_sqrt")
+extern bet fn proven_float_sqrt(x : Float64) -> FloatResult
+
+@wager("C", "proven_float_ln")
+extern bet fn proven_float_ln(x : Float64) -> FloatResult
+
+-- ============================================================================
+-- SafeHex
+-- ============================================================================
+
+@wager("C", "proven_hex_encode")
+extern bet fn proven_hex_encode(ptr : Ptr[Byte], len : USize, uppercase : Bool) -> StringResult
+
+@wager("C", "proven_hex_decode")
+extern bet fn proven_hex_decode(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@wager("C", "proven_hex_free")
+extern bet fn proven_hex_free(result : Ptr[Void]) -> Void
+
+-- ============================================================================
+-- SafeChecksum
+-- ============================================================================
+
+@wager("C", "proven_checksum_crc32")
+extern bet fn proven_checksum_crc32(ptr : Ptr[Byte], len : USize) -> IntResult
+
+@wager("C", "proven_checksum_verify_crc32")
+extern bet fn proven_checksum_verify_crc32(ptr : Ptr[Byte], len : USize, expected : UInt32) -> BoolResult
+
+-- ============================================================================
+-- SafeNetwork
+-- ============================================================================
+
+@wager("C", "proven_network_parse_ipv4")
+extern bet fn proven_network_parse_ipv4(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+-- ============================================================================
+-- SafeCalculator
+-- ============================================================================
+
+@wager("C", "proven_calculator_eval")
+extern bet fn proven_calculator_eval(ptr : Ptr[Byte], len : USize) -> FloatResult

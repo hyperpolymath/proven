@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 plugins {
     kotlin("jvm") version "1.9.22"
@@ -7,14 +7,15 @@ plugins {
     `maven-publish`
 }
 
-group = "com.hyperpolymath"
-version = "0.8.0"
+group = "io.github.hyperpolymath"
+version = "0.9.0"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    implementation("net.java.dev.jna:jna:5.14.0")
     testImplementation(kotlin("test"))
 }
 
@@ -29,10 +30,29 @@ kotlin {
 publishing {
     publications {
         create<MavenPublication>("maven") {
-            groupId = "com.hyperpolymath"
+            groupId = "io.github.hyperpolymath"
             artifactId = "proven"
-            version = "0.8.0"
+            version = "0.9.0"
             from(components["java"])
+
+            pom {
+                name.set("proven")
+                description.set("Kotlin FFI bindings for libproven - formally verified safe operations")
+                url.set("https://github.com/hyperpolymath/proven")
+                licenses {
+                    license {
+                        name.set("PMPL-1.0-or-later")
+                        url.set("https://github.com/hyperpolymath/proven/blob/main/LICENSE")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("hyperpolymath")
+                        name.set("Jonathan D.A. Jewell")
+                        email.set("jonathan.jewell@open.ac.uk")
+                    }
+                }
+            }
         }
     }
 }

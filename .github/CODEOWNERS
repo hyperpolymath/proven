@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# CODEOWNERS — proven formally verified safety library
+#
+# This file defines code ownership for pull request review routing.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @hyperpolymath
+
+# Core Idris2 verified modules — highest scrutiny required
+/src/Proven/ @hyperpolymath
+
+# FFI bridge layer — security-sensitive boundary
+/ffi/zig/ @hyperpolymath
+
+# Language bindings — must comply with FFI-only architecture (ADR-008)
+/bindings/ @hyperpolymath
+
+# Security specifications and contracts
+/contractiles/ @hyperpolymath
+/Trustfile.a2ml @hyperpolymath
+
+# Machine-readable state — authoritative project metadata
+/.machine_readable/ @hyperpolymath
+
+# Bot directives — automation configuration
+/.bot_directives/ @hyperpolymath
+
+# CI/CD workflows — infrastructure changes need review
+/.github/workflows/ @hyperpolymath
+
+# Build system — affects compilation pipeline
+/justfile @hyperpolymath
+/proven.ipkg @hyperpolymath
+/proven-ffi.ipkg @hyperpolymath
+
+# Container definition — deployment security
+/Containerfile @hyperpolymath
+
+# AI manifest and instructions — governs AI agent behaviour
+/0-AI-MANIFEST.a2ml @hyperpolymath
+/AI.a2ml @hyperpolymath
+/.claude/ @hyperpolymath
+/.echidnabot.toml @hyperpolymath

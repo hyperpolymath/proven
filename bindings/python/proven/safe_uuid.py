@@ -1,20 +1,21 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeUUID - UUID operations that cannot crash.
 
 Provides safe UUID generation (v4/v5), parsing, and formatting without exceptions.
-All operations return None or default values on failure instead of raising.
+All operations delegate to the formally verified Idris core via FFI.
 """
 
 from __future__ import annotations
 
-import secrets
-import hashlib
+import ctypes
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Optional, ClassVar
+
+from .core import ProvenStatus, ProvenError, get_lib, check_status
 
 
 class UUIDVersion(IntEnum):
@@ -38,8 +39,7 @@ class SafeUUID:
     """
     A universally unique identifier with proven safety guarantees.
 
-    This implementation handles all edge cases without raising exceptions.
-    Invalid UUIDs are represented as None through factory methods.
+    All generation and parsing is delegated to the Idris core via FFI.
 
     Attributes:
         bytes_value: The 16-byte representation of the UUID
@@ -48,8 +48,6 @@ class SafeUUID:
         >>> uuid = SafeUUID.v4()
         >>> str(uuid)
         'a1b2c3d4-e5f6-4789-abcd-ef0123456789'
-        >>> uuid.version
-        <UUIDVersion.V4: 4>
     """
 
     bytes_value: bytes = field(repr=False)
@@ -69,9 +67,9 @@ class SafeUUID:
     @classmethod
     def v4(cls) -> SafeUUID:
         """
-        Generate a random UUID (version 4).
+        Generate a random UUID (version 4) via FFI.
 
-        Uses cryptographically secure random bytes.
+        Uses the Idris core's cryptographically secure random source.
 
         Returns:
             A new random UUID
@@ -81,20 +79,17 @@ class SafeUUID:
             >>> uuid.version == UUIDVersion.V4
             True
         """
-        random_bytes = bytearray(secrets.token_bytes(16))
-
-        # Set version to 4 (0100 in high nibble of byte 6)
-        random_bytes[6] = (random_bytes[6] & 0x0F) | 0x40
-
-        # Set variant to RFC 4122 (10xx in high bits of byte 8)
-        random_bytes[8] = (random_bytes[8] & 0x3F) | 0x80
-
-        return cls(bytes(random_bytes))
+        lib = get_lib()
+        buf = (ctypes.c_char * 16)()
+        status = lib.proven_uuid_v4(buf)
+        if status != ProvenStatus.OK:
+            raise ProvenError(ProvenStatus(status), "Failed to generate UUID v4")
+        return cls(bytes(buf))
 
     @classmethod
     def v5(cls, namespace: SafeUUID, name: str) -> SafeUUID:
         """
-        Generate a name-based UUID using SHA-1 (version 5).
+        Generate a name-based UUID using SHA-1 (version 5) via FFI.
 
         Deterministic: same namespace + name always produces same UUID.
 
@@ -111,27 +106,20 @@ class SafeUUID:
             >>> uuid1 == uuid2
             True
         """
-        # Concatenate namespace bytes and name bytes
-        hash_input = namespace.bytes_value + name.encode("utf-8")
-
-        # SHA-1 hash
-        sha1_hash = hashlib.sha1(hash_input).digest()
-
-        # Take first 16 bytes
-        uuid_bytes = bytearray(sha1_hash[:16])
-
-        # Set version to 5 (0101 in high nibble of byte 6)
-        uuid_bytes[6] = (uuid_bytes[6] & 0x0F) | 0x50
-
-        # Set variant to RFC 4122 (10xx in high bits of byte 8)
-        uuid_bytes[8] = (uuid_bytes[8] & 0x3F) | 0x80
-
-        return cls(bytes(uuid_bytes))
+        lib = get_lib()
+        ns_bytes = namespace.bytes_value
+        name_bytes = name.encode("utf-8")
+        buf = (ctypes.c_char * 16)()
+        status = lib.proven_uuid_v5(ns_bytes, len(ns_bytes),
+                                    name_bytes, len(name_bytes), buf)
+        if status != ProvenStatus.OK:
+            raise ProvenError(ProvenStatus(status), "Failed to generate UUID v5")
+        return cls(bytes(buf))
 
     @classmethod
     def parse(cls, uuid_string: str) -> Optional[SafeUUID]:
         """
-        Parse a UUID from its string representation.
+        Parse a UUID from its string representation via FFI.
 
         Accepts formats:
         - Standard: "a1b2c3d4-e5f6-4789-abcd-ef0123456789"
@@ -144,41 +132,17 @@ class SafeUUID:
 
         Returns:
             SafeUUID if valid, None otherwise
-
-        Example:
-            >>> SafeUUID.parse("550e8400-e29b-41d4-a716-446655440000")
-            SafeUUID(...)
-            >>> SafeUUID.parse("not-a-uuid")
-            None
         """
         if not uuid_string:
             return None
 
-        # Normalize: remove common wrappings
-        normalized = uuid_string.strip()
-
-        # Handle URN prefix
-        if normalized.lower().startswith("urn:uuid:"):
-            normalized = normalized[9:]
-
-        # Handle braces
-        if normalized.startswith("{") and normalized.endswith("}"):
-            normalized = normalized[1:-1]
-
-        # Remove hyphens
-        hex_string = normalized.replace("-", "")
-
-        # Validate length
-        if len(hex_string) != 32:
+        lib = get_lib()
+        encoded = uuid_string.encode("utf-8")
+        buf = (ctypes.c_char * 16)()
+        status = lib.proven_uuid_parse(encoded, len(encoded), buf)
+        if status != ProvenStatus.OK:
             return None
-
-        # Validate hex characters
-        try:
-            uuid_bytes = bytes.fromhex(hex_string)
-        except ValueError:
-            return None
-
-        return cls(uuid_bytes)
+        return cls(bytes(buf))
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Optional[SafeUUID]:
@@ -190,10 +154,6 @@ class SafeUUID:
 
         Returns:
             SafeUUID if data is 16 bytes, None otherwise
-
-        Example:
-            >>> SafeUUID.from_bytes(b'\\x00' * 16)
-            SafeUUID(...)
         """
         if len(data) != 16:
             return None
@@ -243,13 +203,10 @@ class SafeUUID:
 
         Returns:
             String in format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-
-        Example:
-            >>> uuid.format_standard()
-            'a1b2c3d4-e5f6-4789-abcd-ef0123456789'
         """
         hex_string = self.bytes_value.hex()
-        return f"{hex_string[:8]}-{hex_string[8:12]}-{hex_string[12:16]}-{hex_string[16:20]}-{hex_string[20:]}"
+        return (f"{hex_string[:8]}-{hex_string[8:12]}-{hex_string[12:16]}"
+                f"-{hex_string[16:20]}-{hex_string[20:]}")
 
     def format_compact(self) -> str:
         """
@@ -257,10 +214,6 @@ class SafeUUID:
 
         Returns:
             32 character hex string
-
-        Example:
-            >>> uuid.format_compact()
-            'a1b2c3d4e5f64789abcdef0123456789'
         """
         return self.bytes_value.hex()
 

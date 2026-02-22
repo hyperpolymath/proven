@@ -1,16 +1,19 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeVersion - Semantic versioning parsing and comparison.
 
 Provides SemVer 2.0.0 compliant version handling.
+All parsing and comparison is delegated to the Idris core via FFI.
 """
 
-from typing import Optional, Tuple, List
+import json
+from typing import Optional, List
 from dataclasses import dataclass
 from functools import total_ordering
-import re
+
+from .core import ProvenStatus, get_lib
 
 
 @total_ordering
@@ -36,13 +39,6 @@ class Version:
     prerelease: Optional[str] = None
     build: Optional[str] = None
 
-    _SEMVER_PATTERN = re.compile(
-        r"^v?"  # Optional v prefix
-        r"(\d+)\.(\d+)\.(\d+)"  # Major.Minor.Patch
-        r"(?:-([0-9A-Za-z\-.]+))?"  # Optional prerelease
-        r"(?:\+([0-9A-Za-z\-.]+))?$"  # Optional build metadata
-    )
-
     def __str__(self) -> str:
         """Format as version string."""
         s = f"{self.major}.{self.minor}.{self.patch}"
@@ -67,54 +63,13 @@ class Version:
         if not isinstance(other, Version):
             return NotImplemented
 
-        # Compare major.minor.patch
-        if (self.major, self.minor, self.patch) != (other.major, other.minor, other.patch):
-            return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
-
-        # Prerelease has lower precedence than normal
-        if self.prerelease is None and other.prerelease is not None:
+        lib = get_lib()
+        a_str = str(self).encode("utf-8")
+        b_str = str(other).encode("utf-8")
+        result = lib.proven_version_compare(a_str, len(a_str), b_str, len(b_str))
+        if result.status != ProvenStatus.OK:
             return False
-        if self.prerelease is not None and other.prerelease is None:
-            return True
-        if self.prerelease is None and other.prerelease is None:
-            return False
-
-        # Compare prerelease identifiers
-        return self._compare_prerelease(self.prerelease, other.prerelease) < 0
-
-    @staticmethod
-    def _compare_prerelease(a: str, b: str) -> int:
-        """Compare prerelease strings per SemVer spec."""
-        a_parts = a.split(".")
-        b_parts = b.split(".")
-
-        for i in range(max(len(a_parts), len(b_parts))):
-            if i >= len(a_parts):
-                return -1  # a is shorter, so less
-            if i >= len(b_parts):
-                return 1  # b is shorter, so less
-
-            a_part = a_parts[i]
-            b_part = b_parts[i]
-
-            # Numeric comparison if both are numbers
-            a_is_num = a_part.isdigit()
-            b_is_num = b_part.isdigit()
-
-            if a_is_num and b_is_num:
-                a_num, b_num = int(a_part), int(b_part)
-                if a_num != b_num:
-                    return -1 if a_num < b_num else 1
-            elif a_is_num:
-                return -1  # Numeric has lower precedence
-            elif b_is_num:
-                return 1
-            else:
-                # Lexicographic comparison
-                if a_part != b_part:
-                    return -1 if a_part < b_part else 1
-
-        return 0
+        return result.value < 0
 
     def __hash__(self) -> int:
         return hash((self.major, self.minor, self.patch, self.prerelease))
@@ -122,7 +77,7 @@ class Version:
     @classmethod
     def parse(cls, version_str: str) -> Optional["Version"]:
         """
-        Parse a version string.
+        Parse a version string via FFI.
 
         Args:
             version_str: Version string (e.g., "1.2.3", "v1.2.3-alpha+build")
@@ -134,19 +89,28 @@ class Version:
             >>> Version.parse("1.2.3")
             Version(major=1, minor=2, patch=3, prerelease=None, build=None)
         """
-        match = cls._SEMVER_PATTERN.match(version_str.strip())
-        if not match:
+        if not version_str:
             return None
 
+        lib = get_lib()
+        encoded = version_str.strip().encode("utf-8")
+        result = lib.proven_version_parse_semver(encoded, len(encoded))
+        if result.status != ProvenStatus.OK or result.value is None:
+            return None
+
+        json_str = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+
         try:
+            parsed = json.loads(json_str)
             return cls(
-                major=int(match.group(1)),
-                minor=int(match.group(2)),
-                patch=int(match.group(3)),
-                prerelease=match.group(4),
-                build=match.group(5),
+                major=parsed["major"],
+                minor=parsed["minor"],
+                patch=parsed["patch"],
+                prerelease=parsed.get("prerelease"),
+                build=parsed.get("build"),
             )
-        except (ValueError, OverflowError):
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
             return None
 
     def bump_major(self) -> "Version":
@@ -179,7 +143,7 @@ class Version:
 
     def satisfies(self, constraint: str) -> bool:
         """
-        Check if version satisfies a constraint.
+        Check if version satisfies a constraint via FFI.
 
         Supports: =, !=, >, <, >=, <=, ^, ~
 
@@ -195,58 +159,17 @@ class Version:
             >>> Version.parse("1.2.3").satisfies("^1.2.0")
             True
         """
-        constraint = constraint.strip()
-
-        # Parse operator and version
-        if constraint.startswith(">="):
-            op, ver_str = ">=", constraint[2:]
-        elif constraint.startswith("<="):
-            op, ver_str = "<=", constraint[2:]
-        elif constraint.startswith("!="):
-            op, ver_str = "!=", constraint[2:]
-        elif constraint.startswith(">"):
-            op, ver_str = ">", constraint[1:]
-        elif constraint.startswith("<"):
-            op, ver_str = "<", constraint[1:]
-        elif constraint.startswith("="):
-            op, ver_str = "=", constraint[1:]
-        elif constraint.startswith("^"):
-            op, ver_str = "^", constraint[1:]
-        elif constraint.startswith("~"):
-            op, ver_str = "~", constraint[1:]
-        else:
-            op, ver_str = "=", constraint
-
-        other = Version.parse(ver_str.strip())
-        if other is None:
+        lib = get_lib()
+        v_str = str(self).encode("utf-8")
+        c_str = constraint.strip().encode("utf-8")
+        result = lib.proven_version_satisfies(v_str, len(v_str), c_str, len(c_str))
+        if result.status != ProvenStatus.OK:
             return False
-
-        if op == "=":
-            return self == other
-        elif op == "!=":
-            return self != other
-        elif op == ">":
-            return self > other
-        elif op == "<":
-            return self < other
-        elif op == ">=":
-            return self >= other
-        elif op == "<=":
-            return self <= other
-        elif op == "^":
-            # Compatible with (same major, minor >= other.minor)
-            if self.major != other.major:
-                return False
-            return self >= other
-        elif op == "~":
-            # Approximately equivalent (same major.minor)
-            return self.major == other.major and self.minor == other.minor and self >= other
-
-        return False
+        return result.value
 
 
 class SafeVersion:
-    """Utility functions for version handling."""
+    """Utility functions for version handling via FFI."""
 
     @staticmethod
     def parse(version_str: str) -> Optional[Version]:
@@ -256,22 +179,24 @@ class SafeVersion:
     @staticmethod
     def compare(a: str, b: str) -> int:
         """
-        Compare two version strings.
+        Compare two version strings via FFI.
 
         Args:
             a: First version
             b: Second version
 
         Returns:
-            -1 if a < b, 0 if a == b, 1 if a > b, or None if invalid
+            -1 if a < b, 0 if a == b, 1 if a > b
         """
-        va = Version.parse(a)
-        vb = Version.parse(b)
-        if va is None or vb is None:
+        lib = get_lib()
+        a_enc = a.encode("utf-8")
+        b_enc = b.encode("utf-8")
+        result = lib.proven_version_compare(a_enc, len(a_enc), b_enc, len(b_enc))
+        if result.status != ProvenStatus.OK:
             return 0
-        if va < vb:
+        if result.value < 0:
             return -1
-        elif va > vb:
+        elif result.value > 0:
             return 1
         return 0
 

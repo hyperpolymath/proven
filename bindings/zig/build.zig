@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Build configuration for Proven Zig bindings.
+// Links against libproven (Idris 2 core + Zig FFI bridge).
 
 const std = @import("std");
 
@@ -13,6 +16,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    // Link against libproven (the Idris 2 + Zig FFI compiled library)
+    proven_mod.linkSystemLibrary("proven", .{});
+
+    // Add C header include path for proven.h
+    proven_mod.addIncludePath(b.path("../c/include"));
 
     // Library (Zig 0.16+ API)
     const lib = b.addLibrary(.{
@@ -34,6 +43,10 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    // Tests also need libproven
+    test_mod.linkSystemLibrary("proven", .{});
+    test_mod.addIncludePath(b.path("../c/include"));
 
     const main_tests = b.addTest(.{
         .root_module = test_mod,

@@ -382,28 +382,13 @@ record Instant where
   nano : Nat
   {auto validNano : nano < 1000000000}
 
-||| Current time (requires FFI)
+||| Current time (stub -- requires FFI for real system clock)
+|||
+||| Returns epoch zero until the Zig FFI bridge to clock_gettime is wired up.
+||| The auto-proof {validNano} resolves because 0 < 1000000000 = True.
 public export
 now : IO Instant
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-now = pure $ believe_me (MkInstant 0 0)  -- Stub
+now = pure $ MkInstant 0 0
 
 ||| Create instant from epoch seconds
 public export

@@ -1,7 +1,10 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// DEPRECATED: Use bindings/rescript/ instead. TypeScript is banned per project standards.
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
+ * @deprecated Use bindings/rescript/ instead. TypeScript is banned per project standards.
+ *
  * Proven - Code that cannot crash
  *
  * A verified safety library providing:

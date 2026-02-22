@@ -1,170 +1,70 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeHeader provides HTTP header operations that prevent CRLF injection.
+// All computation is performed in Idris 2 via the Proven FFI.
 
 package proven
 
-import (
-	"regexp"
-	"strings"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
 
-// HeaderName represents a validated HTTP header name.
-type HeaderName struct {
-	name string
-}
-
-// NewHeaderName creates a validated header name.
-func NewHeaderName(name string) (HeaderName, bool) {
-	if !isValidHeaderName(name) {
-		return HeaderName{}, false
+// HeaderHasCRLF checks for CRLF injection characters in a header value.
+func HeaderHasCRLF(value string) (bool, error) {
+	cs, length := cString(value)
+	defer unsafeFree(cs)
+	result := C.proven_header_has_crlf(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	return HeaderName{name: name}, true
+	return bool(result.value), nil
 }
 
-// String returns the header name.
-func (h HeaderName) String() string {
-	return h.name
-}
-
-// Canonical returns canonical header name (Title-Case).
-func (h HeaderName) Canonical() string {
-	parts := strings.Split(h.name, "-")
-	for i, part := range parts {
-		if len(part) > 0 {
-			parts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
-		}
+// HeaderIsValidName checks whether a header name is a valid token per RFC 7230.
+func HeaderIsValidName(name string) (bool, error) {
+	cs, length := cString(name)
+	defer unsafeFree(cs)
+	result := C.proven_header_is_valid_name(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	return strings.Join(parts, "-")
+	return bool(result.value), nil
 }
 
-func isValidHeaderName(name string) bool {
-	if len(name) == 0 {
-		return false
+// HeaderIsDangerous checks whether a header name is in the dangerous headers list.
+func HeaderIsDangerous(name string) (bool, error) {
+	cs, length := cString(name)
+	defer unsafeFree(cs)
+	result := C.proven_header_is_dangerous(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	// Header names: token chars (no CTL, separators)
-	for _, c := range name {
-		if c < 33 || c > 126 {
-			return false
-		}
-		if strings.ContainsRune("()<>@,;:\\\"/[]?={} \t", c) {
-			return false
-		}
-	}
-	return true
+	return bool(result.value), nil
 }
 
-// HeaderValue represents a validated HTTP header value.
-type HeaderValue struct {
-	value string
+// HeaderRender creates a validated header string in "Name: Value" format.
+func HeaderRender(name, value string) (string, error) {
+	nameCS, nameLen := cString(name)
+	defer unsafeFree(nameCS)
+	valueCS, valueLen := cString(value)
+	defer unsafeFree(valueCS)
+	return goStringResult(C.proven_header_render(nameCS, nameLen, valueCS, valueLen))
 }
 
-// NewHeaderValue creates a validated header value (prevents CRLF injection).
-func NewHeaderValue(value string) (HeaderValue, bool) {
-	if !isValidHeaderValue(value) {
-		return HeaderValue{}, false
-	}
-	return HeaderValue{value: value}, true
+// HeaderBuildCSP builds a Content-Security-Policy header value from JSON directives.
+func HeaderBuildCSP(directivesJSON string) (string, error) {
+	cs, length := cString(directivesJSON)
+	defer unsafeFree(cs)
+	return goStringResult(C.proven_header_build_csp(cs, length))
 }
 
-// String returns the header value.
-func (h HeaderValue) String() string {
-	return h.value
-}
-
-func isValidHeaderValue(value string) bool {
-	// Reject CRLF injection attempts
-	if strings.Contains(value, "\r") || strings.Contains(value, "\n") {
-		return false
-	}
-	// Reject null bytes
-	if strings.Contains(value, "\x00") {
-		return false
-	}
-	return true
-}
-
-// SanitizeHeaderValue removes dangerous characters from header value.
-func SanitizeHeaderValue(value string) string {
-	// Remove CR, LF, and null bytes
-	result := strings.ReplaceAll(value, "\r", "")
-	result = strings.ReplaceAll(result, "\n", "")
-	result = strings.ReplaceAll(result, "\x00", "")
-	return result
-}
-
-// SecurityHeader represents common security headers.
-type SecurityHeader string
-
-const (
-	// ContentSecurityPolicy header name.
-	ContentSecurityPolicy SecurityHeader = "Content-Security-Policy"
-	// XContentTypeOptions header name.
-	XContentTypeOptions SecurityHeader = "X-Content-Type-Options"
-	// XFrameOptions header name.
-	XFrameOptions SecurityHeader = "X-Frame-Options"
-	// XSSProtection header name.
-	XSSProtection SecurityHeader = "X-XSS-Protection"
-	// StrictTransportSecurity header name.
-	StrictTransportSecurity SecurityHeader = "Strict-Transport-Security"
-	// ReferrerPolicy header name.
-	ReferrerPolicy SecurityHeader = "Referrer-Policy"
-	// PermissionsPolicy header name.
-	PermissionsPolicy SecurityHeader = "Permissions-Policy"
-)
-
-// IsSecurityHeader checks if name is a security-related header.
-func IsSecurityHeader(name string) bool {
-	securityHeaders := []string{
-		string(ContentSecurityPolicy),
-		string(XContentTypeOptions),
-		string(XFrameOptions),
-		string(XSSProtection),
-		string(StrictTransportSecurity),
-		string(ReferrerPolicy),
-		string(PermissionsPolicy),
-	}
-
-	normalized := strings.ToLower(name)
-	for _, h := range securityHeaders {
-		if strings.ToLower(h) == normalized {
-			return true
-		}
-	}
-	return false
-}
-
-// DefaultSecurityHeaders returns recommended security headers.
-func DefaultSecurityHeaders() map[string]string {
-	return map[string]string{
-		string(XContentTypeOptions):     "nosniff",
-		string(XFrameOptions):           "DENY",
-		string(XSSProtection):           "1; mode=block",
-		string(ReferrerPolicy):          "strict-origin-when-cross-origin",
-	}
-}
-
-// ParseCacheControl parses Cache-Control header directives.
-func ParseCacheControl(value string) map[string]string {
-	result := make(map[string]string)
-	re := regexp.MustCompile(`([a-z-]+)(?:=([^,\s]+))?`)
-
-	for _, match := range re.FindAllStringSubmatch(strings.ToLower(value), -1) {
-		if len(match) >= 2 {
-			key := match[1]
-			val := ""
-			if len(match) >= 3 {
-				val = strings.Trim(match[2], "\"")
-			}
-			result[key] = val
-		}
-	}
-
-	return result
-}
-
-// IsNoCache checks if Cache-Control indicates no caching.
-func IsNoCache(directives map[string]string) bool {
-	_, hasNoCache := directives["no-cache"]
-	_, hasNoStore := directives["no-store"]
-	return hasNoCache || hasNoStore
+// HeaderBuildHSTS builds a Strict-Transport-Security header value.
+func HeaderBuildHSTS(maxAge int64, includeSubdomains, preload bool) (string, error) {
+	return goStringResult(C.proven_header_build_hsts(
+		C.int64_t(maxAge),
+		C._Bool(includeSubdomains),
+		C._Bool(preload),
+	))
 }

@@ -1,142 +1,122 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Safe bounded buffer operations.
+# Thin wrapper over libproven FFI -- all logic lives in Idris.
 
-## Safe buffer operations with bounds checking.
-
-import std/[options]
+import std/options
+import lib_proven
 
 type
-  BoundedBuffer*[T] = object
-    ## A bounded buffer with safe operations.
-    data: seq[T]
-    capacity: int
+  BoundedBuffer* = object
+    ## A bounded byte buffer backed by libproven's verified implementation.
+    ## Uses an opaque pointer to the C-side ProvenBoundedBuffer.
+    handle: ptr ProvenBoundedBuffer
 
-  RingBuffer*[T] = object
-    ## Ring buffer for FIFO operations.
-    data: seq[Option[T]]
-    head: int
-    tail: int
-    length: int
-    capacity: int
+  BufferError* = object of CatchableError
+    ## Error raised when buffer operations fail.
 
-# BoundedBuffer implementation
-proc newBoundedBuffer*[T](capacity: int): BoundedBuffer[T] =
-  ## Create a new bounded buffer with the given capacity.
-  BoundedBuffer[T](
-    data: newSeqOfCap[T](capacity),
-    capacity: capacity
-  )
+proc `=destroy`*(buf: BoundedBuffer) =
+  ## Destructor: automatically frees the underlying C buffer.
+  if buf.handle != nil:
+    provenBufferFree(buf.handle)
 
-proc len*[T](buf: BoundedBuffer[T]): int =
-  ## Get current length.
-  buf.data.len
+proc `=copy`*(dest: var BoundedBuffer, src: BoundedBuffer) {.error:
+  "BoundedBuffer cannot be copied; it owns an opaque C resource".}
 
-proc isEmpty*[T](buf: BoundedBuffer[T]): bool =
+proc `=sink`*(dest: var BoundedBuffer, src: BoundedBuffer) =
+  ## Move semantics for BoundedBuffer.
+  `=destroy`(dest)
+  dest.handle = src.handle
+
+proc newBoundedBuffer*(capacity: int): BoundedBuffer =
+  ## Create a new bounded buffer with the given capacity in bytes.
+  ## Maximum capacity is 100MB as enforced by libproven.
+  let res = provenBufferCreate(csize_t(capacity))
+  if res.status != PROVEN_OK or res.buffer == nil:
+    raise newException(BufferError,
+      "Failed to create bounded buffer (status=" & $res.status & ")")
+  BoundedBuffer(handle: res.buffer)
+
+proc append*(buf: BoundedBuffer, data: openArray[byte]): bool =
+  ## Append bytes to the buffer.  Returns true on success, false if
+  ## appending would exceed the buffer capacity.
+  if buf.handle == nil or data.len == 0:
+    return buf.handle != nil
+  let status = provenBufferAppend(buf.handle, unsafeAddr data[0], csize_t(data.len))
+  status == PROVEN_OK
+
+proc append*(buf: BoundedBuffer, data: string): bool =
+  ## Append a string's bytes to the buffer.  Returns true on success,
+  ## false if appending would exceed the buffer capacity.
+  if buf.handle == nil:
+    return false
+  if data.len == 0:
+    return true
+  let status = provenBufferAppend(buf.handle, unsafeAddr data[0], csize_t(data.len))
+  status == PROVEN_OK
+
+proc getData*(buf: BoundedBuffer): Option[seq[byte]] =
+  ## Get a copy of the buffer contents as a byte sequence.
+  ## Returns None if the buffer handle is invalid.
+  if buf.handle == nil:
+    return none(seq[byte])
+  var outPtr: pointer
+  var outLen: csize_t
+  let status = provenBufferGet(buf.handle, addr outPtr, addr outLen)
+  if status != PROVEN_OK:
+    return none(seq[byte])
+  if outLen == 0:
+    return some(newSeq[byte](0))
+  var resultBytes = newSeq[byte](int(outLen))
+  copyMem(addr resultBytes[0], outPtr, int(outLen))
+  some(resultBytes)
+
+proc getDataAsString*(buf: BoundedBuffer): Option[string] =
+  ## Get a copy of the buffer contents as a string.
+  ## Returns None if the buffer handle is invalid.
+  if buf.handle == nil:
+    return none(string)
+  var outPtr: pointer
+  var outLen: csize_t
+  let status = provenBufferGet(buf.handle, addr outPtr, addr outLen)
+  if status != PROVEN_OK:
+    return none(string)
+  if outLen == 0:
+    return some("")
+  var resultStr = newString(int(outLen))
+  copyMem(addr resultStr[0], outPtr, int(outLen))
+  some(resultStr)
+
+proc len*(buf: BoundedBuffer): int =
+  ## Get current data length in the buffer.
+  if buf.handle != nil:
+    int(buf.handle[].length)
+  else:
+    0
+
+proc capacity*(buf: BoundedBuffer): int =
+  ## Get the total capacity of the buffer.
+  if buf.handle != nil:
+    int(buf.handle[].capacity)
+  else:
+    0
+
+proc remaining*(buf: BoundedBuffer): int =
+  ## Get remaining capacity in bytes.
+  if buf.handle != nil:
+    int(buf.handle[].capacity) - int(buf.handle[].length)
+  else:
+    0
+
+proc isEmpty*(buf: BoundedBuffer): bool =
   ## Check if buffer is empty.
-  buf.data.len == 0
+  buf.len == 0
 
-proc isFull*[T](buf: BoundedBuffer[T]): bool =
+proc isFull*(buf: BoundedBuffer): bool =
   ## Check if buffer is full.
-  buf.data.len >= buf.capacity
+  buf.remaining == 0
 
-proc remaining*[T](buf: BoundedBuffer[T]): int =
-  ## Get remaining capacity.
-  buf.capacity - buf.data.len
-
-proc push*[T](buf: var BoundedBuffer[T], value: T): bool =
-  ## Push an element (returns false if full).
-  if buf.isFull():
-    return false
-  buf.data.add(value)
-  true
-
-proc pop*[T](buf: var BoundedBuffer[T]): Option[T] =
-  ## Pop an element (returns None if empty).
-  if buf.isEmpty():
-    return none(T)
-  result = some(buf.data.pop())
-
-proc get*[T](buf: BoundedBuffer[T], index: int): Option[T] =
-  ## Get element at index (returns None if out of bounds).
-  if index < 0 or index >= buf.data.len:
-    return none(T)
-  result = some(buf.data[index])
-
-proc set*[T](buf: var BoundedBuffer[T], index: int, value: T): bool =
-  ## Set element at index (returns false if out of bounds).
-  if index < 0 or index >= buf.data.len:
-    return false
-  buf.data[index] = value
-  true
-
-proc clear*[T](buf: var BoundedBuffer[T]) =
-  ## Clear all elements.
-  buf.data.setLen(0)
-
-proc toSeq*[T](buf: BoundedBuffer[T]): seq[T] =
-  ## Convert to sequence.
-  buf.data
-
-# RingBuffer implementation
-proc newRingBuffer*[T](capacity: int): RingBuffer[T] =
-  ## Create a new ring buffer with the given capacity.
-  var data = newSeq[Option[T]](capacity)
-  for i in 0..<capacity:
-    data[i] = none(T)
-  RingBuffer[T](
-    data: data,
-    head: 0,
-    tail: 0,
-    length: 0,
-    capacity: capacity
-  )
-
-proc len*[T](buf: RingBuffer[T]): int =
-  ## Get current length.
-  buf.length
-
-proc isEmpty*[T](buf: RingBuffer[T]): bool =
-  ## Check if buffer is empty.
-  buf.length == 0
-
-proc isFull*[T](buf: RingBuffer[T]): bool =
-  ## Check if buffer is full.
-  buf.length >= buf.capacity
-
-proc enqueue*[T](buf: var RingBuffer[T], value: T): bool =
-  ## Enqueue an element (returns false if full).
-  if buf.isFull():
-    return false
-  buf.data[buf.tail] = some(value)
-  buf.tail = (buf.tail + 1) mod buf.capacity
-  buf.length += 1
-  true
-
-proc dequeue*[T](buf: var RingBuffer[T]): Option[T] =
-  ## Dequeue an element (returns None if empty).
-  if buf.isEmpty():
-    return none(T)
-  result = buf.data[buf.head]
-  buf.data[buf.head] = none(T)
-  buf.head = (buf.head + 1) mod buf.capacity
-  buf.length -= 1
-
-proc peek*[T](buf: RingBuffer[T]): Option[T] =
-  ## Peek at front without removing.
-  if buf.isEmpty():
-    return none(T)
-  buf.data[buf.head]
-
-proc enqueueDroppingOldest*[T](buf: var RingBuffer[T], value: T) =
-  ## Enqueue, dropping oldest if full.
-  if buf.isFull():
-    discard buf.dequeue()
-  discard buf.enqueue(value)
-
-proc clear*[T](buf: var RingBuffer[T]) =
-  ## Clear all elements.
-  for i in 0..<buf.capacity:
-    buf.data[i] = none(T)
-  buf.head = 0
-  buf.tail = 0
-  buf.length = 0
+proc isValid*(buf: BoundedBuffer): bool =
+  ## Check if the buffer handle is valid (non-nil).
+  buf.handle != nil

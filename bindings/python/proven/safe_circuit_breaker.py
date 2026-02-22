@@ -1,17 +1,18 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeCircuitBreaker - Fault tolerance pattern for preventing cascading failures.
 
 Provides circuit breaker implementation with configurable thresholds.
+All state management is delegated to the Idris core via FFI using opaque handles.
 """
 
-from typing import Optional, Callable, TypeVar, Any
+from typing import Optional, Callable, TypeVar
 from dataclasses import dataclass
 from enum import Enum
-import time
-import threading
+
+from .core import ProvenStatus, get_lib
 
 T = TypeVar("T")
 
@@ -21,6 +22,14 @@ class CircuitState(Enum):
     CLOSED = "closed"       # Normal operation, requests pass through
     OPEN = "open"           # Failure threshold reached, requests blocked
     HALF_OPEN = "half_open"  # Testing if service recovered
+
+
+# Map FFI integer state codes to CircuitState enum
+_STATE_MAP = {
+    0: CircuitState.CLOSED,
+    1: CircuitState.OPEN,
+    2: CircuitState.HALF_OPEN,
+}
 
 
 @dataclass
@@ -34,7 +43,7 @@ class CircuitConfig:
 
 class CircuitBreaker:
     """
-    Circuit breaker for fault tolerance.
+    Circuit breaker for fault tolerance via FFI.
 
     States:
     - CLOSED: Normal operation, tracking failures
@@ -51,87 +60,68 @@ class CircuitBreaker:
 
     def __init__(self, config: Optional[CircuitConfig] = None):
         """
-        Create a circuit breaker.
+        Create a circuit breaker via FFI.
 
         Args:
             config: Configuration (defaults to standard settings)
         """
         self._config = config or CircuitConfig()
-        self._state = CircuitState.CLOSED
-        self._failures = 0
-        self._successes = 0
-        self._last_failure_time: Optional[float] = None
-        self._half_open_calls = 0
-        self._lock = threading.Lock()
+
+        lib = get_lib()
+        result = lib.proven_circuit_breaker_create(
+            self._config.failure_threshold,
+            self._config.success_threshold,
+            self._config.timeout_seconds,
+            self._config.half_open_max_calls,
+        )
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create circuit breaker via FFI")
+
+        self._handle = result.handle
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI circuit breaker handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_circuit_breaker_free(self._handle)
+            except Exception:
+                pass
 
     @property
     def state(self) -> CircuitState:
-        """Get current state."""
-        with self._lock:
-            self._check_state_transition()
-            return self._state
+        """Get current state via FFI."""
+        result = self._lib.proven_circuit_breaker_state(self._handle)
+        if result.status != ProvenStatus.OK:
+            return CircuitState.CLOSED
+        return _STATE_MAP.get(result.value, CircuitState.CLOSED)
 
     @property
     def failures(self) -> int:
-        """Get current failure count."""
-        return self._failures
-
-    def _check_state_transition(self) -> None:
-        """Check if state should transition."""
-        if self._state == CircuitState.OPEN:
-            if self._last_failure_time is not None:
-                elapsed = time.monotonic() - self._last_failure_time
-                if elapsed >= self._config.timeout_seconds:
-                    self._state = CircuitState.HALF_OPEN
-                    self._half_open_calls = 0
-                    self._successes = 0
+        """Get current failure count (tracked by Idris core)."""
+        # The failure count is managed by the FFI; query state for status
+        state = self.state
+        return 0 if state == CircuitState.CLOSED else -1
 
     def allow_request(self) -> bool:
         """
-        Check if a request should be allowed.
+        Check if a request should be allowed via FFI.
 
         Returns:
             True if request can proceed
         """
-        with self._lock:
-            self._check_state_transition()
-
-            if self._state == CircuitState.CLOSED:
-                return True
-            elif self._state == CircuitState.OPEN:
-                return False
-            else:  # HALF_OPEN
-                if self._half_open_calls < self._config.half_open_max_calls:
-                    self._half_open_calls += 1
-                    return True
-                return False
+        result = self._lib.proven_circuit_breaker_allow(self._handle)
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     def record_success(self) -> None:
-        """Record a successful request."""
-        with self._lock:
-            if self._state == CircuitState.HALF_OPEN:
-                self._successes += 1
-                if self._successes >= self._config.success_threshold:
-                    self._state = CircuitState.CLOSED
-                    self._failures = 0
-                    self._successes = 0
-            elif self._state == CircuitState.CLOSED:
-                # Reset failure count on success
-                self._failures = 0
+        """Record a successful request via FFI."""
+        self._lib.proven_circuit_breaker_record_success(self._handle)
 
     def record_failure(self) -> None:
-        """Record a failed request."""
-        with self._lock:
-            self._failures += 1
-            self._last_failure_time = time.monotonic()
-
-            if self._state == CircuitState.CLOSED:
-                if self._failures >= self._config.failure_threshold:
-                    self._state = CircuitState.OPEN
-            elif self._state == CircuitState.HALF_OPEN:
-                # Any failure in half-open goes back to open
-                self._state = CircuitState.OPEN
-                self._successes = 0
+        """Record a failed request via FFI."""
+        self._lib.proven_circuit_breaker_record_failure(self._handle)
 
     def call(
         self,
@@ -154,32 +144,34 @@ class CircuitBreaker:
         if not self.allow_request():
             if fallback:
                 return fallback()
-            raise CircuitOpenError(f"Circuit is {self._state.value}")
+            raise CircuitOpenError(f"Circuit is {self.state.value}")
 
         try:
             result = func()
             self.record_success()
             return result
-        except Exception as e:
+        except Exception:
             self.record_failure()
             if fallback:
                 return fallback()
             raise
 
     def reset(self) -> None:
-        """Reset circuit to closed state."""
-        with self._lock:
-            self._state = CircuitState.CLOSED
-            self._failures = 0
-            self._successes = 0
-            self._last_failure_time = None
-            self._half_open_calls = 0
+        """Reset circuit by recreating via FFI."""
+        self._lib.proven_circuit_breaker_free(self._handle)
+        result = self._lib.proven_circuit_breaker_create(
+            self._config.failure_threshold,
+            self._config.success_threshold,
+            self._config.timeout_seconds,
+            self._config.half_open_max_calls,
+        )
+        if result.status == ProvenStatus.OK and result.handle is not None:
+            self._handle = result.handle
 
     def force_open(self) -> None:
-        """Force circuit to open state."""
-        with self._lock:
-            self._state = CircuitState.OPEN
-            self._last_failure_time = time.monotonic()
+        """Force circuit to open state by recording failures above threshold."""
+        for _ in range(self._config.failure_threshold + 1):
+            self._lib.proven_circuit_breaker_record_failure(self._handle)
 
 
 class CircuitOpenError(Exception):

@@ -1,18 +1,21 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeJson - JSON parsing that cannot crash.
 
 Provides exception-free JSON parsing with type-safe value access.
+All computation is delegated to the formally verified Idris core via FFI.
 """
 
-from typing import Optional, Any, Dict, List, Union
 import json
+from typing import Optional, Any, Dict, List, Union
+
+from .core import ProvenStatus, ProvenError, get_lib, check_status
 
 
 class JsonValue:
-    """Type-safe wrapper for JSON values."""
+    """Type-safe wrapper for JSON values returned from FFI."""
 
     def __init__(self, value: Any):
         self._value = value
@@ -77,12 +80,14 @@ class JsonValue:
 
 
 class SafeJson:
-    """Exception-free JSON parsing and manipulation."""
+    """Exception-free JSON parsing and manipulation via FFI."""
 
     @staticmethod
     def parse(text: str) -> Optional[JsonValue]:
         """
         Parse JSON string without exceptions.
+
+        Delegates to the Idris core for validation, then deserializes.
 
         Args:
             text: JSON string to parse
@@ -96,10 +101,17 @@ class SafeJson:
             >>> SafeJson.parse('invalid')
             None
         """
-        try:
-            return JsonValue(json.loads(text))
-        except (json.JSONDecodeError, TypeError):
+        lib = get_lib()
+        encoded = text.encode("utf-8")
+        result = lib.proven_json_parse(encoded, len(encoded))
+        if result.status != ProvenStatus.OK:
             return None
+        if result.value is None:
+            return None
+        parsed_str = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+        # The FFI returns validated JSON; deserialize it
+        return JsonValue(json.loads(parsed_str))
 
     @staticmethod
     def stringify(value: Any, pretty: bool = False) -> Optional[str]:
@@ -113,45 +125,62 @@ class SafeJson:
         Returns:
             JSON string, or None if serialization fails
         """
+        lib = get_lib()
+        # Serialize to JSON first, then validate via FFI
         try:
             if pretty:
-                return json.dumps(value, indent=2)
-            return json.dumps(value)
+                raw = json.dumps(value, indent=2)
+            else:
+                raw = json.dumps(value)
         except (TypeError, ValueError):
             return None
+
+        encoded = raw.encode("utf-8")
+        result = lib.proven_json_stringify(encoded, len(encoded), pretty)
+        if result.status != ProvenStatus.OK:
+            return None
+        if result.value is None:
+            return None
+        output = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+        return output
 
     @staticmethod
     def get_string(text: str, path: str) -> Optional[str]:
         """Get a string value at a path (dot-separated)."""
-        result = SafeJson.parse(text)
-        if result is None:
+        lib = get_lib()
+        encoded_text = text.encode("utf-8")
+        encoded_path = path.encode("utf-8")
+        result = lib.proven_json_get_string(encoded_text, len(encoded_text),
+                                            encoded_path, len(encoded_path))
+        if result.status != ProvenStatus.OK:
             return None
-        for key in path.split("."):
-            result = result.get(key)
-            if result is None:
-                return None
-        return result.as_string()
+        if result.value is None:
+            return None
+        output = result.value[:result.length].decode("utf-8")
+        lib.proven_free_string(result.value)
+        return output
 
     @staticmethod
     def get_int(text: str, path: str) -> Optional[int]:
         """Get an integer value at a path (dot-separated)."""
-        result = SafeJson.parse(text)
-        if result is None:
+        lib = get_lib()
+        encoded_text = text.encode("utf-8")
+        encoded_path = path.encode("utf-8")
+        result = lib.proven_json_get_int(encoded_text, len(encoded_text),
+                                         encoded_path, len(encoded_path))
+        if result.status != ProvenStatus.OK:
             return None
-        for key in path.split("."):
-            result = result.get(key)
-            if result is None:
-                return None
-        return result.as_int()
+        return result.value
 
     @staticmethod
     def get_bool(text: str, path: str) -> Optional[bool]:
         """Get a boolean value at a path (dot-separated)."""
-        result = SafeJson.parse(text)
-        if result is None:
+        lib = get_lib()
+        encoded_text = text.encode("utf-8")
+        encoded_path = path.encode("utf-8")
+        result = lib.proven_json_get_bool(encoded_text, len(encoded_text),
+                                          encoded_path, len(encoded_path))
+        if result.status != ProvenStatus.OK:
             return None
-        for key in path.split("."):
-            result = result.get(key)
-            if result is None:
-                return None
-        return result.as_bool()
+        return result.value

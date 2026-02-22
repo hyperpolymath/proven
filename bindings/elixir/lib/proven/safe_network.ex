@@ -1,56 +1,24 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.SafeNetwork do
   @moduledoc """
-  Safe network operations for IP address validation and classification.
+  Safe network operations via libproven FFI.
+
+  IP address validation and classification are performed by the
+  Idris 2 verified core.
   """
-
-  defmodule IPv4 do
-    @moduledoc """
-    Represents an IPv4 address.
-    """
-    defstruct [:a, :b, :c, :d]
-
-    @type t :: %__MODULE__{
-            a: 0..255,
-            b: 0..255,
-            c: 0..255,
-            d: 0..255
-          }
-
-    defimpl String.Chars do
-      def to_string(%IPv4{a: a, b: b, c: c, d: d}) do
-        "#{a}.#{b}.#{c}.#{d}"
-      end
-    end
-  end
 
   @doc """
   Parse an IPv4 address string.
-  Returns {:ok, ipv4} or {:error, :invalid_ipv4}.
+
+  Returns `{:ok, {a, b, c, d}}` or `{:error, :invalid_ipv4}`.
   """
-  @spec parse_ipv4(String.t()) :: {:ok, IPv4.t()} | {:error, :invalid_ipv4}
-  def parse_ipv4(address) do
-    parts = String.split(address, ".")
-
-    if length(parts) == 4 do
-      octets =
-        Enum.map(parts, fn part ->
-          case Integer.parse(part) do
-            {n, ""} when n >= 0 and n <= 255 -> n
-            _ -> nil
-          end
-        end)
-
-      if Enum.all?(octets, &(&1 != nil)) do
-        [a, b, c, d] = octets
-        {:ok, %IPv4{a: a, b: b, c: c, d: d}}
-      else
-        {:error, :invalid_ipv4}
-      end
-    else
-      {:error, :invalid_ipv4}
+  @spec parse_ipv4(String.t()) :: {:ok, {0..255, 0..255, 0..255, 0..255}} | {:error, :invalid_ipv4}
+  def parse_ipv4(address) when is_binary(address) do
+    case Proven.NIF.nif_network_parse_ipv4(address) do
+      {:ok, {a, b, c, d}} -> {:ok, {a, b, c, d}}
+      {:error, _} -> {:error, :invalid_ipv4}
     end
   end
 
@@ -58,7 +26,7 @@ defmodule Proven.SafeNetwork do
   Check if a string is a valid IPv4 address.
   """
   @spec valid_ipv4?(String.t()) :: boolean()
-  def valid_ipv4?(address) do
+  def valid_ipv4?(address) when is_binary(address) do
     case parse_ipv4(address) do
       {:ok, _} -> true
       {:error, _} -> false
@@ -66,22 +34,13 @@ defmodule Proven.SafeNetwork do
   end
 
   @doc """
-  Check if an IPv4 address is in a private range.
+  Check if an IPv4 address is in a private range (RFC 1918).
   """
   @spec private?(String.t()) :: boolean()
-  def private?(address) do
+  def private?(address) when is_binary(address) do
     case parse_ipv4(address) do
-      {:ok, %IPv4{a: 10}} ->
-        true
-
-      {:ok, %IPv4{a: 172, b: b}} when b >= 16 and b <= 31 ->
-        true
-
-      {:ok, %IPv4{a: 192, b: 168}} ->
-        true
-
-      _ ->
-        false
+      {:ok, {a, b, c, d}} -> Proven.NIF.nif_network_ipv4_is_private(a, b, c, d)
+      {:error, _} -> false
     end
   end
 
@@ -89,10 +48,10 @@ defmodule Proven.SafeNetwork do
   Check if an IPv4 address is a loopback address (127.0.0.0/8).
   """
   @spec loopback?(String.t()) :: boolean()
-  def loopback?(address) do
+  def loopback?(address) when is_binary(address) do
     case parse_ipv4(address) do
-      {:ok, %IPv4{a: 127}} -> true
-      _ -> false
+      {:ok, {a, b, c, d}} -> Proven.NIF.nif_network_ipv4_is_loopback(a, b, c, d)
+      {:error, _} -> false
     end
   end
 
@@ -100,13 +59,7 @@ defmodule Proven.SafeNetwork do
   Check if an IPv4 address is public (not private or loopback).
   """
   @spec public?(String.t()) :: boolean()
-  def public?(address) do
+  def public?(address) when is_binary(address) do
     valid_ipv4?(address) and not private?(address) and not loopback?(address)
   end
-
-  @doc """
-  Format an IPv4 address as a string.
-  """
-  @spec format_ipv4(IPv4.t()) :: String.t()
-  def format_ipv4(ip), do: to_string(ip)
 end

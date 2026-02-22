@@ -1,80 +1,52 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * Safe URL parsing.
+ * SafeUrl - URL encoding/decoding operations.
+ *
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
+ * Note: proven_url_parse returns a complex struct that requires buffer-based
+ * marshaling. URL encoding/decoding are directly callable via proven_http_*.
+ *
+ * @module
  */
 
+import { getLib, ProvenStatus, readAndFreeString, statusToError } from './ffi.ts';
 import { err, ok, type Result } from './result.ts';
 
-export interface ParsedUrl {
-  scheme: string;
-  host: string;
-  port?: number;
-  path: string;
-  query?: string;
-  fragment?: string;
-  username?: string;
-  password?: string;
-}
-
 /**
- * Safe URL operations.
+ * Safe URL operations backed by formally verified Idris 2 code.
  */
 export class SafeUrl {
   /**
-   * Parse a URL string.
+   * URL-encode a string.
    *
-   * @example
-   * ```ts
-   * const result = SafeUrl.parse("https://example.com/path?q=test");
-   * if (result.ok) {
-   *   console.log(result.value.host); // "example.com"
-   * }
-   * ```
+   * @param str - The string to encode.
+   * @returns Result containing the encoded string or an error.
    */
-  static parse(url: string): Result<ParsedUrl> {
-    try {
-      const parsed = new URL(url);
-      return ok({
-        scheme: parsed.protocol.replace(':', ''),
-        host: parsed.hostname,
-        port: parsed.port ? parseInt(parsed.port, 10) : undefined,
-        path: parsed.pathname,
-        query: parsed.search ? parsed.search.slice(1) : undefined,
-        fragment: parsed.hash ? parsed.hash.slice(1) : undefined,
-        username: parsed.username || undefined,
-        password: parsed.password || undefined,
-      });
-    } catch {
-      return err('Invalid URL');
-    }
+  static encode(str: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(str);
+    const result = symbols.proven_http_url_encode(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const encoded = readAndFreeString(result[1], Number(result[2]));
+    if (encoded === null) return err('Null string returned');
+    return ok(encoded);
   }
 
-  /** Check if a URL is valid. */
-  static isValid(url: string): boolean {
-    return this.parse(url).ok;
-  }
-
-  /** Get the domain from a URL. */
-  static getDomain(url: string): Result<string> {
-    const result = this.parse(url);
-    if (!result.ok) return result;
-    return ok(result.value.host);
-  }
-
-  /** Get query parameters as a Map. */
-  static getQueryParams(url: string): Result<Map<string, string>> {
-    const result = this.parse(url);
-    if (!result.ok) return result;
-
-    const params = new Map<string, string>();
-    if (result.value.query) {
-      for (const pair of result.value.query.split('&')) {
-        const [key, value] = pair.split('=');
-        if (key) {
-          params.set(decodeURIComponent(key), decodeURIComponent(value || ''));
-        }
-      }
-    }
-    return ok(params);
+  /**
+   * URL-decode a string.
+   *
+   * @param str - The URL-encoded string to decode.
+   * @returns Result containing the decoded string or an error.
+   */
+  static decode(str: string): Result<string> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(str);
+    const result = symbols.proven_http_url_decode(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    const decoded = readAndFreeString(result[1], Number(result[2]));
+    if (decoded === null) return err('Null string returned');
+    return ok(decoded);
   }
 }

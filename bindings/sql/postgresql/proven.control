@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# proven.control - PostgreSQL extension control file
+#
+# This extension provides formally verified safety functions from libproven.
+# All computation is performed in Idris 2 via the Zig FFI bridge; these SQL
+# functions are thin C wrappers around the libproven C ABI.
+
+comment = 'Formally verified safety functions (math, validation, encoding) via libproven'
+default_version = '0.5.0'
+module_pathname = '$libdir/proven'
+relocatable = true
+requires = ''

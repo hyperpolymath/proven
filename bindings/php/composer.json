@@ -21,8 +21,8 @@
     ],
     "authors": [
         {
-            "name": "Hyperpolymath",
-            "homepage": "https://github.com/hyperpolymath"
+            "name": "Jonathan D.A. Jewell",
+            "email": "jonathan.jewell@open.ac.uk"
         }
     ],
     "require": {

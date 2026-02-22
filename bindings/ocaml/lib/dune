@@ -1,7 +1,8 @@
-; SPDX-License-Identifier: PMPL-1.0
-; SPDX-FileCopyrightText: 2025 Hyperpolymath
+; SPDX-License-Identifier: PMPL-1.0-or-later
+; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 (library
  (name proven)
  (public_name proven)
- (modules proven safe_math safe_string safe_path safe_email safe_network safe_crypto safe_uuid safe_currency safe_phone safe_hex))
+ (libraries ctypes ctypes.foreign)
+ (modules proven proven_ffi))

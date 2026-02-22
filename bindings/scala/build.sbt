@@ -1,25 +1,33 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-ThisBuild / version := "0.4.0"
+ThisBuild / version := "0.9.0"
 ThisBuild / scalaVersion := "3.3.1"
-ThisBuild / organization := "com.hyperpolymath"
+ThisBuild / organization := "io.github.hyperpolymath"
 
 lazy val root = (project in file("."))
   .settings(
     name := "proven",
-    description := "Safe operations library with 38 modules for security, validation, and data handling",
+    description := "Scala JNA bindings for libproven - formally verified safe operations",
     libraryDependencies ++= Seq(
+      "net.java.dev.jna" % "jna" % "5.14.0",
       "org.scalatest" %% "scalatest" % "3.2.17" % Test
-    )
+    ),
+    // Publish settings
+    pomExtra := {
+      <url>https://github.com/hyperpolymath/proven</url>
+      <licenses>
+        <license>
+          <name>PMPL-1.0-or-later</name>
+          <url>https://github.com/hyperpolymath/proven/blob/main/LICENSE</url>
+        </license>
+      </licenses>
+      <developers>
+        <developer>
+          <id>hyperpolymath</id>
+          <name>Jonathan D.A. Jewell</name>
+          <email>jonathan.jewell@open.ac.uk</email>
+        </developer>
+      </developers>
+    }
   )
-
-// Module count: 38
-// Core (11): SafeMath, SafeString, SafePath, SafeEmail, SafeUrl, SafeNetwork, SafeCrypto, SafeUUID, SafeCurrency, SafePhone, SafeHex
-// Data (7): SafeJson, SafeDateTime, SafeFloat, SafeVersion, SafeColor, SafeAngle, SafeUnit
-// Data Structures (5): SafeBuffer, SafeQueue, SafeBloom, SafeLRU, SafeGraph
-// Resilience (4): SafeRateLimiter, SafeCircuitBreaker, SafeRetry, SafeMonotonic
-// State (2): SafeStateMachine, SafeCalculator
-// Algorithm (4): SafeGeo, SafeProbability, SafeChecksum, SafeTensor
-// Security (2): SafePassword, SafeMl
-// HTTP (3): SafeHeader, SafeCookie, SafeContentType

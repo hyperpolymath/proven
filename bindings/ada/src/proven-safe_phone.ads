@@ -1,78 +1,57 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
---  Safe phone number validation following E.164.
-
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+--  Safe phone number operations -- thin FFI wrapper over libproven.
+--  Phone parsing and formatting done by the Idris2/Zig core.
 
 package Proven.Safe_Phone is
 
-   --  Country calling codes.
-   type Country_Code is (
-      US,       --  1  - USA, Canada
-      RU,       --  7  - Russia
-      EG,       --  20 - Egypt
-      ZA,       --  27 - South Africa
-      FR,       --  33 - France
-      ES,       --  34 - Spain
-      IT,       --  39 - Italy
-      UK,       --  44 - UK
-      DE,       --  49 - Germany
-      MX,       --  52 - Mexico
-      BR,       --  55 - Brazil
-      AU,       --  61 - Australia
-      JP,       --  81 - Japan
-      KR,       --  82 - South Korea
-      CN,       --  86 - China
-      IN_India, --  91 - India (IN is reserved in Ada)
-      Unknown
-   );
+   Max_National_Len : constant := 15;
+   Max_Format_Len   : constant := 32;
 
-   --  Get numeric value for country code.
-   function Country_Code_Value (Code : Country_Code) return Natural;
+   --  Country calling code (numeric value from E.164).
+   subtype Country_Code is Natural;
 
-   --  Parse country code from numeric value.
-   function Country_Code_From_Value (Value : Natural) return Country_Code;
-
-   --  Validated phone number.
    type Phone_Number is record
       Country         : Country_Code;
-      National_Number : Unbounded_String;
+      National_Number : String (1 .. Max_National_Len);
+      National_Last   : Natural;
    end record;
 
-   --  Parse result for phone numbers.
-   type Phone_Result (Valid : Boolean := False) is record
-      case Valid is
-         when True  => Number : Phone_Number;
-         when False => null;
+   type Phone_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Number     : Phone_Number;
+         when False => Error_Code : Integer;
       end case;
    end record;
 
-   --  Parse phone number from string.
+   type Format_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Value      : String (1 .. Max_Format_Len);
+                       Last       : Natural;
+         when False => Error_Code : Integer;
+      end case;
+   end record;
+
+   --  Parse phone number from string (calls phone_parse).
    function Parse (Input : String) return Phone_Result;
 
-   --  Parse phone number, raising exception on failure.
-   function Parse_Or_Raise (Input : String) return Phone_Number;
-
-   --  Check if valid phone number.
+   --  Check if string is valid phone number (calls phone_is_valid).
    function Is_Valid (Input : String) return Boolean;
 
-   --  Get country code from phone number.
-   function Get_Country_Code (Phone : Phone_Number) return Country_Code;
+   --  Format phone number in E.164 format (calls phone_format_e164).
+   function To_E164 (Phone : Phone_Number) return Format_Result;
 
-   --  Get national number portion.
-   function Get_National_Number (Phone : Phone_Number) return String;
+   --  Format phone number in international format
+   --  (calls phone_format_international).
+   function To_International (Phone : Phone_Number) return Format_Result;
 
-   --  Format in E.164 format (+CountryNational).
-   function To_E164 (Phone : Phone_Number) return String;
+   --  Get numeric calling code for a country code
+   --  (calls phone_get_calling_code).
+   function Get_Calling_Code (Code : Country_Code) return Natural;
 
-   --  Format in international format with spaces.
-   function To_International (Phone : Phone_Number) return String;
-
-   --  Get total digit count.
+   --  Get total digit count (calls phone_digit_count).
    function Digit_Count (Phone : Phone_Number) return Natural;
-
-   --  Exception for phone parsing errors.
-   Phone_Parse_Error : exception;
 
 end Proven.Safe_Phone;

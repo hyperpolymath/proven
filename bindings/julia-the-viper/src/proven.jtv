@@ -1,0 +1,85 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+-- proven.jtv - Main module for proven library bindings in Julia the Viper
+--
+-- Provides formally verified safety operations via FFI to libproven
+-- (Idris 2 + Zig). All computation is performed by the verified core;
+-- this module is a thin wrapper that marshals data across the FFI boundary.
+--
+-- Architecture note: JTV separates Control (Turing-complete) from Data
+-- (addition-only, total). The FFI calls live in Control-plane because they
+-- have side effects. Data-plane modules re-export pure results.
+
+module Proven
+
+import Proven.FFI (proven_init, proven_deinit, proven_is_initialized)
+import Proven.SafeMath
+import Proven.SafeString
+import Proven.SafeEmail
+import Proven.SafeUrl
+import Proven.SafeCrypto
+import Proven.SafeJson
+
+-- ---------------------------------------------------------------------------
+-- Library version
+-- ---------------------------------------------------------------------------
+
+const VERSION_MAJOR: u32 = 0
+const VERSION_MINOR: u32 = 4
+const VERSION_PATCH: u32 = 0
+
+-- ---------------------------------------------------------------------------
+-- DataResult type (used across all safe modules)
+-- ---------------------------------------------------------------------------
+
+-- DataResult wraps a value or an error status from the FFI layer.
+-- Control-plane code checks status; Data-plane code receives the value.
+type DataResult<T> = Ok(T) | Err(ProvenError)
+
+-- ProvenError carries the status code from libproven.
+type ProvenError = {
+    code: i32,
+    message: [u8; 128]
+}
+
+-- ---------------------------------------------------------------------------
+-- Control-plane: Library lifecycle
+-- ---------------------------------------------------------------------------
+
+-- Initialize the proven FFI runtime. Must be called before any safe operation.
+-- Returns DataResult<bool> indicating success.
+fn init() -> DataResult<bool>:
+    let status: i32 = proven_init()
+    if status == 0:
+        return Ok(true)
+    else:
+        return Err({ code: status, message: "proven_init failed" })
+
+-- Shut down the proven FFI runtime and release resources.
+fn deinit() -> void:
+    proven_deinit()
+
+-- Check whether the runtime has been initialized.
+fn is_initialized() -> bool:
+    return proven_is_initialized()
+
+-- ---------------------------------------------------------------------------
+-- Helper: Convert FFI status code to human-readable error message
+-- ---------------------------------------------------------------------------
+
+fn status_to_message(code: i32) -> [u8; 64]:
+    match code:
+        0  -> "Ok"
+        -1 -> "Null pointer"
+        -2 -> "Invalid argument"
+        -3 -> "Integer overflow"
+        -4 -> "Integer underflow"
+        -5 -> "Division by zero"
+        -6 -> "Parse failure"
+        -7 -> "Validation failed"
+        -8 -> "Out of bounds"
+        -9 -> "Encoding error"
+        -10 -> "Allocation failed"
+        -99 -> "Not implemented"
+        _  -> "Unknown error"

@@ -1,0 +1,42 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{{
+SafeCrypto -- Safe cryptographic primitives.
+
+All computation is performed in verified Idris 2 code via proven-cli.
+Returns Optional on error.
+}}
+
+-- Constant-time comparison of two strings (timing-attack safe).
+-- Returns true if the strings are equal, false otherwise.
+proven.crypto.constantTimeEq : '{IO} Text -> Text -> Boolean
+proven.crypto.constantTimeEq a b =
+  match proven.runCli ["crypto", "constant-time-eq", a, b] with
+    Some output ->
+      match proven.parseBoolResult output with
+        Some r -> r
+        None -> false
+    None -> false
+
+-- Encode bytes (as text) to lowercase hex string. Returns None on error.
+proven.crypto.hexEncode : '{IO} Text -> Optional Text
+proven.crypto.hexEncode data =
+  match proven.runCli ["hex", "encode", data] with
+    Some output -> proven.parseStringResult output
+    None -> None
+
+-- Decode hex string to bytes (returned as text). Returns None on error.
+proven.crypto.hexDecode : '{IO} Text -> Optional Text
+proven.crypto.hexDecode hexStr =
+  match proven.runCli ["hex", "decode", hexStr] with
+    Some output -> proven.parseStringResult output
+    None -> None
+
+-- Generate cryptographically secure random bytes as hex string.
+-- The count parameter specifies the number of random bytes.
+proven.crypto.randomBytesHex : '{IO} Nat -> Optional Text
+proven.crypto.randomBytesHex count =
+  match proven.runCli ["crypto", "random-bytes", Nat.toText count] with
+    Some output -> proven.parseStringResult output
+    None -> None

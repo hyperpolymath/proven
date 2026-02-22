@@ -250,9 +250,9 @@ redactEmail : String -> String
 redactEmail email =
   case split (== '@') email of
     [local, domain] =>
-      let localFirst = if length (unpack local) > 0
-                       then strCons (assert_total (head (unpack local))) ""
-                       else ""
+      let localFirst = case unpack local of
+                         (c :: _) => strCons c ""
+                         []       => ""
       in localFirst ++ "***@" ++ domain
     _ => email
 

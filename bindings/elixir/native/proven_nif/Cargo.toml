@@ -5,8 +5,8 @@
 name = "proven_nif"
 version = "0.10.0"
 edition = "2021"
-authors = ["Hyperpolymath"]
-description = "Rustler NIF bindings for Proven safety library"
+authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+description = "Rustler NIF bindings for Proven safety library — thin FFI wrapper over libproven"
 license = "PMPL-1.0"
 publish = false
 
@@ -17,9 +17,7 @@ crate-type = ["cdylib"]
 [dependencies]
 rustler = "0.35"
 
-# Use the proven core library from the parent bindings
-[dependencies.proven]
-path = "../../../rust"
+[build-dependencies]
 
 [profile.release]
 lto = true

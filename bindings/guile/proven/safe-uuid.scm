@@ -1,103 +1,104 @@
 ;;; SPDX-License-Identifier: PMPL-1.0-or-later
-;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;
-;;; SafeUuid - UUID validation following RFC 4122 for Guile Scheme
+;;; SafeUuid - FFI bindings to libproven UUID operations
 ;;;
-;;; Validates and parses UUIDs without throwing exceptions.
+;;; All computation delegates to Idris 2 via the Zig FFI layer.
+;;; This module is a thin wrapper only -- no reimplemented logic.
 
 (define-module (proven safe-uuid)
-  #:use-module (ice-9 regex)
-  #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-13)
-  #:export (UUID-NIL
-            uuid-valid?
-            uuid-valid-v4?
-            uuid-nil?
-            uuid-version
-            uuid-normalize
+  #:use-module (system foreign)
+  #:use-module (rnrs bytevectors)
+  #:export (uuid-v4
             uuid-parse
-            uuid-to-hex
-            uuid-from-hex
-            make-uuid-result
-            make-uuid-parse-result))
+            uuid->string
+            uuid-nil?
+            uuid-version))
 
-;;; Nil UUID
-(define UUID-NIL "00000000-0000-0000-0000-000000000000")
+;;; Load libproven shared library
+(define libproven (dynamic-link "libproven"))
 
-;;; UUID patterns
-(define uuid-pattern
-  (make-regexp "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))
+;;; FFI function bindings
+;;; UUID is 16 bytes; UUIDResult is { i32 status, [16]u8 bytes }
 
-(define uuid-v4-pattern
-  (make-regexp "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"))
+(define ffi-uuid-v4
+  (pointer->procedure '* (dynamic-func "proven_uuid_v4" libproven) '()))
 
-;;; Result constructors
-(define (make-uuid-result uuid ok)
-  `((uuid . ,uuid) (ok . ,ok)))
+(define ffi-uuid-parse
+  (pointer->procedure '* (dynamic-func "proven_uuid_parse" libproven)
+                      (list '* size_t)))
 
-(define (make-uuid-parse-result time-low time-mid time-hi clock-seq node ok)
-  `((time-low . ,time-low)
-    (time-mid . ,time-mid)
-    (time-hi . ,time-hi)
-    (clock-seq . ,clock-seq)
-    (node . ,node)
-    (ok . ,ok)))
+(define ffi-uuid-to-string
+  (pointer->procedure '* (dynamic-func "proven_uuid_to_string" libproven)
+                      ;; UUID passed as 16 bytes (platform-dependent passing)
+                      (list '*)))
 
-;;; Check if string is a valid UUID (any version)
-(define (uuid-valid? uuid)
-  (and (string? uuid)
-       (regexp-exec uuid-pattern uuid)))
+(define ffi-uuid-is-nil
+  (pointer->procedure int32 (dynamic-func "proven_uuid_is_nil" libproven)
+                      (list '*)))
 
-;;; Check if string is a valid UUID v4
-(define (uuid-valid-v4? uuid)
-  (and (string? uuid)
-       (regexp-exec uuid-v4-pattern uuid)))
+(define ffi-uuid-version
+  (pointer->procedure uint8 (dynamic-func "proven_uuid_version" libproven)
+                      (list '*)))
 
-;;; Check if UUID is nil
-(define (uuid-nil? uuid)
-  (string=? uuid UUID-NIL))
+(define ffi-free-string
+  (pointer->procedure void (dynamic-func "proven_free_string" libproven)
+                      (list '*)))
 
-;;; Get UUID version (returns 0 if invalid)
-(define (uuid-version uuid)
-  (if (not (uuid-valid? uuid))
-      0
-      ;; Version is at position 14 (character after second hyphen)
-      (let ((version-char (substring uuid 14 15)))
-        (if (regexp-exec (make-regexp "[1-5]") version-char)
-            (string->number version-char)
-            0))))
+;;; Helper: convert string to (pointer, length)
+(define (string->ffi-args str)
+  (let* ((bv (string->utf8 str))
+         (len (bytevector-length bv))
+         (ptr (bytevector->pointer bv)))
+    (values ptr len)))
 
-;;; Normalize UUID to lowercase
-(define (uuid-normalize uuid)
-  (string-downcase uuid))
+;;; Helper: parse StringResult struct { i32 status, ptr value, size_t length }
+(define (parse-string-result ptr)
+  (let* ((bv (pointer->bytevector ptr (+ 4 (sizeof '*) (sizeof size_t))))
+         (status (bytevector-s32-native-ref bv 0))
+         (str-ptr-offset (if (= (sizeof '*) 8) 8 4))
+         (str-ptr (make-pointer (bytevector-uint-native-ref bv str-ptr-offset (sizeof '*))))
+         (len-offset (+ str-ptr-offset (sizeof '*)))
+         (len (bytevector-uint-native-ref bv len-offset (sizeof size_t))))
+    (if (= status 0)
+        (let ((result (pointer->string str-ptr len)))
+          (ffi-free-string str-ptr)
+          result)
+        #f)))
 
-;;; Parse UUID into components
-(define (uuid-parse uuid)
-  (if (not (uuid-valid? uuid))
-      (make-uuid-parse-result "" "" "" "" "" #f)
-      (let ((parts (string-split uuid #\-)))
-        (make-uuid-parse-result
-         (list-ref parts 0)
-         (list-ref parts 1)
-         (list-ref parts 2)
-         (list-ref parts 3)
-         (list-ref parts 4)
-         #t))))
+;;; Generate a random UUID v4 (delegates to Idris 2)
+;;; Returns UUID as bytevector or #f on failure
+(define (uuid-v4)
+  (let* ((result-ptr (ffi-uuid-v4))
+         (bv (pointer->bytevector result-ptr 20))  ; status(4) + uuid(16)
+         (status (bytevector-s32-native-ref bv 0)))
+    (if (= status 0)
+        (let ((uuid-bv (make-bytevector 16)))
+          (bytevector-copy! bv 4 uuid-bv 0 16)
+          uuid-bv)
+        #f)))
 
-;;; Remove hyphens from UUID
-(define (uuid-to-hex uuid)
-  (string-filter (lambda (c) (not (char=? c #\-))) uuid))
+;;; Parse UUID string into bytevector (delegates to Idris 2)
+(define (uuid-parse uuid-string)
+  (call-with-values (lambda () (string->ffi-args uuid-string))
+    (lambda (ptr len)
+      (let* ((result-ptr (ffi-uuid-parse ptr len))
+             (bv (pointer->bytevector result-ptr 20))
+             (status (bytevector-s32-native-ref bv 0)))
+        (if (= status 0)
+            (let ((uuid-bv (make-bytevector 16)))
+              (bytevector-copy! bv 4 uuid-bv 0 16)
+              uuid-bv)
+            #f)))))
 
-;;; Format 32 hex chars as UUID
-(define (uuid-from-hex hex)
-  (if (not (= (string-length hex) 32))
-      (make-uuid-result "" #f)
-      (if (not (regexp-exec (make-regexp "^[0-9a-fA-F]{32}$") hex))
-          (make-uuid-result "" #f)
-          (let ((formatted (string-append
-                            (substring hex 0 8) "-"
-                            (substring hex 8 12) "-"
-                            (substring hex 12 16) "-"
-                            (substring hex 16 20) "-"
-                            (substring hex 20 32))))
-            (make-uuid-result formatted #t)))))
+;;; Convert UUID bytevector to string (delegates to Idris 2)
+(define (uuid->string uuid-bv)
+  (parse-string-result (ffi-uuid-to-string (bytevector->pointer uuid-bv))))
+
+;;; Check if UUID is nil (all zeros) (delegates to Idris 2)
+(define (uuid-nil? uuid-bv)
+  (not (= 0 (ffi-uuid-is-nil (bytevector->pointer uuid-bv)))))
+
+;;; Get UUID version (delegates to Idris 2)
+(define (uuid-version uuid-bv)
+  (ffi-uuid-version (bytevector->pointer uuid-bv)))

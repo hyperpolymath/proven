@@ -1,144 +1,60 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-//! Safe buffer operations with bounds checking.
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Proven SafeBuffer - FFI bindings to libproven bounded buffer operations.
+// All computation is performed in verified Idris 2 code via libproven.
 
 const std = @import("std");
+const c = @cImport(@cInclude("proven.h"));
 
 /// Error types for buffer operations.
 pub const BufferError = error{
+    CreationFailed,
     OutOfBounds,
-    BufferFull,
-    BufferEmpty,
-    AllocationFailed,
+    ProvenError,
 };
 
-/// A bounded buffer with safe operations.
-pub fn BoundedBuffer(comptime T: type, comptime capacity: usize) type {
-    return struct {
-        const Self = @This();
+/// Bounded buffer backed by libproven.
+pub const BoundedBuffer = struct {
+    ptr: *c.ProvenBoundedBuffer,
 
-        data: [capacity]T = undefined,
-        len: usize = 0,
+    /// Append data to buffer with bounds checking via libproven.
+    pub fn append(self: BoundedBuffer, data: []const u8) BufferError!void {
+        const status = c.proven_buffer_append(self.ptr, data.ptr, data.len);
+        return switch (status) {
+            c.PROVEN_OK => {},
+            c.PROVEN_ERR_OUT_OF_BOUNDS => error.OutOfBounds,
+            else => error.ProvenError,
+        };
+    }
 
-        /// Initialize an empty buffer.
-        pub fn init() Self {
-            return .{};
-        }
+    /// Get buffer contents via libproven.
+    pub fn get(self: BoundedBuffer) BufferError![]const u8 {
+        var out_ptr: [*]const u8 = undefined;
+        var out_len: usize = undefined;
+        const status = c.proven_buffer_get(self.ptr, &out_ptr, &out_len);
+        if (status != c.PROVEN_OK) return error.ProvenError;
+        return out_ptr[0..out_len];
+    }
 
-        /// Get current length.
-        pub fn length(self: *const Self) usize {
-            return self.len;
-        }
+    /// Free buffer via libproven.
+    pub fn deinit(self: BoundedBuffer) void {
+        c.proven_buffer_free(self.ptr);
+    }
+};
 
-        /// Check if buffer is empty.
-        pub fn isEmpty(self: *const Self) bool {
-            return self.len == 0;
-        }
-
-        /// Check if buffer is full.
-        pub fn isFull(self: *const Self) bool {
-            return self.len >= capacity;
-        }
-
-        /// Get remaining capacity.
-        pub fn remaining(self: *const Self) usize {
-            return capacity - self.len;
-        }
-
-        /// Push an element (fails if full).
-        pub fn push(self: *Self, value: T) BufferError!void {
-            if (self.isFull()) return error.BufferFull;
-            self.data[self.len] = value;
-            self.len += 1;
-        }
-
-        /// Pop an element (fails if empty).
-        pub fn pop(self: *Self) BufferError!T {
-            if (self.isEmpty()) return error.BufferEmpty;
-            self.len -= 1;
-            return self.data[self.len];
-        }
-
-        /// Get element at index (fails if out of bounds).
-        pub fn get(self: *const Self, index: usize) BufferError!T {
-            if (index >= self.len) return error.OutOfBounds;
-            return self.data[index];
-        }
-
-        /// Set element at index (fails if out of bounds).
-        pub fn set(self: *Self, index: usize, value: T) BufferError!void {
-            if (index >= self.len) return error.OutOfBounds;
-            self.data[index] = value;
-        }
-
-        /// Clear all elements.
-        pub fn clear(self: *Self) void {
-            self.len = 0;
-        }
-
-        /// Get slice of valid data.
-        pub fn slice(self: *const Self) []const T {
-            return self.data[0..self.len];
-        }
-    };
+/// Create a bounded buffer via libproven.
+/// capacity: Maximum capacity in bytes (max 100MB).
+pub fn create(capacity: usize) BufferError!BoundedBuffer {
+    const result = c.proven_buffer_create(capacity);
+    if (result.status != c.PROVEN_OK or result.buffer == null) return error.CreationFailed;
+    return BoundedBuffer{ .ptr = result.buffer.? };
 }
 
-/// Ring buffer for FIFO operations.
-pub fn RingBuffer(comptime T: type, comptime capacity: usize) type {
-    return struct {
-        const Self = @This();
-
-        data: [capacity]T = undefined,
-        head: usize = 0,
-        tail: usize = 0,
-        len: usize = 0,
-
-        pub fn init() Self {
-            return .{};
-        }
-
-        pub fn isEmpty(self: *const Self) bool {
-            return self.len == 0;
-        }
-
-        pub fn isFull(self: *const Self) bool {
-            return self.len >= capacity;
-        }
-
-        pub fn enqueue(self: *Self, value: T) BufferError!void {
-            if (self.isFull()) return error.BufferFull;
-            self.data[self.tail] = value;
-            self.tail = (self.tail + 1) % capacity;
-            self.len += 1;
-        }
-
-        pub fn dequeue(self: *Self) BufferError!T {
-            if (self.isEmpty()) return error.BufferEmpty;
-            const value = self.data[self.head];
-            self.head = (self.head + 1) % capacity;
-            self.len -= 1;
-            return value;
-        }
-
-        pub fn peek(self: *const Self) BufferError!T {
-            if (self.isEmpty()) return error.BufferEmpty;
-            return self.data[self.head];
-        }
-    };
-}
-
-test "BoundedBuffer" {
-    var buf = BoundedBuffer(u32, 4).init();
-    try buf.push(1);
-    try buf.push(2);
-    try std.testing.expectEqual(@as(usize, 2), buf.length());
-    try std.testing.expectEqual(@as(u32, 2), try buf.pop());
-}
-
-test "RingBuffer" {
-    var ring = RingBuffer(u32, 3).init();
-    try ring.enqueue(1);
-    try ring.enqueue(2);
-    try std.testing.expectEqual(@as(u32, 1), try ring.dequeue());
+test "create and append" {
+    const buf = try create(1024);
+    defer buf.deinit();
+    try buf.append("hello");
+    const data = try buf.get();
+    try std.testing.expectEqualStrings("hello", data);
 }

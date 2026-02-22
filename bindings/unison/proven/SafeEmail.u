@@ -1,0 +1,19 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{{
+SafeEmail -- Email address validation (RFC 5321 simplified).
+
+All computation is performed in verified Idris 2 code via proven-cli.
+}}
+
+-- Validate an email address per RFC 5321.
+-- Returns true if the email is valid, false otherwise.
+proven.email.isValid : '{IO} Text -> Boolean
+proven.email.isValid value =
+  match proven.runCli ["email", "validate", value] with
+    Some output ->
+      match proven.parseBoolResult output with
+        Some b -> b
+        None -> false
+    None -> false

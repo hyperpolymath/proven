@@ -1,67 +1,91 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * Safe JSON operations.
+ * SafeJson - JSON validation without exceptions.
+ *
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
+ *
+ * @module
  */
 
+import { getLib, ProvenStatus, statusToError } from './ffi.ts';
 import { err, ok, type Result } from './result.ts';
 
 /**
- * Safe JSON operations.
+ * JSON value type enumeration.
+ */
+export const JsonType = {
+  NULL: 0,
+  BOOL: 1,
+  NUMBER: 2,
+  STRING: 3,
+  ARRAY: 4,
+  OBJECT: 5,
+  INVALID: -1,
+} as const;
+
+/**
+ * Safe JSON operations backed by formally verified Idris 2 code.
  */
 export class SafeJson {
   /**
-   * Parse JSON safely.
+   * Check if a string is valid JSON.
    *
-   * @example
-   * ```ts
-   * const result = SafeJson.parse('{"key": "value"}');
-   * if (result.ok) {
-   *   console.log(result.value); // { key: "value" }
-   * }
-   * ```
+   * @param json - The JSON string to validate.
+   * @returns Result containing a boolean or an error string.
    */
-  static parse(s: string): Result<unknown> {
-    try {
-      return ok(JSON.parse(s));
-    } catch (e) {
-      return err(e instanceof Error ? e.message : 'Parse error');
-    }
+  static isValid(json: string): Result<boolean> {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(json);
+    const result = symbols.proven_json_is_valid(bytes, bytes.length);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(result[1]);
   }
 
-  /** Stringify to JSON safely. */
-  static stringify(value: unknown, indent?: number): Result<string> {
-    try {
-      return ok(JSON.stringify(value, null, indent));
-    } catch (e) {
-      return err(e instanceof Error ? e.message : 'Stringify error');
-    }
+  /**
+   * Get the root-level JSON value type.
+   *
+   * @param json - The JSON string to inspect.
+   * @returns A JsonType enum value.
+   */
+  static getType(json: string): number {
+    const symbols = getLib();
+    const bytes = new TextEncoder().encode(json);
+    return symbols.proven_json_get_type(bytes, bytes.length);
+  }
+}
+
+/**
+ * A validated JSON value.
+ */
+export class JsonValue {
+  #raw: string;
+
+  constructor(raw: string) {
+    this.#raw = raw;
   }
 
-  /** Check if a string is valid JSON. */
-  static isValid(s: string): boolean {
-    try {
-      JSON.parse(s);
-      return true;
-    } catch {
-      return false;
-    }
+  /**
+   * Parse and validate a JSON string.
+   *
+   * @param json - The JSON to parse.
+   * @returns Result containing a JsonValue or an error string.
+   */
+  static parse(json: string): Result<JsonValue> {
+    const valid = SafeJson.isValid(json);
+    if (!valid.ok) return valid;
+    if (!valid.value) return err('Invalid JSON');
+    return ok(new JsonValue(json));
   }
 
-  /** Safely access nested property using dot notation. */
-  static getPath(obj: unknown, path: string): unknown | undefined {
-    const parts = path.split('.');
-    let current: unknown = obj;
+  /** The raw JSON string. */
+  toString(): string {
+    return this.#raw;
+  }
 
-    for (const part of parts) {
-      if (current === null || current === undefined) {
-        return undefined;
-      }
-      if (typeof current !== 'object') {
-        return undefined;
-      }
-      current = (current as Record<string, unknown>)[part];
-    }
-
-    return current;
+  /** The root-level JSON type. */
+  getType(): number {
+    return SafeJson.getType(this.#raw);
   }
 }

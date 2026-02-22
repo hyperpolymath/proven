@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Safe network operations for IP address validation and classification.
+# Thin wrapper over libproven FFI -- all logic lives in Idris.
 
-## Safe network operations for IP address validation and classification.
-
-import std/[strutils, options]
+import std/options
+import lib_proven
 
 type
   IPv4* = object
@@ -12,64 +14,48 @@ type
 
 proc `$`*(ip: IPv4): string =
   ## Convert IPv4 to string representation.
-  result = $ip.a & "." & $ip.b & "." & $ip.c & "." & $ip.d
+  $ip.a & "." & $ip.b & "." & $ip.c & "." & $ip.d
 
 proc parseIPv4*(address: string): Option[IPv4] =
   ## Parse an IPv4 address string.
-  let parts = address.split('.')
-  if parts.len != 4:
+  if address.len == 0:
     return none(IPv4)
-
-  var octets: array[4, uint8]
-  for i, part in parts:
-    try:
-      let num = parseInt(part)
-      if num < 0 or num > 255:
-        return none(IPv4)
-      octets[i] = uint8(num)
-    except ValueError:
-      return none(IPv4)
-
-  result = some(IPv4(a: octets[0], b: octets[1], c: octets[2], d: octets[3]))
+  let res = provenNetworkParseIpv4(unsafeAddr address[0], csize_t(address.len))
+  if res.status == PROVEN_OK:
+    return some(IPv4(
+      a: res.address.octets[0],
+      b: res.address.octets[1],
+      c: res.address.octets[2],
+      d: res.address.octets[3]
+    ))
+  none(IPv4)
 
 proc isValidIPv4*(address: string): bool =
   ## Check if a string is a valid IPv4 address.
-  result = parseIPv4(address).isSome
+  parseIPv4(address).isSome
 
 proc isPrivate*(address: string): bool =
   ## Check if an IPv4 address is in a private range.
-  let ip = parseIPv4(address)
-  if ip.isNone:
+  if address.len == 0:
     return false
-
-  let ipv4 = ip.get
-
-  # 10.0.0.0/8
-  if ipv4.a == 10:
-    return true
-
-  # 172.16.0.0/12
-  if ipv4.a == 172 and ipv4.b >= 16 and ipv4.b <= 31:
-    return true
-
-  # 192.168.0.0/16
-  if ipv4.a == 192 and ipv4.b == 168:
-    return true
-
-  result = false
+  let res = provenNetworkParseIpv4(unsafeAddr address[0], csize_t(address.len))
+  if res.status != PROVEN_OK:
+    return false
+  provenNetworkIpv4IsPrivate(res.address)
 
 proc isLoopback*(address: string): bool =
   ## Check if an IPv4 address is a loopback address (127.0.0.0/8).
-  let ip = parseIPv4(address)
-  if ip.isNone:
+  if address.len == 0:
     return false
-
-  result = ip.get.a == 127
+  let res = provenNetworkParseIpv4(unsafeAddr address[0], csize_t(address.len))
+  if res.status != PROVEN_OK:
+    return false
+  provenNetworkIpv4IsLoopback(res.address)
 
 proc isPublic*(address: string): bool =
   ## Check if an IPv4 address is public (not private or loopback).
-  result = isValidIPv4(address) and not isPrivate(address) and not isLoopback(address)
+  isValidIPv4(address) and not isPrivate(address) and not isLoopback(address)
 
 proc formatIPv4*(ip: IPv4): string =
   ## Format an IPv4 address as a string.
-  result = $ip
+  $ip

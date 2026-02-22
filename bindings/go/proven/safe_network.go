@@ -1,94 +1,55 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeNetwork provides IP address parsing and validation via the Proven FFI.
+// All computation is performed in Idris 2 with formal verification.
 
 package proven
 
-import (
-	"fmt"
-	"strconv"
-	"strings"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
 
-// IPv4 represents an IPv4 address.
+// IPv4 represents a parsed IPv4 address.
 type IPv4 struct {
-	A, B, C, D uint8
+	Octets [4]uint8
 }
 
-// String formats an IPv4 address as a string.
-func (ip IPv4) String() string {
-	return fmt.Sprintf("%d.%d.%d.%d", ip.A, ip.B, ip.C, ip.D)
-}
-
-// ParseIPv4 parses an IPv4 address string.
-func ParseIPv4(address string) *IPv4 {
-	parts := strings.Split(address, ".")
-	if len(parts) != 4 {
-		return nil
+// ParseIPv4 parses an IPv4 address string into its four octets.
+func ParseIPv4(address string) (*IPv4, error) {
+	cs, length := cString(address)
+	defer unsafeFree(cs)
+	result := C.proven_network_parse_ipv4(cs, length)
+	if int(result.status) != StatusOK {
+		return nil, newError(int(result.status))
 	}
-
-	octets := make([]uint8, 4)
-	for i, part := range parts {
-		val, err := strconv.Atoi(part)
-		if err != nil || val < 0 || val > 255 {
-			return nil
-		}
-		octets[i] = uint8(val)
-	}
-
 	return &IPv4{
-		A: octets[0],
-		B: octets[1],
-		C: octets[2],
-		D: octets[3],
-	}
+		Octets: [4]uint8{
+			uint8(result.address.octets[0]),
+			uint8(result.address.octets[1]),
+			uint8(result.address.octets[2]),
+			uint8(result.address.octets[3]),
+		},
+	}, nil
 }
 
-// IsValidIPv4 checks if a string is a valid IPv4 address.
-func IsValidIPv4(address string) bool {
-	return ParseIPv4(address) != nil
+// IPv4IsPrivate checks whether an IPv4 address is in a private range (RFC 1918).
+func IPv4IsPrivate(addr *IPv4) bool {
+	cAddr := C.IPv4Address{}
+	cAddr.octets[0] = C.uint8_t(addr.Octets[0])
+	cAddr.octets[1] = C.uint8_t(addr.Octets[1])
+	cAddr.octets[2] = C.uint8_t(addr.Octets[2])
+	cAddr.octets[3] = C.uint8_t(addr.Octets[3])
+	return bool(C.proven_network_ipv4_is_private(cAddr))
 }
 
-// IsPrivate checks if an IPv4 address is in a private range.
-func IsPrivate(address string) bool {
-	ip := ParseIPv4(address)
-	if ip == nil {
-		return false
-	}
-
-	// 10.0.0.0/8
-	if ip.A == 10 {
-		return true
-	}
-	// 172.16.0.0/12
-	if ip.A == 172 && ip.B >= 16 && ip.B <= 31 {
-		return true
-	}
-	// 192.168.0.0/16
-	if ip.A == 192 && ip.B == 168 {
-		return true
-	}
-
-	return false
-}
-
-// IsLoopback checks if an IPv4 address is a loopback address (127.0.0.0/8).
-func IsLoopback(address string) bool {
-	ip := ParseIPv4(address)
-	if ip == nil {
-		return false
-	}
-	return ip.A == 127
-}
-
-// IsPublic checks if an IPv4 address is public (not private or loopback).
-func IsPublic(address string) bool {
-	return IsValidIPv4(address) && !IsPrivate(address) && !IsLoopback(address)
-}
-
-// FormatIPv4 formats an IPv4 address as a string.
-func FormatIPv4(ip *IPv4) string {
-	if ip == nil {
-		return ""
-	}
-	return ip.String()
+// IPv4IsLoopback checks whether an IPv4 address is a loopback address (127.0.0.0/8).
+func IPv4IsLoopback(addr *IPv4) bool {
+	cAddr := C.IPv4Address{}
+	cAddr.octets[0] = C.uint8_t(addr.Octets[0])
+	cAddr.octets[1] = C.uint8_t(addr.Octets[1])
+	cAddr.octets[2] = C.uint8_t(addr.Octets[2])
+	cAddr.octets[3] = C.uint8_t(addr.Octets[3])
+	return bool(C.proven_network_ipv4_is_loopback(cAddr))
 }

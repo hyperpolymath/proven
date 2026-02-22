@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Intentfile - proven library future intent and roadmap
+version: 1
+future:
+  formal-verification:
+    - "Eliminate all believe_me instances with actual Idris2 proofs"
+    - "Eliminate all assert_total with well-founded recursion"
+    - "Complete all proof holes (?prop_name_rhs)"
+    - "Add ECHIDNA consensus verification to CI"
+  ffi-bridge:
+    - "Compile Idris2 to RefC and link with Zig FFI bridge"
+    - "Make FFI bidirectional (callbacks from foreign code)"
+    - "Add hardware crypto acceleration support (AES-NI, SHA extensions)"
+  bindings:
+    - "Convert all 63 bindings from reimplementation to FFI delegation"
+    - "Create 26 missing bindings"
+    - "Resubmit to opam, crates.io, PyPI with 0 security findings"
+  applications:
+    - "Build barebones crashproof servers (httpd, dns, smtp, mqtt, etc.)"
+    - "Build proven-cli for common safe operations"
+    - "Build proven-wasm for browser usage"
+  abi:
+    - "Define bidirectional ABI in Idris2 with dependent type proofs"
+    - "Support callback types with lifecycle proofs"
+    - "Add GPU/NPU/TPU dispatch for verified operations (future)"

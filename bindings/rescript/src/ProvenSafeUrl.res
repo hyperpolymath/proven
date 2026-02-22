@@ -1,173 +1,42 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Jonathan D.A. Jewell
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * SafeUrl - URL parsing that cannot crash
+ * SafeUrl - Typed wrapper for URL parsing that cannot crash.
  *
- * ReScript bindings to proven's formally verified URL module
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
  */
 
 open ProvenResult
 
-// Parsed URL components
-type parsedUrl = {
-  protocol: string,
-  host: string,
-  hostname: string,
-  port: string,
-  pathname: string,
-  search: string,
-  hash: string,
-  origin: string,
-  href: string,
-}
-
-// JavaScript bindings to proven/safe_url
+/** JavaScript bindings to the SafeUrl FFI wrapper. */
 module SafeUrlJs = {
-  @module("proven/safe_url") @scope("SafeUrl")
-  external parse: (string, option<string>) => jsResult<parsedUrl> = "parse"
+  @module("../../javascript/src/safe_url.js") @scope("SafeUrl")
+  external encode: string => jsResult<string> = "encode"
 
-  @module("proven/safe_url") @scope("SafeUrl")
-  external isValid: string => bool = "isValid"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external getQueryParam: (string, string) => jsResult<option<string>> = "getQueryParam"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external getQueryParams: string => jsResult<Js.Dict.t<string>> = "getQueryParams"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external setQueryParam: (string, string, string) => jsResult<string> = "setQueryParam"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external removeQueryParam: (string, string) => jsResult<string> = "removeQueryParam"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external join: (string, array<string>) => jsResult<string> = "join"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external getDomain: string => jsResult<string> = "getDomain"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external isHttps: string => bool = "isHttps"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external encode: string => string = "encode"
-
-  @module("proven/safe_url") @scope("SafeUrl")
+  @module("../../javascript/src/safe_url.js") @scope("SafeUrl")
   external decode: string => jsResult<string> = "decode"
-
-  @module("proven/safe_url") @scope("SafeUrl")
-  external normalize: string => jsResult<string> = "normalize"
-}
-
-// Type-safe ReScript API
-/**
- * Parse a URL string safely
- *
- * @param urlString URL to parse
- * @param base Optional base URL
- * @returns Result with parsed URL or error message
- */
-let parse = (urlString: string, ~base: option<string>=?) => {
-  SafeUrlJs.parse(urlString, base)->fromJs
 }
 
 /**
- * Check if string is a valid URL
- */
-let isValid = SafeUrlJs.isValid
-
-/**
- * Get query parameter from URL
+ * URL-encode a string (RFC 3986 percent encoding).
+ * Delegates to proven_http_url_encode via FFI.
  *
- * @param urlString URL string
- * @param param Parameter name
- * @returns Result with parameter value (None if not present) or error
+ * @param str String to encode.
+ * @returns Ok(encoded) or Error.
  */
-let getQueryParam = (urlString: string, param: string) => {
-  SafeUrlJs.getQueryParam(urlString, param)->fromJs
+let encode = (str: string): result<string, string> => {
+  SafeUrlJs.encode(str)->fromJs
 }
 
 /**
- * Get all query parameters as dictionary
+ * URL-decode a percent-encoded string.
+ * Delegates to proven_http_url_decode via FFI.
  *
- * @param urlString URL string
- * @returns Result with dictionary of parameters or error
+ * @param str String to decode.
+ * @returns Ok(decoded) or Error.
  */
-let getQueryParams = (urlString: string) => {
-  SafeUrlJs.getQueryParams(urlString)->fromJs
-}
-
-/**
- * Set query parameter on URL
- *
- * @param urlString URL string
- * @param param Parameter name
- * @param value Parameter value
- * @returns Result with new URL string or error
- */
-let setQueryParam = (urlString: string, param: string, value: string) => {
-  SafeUrlJs.setQueryParam(urlString, param, value)->fromJs
-}
-
-/**
- * Remove query parameter from URL
- *
- * @param urlString URL string
- * @param param Parameter name
- * @returns Result with new URL string or error
- */
-let removeQueryParam = (urlString: string, param: string) => {
-  SafeUrlJs.removeQueryParam(urlString, param)->fromJs
-}
-
-/**
- * Join URL paths safely
- *
- * @param base Base URL
- * @param paths Path segments to join
- * @returns Result with joined URL or error
- */
-let join = (base: string, paths: array<string>) => {
-  SafeUrlJs.join(base, paths)->fromJs
-}
-
-/**
- * Get the domain from a URL
- *
- * @param urlString URL string
- * @returns Result with domain or error
- */
-let getDomain = (urlString: string) => {
-  SafeUrlJs.getDomain(urlString)->fromJs
-}
-
-/**
- * Check if URL uses HTTPS
- */
-let isHttps = SafeUrlJs.isHttps
-
-/**
- * Encode URL component safely
- */
-let encode = SafeUrlJs.encode
-
-/**
- * Decode URL component safely
- *
- * @param str String to decode
- * @returns Result with decoded string or error
- */
-let decode = (str: string) => {
+let decode = (str: string): result<string, string> => {
   SafeUrlJs.decode(str)->fromJs
-}
-
-/**
- * Normalize a URL (lowercase scheme/host, remove default port)
- *
- * @param urlString URL string
- * @returns Result with normalized URL or error
- */
-let normalize = (urlString: string) => {
-  SafeUrlJs.normalize(urlString)->fromJs
 }

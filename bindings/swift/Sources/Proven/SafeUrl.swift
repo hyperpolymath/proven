@@ -1,62 +1,80 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Safe URL parsing delegated to libproven FFI.
+///
+/// All parsing is performed by the formally verified Idris 2 core
+/// via the Zig FFI bridge.
 
-/// Safe URL parsing and validation operations.
+import CProven
+
+/// Parsed URL components returned by SafeUrl.parse.
+public struct ParsedUrl: Equatable, Sendable {
+    public let scheme: String
+    public let host: String
+    public let port: UInt16?
+    public let path: String
+    public let query: String?
+    public let fragment: String?
+}
+
 public enum SafeUrl {
-    /// Represents the parsed components of a URL.
-    public struct ParsedUrl: Equatable {
-        public let scheme: String
-        public let host: String
-        public let port: Int?
-        public let path: String
-        public let query: String?
-        public let fragment: String?
-    }
-
     /// Parse a URL into its components.
-    public static func parse(_ urlString: String) -> ParsedUrl? {
-        guard let url = URL(string: urlString),
-              let scheme = url.scheme,
-              let host = url.host else {
-            return nil
+    public static func parse(_ urlString: String) -> Result<ParsedUrl, ProvenError> {
+        withStringBytes(urlString) { ptr, len in
+            var result = proven_url_parse(ptr, len)
+            if let error = ProvenError.fromStatus(result.status) {
+                return .failure(error)
+            }
+
+            let scheme: String
+            if let sPtr = result.components.scheme, result.components.scheme_len > 0 {
+                scheme = String(cString: sPtr)
+            } else {
+                scheme = ""
+            }
+
+            let host: String
+            if let hPtr = result.components.host, result.components.host_len > 0 {
+                host = String(cString: hPtr)
+            } else {
+                host = ""
+            }
+
+            let port: UInt16? = result.components.has_port ? result.components.port : nil
+
+            let path: String
+            if let pPtr = result.components.path, result.components.path_len > 0 {
+                path = String(cString: pPtr)
+            } else {
+                path = "/"
+            }
+
+            let query: String?
+            if let qPtr = result.components.query, result.components.query_len > 0 {
+                query = String(cString: qPtr)
+            } else {
+                query = nil
+            }
+
+            let fragment: String?
+            if let fPtr = result.components.fragment, result.components.fragment_len > 0 {
+                fragment = String(cString: fPtr)
+            } else {
+                fragment = nil
+            }
+
+            // Free the C-allocated URL components.
+            proven_url_free(&result.components)
+
+            return .success(ParsedUrl(
+                scheme: scheme,
+                host: host,
+                port: port,
+                path: path,
+                query: query,
+                fragment: fragment
+            ))
         }
-
-        return ParsedUrl(
-            scheme: scheme.lowercased(),
-            host: host,
-            port: url.port,
-            path: url.path.isEmpty ? "/" : url.path,
-            query: url.query,
-            fragment: url.fragment
-        )
-    }
-
-    /// Check if a string is a valid URL.
-    public static func isValid(_ urlString: String) -> Bool {
-        parse(urlString) != nil
-    }
-
-    /// Extract the host from a URL.
-    public static func getHost(_ urlString: String) -> String? {
-        parse(urlString)?.host
-    }
-
-    /// Extract the path from a URL.
-    public static func getPath(_ urlString: String) -> String? {
-        parse(urlString)?.path
-    }
-
-    /// Check if a URL uses HTTPS.
-    public static func isHttps(_ urlString: String) -> Bool {
-        guard let parsed = parse(urlString) else { return false }
-        return parsed.scheme == "https"
-    }
-
-    /// Check if a URL uses a secure scheme (https, wss).
-    public static func isSecure(_ urlString: String) -> Bool {
-        guard let parsed = parse(urlString) else { return false }
-        return parsed.scheme == "https" || parsed.scheme == "wss"
     }
 }

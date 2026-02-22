@@ -1,0 +1,19 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--
+-- Safe email validation (RFC 5321 simplified).
+-- Thin wrapper over libproven FFI -- all logic lives in Idris 2.
+
+require 'proven.lib_proven'
+
+-- Validate an email address. Returns true if the email is valid per RFC 5321.
+global function is_valid_email(value: string): boolean
+  if #value == 0 then
+    return false
+  end
+  local res = proven_email_is_valid(value.data, (#value))
+  if res.status == PROVEN_OK then
+    return res.value ~= 0
+  end
+  return false
+end

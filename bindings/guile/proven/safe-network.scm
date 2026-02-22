@@ -1,111 +1,52 @@
 ;;; SPDX-License-Identifier: PMPL-1.0-or-later
-;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;
-;;; SafeNetwork - Network primitive validation for Guile Scheme
+;;; SafeNetwork - FFI bindings to libproven network validation
 ;;;
-;;; Validates IPv4, IPv6, CIDR notation, ports, and hostnames.
-;;; All operations are pure and cannot crash.
+;;; All computation delegates to Idris 2 via the Zig FFI layer.
+;;; This module is a thin wrapper only -- no reimplemented logic.
 
 (define-module (proven safe-network)
-  #:use-module (ice-9 regex)
-  #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-13)
-  #:export (ipv4-valid?
-            ipv6-valid?
-            ip-valid?
-            port-valid?
-            hostname-valid?
-            cidr-valid?
-            cidr-parse
-            ip-private?
-            ip-loopback?
-            make-cidr-result
-            cidr-result-ip
-            cidr-result-prefix
-            cidr-result-ok?))
+  #:use-module (system foreign)
+  #:use-module (rnrs bytevectors)
+  #:export (ipv4-parse
+            ipv4-private?
+            ipv4-loopback?))
 
-;;; CIDR result constructor
-(define (make-cidr-result ip prefix ok)
-  `((ip . ,ip) (prefix . ,prefix) (ok . ,ok)))
+;;; Load libproven shared library
+(define libproven (dynamic-link "libproven"))
 
-(define (cidr-result-ip result)
-  (assoc-ref result 'ip))
+;;; FFI function bindings (IdrisValue-based API)
 
-(define (cidr-result-prefix result)
-  (assoc-ref result 'prefix))
+(define ffi-network-parse-ipv4
+  (pointer->procedure '* (dynamic-func "proven_network_parse_ipv4" libproven)
+                      (list '*)))
 
-(define (cidr-result-ok? result)
-  (assoc-ref result 'ok))
+(define ffi-network-ipv4-is-private
+  (pointer->procedure '* (dynamic-func "proven_network_ipv4_is_private" libproven)
+                      (list '*)))
 
-;;; IPv4 address pattern
-(define ipv4-pattern
-  (make-regexp "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"))
+(define ffi-network-ipv4-is-loopback
+  (pointer->procedure '* (dynamic-func "proven_network_ipv4_is_loopback" libproven)
+                      (list '*)))
 
-;;; Simplified IPv6 pattern
-(define ipv6-pattern
-  (make-regexp "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"))
+;;; Helper: parse IdrisValue as boolean
+(define (parse-idris-bool ptr)
+  (let* ((bv (pointer->bytevector ptr (sizeof '*)))
+         (val (bytevector-uint-native-ref bv 0 (sizeof '*))))
+    (not (= val 0))))
 
-;;; Hostname pattern (RFC 1123)
-(define hostname-pattern
-  (make-regexp "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"))
+;;; Parse IPv4 address string (delegates to Idris 2)
+;;; Returns parsed result or #f on invalid input
+(define (ipv4-parse ip-string)
+  (ffi-network-parse-ipv4 (string->pointer ip-string)))
 
-;;; Check if string is a valid IPv4 address
-(define (ipv4-valid? ip)
-  (regexp-exec ipv4-pattern ip))
+;;; Check if IPv4 address is in private range (delegates to Idris 2)
+(define (ipv4-private? ip-string)
+  (parse-idris-bool
+   (ffi-network-ipv4-is-private (string->pointer ip-string))))
 
-;;; Check if string is a valid IPv6 address
-(define (ipv6-valid? ip)
-  (or (regexp-exec ipv6-pattern ip)
-      (string=? ip "::")))
-
-;;; Check if string is a valid IP address (v4 or v6)
-(define (ip-valid? ip)
-  (or (ipv4-valid? ip) (ipv6-valid? ip)))
-
-;;; Check if number is a valid port (0-65535)
-(define (port-valid? port)
-  (and (integer? port)
-       (>= port 0)
-       (<= port 65535)))
-
-;;; Check if string is a valid hostname
-(define (hostname-valid? host)
-  (and (regexp-exec hostname-pattern host)
-       (<= (string-length host) 253)))
-
-;;; Check if string is a valid CIDR notation (IPv4)
-(define (cidr-valid? cidr)
-  (let ((slash-pos (string-index cidr #\/)))
-    (if (not slash-pos)
-        #f
-        (let ((ip (substring cidr 0 slash-pos))
-              (prefix-str (substring cidr (+ slash-pos 1))))
-          (and (ipv4-valid? ip)
-               (regexp-exec (make-regexp "^[0-9]+$") prefix-str)
-               (let ((prefix (string->number prefix-str)))
-                 (and prefix (>= prefix 0) (<= prefix 32))))))))
-
-;;; Parse CIDR into IP and prefix length
-(define (cidr-parse cidr)
-  (let ((slash-pos (string-index cidr #\/)))
-    (if (not slash-pos)
-        (make-cidr-result "" 0 #f)
-        (let ((ip (substring cidr 0 slash-pos))
-              (prefix-str (substring cidr (+ slash-pos 1))))
-          (if (not (ipv4-valid? ip))
-              (make-cidr-result "" 0 #f)
-              (let ((prefix (string->number prefix-str)))
-                (if (not prefix)
-                    (make-cidr-result "" 0 #f)
-                    (make-cidr-result ip prefix #t))))))))
-
-;;; Check if IP is in private range (RFC 1918)
-(define (ip-private? ip)
-  (or (string-prefix? "10." ip)
-      (regexp-exec (make-regexp "^172\\.(1[6-9]|2[0-9]|3[01])\\.") ip)
-      (string-prefix? "192.168." ip)))
-
-;;; Check if IP is loopback
-(define (ip-loopback? ip)
-  (or (string-prefix? "127." ip)
-      (string=? ip "::1")))
+;;; Check if IPv4 address is loopback (delegates to Idris 2)
+(define (ipv4-loopback? ip-string)
+  (parse-idris-bool
+   (ffi-network-ipv4-is-loopback (string->pointer ip-string))))

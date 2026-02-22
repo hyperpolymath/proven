@@ -1,0 +1,72 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{{
+SafeMath -- Safe mathematical operations with overflow detection.
+
+All computation is performed in verified Idris 2 code via proven-cli.
+Returns Optional on error.
+}}
+
+-- Safely add two integers with overflow detection. Returns None on overflow.
+proven.math.safeAdd : '{IO} Int -> Int -> Optional Int
+proven.math.safeAdd a b =
+  match proven.runCli ["math", "add", Int.toText a, Int.toText b] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Safely subtract two integers. Returns None on underflow.
+proven.math.safeSub : '{IO} Int -> Int -> Optional Int
+proven.math.safeSub a b =
+  match proven.runCli ["math", "sub", Int.toText a, Int.toText b] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Safely multiply two integers. Returns None on overflow.
+proven.math.safeMul : '{IO} Int -> Int -> Optional Int
+proven.math.safeMul a b =
+  match proven.runCli ["math", "mul", Int.toText a, Int.toText b] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Safely divide two integers. Returns None on division by zero.
+proven.math.safeDiv : '{IO} Int -> Int -> Optional Int
+proven.math.safeDiv a b =
+  match proven.runCli ["math", "div", Int.toText a, Int.toText b] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Safely compute modulo. Returns None on division by zero.
+proven.math.safeMod : '{IO} Int -> Int -> Optional Int
+proven.math.safeMod a b =
+  match proven.runCli ["math", "mod", Int.toText a, Int.toText b] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Safely compute absolute value. Returns None for Int.minValue.
+proven.math.safeAbs : '{IO} Int -> Optional Int
+proven.math.safeAbs n =
+  match proven.runCli ["math", "abs", Int.toText n] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Safely negate an integer. Returns None if result would overflow.
+proven.math.safeNegate : '{IO} Int -> Optional Int
+proven.math.safeNegate n =
+  match proven.runCli ["math", "negate", Int.toText n] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Clamp a value to [lo, hi]. Always succeeds.
+proven.math.clamp : '{IO} Int -> Int -> Int -> Optional Int
+proven.math.clamp lo hi value =
+  match proven.runCli ["math", "clamp", Int.toText lo, Int.toText hi, Int.toText value] with
+    Some output -> proven.parseIntResult output
+    None -> None
+
+-- Safely compute integer exponentiation. Returns None on overflow.
+proven.math.safePow : '{IO} Int -> Nat -> Optional Int
+proven.math.safePow base exp =
+  match proven.runCli ["math", "pow", Int.toText base, Nat.toText exp] with
+    Some output -> proven.parseIntResult output
+    None -> None

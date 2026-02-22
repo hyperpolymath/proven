@@ -1,0 +1,41 @@
+{
+    "perl":        "6.d",
+    "name":        "Proven",
+    "version":     "0.5.0",
+    "auth":        "zef:hyperpolymath",
+    "api":         "1",
+    "license":     "PMPL-1.0-or-later",
+    "description":  "Raku NativeCall binding to libproven -- formally verified safety library",
+    "authors":     ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"],
+    "source-url":  "https://github.com/hyperpolymath/proven",
+    "provides": {
+        "Proven":                "lib/Proven.rakumod",
+        "Proven::LibProven":     "lib/Proven/LibProven.rakumod",
+        "Proven::SafeMath":      "lib/Proven/SafeMath.rakumod",
+        "Proven::SafeString":    "lib/Proven/SafeString.rakumod",
+        "Proven::SafePath":      "lib/Proven/SafePath.rakumod",
+        "Proven::SafeEmail":     "lib/Proven/SafeEmail.rakumod",
+        "Proven::SafeUrl":       "lib/Proven/SafeUrl.rakumod",
+        "Proven::SafeNetwork":   "lib/Proven/SafeNetwork.rakumod",
+        "Proven::SafeCrypto":    "lib/Proven/SafeCrypto.rakumod",
+        "Proven::SafeJson":      "lib/Proven/SafeJson.rakumod",
+        "Proven::SafeDateTime":  "lib/Proven/SafeDateTime.rakumod"
+    },
+    "depends": [],
+    "build-depends": [],
+    "test-depends": ["Test"],
+    "tags": [
+        "safety",
+        "ffi",
+        "nativecall",
+        "verified",
+        "math",
+        "string",
+        "crypto",
+        "json",
+        "validation"
+    ],
+    "support": {
+        "source": "https://github.com/hyperpolymath/proven"
+    }
+}

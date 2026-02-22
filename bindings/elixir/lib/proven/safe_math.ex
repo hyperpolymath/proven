@@ -1,97 +1,110 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 defmodule Proven.SafeMath do
   @moduledoc """
-  Safe arithmetic operations that cannot crash or overflow unexpectedly.
-  """
+  Safe arithmetic operations via libproven FFI.
 
-  # Maximum and minimum values for 64-bit signed integers
-  @max_int64 9_223_372_036_854_775_807
-  @min_int64 -9_223_372_036_854_775_808
+  All computation is performed in Idris 2 verified code.
+  These functions cannot crash or overflow unexpectedly.
+  """
 
   @doc """
-  Safely divide two integers, returning {:ok, result} or {:error, :division_by_zero}.
-  """
-  @spec safe_div(integer(), integer()) :: {:ok, integer()} | {:error, :division_by_zero}
-  def safe_div(_numerator, 0), do: {:error, :division_by_zero}
-  def safe_div(numerator, denominator), do: {:ok, div(numerator, denominator)}
+  Safely divide two integers.
 
-  @doc """
-  Safely compute modulo, returning {:ok, result} or {:error, :division_by_zero}.
+  Returns `{:ok, result}` or `{:error, :division_by_zero}`.
   """
-  @spec safe_mod(integer(), integer()) :: {:ok, integer()} | {:error, :division_by_zero}
-  def safe_mod(_numerator, 0), do: {:error, :division_by_zero}
-  def safe_mod(numerator, denominator), do: {:ok, rem(numerator, denominator)}
-
-  @doc """
-  Safely add two integers, returning {:ok, result} or {:error, :overflow}.
-  Note: Elixir integers are arbitrary precision, so overflow is simulated for bounded contexts.
-  """
-  @spec safe_add(integer(), integer()) :: {:ok, integer()} | {:error, :overflow}
-  def safe_add(a, b) do
-    result = a + b
-    if result > @max_int64 or result < @min_int64 do
-      {:error, :overflow}
-    else
-      {:ok, result}
+  @spec safe_div(integer(), integer()) :: {:ok, integer()} | {:error, atom()}
+  def safe_div(numerator, denominator) when is_integer(numerator) and is_integer(denominator) do
+    case Proven.NIF.nif_math_div(numerator, denominator) do
+      {:ok, value} -> {:ok, value}
+      {:error, _status} -> {:error, :division_by_zero}
     end
   end
 
   @doc """
-  Safely subtract two integers, returning {:ok, result} or {:error, :overflow}.
+  Safely compute modulo.
+
+  Returns `{:ok, result}` or `{:error, :division_by_zero}`.
   """
-  @spec safe_sub(integer(), integer()) :: {:ok, integer()} | {:error, :overflow}
-  def safe_sub(a, b) do
-    result = a - b
-    if result > @max_int64 or result < @min_int64 do
-      {:error, :overflow}
-    else
-      {:ok, result}
+  @spec safe_mod(integer(), integer()) :: {:ok, integer()} | {:error, atom()}
+  def safe_mod(numerator, denominator) when is_integer(numerator) and is_integer(denominator) do
+    case Proven.NIF.nif_math_mod(numerator, denominator) do
+      {:ok, value} -> {:ok, value}
+      {:error, _status} -> {:error, :division_by_zero}
     end
   end
 
   @doc """
-  Safely multiply two integers, returning {:ok, result} or {:error, :overflow}.
+  Safely add two integers with overflow detection.
+
+  Returns `{:ok, result}` or `{:error, :overflow}`.
   """
-  @spec safe_mul(integer(), integer()) :: {:ok, integer()} | {:error, :overflow}
-  def safe_mul(a, b) do
-    result = a * b
-    if result > @max_int64 or result < @min_int64 do
-      {:error, :overflow}
-    else
-      {:ok, result}
+  @spec safe_add(integer(), integer()) :: {:ok, integer()} | {:error, atom()}
+  def safe_add(a, b) when is_integer(a) and is_integer(b) do
+    case Proven.NIF.nif_math_add(a, b) do
+      {:ok, value} -> {:ok, value}
+      {:error, _status} -> {:error, :overflow}
     end
   end
 
   @doc """
-  Bang versions that raise on error.
+  Safely subtract two integers with overflow detection.
+
+  Returns `{:ok, result}` or `{:error, :overflow}`.
   """
-  def safe_div!(numerator, denominator) do
-    case safe_div(numerator, denominator) do
-      {:ok, result} -> result
-      {:error, :division_by_zero} -> raise ArithmeticError, "division by zero"
+  @spec safe_sub(integer(), integer()) :: {:ok, integer()} | {:error, atom()}
+  def safe_sub(a, b) when is_integer(a) and is_integer(b) do
+    case Proven.NIF.nif_math_sub(a, b) do
+      {:ok, value} -> {:ok, value}
+      {:error, _status} -> {:error, :overflow}
     end
   end
 
-  def safe_add!(a, b) do
-    case safe_add(a, b) do
-      {:ok, result} -> result
-      {:error, :overflow} -> raise ArithmeticError, "integer overflow"
+  @doc """
+  Safely multiply two integers with overflow detection.
+
+  Returns `{:ok, result}` or `{:error, :overflow}`.
+  """
+  @spec safe_mul(integer(), integer()) :: {:ok, integer()} | {:error, atom()}
+  def safe_mul(a, b) when is_integer(a) and is_integer(b) do
+    case Proven.NIF.nif_math_mul(a, b) do
+      {:ok, value} -> {:ok, value}
+      {:error, _status} -> {:error, :overflow}
     end
   end
 
-  def safe_sub!(a, b) do
-    case safe_sub(a, b) do
-      {:ok, result} -> result
-      {:error, :overflow} -> raise ArithmeticError, "integer overflow"
+  @doc """
+  Safe absolute value that handles MIN_INT correctly.
+
+  Returns `{:ok, result}` or `{:error, :overflow}`.
+  """
+  @spec safe_abs(integer()) :: {:ok, integer()} | {:error, atom()}
+  def safe_abs(n) when is_integer(n) do
+    case Proven.NIF.nif_math_abs(n) do
+      {:ok, value} -> {:ok, value}
+      {:error, _status} -> {:error, :overflow}
     end
   end
 
-  def safe_mul!(a, b) do
-    case safe_mul(a, b) do
-      {:ok, result} -> result
-      {:error, :overflow} -> raise ArithmeticError, "integer overflow"
+  @doc """
+  Clamp a value to [lo, hi].
+  """
+  @spec clamp(integer(), integer(), integer()) :: integer()
+  def clamp(lo, hi, value) when is_integer(lo) and is_integer(hi) and is_integer(value) do
+    Proven.NIF.nif_math_clamp(lo, hi, value)
+  end
+
+  @doc """
+  Integer power with overflow checking.
+
+  Returns `{:ok, result}` or `{:error, :overflow}`.
+  """
+  @spec safe_pow(integer(), non_neg_integer()) :: {:ok, integer()} | {:error, atom()}
+  def safe_pow(base, exp) when is_integer(base) and is_integer(exp) and exp >= 0 do
+    case Proven.NIF.nif_math_pow(base, exp) do
+      {:ok, value} -> {:ok, value}
+      {:error, _status} -> {:error, :overflow}
     end
   end
 end

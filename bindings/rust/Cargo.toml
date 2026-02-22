@@ -1,48 +1,27 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
 [package]
 name = "proven"
-version = "0.9.0"
+version = "1.0.0"
 edition = "2021"
-authors = ["Hyperpolymath <hyperpolymath@proton.me>"]
-description = "Safe, formally verified library for math, crypto, parsing, validation, and ML - Rust bindings"
-license = "AGPL-3.0-or-later"
+authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+description = "Proven - Formally verified safety library FFI bindings for Rust"
+license = "PMPL-1.0-or-later"
 repository = "https://github.com/hyperpolymath/proven"
 documentation = "https://docs.rs/proven"
 readme = "README.md"
-keywords = ["safety", "verification", "ml", "tensor", "numerical"]
-categories = ["development-tools", "api-bindings", "science"]
+keywords = ["safety", "verification", "ffi", "formal-methods"]
+categories = ["api-bindings", "development-tools"]
+links = "proven"
 
 [lib]
 name = "proven"
 crate-type = ["lib"]
 
-[dependencies]
-thiserror = "2"
-serde = { version = "1", features = ["derive"], optional = true }
-serde_json = { version = "1", optional = true }
+[build-dependencies]
+# None needed - build.rs handles link search paths
 
-# Cryptography (optional feature)
-sha3 = { version = "0.10", optional = true }
-blake3 = { version = "1", optional = true }
-hmac = { version = "0.12", optional = true }
-subtle = { version = "2", optional = true }
-hex = { version = "0.4", optional = true }
-rand = { version = "0.8", optional = true }
+[dependencies]
+# No dependencies - pure FFI wrapper over libproven
 
 [dev-dependencies]
-proptest = "1"
-criterion = "0.5"
-
-[features]
-default = []
-serde = ["dep:serde", "dep:serde_json"]
-crypto = ["dep:sha3", "dep:blake3", "dep:hmac", "dep:subtle", "dep:hex", "dep:rand"]
-full = ["serde", "crypto"]
-
-[[bench]]
-name = "safe_math"
-harness = false
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+# Tests require libproven to be built and available

@@ -1,129 +1,73 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * WASM module loader and FFI interface.
- */
-
-let wasmInstance: WebAssembly.Instance | null = null;
-let wasmMemory: WebAssembly.Memory | null = null;
-
-/**
- * Initialize the Proven WASM module.
+ * FFI bridge for TypeScript -- delegates to the JavaScript FFI layer.
  *
- * @param wasmSource - Path to WASM file, URL, or ArrayBuffer
+ * TypeScript does NOT load libproven directly. Instead, it re-exports
+ * the loader functions from the JavaScript binding's ffi.js, which handles
+ * Deno.dlopen / library loading and lifetime management.
+ *
+ * @module
  */
-export async function init(
-  wasmSource?: string | URL | ArrayBuffer
-): Promise<void> {
-  if (wasmInstance) {
-    return; // Already initialized
-  }
 
-  let wasmBytes: ArrayBuffer;
+import {
+  getLib as _getLib,
+  isAvailable as _isAvailable,
+  getLoadError as _getLoadError,
+  close as _close,
+  encodeString as _encodeString,
+  readAndFreeString as _readAndFreeString,
+  readString as _readString,
+  ProvenStatus as _ProvenStatus,
+  statusToError as _statusToError,
+} from '../../javascript/src/ffi.js';
 
-  if (wasmSource instanceof ArrayBuffer) {
-    wasmBytes = wasmSource;
-  } else if (typeof wasmSource === 'string' || wasmSource instanceof URL) {
-    const response = await fetch(wasmSource);
-    wasmBytes = await response.arrayBuffer();
-  } else {
-    // Try default location
-    const defaultPath = new URL('../wasm/proven.wasm', import.meta.url);
-    const response = await fetch(defaultPath);
-    wasmBytes = await response.arrayBuffer();
-  }
+import {
+  ok as _ok,
+  err as _err,
+  isOk as _isOk,
+  isErr as _isErr,
+  unwrap as _unwrap,
+  unwrapOr as _unwrapOr,
+} from '../../javascript/src/result.js';
 
-  const module = await WebAssembly.compile(wasmBytes);
+// Re-export FFI utilities
+export const getLib = _getLib;
+export const isAvailable = _isAvailable;
+export const getLoadError = _getLoadError;
+export const close = _close;
+export const encodeString = _encodeString;
+export const readAndFreeString = _readAndFreeString;
+export const readString = _readString;
+export const ProvenStatus = _ProvenStatus;
+export const statusToError = _statusToError;
 
-  wasmMemory = new WebAssembly.Memory({ initial: 256, maximum: 65536 });
+// Re-export result utilities
+export const ok = _ok;
+export const err = _err;
+export const isOk = _isOk;
+export const isErr = _isErr;
+export const unwrap = _unwrap;
+export const unwrapOr = _unwrapOr;
 
-  const importObject: WebAssembly.Imports = {
-    env: {
-      memory: wasmMemory,
-    },
-  };
-
-  wasmInstance = await WebAssembly.instantiate(module, importObject);
-
-  // Initialize the Proven runtime
-  const initFn = wasmInstance.exports['proven_init'] as () => number;
-  if (initFn) {
-    const status = initFn();
-    if (status !== 0) {
-      throw new Error(`Failed to initialize Proven runtime: ${status}`);
-    }
-  }
+/**
+ * Initialize the Proven library.
+ *
+ * The JavaScript FFI layer initializes lazily on first call to `getLib()`.
+ * Call this explicitly if you want to detect load errors early.
+ *
+ * @returns true if the library is available.
+ */
+export function init(): boolean {
+  return _isAvailable();
 }
 
 /**
- * Check if the WASM module is initialized.
+ * Check if the native library is loaded and initialized.
+ *
+ * @returns true if libproven is loaded and ready.
  */
 export function isInitialized(): boolean {
-  return wasmInstance !== null;
-}
-
-/**
- * Get the WASM exports.
- */
-export function getExports(): WebAssembly.Exports {
-  if (!wasmInstance) {
-    throw new Error(
-      'Proven WASM not initialized. Call init() first.'
-    );
-  }
-  return wasmInstance.exports;
-}
-
-/**
- * Get the WASM memory.
- */
-export function getMemory(): WebAssembly.Memory {
-  if (!wasmMemory) {
-    throw new Error(
-      'Proven WASM not initialized. Call init() first.'
-    );
-  }
-  return wasmMemory;
-}
-
-/**
- * Encode a string to WASM memory.
- */
-export function encodeString(str: string): { ptr: number; len: number } {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(str);
-  const memory = getMemory();
-  const exports = getExports();
-
-  // Allocate memory
-  const allocFn = exports['proven_alloc'] as (size: number) => number;
-  const ptr = allocFn(bytes.length);
-
-  // Copy bytes
-  const view = new Uint8Array(memory.buffer, ptr, bytes.length);
-  view.set(bytes);
-
-  return { ptr, len: bytes.length };
-}
-
-/**
- * Decode a string from WASM memory.
- */
-export function decodeString(ptr: number, len: number): string {
-  const memory = getMemory();
-  const bytes = new Uint8Array(memory.buffer, ptr, len);
-  const decoder = new TextDecoder();
-  return decoder.decode(bytes);
-}
-
-/**
- * Free allocated memory.
- */
-export function freePtr(ptr: number): void {
-  const exports = getExports();
-  const freeFn = exports['proven_free'] as (ptr: number) => void;
-  if (freeFn) {
-    freeFn(ptr);
-  }
+  return _isAvailable();
 }

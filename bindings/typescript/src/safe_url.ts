@@ -1,18 +1,18 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * SafeUrl - URL parsing that cannot crash.
+ * SafeUrl - Typed wrapper for URL parsing that cannot crash.
  *
- * Provides safe URL parsing and validation without regex catastrophic backtracking.
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * @module
  */
 
-import { getExports, encodeString, decodeString, freePtr } from './wasm.js';
-import { statusFromCode } from './error.js';
+import { SafeUrl as JsSafeUrl, Url as JsUrl } from '../../javascript/src/safe_url.js';
 
-/**
- * A parsed URL with its components.
- */
+/** Typed re-export of parsed URL components. */
 export interface ParsedUrl {
   scheme: string;
   host: string;
@@ -22,76 +22,34 @@ export interface ParsedUrl {
   fragment: string | null;
 }
 
+/** Result type for URL operations. */
+export type UrlResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: string };
+
 /**
- * Safe URL operations with proven correctness guarantees.
+ * Safe URL operations backed by formally verified Idris 2 code.
+ * All methods delegate to the JavaScript FFI wrapper.
  */
 export class SafeUrl {
   /**
    * Parse a URL into its components.
+   * Delegates to the JavaScript FFI URL parser.
    *
-   * @example
-   * const url = SafeUrl.parse("https://example.com:8080/path?q=1#frag");
-   * // { scheme: "https", host: "example.com", port: 8080, ... }
+   * @param url - URL string to parse.
+   * @returns Parsed URL components or null on failure.
    */
   static parse(url: string): ParsedUrl | null {
-    const exports = getExports();
-    const fn = exports['proven_url_parse'] as (ptr: number, len: number) => number;
-
-    const { ptr, len } = encodeString(url);
-    const resultPtr = fn(ptr, len);
-    freePtr(ptr);
-
-    if (resultPtr === 0) {
-      return null;
-    }
-
-    const memory = exports['memory'] as WebAssembly.Memory;
-    const view = new DataView(memory.buffer);
-
-    // Parse the result structure
-    let offset = resultPtr;
-
-    const status = view.getInt32(offset, true);
-    offset += 4;
-
-    if (statusFromCode(status) !== 'ok') {
-      freePtr(resultPtr);
-      return null;
-    }
-
-    const readString = (): string => {
-      const strPtr = view.getUint32(offset, true);
-      offset += 4;
-      const strLen = view.getUint32(offset, true);
-      offset += 4;
-      if (strPtr === 0 || strLen === 0) return '';
-      return decodeString(strPtr, strLen);
-    };
-
-    const scheme = readString();
-    const host = readString();
-    const port = view.getUint16(offset, true);
-    offset += 2;
-    const hasPort = view.getUint8(offset) === 1;
-    offset += 1;
-    const path = readString() || '/';
-    const query = readString() || null;
-    const fragment = readString() || null;
-
-    freePtr(resultPtr);
-
-    return {
-      scheme,
-      host,
-      port: hasPort ? port : null,
-      path,
-      query,
-      fragment,
-    };
+    const result = JsSafeUrl.parse(url);
+    if (!result || !result.ok) return null;
+    return result.value as ParsedUrl;
   }
 
   /**
    * Check if a URL is valid.
+   *
+   * @param url - URL string to validate.
+   * @returns true if the URL can be parsed.
    */
   static isValid(url: string): boolean {
     return SafeUrl.parse(url) !== null;
@@ -99,6 +57,9 @@ export class SafeUrl {
 
   /**
    * Extract the host from a URL.
+   *
+   * @param url - URL string.
+   * @returns The host component, or null on parse failure.
    */
   static getHost(url: string): string | null {
     const parsed = SafeUrl.parse(url);
@@ -107,6 +68,9 @@ export class SafeUrl {
 
   /**
    * Extract the scheme from a URL.
+   *
+   * @param url - URL string.
+   * @returns The scheme component, or null on parse failure.
    */
   static getScheme(url: string): string | null {
     const parsed = SafeUrl.parse(url);
@@ -115,27 +79,12 @@ export class SafeUrl {
 
   /**
    * Check if a URL uses HTTPS.
+   *
+   * @param url - URL string.
+   * @returns true if the scheme is "https".
    */
   static isHttps(url: string): boolean {
     const scheme = SafeUrl.getScheme(url);
     return scheme?.toLowerCase() === 'https';
-  }
-
-  /**
-   * Reconstruct a URL from its components.
-   */
-  static toString(parsed: ParsedUrl): string {
-    let result = `${parsed.scheme}://${parsed.host}`;
-    if (parsed.port !== null) {
-      result += `:${parsed.port}`;
-    }
-    result += parsed.path;
-    if (parsed.query) {
-      result += `?${parsed.query}`;
-    }
-    if (parsed.fragment) {
-      result += `#${parsed.fragment}`;
-    }
-    return result;
   }
 }

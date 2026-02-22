@@ -1,51 +1,146 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-@@warning("-27")
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
  * Proven - Code that cannot crash
  *
  * ReScript FFI bindings for verified safety functions.
- * Calls Idris 2 verified code via Zig ABI (WASM/WASI).
+ * All computation delegates to Idris 2 verified code via the JavaScript FFI
+ * layer, which calls libproven (Idris 2 + Zig) via Deno.dlopen.
  *
- * IMPORTANT: This is a minimal FFI-only version.
+ * IMPORTANT: This is an FFI-only binding layer.
  * Language bindings MUST be thin wrappers, not reimplementations.
- * See ADR-008 in META.scm and ARCHITECTURE-CLEANUP-2026-01-25.md
+ * See ADR-008 in META.scm.
+ *
+ * Modules:
+ * - SafeMath: Arithmetic without overflow/underflow/division-by-zero
+ * - SafeString: UTF-8 and escaping without exceptions
+ * - SafeUrl: URL parsing without malformed URL crashes
+ * - SafeEmail: Validation without regex catastrophic backtracking
+ * - SafePath: Filesystem ops without traversal attacks
+ * - SafeCrypto: Cryptographic primitives done right
+ * - SafeNetwork: Network operations that cannot fail unsafely
+ * - SafeJson: JSON parsing with safe path access
+ * - SafeDatetime: DateTime handling without invalid dates
+ * - SafePassword: Password validation without timing attacks
+ * - SafeHeader: HTTP header validation preventing injection
+ * - SafeCookie: RFC 6265 compliant cookie handling
+ * - SafeContentType: MIME type parsing and validation
+ * - SafeFloat: Floating point without NaN/Infinity
+ * - SafeTensor: Vector and matrix operations with bounds checking
+ * - SafeML: Machine learning primitives with numerical stability
+ * - SafeVersion: Semantic versioning parsing and comparison
+ * - SafeGeo: Geographic coordinates and calculations
+ * - SafeAngle: Angle conversions with proper wrapping
+ * - SafeChecksum: Hash and checksum verification
+ * - SafeProbability: Probability values clamped to [0,1]
+ * - SafeUnit: Unit conversions without precision loss
+ * - SafeColor: Color manipulation with WCAG compliance
+ * - SafeBuffer: Bounded buffers and ring buffers
+ * - SafeQueue: Bounded queues and priority queues
+ * - SafeBloom: Bloom filters for probabilistic membership
+ * - SafeLRU: LRU cache with TTL support
+ * - SafeRateLimiter: Rate limiting algorithms
+ * - SafeCircuitBreaker: Circuit breaker pattern
+ * - SafeRetry: Retry with exponential backoff
+ * - SafeMonotonic: Monotonic counters and timestamps
+ * - SafeStateMachine: Finite state machines
+ * - SafeGraph: Graph data structures and algorithms
  */
 
 // ============================================================================
-// FFI Layer - The ONLY layer that calls Idris2
+// Infrastructure
 // ============================================================================
 
 module FFI = Proven_FFI
+module Error = ProvenError
+module Result = ProvenResult
+module Bitwise = Proven_Bitwise
 
-let version = "0.9.1-ffi"  // Breaking change from v0.9.0
+// ============================================================================
+// Core modules
+// ============================================================================
 
-/** Initialize the WASM module
- * @param wasmPath Path to the proven.wasm file
- */
+module SafeMath = ProvenSafeMath
+module SafeString = ProvenSafeString
+module SafeUrl = ProvenSafeUrl
+module SafeEmail = ProvenSafeEmail
+module SafePath = ProvenSafePath
+module SafeCrypto = ProvenSafeCrypto
+module SafeNetwork = ProvenSafeNetwork
+
+// ============================================================================
+// Data types
+// ============================================================================
+
+module SafeJson = ProvenSafeJson
+module SafeDatetime = ProvenSafeDatetime
+module SafeFloat = ProvenSafeFloat
+module SafeVersion = ProvenSafeVersion
+
+// ============================================================================
+// Security
+// ============================================================================
+
+module SafePassword = ProvenSafePassword
+module SafeHeader = ProvenSafeHeader
+module SafeCookie = ProvenSafeCookie
+module SafeContentType = ProvenSafeContentType
+
+// ============================================================================
+// Scientific
+// ============================================================================
+
+module SafeTensor = ProvenSafeTensor
+module SafeML = ProvenSafeMl
+module SafeGeo = ProvenSafeGeo
+module SafeAngle = ProvenSafeAngle
+module SafeProbability = ProvenSafeProbability
+module SafeUnit = ProvenSafeUnit
+module SafeChecksum = ProvenSafeChecksum
+
+// ============================================================================
+// Visual
+// ============================================================================
+
+module SafeColor = ProvenSafeColor
+
+// ============================================================================
+// Data structures
+// ============================================================================
+
+module SafeBuffer = ProvenSafeBuffer
+module SafeQueue = ProvenSafeQueue
+module SafeBloom = ProvenSafeBloom
+module SafeLRU = ProvenSafeLru
+module SafeGraph = ProvenSafeGraph
+
+// ============================================================================
+// Resilience patterns
+// ============================================================================
+
+module SafeRateLimiter = ProvenSafeRateLimiter
+module SafeCircuitBreaker = ProvenSafeCircuitBreaker
+module SafeRetry = ProvenSafeRetry
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+module SafeMonotonic = ProvenSafeMonotonic
+module SafeStateMachine = ProvenSafeStateMachine
+
+// ============================================================================
+// Public API
+// ============================================================================
+
+let version = "0.4.0"
+
+/** Initialize the Proven library. */
 let init = Proven_FFI.init
 
-/** Check if initialized */
+/** Check if initialized. */
 let isInitialized = Proven_FFI.isInitialized
 
-/** Cleanup */
+/** Cleanup. */
 let deinit = Proven_FFI.deinit
-
-/**
- * Architecture Note:
- *
- * This module previously contained 87 module references to "Safe*" modules.
- * Those modules were REIMPLEMENTATIONS in ReScript, not FFI wrappers.
- * They bypassed Idris2 verification entirely.
- *
- * They have been deleted (backup: .UNSAFE-ALL-BINDINGS-DELETED-FINAL-20260125/).
- *
- * Future work:
- * 1. Build proper Zig FFI bridge (ffi/zig/)
- * 2. Create thin FFI wrappers in ReScript that call the Zig bridge
- * 3. Add modules back here as FFI wrappers only
- *
- * Until then, only the FFI module is exported.
- */

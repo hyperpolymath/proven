@@ -1,178 +1,112 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+// SafeCookie provides HTTP cookie operations that prevent injection attacks.
+// All computation is performed in Idris 2 via the Proven FFI.
 
 package proven
 
-import (
-	"regexp"
-	"strings"
-	"time"
-)
+// #include <stdint.h>
+// #include <stdbool.h>
+// #include <stdlib.h>
+import "C"
 
-// SameSite represents cookie SameSite attribute.
-type SameSite string
-
+// SameSite values for cookie attributes.
 const (
-	// SameSiteStrict prevents cross-site sending.
-	SameSiteStrict SameSite = "Strict"
-	// SameSiteLax allows top-level navigation.
-	SameSiteLax SameSite = "Lax"
-	// SameSiteNone allows cross-site with Secure.
-	SameSiteNone SameSite = "None"
+	SameSiteStrict = 0
+	SameSiteLax    = 1
+	SameSiteNone   = 2
 )
 
-// Cookie represents an HTTP cookie.
-type Cookie struct {
-	Name     string
-	Value    string
-	Domain   string
-	Path     string
-	Expires  time.Time
-	MaxAge   int
-	Secure   bool
-	HttpOnly bool
-	SameSite SameSite
+// CookieAttrs holds the attributes for building a Set-Cookie header.
+type CookieAttrs struct {
+	Domain      string
+	Path        string
+	MaxAge      int64 // -1 means not set
+	Secure      bool
+	HttpOnly    bool
+	SameSite    int32
+	Partitioned bool
 }
 
-// ValidateCookieName checks if name is valid per RFC 6265.
-func ValidateCookieName(name string) bool {
-	if len(name) == 0 {
-		return false
+// CookieHasInjection checks for cookie injection characters (semicolon, CR, LF).
+func CookieHasInjection(value string) (bool, error) {
+	cs, length := cString(value)
+	defer unsafeFree(cs)
+	result := C.proven_cookie_has_injection(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-
-	// Cookie names are tokens (no CTL, separators)
-	for _, c := range name {
-		if c < 33 || c > 126 {
-			return false
-		}
-		if strings.ContainsRune("()<>@,;:\\\"/[]?={} \t", c) {
-			return false
-		}
-	}
-	return true
+	return bool(result.value), nil
 }
 
-// ValidateCookieValue checks if value is valid per RFC 6265.
-func ValidateCookieValue(value string) bool {
-	// Cookie values: no CTL, whitespace, semicolon, comma
-	for _, c := range value {
-		if c < 0x21 || c > 0x7E {
-			return false
-		}
-		if c == '"' || c == ',' || c == ';' || c == '\\' {
-			return false
-		}
+// CookieValidateName validates a cookie name per RFC 6265.
+func CookieValidateName(name string) (bool, error) {
+	cs, length := cString(name)
+	defer unsafeFree(cs)
+	result := C.proven_cookie_validate_name(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	return true
+	return bool(result.value), nil
 }
 
-// NewCookie creates a validated cookie.
-func NewCookie(name, value string) (Cookie, bool) {
-	if !ValidateCookieName(name) || !ValidateCookieValue(value) {
-		return Cookie{}, false
+// CookieValidateValue validates a cookie value per RFC 6265.
+func CookieValidateValue(value string) (bool, error) {
+	cs, length := cString(value)
+	defer unsafeFree(cs)
+	result := C.proven_cookie_validate_value(cs, length)
+	if int(result.status) != StatusOK {
+		return false, newError(int(result.status))
 	}
-	return Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     "/",
-		SameSite: SameSiteLax,
-	}, true
+	return bool(result.value), nil
 }
 
-// SecureCookie creates a secure cookie with recommended settings.
-func SecureCookie(name, value string) (Cookie, bool) {
-	cookie, ok := NewCookie(name, value)
-	if !ok {
-		return Cookie{}, false
+// CookieGetPrefix returns the cookie prefix type: 0=none, 1=__Secure-, 2=__Host-.
+func CookieGetPrefix(name string) (int64, error) {
+	cs, length := cString(name)
+	defer unsafeFree(cs)
+	result := C.proven_cookie_get_prefix(cs, length)
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-	cookie.Secure = true
-	cookie.HttpOnly = true
-	cookie.SameSite = SameSiteStrict
-	return cookie, true
+	return int64(result.value), nil
 }
 
-// ToString formats cookie as Set-Cookie header value.
-func (c Cookie) ToString() string {
-	var parts []string
-	parts = append(parts, c.Name+"="+c.Value)
+// CookieBuildSetCookie builds a Set-Cookie header value with the given attributes.
+func CookieBuildSetCookie(name, value string, attrs CookieAttrs) (string, error) {
+	nameCS, nameLen := cString(name)
+	defer unsafeFree(nameCS)
+	valueCS, valueLen := cString(value)
+	defer unsafeFree(valueCS)
 
-	if c.Domain != "" {
-		parts = append(parts, "Domain="+c.Domain)
-	}
-	if c.Path != "" {
-		parts = append(parts, "Path="+c.Path)
-	}
-	if !c.Expires.IsZero() {
-		parts = append(parts, "Expires="+c.Expires.UTC().Format(time.RFC1123))
-	}
-	if c.MaxAge > 0 {
-		parts = append(parts, "Max-Age="+string(rune(c.MaxAge)))
-	}
-	if c.Secure {
-		parts = append(parts, "Secure")
-	}
-	if c.HttpOnly {
-		parts = append(parts, "HttpOnly")
-	}
-	if c.SameSite != "" {
-		parts = append(parts, "SameSite="+string(c.SameSite))
+	cAttrs := C.CookieAttributes{
+		max_age:     C.int64_t(attrs.MaxAge),
+		secure:      C._Bool(attrs.Secure),
+		http_only:   C._Bool(attrs.HttpOnly),
+		same_site:   C.int32_t(attrs.SameSite),
+		partitioned: C._Bool(attrs.Partitioned),
 	}
 
-	return strings.Join(parts, "; ")
+	if attrs.Domain != "" {
+		domainCS := C.CString(attrs.Domain)
+		defer unsafeFree(domainCS)
+		cAttrs.domain = domainCS
+		cAttrs.domain_len = C.size_t(len(attrs.Domain))
+	}
+	if attrs.Path != "" {
+		pathCS := C.CString(attrs.Path)
+		defer unsafeFree(pathCS)
+		cAttrs.path = pathCS
+		cAttrs.path_len = C.size_t(len(attrs.Path))
+	}
+
+	return goStringResult(C.proven_cookie_build_set_cookie(nameCS, nameLen, valueCS, valueLen, cAttrs))
 }
 
-// ParseCookies parses a Cookie header value.
-func ParseCookies(header string) []Cookie {
-	var cookies []Cookie
-	re := regexp.MustCompile(`([^=;\s]+)=([^;]*)`)
-
-	for _, match := range re.FindAllStringSubmatch(header, -1) {
-		if len(match) >= 3 {
-			name := strings.TrimSpace(match[1])
-			value := strings.TrimSpace(match[2])
-
-			if ValidateCookieName(name) {
-				cookies = append(cookies, Cookie{
-					Name:  name,
-					Value: value,
-				})
-			}
-		}
-	}
-
-	return cookies
-}
-
-// HasSecurePrefix checks if cookie uses __Secure- prefix.
-func HasSecurePrefix(name string) bool {
-	return strings.HasPrefix(name, "__Secure-")
-}
-
-// HasHostPrefix checks if cookie uses __Host- prefix.
-func HasHostPrefix(name string) bool {
-	return strings.HasPrefix(name, "__Host-")
-}
-
-// ValidatePrefixedCookie validates cookie prefix requirements.
-func ValidatePrefixedCookie(c Cookie) bool {
-	if HasSecurePrefix(c.Name) {
-		// __Secure- cookies must be Secure
-		if !c.Secure {
-			return false
-		}
-	}
-
-	if HasHostPrefix(c.Name) {
-		// __Host- cookies must be Secure, no Domain, Path=/
-		if !c.Secure || c.Domain != "" || c.Path != "/" {
-			return false
-		}
-	}
-
-	return true
-}
-
-// IsSessionCookie checks if cookie is session-only (no expiry).
-func (c Cookie) IsSessionCookie() bool {
-	return c.Expires.IsZero() && c.MaxAge == 0
+// CookieBuildDelete builds a Set-Cookie header value that deletes a cookie.
+func CookieBuildDelete(name string) (string, error) {
+	cs, length := cString(name)
+	defer unsafeFree(cs)
+	return goStringResult(C.proven_cookie_build_delete(cs, length))
 }

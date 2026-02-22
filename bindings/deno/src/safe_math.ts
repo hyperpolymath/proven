@@ -1,102 +1,132 @@
-// SPDX-License-Identifier: PMPL-1.0
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * Safe mathematical operations with overflow detection.
+ * SafeMath - Arithmetic operations that cannot overflow or crash.
+ *
+ * Thin FFI wrapper: all computation delegates to libproven (Idris 2 + Zig).
+ *
+ * @module
  */
 
+import { getLib, ProvenStatus, statusToError } from './ffi.ts';
 import { err, ok, type Result } from './result.ts';
 
+/** Result type alias for math operations. */
 export type MathResult = Result<number>;
 
-const MAX_SAFE = Number.MAX_SAFE_INTEGER;
-const MIN_SAFE = Number.MIN_SAFE_INTEGER;
-
 /**
- * Safe mathematical operations that never throw.
+ * Safe math operations with overflow detection.
+ * Every method calls through to the proven FFI.
  */
 export class SafeMath {
   /**
-   * Safe addition with overflow detection.
+   * Safe addition with overflow check.
    *
-   * @example
-   * ```ts
-   * const result = SafeMath.add(1, 2);
-   * if (result.ok) console.log(result.value); // 3
-   *
-   * const overflow = SafeMath.add(Number.MAX_SAFE_INTEGER, 1);
-   * if (!overflow.ok) console.log(overflow.error); // "Overflow"
-   * ```
+   * @param a - First operand.
+   * @param b - Second operand.
+   * @returns Result containing the sum or an error string.
    */
-  static add(a: number, b: number): MathResult {
-    const result = a + b;
-    if (result > MAX_SAFE || result < MIN_SAFE) {
-      return err(`Overflow: ${a} + ${b}`);
-    }
-    return ok(result);
+  static add(a: number | bigint, b: number | bigint): MathResult {
+    const symbols = getLib();
+    const result = symbols.proven_math_add_checked(BigInt(a), BigInt(b));
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
   }
 
-  /** Safe subtraction with underflow detection. */
-  static sub(a: number, b: number): MathResult {
-    const result = a - b;
-    if (result > MAX_SAFE || result < MIN_SAFE) {
-      return err(`Underflow: ${a} - ${b}`);
-    }
-    return ok(result);
+  /**
+   * Safe subtraction with underflow check.
+   *
+   * @param a - First operand.
+   * @param b - Second operand.
+   * @returns Result containing the difference or an error string.
+   */
+  static sub(a: number | bigint, b: number | bigint): MathResult {
+    const symbols = getLib();
+    const result = symbols.proven_math_sub_checked(BigInt(a), BigInt(b));
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
   }
 
-  /** Safe multiplication with overflow detection. */
-  static mul(a: number, b: number): MathResult {
-    const result = a * b;
-    if (result > MAX_SAFE || result < MIN_SAFE) {
-      return err(`Overflow: ${a} * ${b}`);
-    }
-    return ok(result);
+  /**
+   * Safe multiplication with overflow check.
+   *
+   * @param a - First operand.
+   * @param b - Second operand.
+   * @returns Result containing the product or an error string.
+   */
+  static mul(a: number | bigint, b: number | bigint): MathResult {
+    const symbols = getLib();
+    const result = symbols.proven_math_mul_checked(BigInt(a), BigInt(b));
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
   }
 
-  /** Safe division with zero check. */
-  static div(a: number, b: number): MathResult {
-    if (b === 0) {
-      return err('Division by zero');
-    }
-    return ok(a / b);
+  /**
+   * Safe integer division with division-by-zero check.
+   *
+   * @param a - Dividend.
+   * @param b - Divisor.
+   * @returns Result containing the quotient or an error string.
+   */
+  static div(a: number | bigint, b: number | bigint): MathResult {
+    const symbols = getLib();
+    const result = symbols.proven_math_div(BigInt(a), BigInt(b));
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
   }
 
-  /** Safe integer division with zero check. */
-  static divInt(a: number, b: number): MathResult {
-    if (b === 0) {
-      return err('Division by zero');
-    }
-    return ok(Math.trunc(a / b));
+  /**
+   * Safe modulo operation.
+   *
+   * @param a - Dividend.
+   * @param b - Divisor.
+   * @returns Result containing the remainder or an error string.
+   */
+  static mod(a: number | bigint, b: number | bigint): MathResult {
+    const symbols = getLib();
+    const result = symbols.proven_math_mod(BigInt(a), BigInt(b));
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
   }
 
-  /** Safe modulo with zero check. */
-  static mod(a: number, b: number): MathResult {
-    if (b === 0) {
-      return err('Division by zero');
-    }
-    return ok(a % b);
+  /**
+   * Safe absolute value (handles MIN_INT correctly).
+   *
+   * @param n - Input value.
+   * @returns Result containing the absolute value or an error string.
+   */
+  static abs(n: number | bigint): MathResult {
+    const symbols = getLib();
+    const result = symbols.proven_math_abs_safe(BigInt(n));
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
   }
 
-  /** Safe absolute value. */
-  static abs(a: number): MathResult {
-    return ok(Math.abs(a));
+  /**
+   * Clamp value to range [lo, hi].
+   *
+   * @param value - Value to clamp.
+   * @param lo - Minimum value.
+   * @param hi - Maximum value.
+   * @returns The clamped value.
+   */
+  static clamp(value: number | bigint, lo: number | bigint, hi: number | bigint): number {
+    const symbols = getLib();
+    return Number(symbols.proven_math_clamp(BigInt(lo), BigInt(hi), BigInt(value)));
   }
 
-  /** Safe power with overflow detection. */
-  static pow(base: number, exp: number): MathResult {
-    const result = Math.pow(base, exp);
-    if (!Number.isFinite(result)) {
-      return err(`Overflow: ${base}^${exp}`);
-    }
-    return ok(result);
-  }
-
-  /** Check if a value is within safe integer range. */
-  static isSafeInteger(n: number): boolean {
-    return Number.isSafeInteger(n);
-  }
-
-  /** Clamp a value to a range. */
-  static clamp(value: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, value));
+  /**
+   * Safe integer power with overflow checking.
+   *
+   * @param base - Base value.
+   * @param exponent - Exponent (non-negative integer).
+   * @returns Result containing the power or an error string.
+   */
+  static pow(base: number | bigint, exponent: number): MathResult {
+    const symbols = getLib();
+    const result = symbols.proven_math_pow_checked(BigInt(base), exponent >>> 0);
+    if (result[0] !== ProvenStatus.OK) return err(statusToError(result[0]));
+    return ok(Number(result[1]));
   }
 }

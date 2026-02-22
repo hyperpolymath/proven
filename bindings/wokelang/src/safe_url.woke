@@ -1,0 +1,87 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+{= SafeUrl - URL parsing and validation via libproven FFI.
+
+   WokeLang's awareness<T, E> type captures parse failures, null pointer
+   errors, and validation failures as ignorance states. All URL parsing
+   is performed by the Idris 2 verified core.
+
+   All computation is performed in Idris 2 via the Zig FFI layer.
+   NO URL logic is reimplemented in WokeLang.
+=}
+
+module Proven.SafeUrl
+
+import Proven.FFI
+import Proven (ProvenError, awareness, Ignorant, Enlightened)
+
+-- ============================================================================
+-- URL components
+-- ============================================================================
+
+-- Parsed URL components returned by the Idris 2 URL parser.
+conscious type UrlComponents = {
+  scheme   : String,
+  host     : String,
+  port     : Option<UInt16>,
+  path     : String,
+  query    : Option<String>,
+  fragment : Option<String>,
+}
+
+-- ============================================================================
+-- URL parsing
+-- ============================================================================
+
+-- Parse a URL string into its components.
+-- Returns Ignorant(ParseFailure) if the URL is malformed.
+-- Returns Ignorant(NullPointer) if the input is null.
+-- Memory allocated by libproven is freed after copying components.
+-- Delegates to proven_url_parse and proven_url_free in libproven.
+enlighten fn parse_url(url : String) -> awareness<UrlComponents, ProvenError> =
+  let bytes = string_to_utf8(url)
+  let raw_result = FFI.proven_url_parse(bytes.ptr, bytes.len)
+  match raw_result with
+  | null => Ignorant(ParseFailure)
+  | ptr  =>
+    let components = read_url_components(ptr)
+    FFI.proven_url_free(ptr)
+    Enlightened(components)
+
+-- Validate that a string is a well-formed URL without returning components.
+-- Returns Enlightened(true) if parseable, Enlightened(false) if not.
+-- Delegates to proven_url_parse in libproven.
+enlighten fn is_valid_url(url : String) -> awareness<Bool, ProvenError> =
+  let bytes = string_to_utf8(url)
+  let raw_result = FFI.proven_url_parse(bytes.ptr, bytes.len)
+  match raw_result with
+  | null => Enlightened(false)
+  | ptr  =>
+    FFI.proven_url_free(ptr)
+    Enlightened(true)
+
+-- ============================================================================
+-- WokeLang specific: validated URL type
+-- ============================================================================
+
+-- A validated URL type. Can only be constructed through the parse function,
+-- ensuring the URL has been validated by the Idris 2 verified parser.
+conscious type ValidatedUrl = private ValidatedUrl(String, UrlComponents)
+
+-- Get the original URL string.
+enlighten fn validated_url_string(url : ValidatedUrl) -> String =
+  match url with
+  | ValidatedUrl(s, _) => s
+
+-- Get the parsed components.
+enlighten fn validated_url_components(url : ValidatedUrl) -> UrlComponents =
+  match url with
+  | ValidatedUrl(_, c) => c
+
+-- Create a ValidatedUrl, returning an error if parsing fails.
+-- Uses the Idris 2 verified URL parser via FFI.
+enlighten fn make_validated_url(url : String) -> awareness<ValidatedUrl, ProvenError> =
+  match parse_url(url) with
+  | Enlightened(components) => Enlightened(ValidatedUrl(url, components))
+  | Ignorant(e)             => Ignorant(e)

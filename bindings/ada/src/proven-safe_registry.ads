@@ -1,73 +1,36 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
---  Safe OCI registry reference parsing and validation.
---  Formally verified via Idris2 Proven.SafeRegistry module.
-
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+--  Safe OCI registry reference parsing -- thin FFI wrapper over libproven.
+--  Registry parsing done by the Idris2/Zig core.
 
 package Proven.Safe_Registry is
 
-   --  Parsed OCI image reference
+   Max_Component_Len : constant := 512;
+
    type Image_Reference is record
-      Registry   : Unbounded_String;  -- e.g., "ghcr.io", "docker.io"
-      Repository : Unbounded_String;  -- e.g., "user/repo", "library/nginx"
-      Tag        : Unbounded_String;  -- e.g., "latest", "v1.0"
-      Digest     : Unbounded_String;  -- e.g., "sha256:abc..."
+      Registry       : String (1 .. Max_Component_Len);
+      Registry_Last  : Natural;
+      Repository     : String (1 .. Max_Component_Len);
+      Repository_Last : Natural;
+      Tag            : String (1 .. Max_Component_Len);
+      Tag_Last       : Natural;
+      Digest         : String (1 .. Max_Component_Len);
+      Digest_Last    : Natural;
    end record;
 
-   --  Parse result discriminated record
-   type Parse_Result (Valid : Boolean := False) is record
-      case Valid is
-         when True  => Reference : Image_Reference;
-         when False => null;
+   type Parse_Result (Success : Boolean := False) is record
+      case Success is
+         when True  => Reference  : Image_Reference;
+         when False => Error_Code : Integer;
       end case;
    end record;
 
-   --  Parse OCI image reference string
-   --  Format: [registry/]repository[:tag][@digest]
-   --
-   --  Examples:
-   --    "nginx" -> docker.io/library/nginx:latest
-   --    "nginx:1.25" -> docker.io/library/nginx:1.25
-   --    "ghcr.io/user/repo:v1.0" -> as-is
-   --    "ghcr.io/user/repo@sha256:abc..." -> with digest
-   function Parse (Reference : String) return Parse_Result;
-
-   --  Convert image reference back to string
-   function To_String (Ref : Image_Reference) return String;
-
-   --  Convert to canonical form (all defaults explicit)
-   function To_Canonical (Ref : Image_Reference) return String;
-
-   --  Check if reference has explicit registry
-   function Has_Registry (Ref : Image_Reference) return Boolean;
-
-   --  Check if reference has explicit tag
-   function Has_Tag (Ref : Image_Reference) return Boolean;
-
-   --  Check if reference has digest
-   function Has_Digest (Ref : Image_Reference) return Boolean;
-
-   --  Extract registry (with default if not specified)
-   function Get_Registry (Ref : Image_Reference) return String;
-
-   --  Extract repository
-   function Get_Repository (Ref : Image_Reference) return String;
-
-   --  Extract tag (with default if not specified)
-   function Get_Tag (Ref : Image_Reference) return String;
-
-   --  Extract digest (empty if not specified)
-   function Get_Digest (Ref : Image_Reference) return String;
-
-   --  Default registry (Docker Hub)
    Default_Registry : constant String := "docker.io";
+   Default_Tag      : constant String := "latest";
 
-   --  Default tag
-   Default_Tag : constant String := "latest";
-
-   --  Exception for parse errors
-   Registry_Parse_Error : exception;
+   --  Parse OCI image reference string (calls proven_registry_parse).
+   function Parse (Reference : String) return Parse_Result;
 
 end Proven.Safe_Registry;

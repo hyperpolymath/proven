@@ -1,7 +1,7 @@
 # ReScript Bindings for Proven
 
 ![Idris Inside](https://img.shields.io/badge/Idris-Inside-5E5086?style=flat&logo=idris&logoColor=white)
-![License: AGPL-3.0-or-later](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue.svg)
+![License: PMPL-1.0-or-later](https://img.shields.io/badge/License-PMPL--1.0--or--later-blue.svg)
 
 Type-safe ReScript bindings to the [proven](https://github.com/hyperpolymath/proven) formally verified library.
 
@@ -173,7 +173,7 @@ let routes = Router.define([
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later
 
 ## Author
 

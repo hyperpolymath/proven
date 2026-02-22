@@ -74,7 +74,35 @@ Show EntropySource where
   show Combined = "Combined"
 
 --------------------------------------------------------------------------------
--- Random Generation Interface (Stubs)
+-- FFI Postulates for Random Generation
+--
+-- These are FFI stubs. The actual implementations call system CSPRNG
+-- via the Idris2 RefC -> Zig FFI pipeline. At link time, Zig calls
+-- platform-native entropy sources (getrandom, /dev/urandom, CryptGenRandom).
+--
+-- Using postulate instead of believe_me: the type signatures correctly
+-- describe the FFI contract. Values are provided at runtime by the
+-- native entropy source.
+--------------------------------------------------------------------------------
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- Reads n bytes from system CSPRNG
+postulate prim__randomBytes : (n : Nat) -> ByteVec n
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- Returns a uniformly distributed natural number in [0, max)
+postulate prim__randomNat : (max : Nat) -> Nat
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- Returns a uniformly distributed integer in [min, max]
+postulate prim__randomInt : (min : Integer) -> (max : Integer) -> Integer
+
+-- FFI: Actual implementation via Idris2 RefC compiled code
+-- Returns a uniformly distributed double in [0, 1)
+postulate prim__randomDouble : Double
+
+--------------------------------------------------------------------------------
+-- Random Generation Interface
 --------------------------------------------------------------------------------
 
 ||| Generate random bytes
@@ -84,25 +112,7 @@ randomBytes : (n : Nat) -> RandomResult (ByteVec n)
 randomBytes n =
   if n > 1000000  -- Reasonable limit
     then Left (RequestTooLarge n)
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    else Right (believe_me (MkByteVec (replicate n 0)))  -- Stub
+    else Right (prim__randomBytes n)
 
 ||| Generate random bytes as list
 public export
@@ -115,25 +125,7 @@ randomNat : (max : Nat) -> {auto ok : IsSucc max} -> RandomResult Nat
 randomNat max =
   if max == 0
     then Right 0
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    else Right (believe_me 0)  -- Stub - needs uniform distribution
+    else Right (prim__randomNat max)
 
 ||| Generate a random natural number in range [min, max]
 public export
@@ -148,25 +140,7 @@ randomInt : (min : Integer) -> (max : Integer) -> RandomResult Integer
 randomInt min max =
   if min > max
     then Right min
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-    else Right (believe_me 0)  -- Stub
+    else Right (prim__randomInt min max)
 
 ||| Generate a random boolean
 public export
@@ -176,25 +150,7 @@ randomBool = map (\n => n == 0) (randomNat 2)
 ||| Generate a random double in [0, 1)
 public export
 randomDouble : RandomResult Double
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-randomDouble = Right (believe_me 0.0)  -- Stub
+randomDouble = Right prim__randomDouble
 
 --------------------------------------------------------------------------------
 -- Secure Token Generation

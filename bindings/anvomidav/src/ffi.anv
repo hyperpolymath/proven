@@ -1,0 +1,243 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+#= | FFI declarations to libproven C ABI.
+ =
+ = Anvomidav uses @link("C", ...) for foreign function binding.
+ = All foreign function declarations map to the libproven shared library
+ = which is compiled from Idris 2 source with dependent types and totality
+ = checking. NO safety logic is reimplemented in Anvomidav.
+ =
+ = Architecture:
+ =   Anvomidav (.anv)
+ =     |  @link("C", ...)
+ =     v
+ =   libproven.so (Zig FFI layer)
+ =     |  Zig -> Idris2 RefC calls
+ =     v
+ =   Idris 2 (dependent types, totality checking)
+=#
+
+module Proven.FFI
+
+# ============================================================================
+# Result types matching the C ABI structs
+# ============================================================================
+
+# IntResult: struct { int32 status; int64 value; }
+@repr("C")
+define type IntResult = {
+  status : Int32,
+  value  : Int64,
+}
+
+# BoolResult: struct { int32 status; int32 value; }
+@repr("C")
+define type BoolResult = {
+  status : Int32,
+  value  : Int32,
+}
+
+# StringResult: struct { int32 status; char* ptr; size_t len; }
+@repr("C")
+define type StringResult = {
+  status : Int32,
+  ptr    : Ptr[Byte],
+  len    : USize,
+}
+
+# FloatResult: struct { int32 status; double value; }
+@repr("C")
+define type FloatResult = {
+  status : Int32,
+  value  : Float64,
+}
+
+# ============================================================================
+# Lifecycle
+# ============================================================================
+
+@link("C", "proven_init")
+proc proven_init() -> Int32
+
+@link("C", "proven_deinit")
+proc proven_deinit() -> Void
+
+@link("C", "proven_is_initialized")
+proc proven_is_initialized() -> Bool
+
+# ============================================================================
+# Memory management
+# ============================================================================
+
+@link("C", "proven_free_string")
+proc proven_free_string(ptr : Ptr[Byte]) -> Void
+
+# ============================================================================
+# Version info
+# ============================================================================
+
+@link("C", "proven_ffi_abi_version")
+proc proven_ffi_abi_version() -> UInt32
+
+@link("C", "proven_version_major")
+proc proven_version_major() -> UInt32
+
+@link("C", "proven_version_minor")
+proc proven_version_minor() -> UInt32
+
+@link("C", "proven_version_patch")
+proc proven_version_patch() -> UInt32
+
+@link("C", "proven_module_count")
+proc proven_module_count() -> UInt32
+
+# ============================================================================
+# SafeMath
+# ============================================================================
+
+@link("C", "proven_math_add_checked")
+proc proven_math_add_checked(a : Int64, b : Int64) -> IntResult
+
+@link("C", "proven_math_sub_checked")
+proc proven_math_sub_checked(a : Int64, b : Int64) -> IntResult
+
+@link("C", "proven_math_mul_checked")
+proc proven_math_mul_checked(a : Int64, b : Int64) -> IntResult
+
+@link("C", "proven_math_div")
+proc proven_math_div(a : Int64, b : Int64) -> IntResult
+
+@link("C", "proven_math_mod")
+proc proven_math_mod(a : Int64, b : Int64) -> IntResult
+
+@link("C", "proven_math_abs_safe")
+proc proven_math_abs_safe(n : Int64) -> IntResult
+
+@link("C", "proven_math_clamp")
+proc proven_math_clamp(lo : Int64, hi : Int64, value : Int64) -> Int64
+
+@link("C", "proven_math_pow_checked")
+proc proven_math_pow_checked(base : Int64, exp : UInt32) -> IntResult
+
+# ============================================================================
+# SafeString
+# ============================================================================
+
+@link("C", "proven_string_is_valid_utf8")
+proc proven_string_is_valid_utf8(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@link("C", "proven_string_escape_sql")
+proc proven_string_escape_sql(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@link("C", "proven_string_escape_html")
+proc proven_string_escape_html(ptr : Ptr[Byte], len : USize) -> StringResult
+
+@link("C", "proven_string_escape_js")
+proc proven_string_escape_js(ptr : Ptr[Byte], len : USize) -> StringResult
+
+# ============================================================================
+# SafeEmail
+# ============================================================================
+
+@link("C", "proven_email_is_valid")
+proc proven_email_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+# ============================================================================
+# SafeUrl
+# ============================================================================
+
+@link("C", "proven_url_parse")
+proc proven_url_parse(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@link("C", "proven_url_free")
+proc proven_url_free(components : Ptr[Void]) -> Void
+
+# ============================================================================
+# SafePath
+# ============================================================================
+
+@link("C", "proven_path_has_traversal")
+proc proven_path_has_traversal(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@link("C", "proven_path_sanitize_filename")
+proc proven_path_sanitize_filename(ptr : Ptr[Byte], len : USize) -> StringResult
+
+# ============================================================================
+# SafeCrypto
+# ============================================================================
+
+@link("C", "proven_crypto_constant_time_eq")
+proc proven_crypto_constant_time_eq(
+  ptr1 : Ptr[Byte], len1 : USize,
+  ptr2 : Ptr[Byte], len2 : USize,
+) -> BoolResult
+
+@link("C", "proven_crypto_random_bytes")
+proc proven_crypto_random_bytes(ptr : Ptr[Byte], len : USize) -> Int32
+
+# ============================================================================
+# SafeJson
+# ============================================================================
+
+@link("C", "proven_json_is_valid")
+proc proven_json_is_valid(ptr : Ptr[Byte], len : USize) -> BoolResult
+
+@link("C", "proven_json_get_type")
+proc proven_json_get_type(ptr : Ptr[Byte], len : USize) -> Int32
+
+# ============================================================================
+# SafeFloat
+# ============================================================================
+
+@link("C", "proven_float_div")
+proc proven_float_div(a : Float64, b : Float64) -> FloatResult
+
+@link("C", "proven_float_is_finite")
+proc proven_float_is_finite(x : Float64) -> Bool
+
+@link("C", "proven_float_is_nan")
+proc proven_float_is_nan(x : Float64) -> Bool
+
+@link("C", "proven_float_sqrt")
+proc proven_float_sqrt(x : Float64) -> FloatResult
+
+@link("C", "proven_float_ln")
+proc proven_float_ln(x : Float64) -> FloatResult
+
+# ============================================================================
+# SafeHex
+# ============================================================================
+
+@link("C", "proven_hex_encode")
+proc proven_hex_encode(ptr : Ptr[Byte], len : USize, uppercase : Bool) -> StringResult
+
+@link("C", "proven_hex_decode")
+proc proven_hex_decode(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+@link("C", "proven_hex_free")
+proc proven_hex_free(result : Ptr[Void]) -> Void
+
+# ============================================================================
+# SafeChecksum
+# ============================================================================
+
+@link("C", "proven_checksum_crc32")
+proc proven_checksum_crc32(ptr : Ptr[Byte], len : USize) -> IntResult
+
+@link("C", "proven_checksum_verify_crc32")
+proc proven_checksum_verify_crc32(ptr : Ptr[Byte], len : USize, expected : UInt32) -> BoolResult
+
+# ============================================================================
+# SafeNetwork
+# ============================================================================
+
+@link("C", "proven_network_parse_ipv4")
+proc proven_network_parse_ipv4(ptr : Ptr[Byte], len : USize) -> Ptr[Void]
+
+# ============================================================================
+# SafeCalculator
+# ============================================================================
+
+@link("C", "proven_calculator_eval")
+proc proven_calculator_eval(ptr : Ptr[Byte], len : USize) -> FloatResult

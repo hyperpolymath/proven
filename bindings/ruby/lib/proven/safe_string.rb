@@ -1,65 +1,82 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
-require "cgi"
-require "uri"
+# Safe string operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
 
 module Proven
-  # Safe string operations for escaping and sanitization.
   module SafeString
     class << self
-      # Escape a string for safe HTML insertion.
+      # Check if a byte string is valid UTF-8.
       #
       # @param value [String]
-      # @return [String]
+      # @return [Boolean, nil]
+      def valid_utf8?(value)
+        return nil if value.nil?
+        ptr, len = FFI.str_to_ptr(value)
+        result = FFI.invoke_bool_result(
+          "proven_string_is_valid_utf8",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          [ptr, len]
+        )
+        return nil unless result
+        status, val = result
+        status == FFI::STATUS_OK ? val : nil
+      end
+
+      # Escape a string for safe HTML insertion.
+      # Returns nil on error.
+      #
+      # @param value [String]
+      # @return [String, nil]
       def escape_html(value)
-        CGI.escapeHTML(value).gsub("'", "&#x27;")
+        return nil if value.nil?
+        ptr, len = FFI.str_to_ptr(value)
+        result = FFI.invoke_string_result(
+          "proven_string_escape_html",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          [ptr, len]
+        )
+        return nil unless result
+        status, str = result
+        status == FFI::STATUS_OK ? str : nil
       end
 
       # Escape a string for safe SQL interpolation.
-      # Note: Prefer parameterized queries over string interpolation.
+      # Returns nil on error.
       #
       # @param value [String]
-      # @return [String]
+      # @return [String, nil]
       def escape_sql(value)
-        value.gsub("'", "''")
+        return nil if value.nil?
+        ptr, len = FFI.str_to_ptr(value)
+        result = FFI.invoke_string_result(
+          "proven_string_escape_sql",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          [ptr, len]
+        )
+        return nil unless result
+        status, str = result
+        status == FFI::STATUS_OK ? str : nil
       end
 
       # Escape a string for safe JavaScript string literal insertion.
+      # Returns nil on error.
       #
       # @param value [String]
-      # @return [String]
+      # @return [String, nil]
       def escape_js(value)
-        value
-          .gsub("\\", "\\\\")
-          .gsub('"', '\\"')
-          .gsub("'", "\\'")
-          .gsub("\n", "\\n")
-          .gsub("\r", "\\r")
-          .gsub("\t", "\\t")
-      end
-
-      # Percent-encode a string for safe URL inclusion.
-      #
-      # @param value [String]
-      # @return [String]
-      def escape_url(value)
-        URI.encode_www_form_component(value)
-      end
-
-      # Safely truncate a string to a maximum length.
-      #
-      # @param value [String]
-      # @param max_length [Integer]
-      # @param suffix [String]
-      # @return [String]
-      def truncate_safe(value, max_length, suffix: "...")
-        return "" if max_length.negative?
-        return value if value.length <= max_length
-        return value[0, max_length] if max_length <= suffix.length
-
-        value[0, max_length - suffix.length] + suffix
+        return nil if value.nil?
+        ptr, len = FFI.str_to_ptr(value)
+        result = FFI.invoke_string_result(
+          "proven_string_escape_js",
+          [Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T],
+          [ptr, len]
+        )
+        return nil unless result
+        status, str = result
+        status == FFI::STATUS_OK ? str : nil
       end
     end
   end

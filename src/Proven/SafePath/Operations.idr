@@ -113,8 +113,9 @@ normalizePath s =
   prefixFor s ++ joinSegments (resolveDotsInSegments (splitPath s) (isAbs s))
 where
   isWinAbs : String -> Bool
-  isWinAbs str =
-    length str >= 2 && isAlpha (assert_total $ prim__strHead str) && prim__strIndex str 1 == ':'
+  isWinAbs str = case unpack str of
+    (d :: ':' :: _) => isAlpha d
+    _               => False
   isAbs str = isPrefixOf "/" str || isWinAbs str
   prefixFor str = if isAbs str then "/" else ""
 

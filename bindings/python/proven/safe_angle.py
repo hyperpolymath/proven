@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeAngle - Degree/radian conversions with normalization.
 
 Provides safe angle operations with proper handling of edge cases.
+All computation is delegated to the Idris core via FFI.
 """
 
 from typing import Optional
 from dataclasses import dataclass
 from functools import total_ordering
-import math
+
+from .core import ProvenStatus, get_lib
 
 
 @total_ordering
@@ -29,34 +31,59 @@ class Degrees:
     value: float
 
     def normalize(self) -> "Degrees":
-        """Normalize to [0, 360) range."""
-        return Degrees(self.value % 360)
+        """Normalize to [0, 360) range via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_normalize_deg(self.value)
+        if result.status != ProvenStatus.OK:
+            return Degrees(self.value % 360)
+        return Degrees(result.value)
 
     def normalize_signed(self) -> "Degrees":
-        """Normalize to [-180, 180) range."""
-        v = self.value % 360
+        """Normalize to [-180, 180) range via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_normalize_deg(self.value)
+        if result.status != ProvenStatus.OK:
+            v = self.value % 360
+        else:
+            v = result.value
         if v >= 180:
             v -= 360
         return Degrees(v)
 
     def to_radians(self) -> "Radians":
-        """Convert to radians."""
-        return Radians(math.radians(self.value))
+        """Convert to radians via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_deg_to_rad(self.value)
+        if result.status != ProvenStatus.OK:
+            return Radians(0.0)
+        return Radians(result.value)
 
     def sin(self) -> float:
-        """Calculate sine."""
-        return math.sin(math.radians(self.value))
+        """Calculate sine via FFI."""
+        rad = self.to_radians()
+        lib = get_lib()
+        result = lib.proven_angle_sin(rad.value)
+        if result.status != ProvenStatus.OK:
+            return 0.0
+        return result.value
 
     def cos(self) -> float:
-        """Calculate cosine."""
-        return math.cos(math.radians(self.value))
+        """Calculate cosine via FFI."""
+        rad = self.to_radians()
+        lib = get_lib()
+        result = lib.proven_angle_cos(rad.value)
+        if result.status != ProvenStatus.OK:
+            return 0.0
+        return result.value
 
     def tan(self) -> Optional[float]:
-        """Calculate tangent (None at asymptotes)."""
-        normalized = self.normalize().value
-        if abs(normalized - 90) < 1e-10 or abs(normalized - 270) < 1e-10:
+        """Calculate tangent (None at asymptotes) via FFI."""
+        rad = self.to_radians()
+        lib = get_lib()
+        result = lib.proven_angle_tan(rad.value)
+        if result.status != ProvenStatus.OK:
             return None
-        return math.tan(math.radians(self.value))
+        return result.value
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Degrees):
@@ -88,6 +115,7 @@ class Radians:
     Angle in radians.
 
     Example:
+        >>> import math
         >>> r = Radians(math.pi)
         >>> r.to_degrees()
         Degrees(value=180.0)
@@ -95,34 +123,58 @@ class Radians:
     value: float
 
     def normalize(self) -> "Radians":
-        """Normalize to [0, 2π) range."""
-        return Radians(self.value % (2 * math.pi))
+        """Normalize to [0, 2*pi) range via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_normalize_rad(self.value)
+        if result.status != ProvenStatus.OK:
+            import math
+            return Radians(self.value % (2 * math.pi))
+        return Radians(result.value)
 
     def normalize_signed(self) -> "Radians":
-        """Normalize to [-π, π) range."""
-        v = self.value % (2 * math.pi)
+        """Normalize to [-pi, pi) range via FFI."""
+        import math
+        lib = get_lib()
+        result = lib.proven_angle_normalize_rad(self.value)
+        if result.status != ProvenStatus.OK:
+            v = self.value % (2 * math.pi)
+        else:
+            v = result.value
         if v >= math.pi:
             v -= 2 * math.pi
         return Radians(v)
 
     def to_degrees(self) -> Degrees:
-        """Convert to degrees."""
-        return Degrees(math.degrees(self.value))
+        """Convert to degrees via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_rad_to_deg(self.value)
+        if result.status != ProvenStatus.OK:
+            return Degrees(0.0)
+        return Degrees(result.value)
 
     def sin(self) -> float:
-        """Calculate sine."""
-        return math.sin(self.value)
+        """Calculate sine via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_sin(self.value)
+        if result.status != ProvenStatus.OK:
+            return 0.0
+        return result.value
 
     def cos(self) -> float:
-        """Calculate cosine."""
-        return math.cos(self.value)
+        """Calculate cosine via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_cos(self.value)
+        if result.status != ProvenStatus.OK:
+            return 0.0
+        return result.value
 
     def tan(self) -> Optional[float]:
-        """Calculate tangent (None at asymptotes)."""
-        normalized = self.normalize().value
-        if abs(normalized - math.pi / 2) < 1e-10 or abs(normalized - 3 * math.pi / 2) < 1e-10:
+        """Calculate tangent (None at asymptotes) via FFI."""
+        lib = get_lib()
+        result = lib.proven_angle_tan(self.value)
+        if result.status != ProvenStatus.OK:
             return None
-        return math.tan(self.value)
+        return result.value
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Radians):
@@ -147,30 +199,47 @@ class Radians:
         return Radians(-self.value)
 
 
-# Conversion functions
+# Conversion functions via FFI
 def deg_to_rad(degrees: float) -> float:
-    """Convert degrees to radians."""
-    return math.radians(degrees)
+    """Convert degrees to radians via FFI."""
+    lib = get_lib()
+    result = lib.proven_angle_deg_to_rad(degrees)
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 def rad_to_deg(radians: float) -> float:
-    """Convert radians to degrees."""
-    return math.degrees(radians)
+    """Convert radians to degrees via FFI."""
+    lib = get_lib()
+    result = lib.proven_angle_rad_to_deg(radians)
+    if result.status != ProvenStatus.OK:
+        return 0.0
+    return result.value
 
 
 def normalize_degrees(degrees: float) -> float:
-    """Normalize degrees to [0, 360) range."""
-    return degrees % 360
+    """Normalize degrees to [0, 360) range via FFI."""
+    lib = get_lib()
+    result = lib.proven_angle_normalize_deg(degrees)
+    if result.status != ProvenStatus.OK:
+        return degrees % 360
+    return result.value
 
 
 def normalize_radians(radians: float) -> float:
-    """Normalize radians to [0, 2π) range."""
-    return radians % (2 * math.pi)
+    """Normalize radians to [0, 2*pi) range via FFI."""
+    lib = get_lib()
+    result = lib.proven_angle_normalize_rad(radians)
+    if result.status != ProvenStatus.OK:
+        import math
+        return radians % (2 * math.pi)
+    return result.value
 
 
 def lerp_angle_degrees(a: float, b: float, t: float) -> float:
     """
-    Linear interpolation between two angles (shortest path).
+    Linear interpolation between two angles (shortest path) via FFI.
 
     Args:
         a: Start angle in degrees
@@ -186,7 +255,7 @@ def lerp_angle_degrees(a: float, b: float, t: float) -> float:
 
 def lerp_angle_radians(a: float, b: float, t: float) -> float:
     """
-    Linear interpolation between two angles (shortest path).
+    Linear interpolation between two angles (shortest path) via FFI.
 
     Args:
         a: Start angle in radians
@@ -196,6 +265,7 @@ def lerp_angle_radians(a: float, b: float, t: float) -> float:
     Returns:
         Interpolated angle in radians
     """
+    import math
     diff = (b - a + math.pi) % (2 * math.pi) - math.pi
     return normalize_radians(a + diff * t)
 
@@ -217,7 +287,7 @@ def angle_difference_degrees(a: float, b: float) -> float:
 
 def angle_difference_radians(a: float, b: float) -> float:
     """
-    Get shortest angle difference (-π to π).
+    Get shortest angle difference (-pi to pi).
 
     Args:
         a: First angle in radians
@@ -226,12 +296,13 @@ def angle_difference_radians(a: float, b: float) -> float:
     Returns:
         Signed difference (b - a) via shortest path
     """
+    import math
     diff = (b - a + math.pi) % (2 * math.pi) - math.pi
     return diff
 
 
 class SafeAngle:
-    """Safe angle utilities."""
+    """Safe angle utilities via FFI."""
 
     # Common angle constants
     DEGREES_0 = Degrees(0)
@@ -239,12 +310,6 @@ class SafeAngle:
     DEGREES_180 = Degrees(180)
     DEGREES_270 = Degrees(270)
     DEGREES_360 = Degrees(360)
-
-    RADIANS_0 = Radians(0)
-    RADIANS_PI_2 = Radians(math.pi / 2)
-    RADIANS_PI = Radians(math.pi)
-    RADIANS_3PI_2 = Radians(3 * math.pi / 2)
-    RADIANS_2PI = Radians(2 * math.pi)
 
     @staticmethod
     def from_degrees(value: float) -> Degrees:
@@ -258,10 +323,13 @@ class SafeAngle:
 
     @staticmethod
     def atan2_degrees(y: float, x: float) -> Degrees:
-        """Calculate atan2 returning degrees."""
-        return Degrees(math.degrees(math.atan2(y, x)))
+        """Calculate atan2 returning degrees via FFI."""
+        import math
+        rad = math.atan2(y, x)
+        return Radians(rad).to_degrees()
 
     @staticmethod
     def atan2_radians(y: float, x: float) -> Radians:
         """Calculate atan2 returning radians."""
+        import math
         return Radians(math.atan2(y, x))

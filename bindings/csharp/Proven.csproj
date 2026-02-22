@@ -1,0 +1,47 @@
+<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk> -->
+
+<!--
+  Proven.csproj - C# binding for libproven (formally verified safety library).
+
+  ALL computation is performed in verified Idris 2 code via the Zig FFI bridge.
+  This project contains ONLY P/Invoke wrappers. No algorithms are reimplemented.
+
+  Requires libproven.so / libproven.dylib / proven.dll to be available at runtime
+  (either in the application directory or on the system library search path).
+-->
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <LangVersion>12</LangVersion>
+
+    <!-- Package metadata -->
+    <PackageId>Proven</PackageId>
+    <Version>0.9.0</Version>
+    <Authors>Jonathan D.A. Jewell</Authors>
+    <Company>hyperpolymath</Company>
+    <Description>C# bindings for libproven - formally verified safety library. Provides safe arithmetic, string escaping, email/URL/IP validation, JSON validation, cryptographic primitives, and date/time handling. All operations are backed by Idris 2 proofs via P/Invoke.</Description>
+    <PackageLicenseExpression>PMPL-1.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/hyperpolymath/proven</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hyperpolymath/proven</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>safety;formal-verification;ffi;math;validation;crypto</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Build settings -->
+    <RootNamespace>Proven</RootNamespace>
+    <AssemblyName>Proven</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,107 +1,48 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Safe floating-point operations delegated to libproven FFI.
+///
+/// Prevents NaN, Infinity, and division-by-zero panics via the
+/// formally verified Idris 2 core.
 
-/// SafeFloat prevents NaN and Infinity values.
-public struct SafeFloat: Equatable, Comparable, Hashable {
-    public let value: Double
+import CProven
 
-    private init(_ value: Double) {
-        self.value = value
-    }
-
-    /// Create a SafeFloat, returning nil if the value is NaN or infinite.
-    public static func create(_ value: Double) -> SafeFloat? {
-        guard value.isFinite else { return nil }
-        return SafeFloat(value)
-    }
-
-    /// Create a SafeFloat with a default for invalid values.
-    public static func createOrDefault(_ value: Double, default defaultValue: Double = 0) -> SafeFloat {
-        if value.isFinite {
-            return SafeFloat(value)
+public enum SafeFloat {
+    /// Safe floating-point division.
+    public static func div(_ a: Double, _ b: Double) -> Result<Double, ProvenError> {
+        let result = proven_float_div(a, b)
+        if let error = ProvenError.fromStatus(result.status) {
+            return .failure(error)
         }
-        return SafeFloat(defaultValue)
+        return .success(result.value)
     }
 
-    public static let zero = SafeFloat(0)
-    public static let one = SafeFloat(1)
-
-    // MARK: - Arithmetic
-
-    public func add(_ other: SafeFloat) -> SafeFloat? {
-        SafeFloat.create(value + other.value)
+    /// Check if a double is finite (not NaN or Infinity).
+    public static func isFinite(_ x: Double) -> Bool {
+        proven_float_is_finite(x)
     }
 
-    public func subtract(_ other: SafeFloat) -> SafeFloat? {
-        SafeFloat.create(value - other.value)
+    /// Check if a double is NaN.
+    public static func isNaN(_ x: Double) -> Bool {
+        proven_float_is_nan(x)
     }
 
-    public func multiply(_ other: SafeFloat) -> SafeFloat? {
-        SafeFloat.create(value * other.value)
+    /// Safe square root.
+    public static func sqrt(_ x: Double) -> Result<Double, ProvenError> {
+        let result = proven_float_sqrt(x)
+        if let error = ProvenError.fromStatus(result.status) {
+            return .failure(error)
+        }
+        return .success(result.value)
     }
 
-    public func divide(_ other: SafeFloat) -> SafeFloat? {
-        guard other.value != 0 else { return nil }
-        return SafeFloat.create(value / other.value)
-    }
-
-    public func power(_ exponent: SafeFloat) -> SafeFloat? {
-        SafeFloat.create(pow(value, exponent.value))
-    }
-
-    public func sqrt() -> SafeFloat? {
-        guard value >= 0 else { return nil }
-        return SafeFloat.create(Foundation.sqrt(value))
-    }
-
-    public func abs() -> SafeFloat {
-        SafeFloat(Swift.abs(value))
-    }
-
-    public func negate() -> SafeFloat {
-        SafeFloat(-value)
-    }
-
-    // MARK: - Comparison
-
-    public static func < (lhs: SafeFloat, rhs: SafeFloat) -> Bool {
-        lhs.value < rhs.value
-    }
-
-    public func isZero() -> Bool {
-        value == 0
-    }
-
-    public func isPositive() -> Bool {
-        value > 0
-    }
-
-    public func isNegative() -> Bool {
-        value < 0
-    }
-
-    // MARK: - Rounding
-
-    public func round() -> SafeFloat {
-        SafeFloat(Foundation.round(value))
-    }
-
-    public func floor() -> SafeFloat {
-        SafeFloat(Foundation.floor(value))
-    }
-
-    public func ceil() -> SafeFloat {
-        SafeFloat(Foundation.ceil(value))
-    }
-
-    public func truncate() -> SafeFloat {
-        SafeFloat(Foundation.trunc(value))
-    }
-
-    public func round(decimals: Int) -> SafeFloat {
-        let factor = pow(10.0, Double(decimals))
-        return SafeFloat(Foundation.round(value * factor) / factor)
+    /// Safe natural logarithm.
+    public static func ln(_ x: Double) -> Result<Double, ProvenError> {
+        let result = proven_float_ln(x)
+        if let error = ProvenError.fromStatus(result.status) {
+            return .failure(error)
+        }
+        return .success(result.value)
     }
 }

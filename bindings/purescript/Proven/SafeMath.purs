@@ -1,102 +1,62 @@
--- SPDX-License-Identifier: PMPL-1.0
--- SPDX-FileCopyrightText: 2025 Hyperpolymath
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 --
--- | Safe math operations
+-- | SafeMath - FFI bindings to libproven overflow-checked arithmetic
+-- |
+-- | All computation delegates to Idris 2 via the Zig FFI layer.
 
 module Proven.SafeMath
-  ( SafeMath
-  , safeAdd
+  ( safeAdd
   , safeSub
   , safeMul
   , safeDiv
   , safeMod
   , clamp
-  , safeIntAdd
-  , safeIntSub
   ) where
 
 import Prelude
 
 import Proven.Result (Result(..), ProvenError(..))
-import Data.Int (toNumber, floor)
-import Data.Number (isFinite)
 
--- | Safe math namespace (not instantiated)
-data SafeMath
+-- | Safe addition with overflow checking (delegates to Idris 2)
+foreign import safeAddImpl :: Int -> Int -> { status :: Int, value :: Int }
 
--- | Maximum safe integer (2^53 - 1)
-maxSafeInteger :: Number
-maxSafeInteger = 9007199254740991.0
-
--- | Minimum safe integer (-(2^53 - 1))
-minSafeInteger :: Number
-minSafeInteger = -9007199254740991.0
-
--- | Check if a number is a safe integer
-isSafeInteger :: Number -> Boolean
-isSafeInteger n = isFinite n && floor n == n && n >= minSafeInteger && n <= maxSafeInteger
-
--- | Safe addition with overflow check
-safeAdd :: Number -> Number -> Result Number ProvenError
+safeAdd :: Int -> Int -> Result Int ProvenError
 safeAdd a b =
-  let result = a + b
-  in if isFinite result
-     then Ok result
-     else Err Overflow
+  let r = safeAddImpl a b
+  in if r.status == 0 then Ok r.value else Err Overflow
 
--- | Safe subtraction with underflow check
-safeSub :: Number -> Number -> Result Number ProvenError
+-- | Safe subtraction with overflow checking (delegates to Idris 2)
+foreign import safeSubImpl :: Int -> Int -> { status :: Int, value :: Int }
+
+safeSub :: Int -> Int -> Result Int ProvenError
 safeSub a b =
-  let result = a - b
-  in if isFinite result
-     then Ok result
-     else Err Underflow
+  let r = safeSubImpl a b
+  in if r.status == 0 then Ok r.value else Err Underflow
 
--- | Safe multiplication with overflow check
-safeMul :: Number -> Number -> Result Number ProvenError
+-- | Safe multiplication with overflow checking (delegates to Idris 2)
+foreign import safeMulImpl :: Int -> Int -> { status :: Int, value :: Int }
+
+safeMul :: Int -> Int -> Result Int ProvenError
 safeMul a b =
-  let result = a * b
-  in if isFinite result
-     then Ok result
-     else Err Overflow
+  let r = safeMulImpl a b
+  in if r.status == 0 then Ok r.value else Err Overflow
 
--- | Safe division with zero check
-safeDiv :: Number -> Number -> Result Number ProvenError
-safeDiv _ 0.0 = Err DivisionByZero
+-- | Safe division with zero check (delegates to Idris 2)
+foreign import safeDivImpl :: Int -> Int -> { status :: Int, value :: Int }
+
+safeDiv :: Int -> Int -> Result Int ProvenError
 safeDiv a b =
-  let result = a / b
-  in if isFinite result
-     then Ok result
-     else Err Overflow
+  let r = safeDivImpl a b
+  in if r.status == 0 then Ok r.value else Err DivisionByZero
 
--- | Safe modulo with zero check
+-- | Safe modulo with zero check (delegates to Idris 2)
+foreign import safeModImpl :: Int -> Int -> { status :: Int, value :: Int }
+
 safeMod :: Int -> Int -> Result Int ProvenError
-safeMod _ 0 = Err DivisionByZero
-safeMod a b = Ok (mod a b)
+safeMod a b =
+  let r = safeModImpl a b
+  in if r.status == 0 then Ok r.value else Err DivisionByZero
 
--- | Clamp value to range
-clamp :: forall a. Ord a => a -> a -> a -> a
-clamp minVal maxVal value
-  | value < minVal = minVal
-  | value > maxVal = maxVal
-  | otherwise = value
-
--- | Safe integer addition (53-bit safe)
-safeIntAdd :: Number -> Number -> Result Number ProvenError
-safeIntAdd a b
-  | not (isSafeInteger a) || not (isSafeInteger b) = Err Overflow
-  | otherwise =
-      let result = a + b
-      in if isSafeInteger result
-         then Ok result
-         else Err Overflow
-
--- | Safe integer subtraction (53-bit safe)
-safeIntSub :: Number -> Number -> Result Number ProvenError
-safeIntSub a b
-  | not (isSafeInteger a) || not (isSafeInteger b) = Err Overflow
-  | otherwise =
-      let result = a - b
-      in if isSafeInteger result
-         then Ok result
-         else Err Underflow
+-- | Clamp value to range (delegates to Idris 2)
+foreign import clamp :: Int -> Int -> Int -> Int

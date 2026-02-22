@@ -1,0 +1,126 @@
+(********************************************************************)
+(*  SPDX-License-Identifier: PMPL-1.0-or-later                     *)
+(*  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)         *)
+(*  <jonathan.jewell@open.ac.uk>                                    *)
+(*                                                                  *)
+(*  safe_math.s7i -- Safe mathematical operations.                  *)
+(*  Thin wrapper over libproven FFI -- all logic lives in Idris 2.  *)
+(*  Returns EMPTY on error.                                         *)
+(********************************************************************)
+
+include "proven.s7i";
+
+(* ---------------------------------------------------------------------------
+   External C declarations (raw FFI)
+   --------------------------------------------------------------------------- *)
+
+const func integer: c_proven_math_add_status (in integer: a, in integer: b) is
+  external "proven_math_add_checked" integer;
+
+const func integer: c_proven_math_add_value (in integer: a, in integer: b) is
+  external "proven_math_add_checked" integer;
+
+const func integer: c_proven_math_sub_status (in integer: a, in integer: b) is
+  external "proven_math_sub_checked" integer;
+
+const func integer: c_proven_math_mul_status (in integer: a, in integer: b) is
+  external "proven_math_mul_checked" integer;
+
+const func integer: c_proven_math_div_status (in integer: a, in integer: b) is
+  external "proven_math_div" integer;
+
+const func integer: c_proven_math_mod_status (in integer: a, in integer: b) is
+  external "proven_math_mod" integer;
+
+const func integer: c_proven_math_abs_status (in integer: n) is
+  external "proven_math_abs_safe" integer;
+
+const func integer: c_proven_math_clamp (in integer: lo, in integer: hi, in integer: value) is
+  external "proven_math_clamp" integer;
+
+const func integer: c_proven_math_pow_status (in integer: base, in integer: exp) is
+  external "proven_math_pow_checked" integer;
+
+(* ---------------------------------------------------------------------------
+   High-level wrappers returning IntResult
+   --------------------------------------------------------------------------- *)
+
+(** Safely add two integers with overflow detection.
+    Returns IntResult with status=0 on success, negative on error. *)
+const func IntResult: safeAdd (in integer: a, in integer: b) is func
+  result
+    var IntResult: res is IntResult.value;
+  begin
+    res.status := c_proven_math_add_status(a, b);
+    if res.status = 0 then
+      res.value := c_proven_math_add_value(a, b);
+    end if;
+  end func;
+
+(** Safely subtract two integers with underflow detection. *)
+const func IntResult: safeSub (in integer: a, in integer: b) is func
+  result
+    var IntResult: res is IntResult.value;
+  begin
+    res.status := c_proven_math_sub_status(a, b);
+  end func;
+
+(** Safely multiply two integers with overflow detection. *)
+const func IntResult: safeMul (in integer: a, in integer: b) is func
+  result
+    var IntResult: res is IntResult.value;
+  begin
+    res.status := c_proven_math_mul_status(a, b);
+  end func;
+
+(** Safely divide two integers. Returns error on division by zero. *)
+const func IntResult: safeDiv (in integer: a, in integer: b) is func
+  result
+    var IntResult: res is IntResult.value;
+  begin
+    res.status := c_proven_math_div_status(a, b);
+  end func;
+
+(** Safely compute modulo. Returns error on division by zero. *)
+const func IntResult: safeMod (in integer: a, in integer: b) is func
+  result
+    var IntResult: res is IntResult.value;
+  begin
+    res.status := c_proven_math_mod_status(a, b);
+  end func;
+
+(** Safely compute absolute value. Returns error for integer.first. *)
+const func IntResult: safeAbs (in integer: n) is func
+  result
+    var IntResult: res is IntResult.value;
+  begin
+    res.status := c_proven_math_abs_status(n);
+  end func;
+
+(** Clamp a value to [lo, hi]. Always succeeds. *)
+const func integer: clamp (in integer: lo, in integer: hi, in integer: value) is
+  c_proven_math_clamp(lo, hi, value);
+
+(** Safely compute integer exponentiation. Returns error on overflow. *)
+const func IntResult: safePow (in integer: base, in integer: exp) is func
+  result
+    var IntResult: res is IntResult.value;
+  begin
+    res.status := c_proven_math_pow_status(base, exp);
+  end func;
+
+(** Check if an IntResult succeeded. *)
+const func boolean: succeeded (in IntResult: res) is
+  res.status = 0;
+
+(** Get value from IntResult or return default on error. *)
+const func integer: valueOr (in IntResult: res, in integer: default) is func
+  result
+    var integer: val is 0;
+  begin
+    if res.status = 0 then
+      val := res.value;
+    else
+      val := default;
+    end if;
+  end func;

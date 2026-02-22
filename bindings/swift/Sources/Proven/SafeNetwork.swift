@@ -1,68 +1,67 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Safe network operations delegated to libproven FFI.
+///
+/// IPv4 parsing and classification performed by the formally verified
+/// Idris 2 core via the Zig FFI bridge.
 
-/// Safe network operations for IP address validation and classification.
+import CProven
+
+/// Represents a parsed IPv4 address.
+public struct IPv4Address: Equatable, Sendable, CustomStringConvertible {
+    public let octets: (UInt8, UInt8, UInt8, UInt8)
+
+    public var description: String {
+        "\(octets.0).\(octets.1).\(octets.2).\(octets.3)"
+    }
+}
+
 public enum SafeNetwork {
-    /// Represents an IPv4 address.
-    public struct IPv4: Equatable, CustomStringConvertible {
-        public let a: UInt8
-        public let b: UInt8
-        public let c: UInt8
-        public let d: UInt8
-
-        public var description: String {
-            "\(a).\(b).\(c).\(d)"
-        }
-    }
-
     /// Parse an IPv4 address string.
-    public static func parseIPv4(_ address: String) -> IPv4? {
-        let parts = address.split(separator: ".")
-        guard parts.count == 4 else { return nil }
-
-        var octets: [UInt8] = []
-        for part in parts {
-            guard let value = UInt8(part), value <= 255 else { return nil }
-            octets.append(value)
+    public static func parseIPv4(_ address: String) -> Result<IPv4Address, ProvenError> {
+        withStringBytes(address) { ptr, len in
+            let result = proven_network_parse_ipv4(ptr, len)
+            if let error = ProvenError.fromStatus(result.status) {
+                return .failure(error)
+            }
+            let addr = result.address
+            return .success(IPv4Address(octets: (
+                addr.octets.0,
+                addr.octets.1,
+                addr.octets.2,
+                addr.octets.3
+            )))
         }
-
-        return IPv4(a: octets[0], b: octets[1], c: octets[2], d: octets[3])
     }
 
-    /// Check if a string is a valid IPv4 address.
-    public static func isValidIPv4(_ address: String) -> Bool {
-        parseIPv4(address) != nil
+    /// Check if an IPv4 address is private (RFC 1918).
+    public static func isPrivate(_ addr: IPv4Address) -> Bool {
+        var cAddr = ProvenIPv4Address()
+        cAddr.octets.0 = addr.octets.0
+        cAddr.octets.1 = addr.octets.1
+        cAddr.octets.2 = addr.octets.2
+        cAddr.octets.3 = addr.octets.3
+        return proven_network_ipv4_is_private(cAddr)
     }
 
-    /// Check if an IPv4 address is in a private range.
-    public static func isPrivate(_ address: String) -> Bool {
-        guard let ip = parseIPv4(address) else { return false }
-
-        // 10.0.0.0/8
-        if ip.a == 10 { return true }
-        // 172.16.0.0/12
-        if ip.a == 172 && ip.b >= 16 && ip.b <= 31 { return true }
-        // 192.168.0.0/16
-        if ip.a == 192 && ip.b == 168 { return true }
-
-        return false
+    /// Check if an IPv4 address is loopback (127.0.0.0/8).
+    public static func isLoopback(_ addr: IPv4Address) -> Bool {
+        var cAddr = ProvenIPv4Address()
+        cAddr.octets.0 = addr.octets.0
+        cAddr.octets.1 = addr.octets.1
+        cAddr.octets.2 = addr.octets.2
+        cAddr.octets.3 = addr.octets.3
+        return proven_network_ipv4_is_loopback(cAddr)
     }
 
-    /// Check if an IPv4 address is a loopback address (127.0.0.0/8).
-    public static func isLoopback(_ address: String) -> Bool {
-        guard let ip = parseIPv4(address) else { return false }
-        return ip.a == 127
+    /// Parse and check if an IPv4 address string is private.
+    public static func isPrivate(_ address: String) -> Result<Bool, ProvenError> {
+        parseIPv4(address).map { isPrivate($0) }
     }
 
-    /// Check if an IPv4 address is public (not private or loopback).
-    public static func isPublic(_ address: String) -> Bool {
-        isValidIPv4(address) && !isPrivate(address) && !isLoopback(address)
-    }
-
-    /// Format an IPv4 address as a string.
-    public static func formatIPv4(_ ip: IPv4) -> String {
-        ip.description
+    /// Parse and check if an IPv4 address string is loopback.
+    public static func isLoopback(_ address: String) -> Result<Bool, ProvenError> {
+        parseIPv4(address).map { isLoopback($0) }
     }
 }

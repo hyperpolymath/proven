@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+[build-system]
+requires = ["setuptools>=61.0", "hy>=1.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "proven-hy"
+version = "1.0.0"
+description = "Hy (Lisp-on-Python) bindings for libproven - code that cannot crash"
+readme = "README.md"
+license = {text = "PMPL-1.0-or-later"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Jonathan D.A. Jewell", email = "jonathan.jewell@open.ac.uk"}
+]
+keywords = ["safety", "verified", "idris", "ffi", "hy", "lisp", "crash-free"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "hy>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/hyperpolymath/proven"
+Repository = "https://github.com/hyperpolymath/proven"
+Documentation = "https://github.com/hyperpolymath/proven#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["proven*"]

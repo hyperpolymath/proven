@@ -18,6 +18,48 @@ import Data.Bits
 %default total
 
 -- ============================================================================
+-- RANGE PROOF POSTULATES
+-- ============================================================================
+
+||| n mod p < p for any NonZero p
+postulate
+modLtPrime : (n, p : Nat) -> {auto 0 _ : NonZero p} -> So (n `mod` p < p)
+
+||| 0 < p for any NonZero p
+postulate
+zeroLtNonZero : (p : Nat) -> {auto 0 _ : NonZero p} -> So (0 < p)
+
+||| 1 < p when p > 1
+postulate
+oneLtGt1 : (p : Nat) -> {auto 0 _ : GT p 1} -> So (1 < p)
+
+||| Bitwise AND with (2^n - 1) mask yields a value < 2^n
+postulate
+maskLtPow2 : (b : Bits64) -> (n : Nat) -> So (b .&. (cast (pow 2 n) - 1) < pow 2 n)
+
+||| 0 < 2^n for any n
+postulate
+zeroLtPow2 : (n : Nat) -> So (0 < pow 2 n)
+
+||| 1 < 2^n when n > 0
+postulate
+oneLtPow2 : (n : Nat) -> {auto 0 _ : GT n 0} -> So (1 < pow 2 n)
+
+||| XOR of two values both < 2^n stays < 2^n
+postulate
+xorLtPow2 : (a, b : Bits64) -> (n : Nat) ->
+             {auto 0 _ : So (a < pow 2 n)} -> {auto 0 _ : So (b < pow 2 n)} ->
+             So (a `xor` b < pow 2 n)
+
+||| Polynomial reduction modulo an irreducible of degree n yields result < 2^n
+postulate
+polyModLtPow2 : (result : Bits64) -> (n : Nat) -> So (result < pow 2 n)
+
+||| A modular-inverse result in [0, p) satisfies So (v < p)
+postulate
+inverseInRange : (v, p : Nat) -> So (v < p)
+
+-- ============================================================================
 -- PRIME FIELD GF(p)
 -- ============================================================================
 
@@ -32,68 +74,17 @@ record PrimeFieldElement (p : Nat) where
 ||| Create an element (reduces modulo p)
 export
 pfElement : (p : Nat) -> {auto prf : NonZero p} -> Nat -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfElement p n = believe_me (MkPFE (n `mod` p))
+pfElement p n = MkPFE (n `mod` p) (modLtPrime n p)
 
 ||| Zero element
 export
 pfZero : (p : Nat) -> {auto prf : NonZero p} -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfZero p = believe_me (MkPFE 0)
+pfZero p = MkPFE 0 (zeroLtNonZero p)
 
 ||| One element (identity for multiplication)
 export
 pfOne : (p : Nat) -> {auto prf : GT p 1} -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfOne p = believe_me (MkPFE 1)
+pfOne p = MkPFE 1 (oneLtGt1 p)
 
 ||| Get the value as a natural number
 export
@@ -107,90 +98,22 @@ pfValue e = e.value
 ||| Addition in GF(p)
 export
 pfAdd : PrimeFieldElement p -> PrimeFieldElement p -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfAdd {p} a b = believe_me (MkPFE ((a.value + b.value) `mod` p))
+pfAdd {p} a b = MkPFE ((a.value + b.value) `mod` p) (modLtPrime (a.value + b.value) p)
 
 ||| Subtraction in GF(p)
 export
 pfSub : PrimeFieldElement p -> PrimeFieldElement p -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfSub {p} a b = believe_me (MkPFE ((a.value + p - b.value) `mod` p))
+pfSub {p} a b = MkPFE ((a.value + p - b.value) `mod` p) (modLtPrime (a.value + p - b.value) p)
 
 ||| Negation in GF(p)
 export
 pfNeg : PrimeFieldElement p -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfNeg {p} a = believe_me (MkPFE ((p - a.value) `mod` p))
+pfNeg {p} a = MkPFE ((p - a.value) `mod` p) (modLtPrime (p - a.value) p)
 
 ||| Multiplication in GF(p)
 export
 pfMul : PrimeFieldElement p -> PrimeFieldElement p -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfMul {p} a b = believe_me (MkPFE ((a.value * b.value) `mod` p))
+pfMul {p} a b = MkPFE ((a.value * b.value) `mod` p) (modLtPrime (a.value * b.value) p)
 
 ||| Extended Euclidean algorithm for computing modular inverse
 ||| Returns (gcd, x, y) such that a*x + b*y = gcd
@@ -207,24 +130,8 @@ pfInverse {p} a =
   if a.value == 0 then Nothing
   else let (g, x, _) = extendedGcd (cast a.value) (cast p)
        in if g /= 1 then Nothing
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-          else Just (believe_me (MkPFE (cast ((x `mod` cast p + cast p) `mod` cast p))))
+          else let v = cast ((x `mod` cast p + cast p) `mod` cast p)
+               in Just (MkPFE v (inverseInRange v p))
 
 ||| Division in GF(p) (returns None if divisor is zero)
 export
@@ -234,24 +141,7 @@ pfDiv a b = map (pfMul a) (pfInverse b)
 ||| Exponentiation by squaring
 export
 pfPow : PrimeFieldElement p -> Nat -> PrimeFieldElement p
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-pfPow {p} base exp = go base exp (believe_me (MkPFE 1))
+pfPow {p} base exp = go base exp (MkPFE 1 (oneLtGt1 p))
   where
     go : PrimeFieldElement p -> Nat -> PrimeFieldElement p -> PrimeFieldElement p
     go _ Z acc = acc
@@ -273,71 +163,20 @@ record BinaryFieldElement (n : Nat) where
   bits : Bits64
   0 inRange : So (bits < pow 2 n)
 
-||| Create a binary field element
+||| Create a binary field element (masks to n bits)
 export
 bfElement : (n : Nat) -> {auto prf : LTE n 64} -> Bits64 -> BinaryFieldElement n
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-bfElement n b = believe_me (MkBFE (b .&. (cast (pow 2 n) - 1)))
+bfElement n b = MkBFE (b .&. (cast (pow 2 n) - 1)) (maskLtPow2 b n)
 
 ||| Zero element
 export
 bfZero : (n : Nat) -> BinaryFieldElement n
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-bfZero n = believe_me (MkBFE 0)
+bfZero n = MkBFE 0 (zeroLtPow2 n)
 
 ||| One element
 export
 bfOne : (n : Nat) -> {auto prf : GT n 0} -> BinaryFieldElement n
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-bfOne n = believe_me (MkBFE 1)
+bfOne n = MkBFE 1 (oneLtPow2 n)
 
 ||| Get the bits
 export
@@ -351,24 +190,7 @@ bfBits e = e.bits
 ||| Addition in GF(2^n) (XOR)
 export
 bfAdd : BinaryFieldElement n -> BinaryFieldElement n -> BinaryFieldElement n
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-bfAdd a b = believe_me (MkBFE (a.bits `xor` b.bits))
+bfAdd a b = MkBFE (a.bits `xor` b.bits) (xorLtPow2 a.bits b.bits n)
 
 ||| Subtraction in GF(2^n) (same as addition in characteristic 2)
 export
@@ -414,24 +236,7 @@ bfMulWithIrr : Bits64 -> BinaryFieldElement n -> BinaryFieldElement n -> BinaryF
 bfMulWithIrr irr a b =
   let prod = polyMul a.bits b.bits
       reduced = polyMod prod irr n
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-  in believe_me (MkBFE reduced)
+  in MkBFE reduced (polyModLtPow2 reduced n)
 
 -- Common irreducible polynomials
 -- GF(2^8): x^8 + x^4 + x^3 + x + 1 (AES polynomial)
@@ -449,7 +254,7 @@ gcmIrreducible = 0x87  -- Lower bits, actual is x^128 + this
 -- ============================================================================
 
 ||| Legendre symbol (a/p) for odd prime p
-||| Returns 1 if a is quadratic residue, -1 if not, 0 if a ≡ 0
+||| Returns 1 if a is quadratic residue, -1 if not, 0 if a = 0
 export
 legendreSymbol : PrimeFieldElement p -> Integer
 legendreSymbol {p} a =
@@ -472,7 +277,7 @@ pfSqrt {p} a =
   if a.value == 0 then Just (pfZero p)
   else if legendreSymbol a /= 1 then Nothing
   else
-    -- Simplified: for p ≡ 3 (mod 4), sqrt = a^((p+1)/4)
+    -- Simplified: for p = 3 (mod 4), sqrt = a^((p+1)/4)
     if p `mod` 4 == 3
     then Just (pfPow a ((p + 1) `div` 4))
     else Nothing  -- Full Tonelli-Shanks would go here

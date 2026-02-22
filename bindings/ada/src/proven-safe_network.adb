@@ -1,108 +1,62 @@
---  SPDX-License-Identifier: PMPL-1.0-or-later
---  SPDX-FileCopyrightText: 2025 Hyperpolymath
+--  SPDX-License-Identifier: MPL-2.0
+--  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-with Ada.Strings.Fixed; use Ada.Strings.Fixed;
+with Proven.FFI;
+with Interfaces.C; use Interfaces.C;
 
 package body Proven.Safe_Network is
 
-   function Parse_IPv4 (Address : String) return Optional_IPv4 is
-      Octets    : array (1 .. 4) of Natural;
-      Start_Pos : Natural := Address'First;
-      Dot_Pos   : Natural;
+   type Byte_Array is array (Natural range <>) of aliased unsigned_char;
+
+   function To_Bytes (S : String) return Byte_Array is
+      Result : Byte_Array (0 .. S'Length - 1);
    begin
-      --  Parse first three octets
-      for I in 1 .. 3 loop
-         Dot_Pos := Index (Address (Start_Pos .. Address'Last), ".");
-         if Dot_Pos = 0 then
-            return (Valid => False);
-         end if;
-
-         begin
-            Octets (I) := Natural'Value (Address (Start_Pos .. Dot_Pos - 1));
-            if Octets (I) > 255 then
-               return (Valid => False);
-            end if;
-         exception
-            when Constraint_Error =>
-               return (Valid => False);
-         end;
-
-         Start_Pos := Dot_Pos + 1;
+      for I in S'Range loop
+         Result (I - S'First) := unsigned_char (Character'Pos (S (I)));
       end loop;
+      return Result;
+   end To_Bytes;
 
-      --  Parse fourth octet
-      begin
-         Octets (4) := Natural'Value (Address (Start_Pos .. Address'Last));
-         if Octets (4) > 255 then
-            return (Valid => False);
-         end if;
-      exception
-         when Constraint_Error =>
-            return (Valid => False);
-      end;
+   function To_C_IPv4 (Addr : IPv4) return FFI.IPv4_Address is
+      Result : FFI.IPv4_Address;
+   begin
+      Result.Octets (0) := unsigned_char (Addr.A);
+      Result.Octets (1) := unsigned_char (Addr.B);
+      Result.Octets (2) := unsigned_char (Addr.C);
+      Result.Octets (3) := unsigned_char (Addr.D);
+      return Result;
+   end To_C_IPv4;
 
-      return (Valid => True,
-              Value => (A => Octets (1), B => Octets (2),
-                        C => Octets (3), D => Octets (4)));
+   function Parse_IPv4 (Address : String) return IPv4_Parse_Result is
+      Bytes  : aliased Byte_Array := To_Bytes (Address);
+      Result : FFI.IPv4_Result;
+   begin
+      if Address'Length = 0 then
+         return (Success => False, Error_Code => Integer (FFI.PROVEN_ERR_INVALID_ARGUMENT));
+      end if;
+      Result := FFI.Network_Parse_IPv4
+        (Bytes (Bytes'First)'Access, Bytes'Length);
+      if Result.Status /= FFI.PROVEN_OK then
+         return (Success => False, Error_Code => Integer (Result.Status));
+      end if;
+      return (Success => True,
+              Address => (A => Natural (Result.Address.Octets (0)),
+                          B => Natural (Result.Address.Octets (1)),
+                          C => Natural (Result.Address.Octets (2)),
+                          D => Natural (Result.Address.Octets (3))));
    end Parse_IPv4;
 
-   function Is_Valid_IPv4 (Address : String) return Boolean is
-      Result : constant Optional_IPv4 := Parse_IPv4 (Address);
+   function Is_Private (Addr : IPv4) return Boolean is
+      C_Addr : constant FFI.IPv4_Address := To_C_IPv4 (Addr);
    begin
-      return Result.Valid;
-   end Is_Valid_IPv4;
-
-   function Is_Private (Address : String) return Boolean is
-      Result : constant Optional_IPv4 := Parse_IPv4 (Address);
-   begin
-      if not Result.Valid then
-         return False;
-      end if;
-
-      declare
-         IP : constant IPv4 := Result.Value;
-      begin
-         --  10.0.0.0/8
-         if IP.A = 10 then
-            return True;
-         end if;
-
-         --  172.16.0.0/12
-         if IP.A = 172 and then IP.B >= 16 and then IP.B <= 31 then
-            return True;
-         end if;
-
-         --  192.168.0.0/16
-         if IP.A = 192 and then IP.B = 168 then
-            return True;
-         end if;
-
-         return False;
-      end;
+      return Boolean (FFI.Network_IPv4_Is_Private (C_Addr));
    end Is_Private;
 
-   function Is_Loopback (Address : String) return Boolean is
-      Result : constant Optional_IPv4 := Parse_IPv4 (Address);
+   function Is_Loopback (Addr : IPv4) return Boolean is
+      C_Addr : constant FFI.IPv4_Address := To_C_IPv4 (Addr);
    begin
-      if not Result.Valid then
-         return False;
-      end if;
-      return Result.Value.A = 127;
+      return Boolean (FFI.Network_IPv4_Is_Loopback (C_Addr));
    end Is_Loopback;
-
-   function Is_Public (Address : String) return Boolean is
-   begin
-      return Is_Valid_IPv4 (Address)
-             and then not Is_Private (Address)
-             and then not Is_Loopback (Address);
-   end Is_Public;
-
-   function Format_IPv4 (IP : IPv4) return String is
-   begin
-      return Trim (Natural'Image (IP.A), Ada.Strings.Left) & "." &
-             Trim (Natural'Image (IP.B), Ada.Strings.Left) & "." &
-             Trim (Natural'Image (IP.C), Ada.Strings.Left) & "." &
-             Trim (Natural'Image (IP.D), Ada.Strings.Left);
-   end Format_IPv4;
 
 end Proven.Safe_Network;

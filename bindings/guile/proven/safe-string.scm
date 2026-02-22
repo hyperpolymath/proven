@@ -1,117 +1,93 @@
 ;;; SPDX-License-Identifier: PMPL-1.0-or-later
-;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;
-;;; SafeString - XSS and injection prevention for Guile Scheme
+;;; SafeString - FFI bindings to libproven string escaping
 ;;;
-;;; Provides safe escaping for SQL, HTML, JavaScript, and shell contexts.
-;;; All operations are pure and cannot crash.
+;;; All computation delegates to Idris 2 via the Zig FFI layer.
+;;; This module is a thin wrapper only -- no reimplemented logic.
 
 (define-module (proven safe-string)
-  #:use-module (ice-9 regex)
-  #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-13)
+  #:use-module (system foreign)
+  #:use-module (rnrs bytevectors)
   #:export (escape-html
             escape-sql
             escape-js
-            escape-shell
-            sanitize
-            slugify
-            truncate-string
-            is-alphanumeric?
-            is-identifier?))
+            is-valid-utf8?))
 
-;;; Helper: replace all occurrences of a substring
-(define (string-replace-all str old new)
-  (let loop ((s str))
-    (let ((i (string-contains s old)))
-      (if i
-          (loop (string-append (substring s 0 i)
-                               new
-                               (substring s (+ i (string-length old)))))
-          s))))
+;;; Load libproven shared library
+(define libproven (dynamic-link "libproven"))
 
-;;; Escape HTML special characters to prevent XSS
+;;; FFI function bindings
+;;; StringResult is { i32 status, pointer value, size_t length }
+
+(define ffi-escape-html
+  (pointer->procedure '* (dynamic-func "proven_string_escape_html" libproven)
+                      (list '* size_t)))
+
+(define ffi-escape-sql
+  (pointer->procedure '* (dynamic-func "proven_string_escape_sql" libproven)
+                      (list '* size_t)))
+
+(define ffi-escape-js
+  (pointer->procedure '* (dynamic-func "proven_string_escape_js" libproven)
+                      (list '* size_t)))
+
+(define ffi-is-valid-utf8
+  (pointer->procedure '* (dynamic-func "proven_string_is_valid_utf8" libproven)
+                      (list '* size_t)))
+
+(define ffi-free-string
+  (pointer->procedure void (dynamic-func "proven_free_string" libproven)
+                      (list '*)))
+
+;;; Helper: convert Scheme string to (pointer, length) pair for FFI
+(define (string->ffi-args str)
+  (let* ((bv (string->utf8 str))
+         (len (bytevector-length bv))
+         (ptr (bytevector->pointer bv)))
+    (values ptr len)))
+
+;;; Helper: parse StringResult struct { i32 status, ptr value, size_t length }
+(define (parse-string-result ptr)
+  (let* ((bv (pointer->bytevector ptr (+ 4 (sizeof '*) (sizeof size_t))))
+         (status (bytevector-s32-native-ref bv 0))
+         (str-ptr-offset (if (= (sizeof '*) 8) 8 4))
+         (str-ptr (make-pointer (bytevector-uint-native-ref bv str-ptr-offset (sizeof '*))))
+         (len-offset (+ str-ptr-offset (sizeof '*)))
+         (len (bytevector-uint-native-ref bv len-offset (sizeof size_t))))
+    (if (= status 0)
+        (let ((result (pointer->string str-ptr len)))
+          (ffi-free-string str-ptr)
+          result)
+        "")))
+
+;;; Helper: parse BoolResult struct { i32 status, bool value }
+(define (parse-bool-result ptr)
+  (let* ((bv (pointer->bytevector ptr 8))
+         (status (bytevector-s32-native-ref bv 0))
+         (value (bytevector-s32-native-ref bv 4)))
+    (and (= status 0) (not (= value 0)))))
+
+;;; Escape HTML special characters (delegates to Idris 2)
 (define (escape-html input)
-  (let* ((s1 (string-replace-all input "&" "&amp;"))
-         (s2 (string-replace-all s1 "<" "&lt;"))
-         (s3 (string-replace-all s2 ">" "&gt;"))
-         (s4 (string-replace-all s3 "\"" "&quot;"))
-         (s5 (string-replace-all s4 "'" "&#x27;")))
-    s5))
+  (call-with-values (lambda () (string->ffi-args input))
+    (lambda (ptr len)
+      (parse-string-result (ffi-escape-html ptr len)))))
 
-;;; Escape SQL single quotes to prevent SQL injection
+;;; Escape SQL single quotes (delegates to Idris 2)
 (define (escape-sql input)
-  (string-replace-all input "'" "''"))
+  (call-with-values (lambda () (string->ffi-args input))
+    (lambda (ptr len)
+      (parse-string-result (ffi-escape-sql ptr len)))))
 
-;;; Escape JavaScript special characters
+;;; Escape JavaScript special characters (delegates to Idris 2)
 (define (escape-js input)
-  (let* ((s1 (string-replace-all input "\\" "\\\\"))
-         (s2 (string-replace-all s1 "\"" "\\\""))
-         (s3 (string-replace-all s2 "'" "\\'"))
-         (s4 (string-replace-all s3 "\n" "\\n"))
-         (s5 (string-replace-all s4 "\r" "\\r"))
-         (s6 (string-replace-all s5 "\t" "\\t"))
-         (s7 (string-replace-all s6 "<" "\\u003C"))
-         (s8 (string-replace-all s7 ">" "\\u003E")))
-    s8))
+  (call-with-values (lambda () (string->ffi-args input))
+    (lambda (ptr len)
+      (parse-string-result (ffi-escape-js ptr len)))))
 
-;;; Escape shell metacharacters
-(define (escape-shell input)
-  (let* ((s1 (string-replace-all input "\\" "\\\\"))
-         (s2 (string-replace-all s1 "\"" "\\\""))
-         (s3 (string-replace-all s2 "$" "\\$"))
-         (s4 (string-replace-all s3 "`" "\\`"))
-         (s5 (string-replace-all s4 "!" "\\!")))
-    s5))
-
-;;; Check if character is alphanumeric, underscore, or hyphen
-(define (safe-char? c)
-  (or (char-alphabetic? c)
-      (char-numeric? c)
-      (char=? c #\_)
-      (char=? c #\-)))
-
-;;; Sanitize to alphanumeric + underscore + hyphen only
-(define (sanitize input)
-  (list->string
-   (filter safe-char? (string->list input))))
-
-;;; Check if string contains only alphanumeric characters
-(define (is-alphanumeric? input)
-  (string-every (lambda (c)
-                  (or (char-alphabetic? c)
-                      (char-numeric? c)))
-                input))
-
-;;; Check if string is a valid identifier
-(define (is-identifier? input)
-  (and (> (string-length input) 0)
-       (let ((first-char (string-ref input 0)))
-         (or (char-alphabetic? first-char)
-             (char=? first-char #\_)))
-       (string-every (lambda (c)
-                       (or (char-alphabetic? c)
-                           (char-numeric? c)
-                           (char=? c #\_)))
-                     input)))
-
-;;; Convert to URL-safe slug
-(define (slugify input)
-  (let* ((lower (string-downcase input))
-         (cleaned (list->string
-                   (filter (lambda (c)
-                             (or (char-alphabetic? c)
-                                 (char-numeric? c)
-                                 (char=? c #\space)
-                                 (char=? c #\-)))
-                           (string->list lower))))
-         (with-hyphens (string-replace-all cleaned " " "-"))
-         ;; Collapse multiple hyphens
-         (collapsed (regexp-substitute/global #f "-+" with-hyphens 'pre "-" 'post)))
-    collapsed))
-
-;;; Truncate string to max length (safe, no crash on short strings)
-(define (truncate-string input max-len)
-  (if (<= (string-length input) max-len)
-      input
-      (substring input 0 max-len)))
+;;; Check if string is valid UTF-8 (delegates to Idris 2)
+(define (is-valid-utf8? input)
+  (call-with-values (lambda () (string->ffi-args input))
+    (lambda (ptr len)
+      (parse-bool-result (ffi-is-valid-utf8 ptr len)))))

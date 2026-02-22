@@ -1,110 +1,143 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 # frozen_string_literal: true
 
-module Proven
-  # Safe arithmetic operations that cannot crash or overflow unexpectedly.
-  module SafeMath
-    # 64-bit integer limits for bounded operations
-    MAX_INT = 2**63 - 1
-    MIN_INT = -(2**63)
+# Safe arithmetic operations via FFI to libproven.
+# ALL computation delegates to Idris 2 compiled code.
 
+module Proven
+  module SafeMath
     class << self
-      # Safely divide two integers, returning nil on division by zero.
+      # Safely divide two 64-bit integers.
+      # Returns nil on division by zero or error.
       #
       # @param numerator [Integer]
       # @param denominator [Integer]
       # @return [Integer, nil]
       def div(numerator, denominator)
-        return nil if denominator.zero?
-
-        numerator / denominator
+        result = FFI.invoke_int_result(
+          "proven_math_div",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [numerator, denominator]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
 
-      # Safely compute modulo, returning nil on division by zero.
+      # Safely compute modulo of two 64-bit integers.
+      # Returns nil on division by zero or error.
       #
       # @param numerator [Integer]
       # @param denominator [Integer]
       # @return [Integer, nil]
       def mod(numerator, denominator)
-        return nil if denominator.zero?
-
-        numerator % denominator
+        result = FFI.invoke_int_result(
+          "proven_math_mod",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [numerator, denominator]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
 
-      # Safely add two integers, returning nil on overflow.
+      # Checked addition of two 64-bit integers.
+      # Returns nil on overflow.
       #
       # @param a [Integer]
       # @param b [Integer]
       # @return [Integer, nil]
       def add(a, b)
-        result = a + b
-        return nil if result > MAX_INT || result < MIN_INT
-
-        result
+        result = FFI.invoke_int_result(
+          "proven_math_add_checked",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [a, b]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
 
-      # Safely subtract two integers, returning nil on overflow.
+      # Checked subtraction of two 64-bit integers.
+      # Returns nil on underflow.
       #
       # @param a [Integer]
       # @param b [Integer]
       # @return [Integer, nil]
       def sub(a, b)
-        result = a - b
-        return nil if result > MAX_INT || result < MIN_INT
-
-        result
+        result = FFI.invoke_int_result(
+          "proven_math_sub_checked",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [a, b]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
 
-      # Safely multiply two integers, returning nil on overflow.
+      # Checked multiplication of two 64-bit integers.
+      # Returns nil on overflow.
       #
       # @param a [Integer]
       # @param b [Integer]
       # @return [Integer, nil]
       def mul(a, b)
-        result = a * b
-        return nil if result > MAX_INT || result < MIN_INT
-
-        result
+        result = FFI.invoke_int_result(
+          "proven_math_mul_checked",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [a, b]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
 
-      # Checked add that raises on overflow.
+      # Safe absolute value (handles MIN_INT correctly).
+      # Returns nil on error (e.g., |MIN_INT| overflows).
       #
-      # @param a [Integer]
-      # @param b [Integer]
-      # @return [Integer]
-      # @raise [RangeError] on overflow
-      def checked_add(a, b)
-        result = add(a, b)
-        raise RangeError, "integer overflow" if result.nil?
-
-        result
+      # @param n [Integer]
+      # @return [Integer, nil]
+      def abs(n)
+        result = FFI.invoke_int_result(
+          "proven_math_abs_safe",
+          [Fiddle::TYPE_LONG_LONG],
+          [n]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
 
-      # Checked subtract that raises on overflow.
+      # Clamp value to range [lo, hi].
       #
-      # @param a [Integer]
-      # @param b [Integer]
-      # @return [Integer]
-      # @raise [RangeError] on overflow
-      def checked_sub(a, b)
-        result = sub(a, b)
-        raise RangeError, "integer overflow" if result.nil?
-
-        result
+      # @param lo [Integer]
+      # @param hi [Integer]
+      # @param value [Integer]
+      # @return [Integer, nil]
+      def clamp(lo, hi, value)
+        FFI.invoke_i64(
+          "proven_math_clamp",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_LONG_LONG],
+          [lo, hi, value]
+        )
       end
 
-      # Checked multiply that raises on overflow.
+      # Integer power with overflow checking.
+      # Returns nil on overflow.
       #
-      # @param a [Integer]
-      # @param b [Integer]
-      # @return [Integer]
-      # @raise [RangeError] on overflow
-      def checked_mul(a, b)
-        result = mul(a, b)
-        raise RangeError, "integer overflow" if result.nil?
-
-        result
+      # @param base [Integer]
+      # @param exp [Integer]
+      # @return [Integer, nil]
+      def pow(base, exp)
+        result = FFI.invoke_int_result(
+          "proven_math_pow_checked",
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_INT],
+          [base, exp]
+        )
+        return nil unless result
+        status, value = result
+        status == FFI::STATUS_OK ? value : nil
       end
     end
   end

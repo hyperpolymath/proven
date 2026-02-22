@@ -1,366 +1,126 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-export interface Result<T> {
-  ok: boolean;
-  value?: T;
-  error?: string;
-}
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * Retry strategies.
+ * SafeRetry - Typed wrapper for retry strategies with exponential backoff.
+ *
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * Note: The FFI functions proven_retry_delay and proven_retry_should_retry
+ * take a RetryConfig struct by value which requires buffer marshaling.
+ * The JS FFI binding will be fully wired when the buffer protocol is complete.
+ *
+ * @module
  */
-export enum RetryStrategy {
-  Fixed = 'fixed',
-  Linear = 'linear',
-  Exponential = 'exponential',
-}
+
+import {
+  RetryStrategy as JsRetryStrategy,
+  RetryConfig as JsRetryConfig,
+  RetryResult as JsRetryResult,
+  Retry as JsRetry,
+  SafeRetry as JsSafeRetry,
+} from '../../javascript/src/safe_retry.js';
+
+/** Result type returned by retry operations. */
+export type Result<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: string };
 
 /**
- * Retry configuration.
+ * Retry strategy enumeration (matches the FFI RetryStrategy).
+ * @readonly
  */
-export interface RetryConfig {
-  maxAttempts: number;
-  strategy: RetryStrategy;
-  baseDelay: number; // milliseconds
-  maxDelay?: number; // milliseconds
-  jitterFactor?: number; // 0 to 1
-  multiplier?: number; // for linear/exponential
-}
-
-/**
- * Result of a retry attempt.
- */
-export interface RetryResult<T> {
-  ok: boolean;
-  value?: T;
-  error?: string;
-  attempts: number;
-  totalDelay: number;
-}
-
-/**
- * Calculate delay for a given attempt.
- */
-export function calculateDelay(config: RetryConfig, attempt: number): number {
-  const multiplier = config.multiplier ?? 2;
-  let delay: number;
-
-  switch (config.strategy) {
-    case RetryStrategy.Fixed:
-      delay = config.baseDelay;
-      break;
-    case RetryStrategy.Linear:
-      delay = config.baseDelay * (1 + attempt * multiplier);
-      break;
-    case RetryStrategy.Exponential:
-      delay = config.baseDelay * Math.pow(multiplier, attempt);
-      break;
-  }
-
-  // Apply max delay cap
-  const maxDelay = config.maxDelay ?? Infinity;
-  delay = Math.min(delay, maxDelay);
-
-  // Apply jitter
-  const jitterFactor = config.jitterFactor ?? 0;
-  if (jitterFactor > 0) {
-    const jitter = delay * jitterFactor * (Math.random() * 2 - 1);
-    delay = Math.max(0, delay + jitter);
-  }
-
-  return delay;
-}
-
-/**
- * Sleep for a given number of milliseconds.
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Retry an async operation with backoff.
- */
-export async function retryAsync<T>(
-  fn: () => Promise<T>,
-  config: RetryConfig
-): Promise<RetryResult<T>> {
-  const maxAttempts = Math.max(1, config.maxAttempts);
-  let lastError: string | undefined;
-  let totalDelay = 0;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const value = await fn();
-      return {
-        ok: true,
-        value,
-        attempts: attempt + 1,
-        totalDelay,
-      };
-    } catch (error) {
-      lastError = String(error);
-
-      if (attempt < maxAttempts - 1) {
-        const delay = calculateDelay(config, attempt);
-        totalDelay += delay;
-        await sleep(delay);
-      }
-    }
-  }
-
-  return {
-    ok: false,
-    error: lastError,
-    attempts: maxAttempts,
-    totalDelay,
-  };
-}
-
-/**
- * Retry an async operation with selective error handling.
- */
-export async function retryAsyncSelective<T>(
-  fn: () => Promise<T>,
-  config: RetryConfig,
-  shouldRetry: (error: unknown) => boolean
-): Promise<RetryResult<T>> {
-  const maxAttempts = Math.max(1, config.maxAttempts);
-  let lastError: string | undefined;
-  let totalDelay = 0;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const value = await fn();
-      return {
-        ok: true,
-        value,
-        attempts: attempt + 1,
-        totalDelay,
-      };
-    } catch (error) {
-      lastError = String(error);
-
-      if (!shouldRetry(error)) {
-        return {
-          ok: false,
-          error: lastError,
-          attempts: attempt + 1,
-          totalDelay,
-        };
-      }
-
-      if (attempt < maxAttempts - 1) {
-        const delay = calculateDelay(config, attempt);
-        totalDelay += delay;
-        await sleep(delay);
-      }
-    }
-  }
-
-  return {
-    ok: false,
-    error: lastError,
-    attempts: maxAttempts,
-    totalDelay,
-  };
-}
-
-/**
- * Retry a synchronous operation.
- */
-export function retry<T>(fn: () => T, config: RetryConfig): RetryResult<T> {
-  const maxAttempts = Math.max(1, config.maxAttempts);
-  let lastError: string | undefined;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const value = fn();
-      return {
-        ok: true,
-        value,
-        attempts: attempt + 1,
-        totalDelay: 0,
-      };
-    } catch (error) {
-      lastError = String(error);
-    }
-  }
-
-  return {
-    ok: false,
-    error: lastError,
-    attempts: maxAttempts,
-    totalDelay: 0,
-  };
-}
-
-/**
- * RetryBuilder provides a fluent API for building retry configurations.
- */
-export class RetryBuilder {
-  private config: RetryConfig;
-
-  constructor() {
-    this.config = {
-      maxAttempts: 3,
-      strategy: RetryStrategy.Exponential,
-      baseDelay: 1000,
-      maxDelay: 30000,
-      jitterFactor: 0.1,
-      multiplier: 2,
-    };
-  }
-
-  /**
-   * Set maximum attempts.
-   */
-  maxAttempts(n: number): RetryBuilder {
-    this.config.maxAttempts = Math.max(1, n);
-    return this;
-  }
-
-  /**
-   * Use fixed delay strategy.
-   */
-  fixed(delayMs: number): RetryBuilder {
-    this.config.strategy = RetryStrategy.Fixed;
-    this.config.baseDelay = delayMs;
-    return this;
-  }
-
-  /**
-   * Use linear backoff strategy.
-   */
-  linear(baseDelayMs: number, multiplier: number = 1): RetryBuilder {
-    this.config.strategy = RetryStrategy.Linear;
-    this.config.baseDelay = baseDelayMs;
-    this.config.multiplier = multiplier;
-    return this;
-  }
-
-  /**
-   * Use exponential backoff strategy.
-   */
-  exponential(baseDelayMs: number, multiplier: number = 2): RetryBuilder {
-    this.config.strategy = RetryStrategy.Exponential;
-    this.config.baseDelay = baseDelayMs;
-    this.config.multiplier = multiplier;
-    return this;
-  }
-
-  /**
-   * Set maximum delay cap.
-   */
-  maxDelay(ms: number): RetryBuilder {
-    this.config.maxDelay = ms;
-    return this;
-  }
-
-  /**
-   * Set jitter factor (0 to 1).
-   */
-  jitter(factor: number): RetryBuilder {
-    this.config.jitterFactor = Math.max(0, Math.min(1, factor));
-    return this;
-  }
-
-  /**
-   * No jitter.
-   */
-  noJitter(): RetryBuilder {
-    this.config.jitterFactor = 0;
-    return this;
-  }
-
-  /**
-   * Build the configuration.
-   */
-  build(): RetryConfig {
-    return { ...this.config };
-  }
-
-  /**
-   * Execute an async function with this retry configuration.
-   */
-  async executeAsync<T>(fn: () => Promise<T>): Promise<RetryResult<T>> {
-    return retryAsync(fn, this.config);
-  }
-
-  /**
-   * Execute a sync function with this retry configuration.
-   */
-  execute<T>(fn: () => T): RetryResult<T> {
-    return retry(fn, this.config);
-  }
-}
-
-/**
- * Create common retry configurations.
- */
-export const RetryPresets = {
-  /**
-   * Quick retries for local operations.
-   */
-  quick(): RetryConfig {
-    return {
-      maxAttempts: 3,
-      strategy: RetryStrategy.Fixed,
-      baseDelay: 100,
-      jitterFactor: 0,
-    };
-  },
-
-  /**
-   * Standard exponential backoff for network operations.
-   */
-  standard(): RetryConfig {
-    return {
-      maxAttempts: 5,
-      strategy: RetryStrategy.Exponential,
-      baseDelay: 1000,
-      maxDelay: 30000,
-      jitterFactor: 0.1,
-      multiplier: 2,
-    };
-  },
-
-  /**
-   * Aggressive retries for critical operations.
-   */
-  aggressive(): RetryConfig {
-    return {
-      maxAttempts: 10,
-      strategy: RetryStrategy.Exponential,
-      baseDelay: 500,
-      maxDelay: 60000,
-      jitterFactor: 0.2,
-      multiplier: 2,
-    };
-  },
-
-  /**
-   * Gentle retries for rate-limited APIs.
-   */
-  gentle(): RetryConfig {
-    return {
-      maxAttempts: 5,
-      strategy: RetryStrategy.Linear,
-      baseDelay: 5000,
-      maxDelay: 60000,
-      jitterFactor: 0.1,
-      multiplier: 1,
-    };
-  },
+export const RetryStrategy = JsRetryStrategy as {
+  readonly EXPONENTIAL: 'exponential';
+  readonly LINEAR: 'linear';
+  readonly CONSTANT: 'constant';
 };
 
-export const SafeRetry = {
-  RetryStrategy,
-  RetryBuilder,
-  RetryPresets,
-  calculateDelay,
-  retry,
-  retryAsync,
-  retryAsyncSelective,
-};
+/** Retry strategy type derived from the FFI enum values. */
+export type RetryStrategyValue = 'exponential' | 'linear' | 'constant';
+
+/** Options for creating a RetryConfig. */
+export interface RetryConfigOptions {
+  readonly maxAttempts: number;
+  readonly baseDelayMs?: number;
+  readonly maxDelayMs?: number;
+  readonly multiplier?: number;
+}
+
+/**
+ * Typed wrapper around the FFI RetryConfig.
+ * Delegates to the JavaScript FFI RetryConfig class.
+ */
+export class RetryConfig {
+  /** The underlying JS FFI retry config instance. */
+  readonly #inner: InstanceType<typeof JsRetryConfig>;
+
+  /** Maximum number of retry attempts. */
+  get maxAttempts(): number {
+    return this.#inner.maxAttempts;
+  }
+
+  /** Base delay in milliseconds. */
+  get baseDelayMs(): number {
+    return this.#inner.baseDelayMs;
+  }
+
+  /** Maximum delay in milliseconds. */
+  get maxDelayMs(): number {
+    return this.#inner.maxDelayMs;
+  }
+
+  /** Backoff multiplier. */
+  get multiplier(): number {
+    return this.#inner.multiplier;
+  }
+
+  /**
+   * Create a retry configuration.
+   * Delegates to the JS FFI RetryConfig.
+   *
+   * @param opts - Configuration options.
+   */
+  constructor(opts: RetryConfigOptions) {
+    this.#inner = new JsRetryConfig(opts);
+  }
+}
+
+/**
+ * Typed wrapper around the FFI RetryResult.
+ * Delegates to the JavaScript FFI RetryResult class.
+ */
+export class RetryResult {
+  /** Whether the operation should be retried. */
+  readonly shouldRetry: boolean;
+
+  /** Delay in milliseconds before the next retry. */
+  readonly delayMs: number;
+
+  /**
+   * Create a retry result.
+   * Delegates to the JS FFI RetryResult.
+   *
+   * @param shouldRetry - Whether to retry.
+   * @param delayMs - Delay before next retry in milliseconds.
+   */
+  constructor(shouldRetry: boolean, delayMs: number) {
+    const inner = new JsRetryResult(shouldRetry, delayMs);
+    this.shouldRetry = inner.shouldRetry;
+    this.delayMs = inner.delayMs;
+  }
+}
+
+/**
+ * Retry helper (placeholder).
+ * Will be fully wired when the FFI buffer protocol for struct-by-value
+ * marshaling is complete.
+ */
+export class Retry extends JsRetry {}
+
+/**
+ * SafeRetry namespace (placeholder).
+ * Will be fully wired when the FFI buffer protocol is complete.
+ */
+export class SafeRetry extends JsSafeRetry {}

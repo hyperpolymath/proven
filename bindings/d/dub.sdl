@@ -1,11 +1,14 @@
-# SPDX-License-Identifier: PMPL-1.0
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 name "proven"
-description "Safe, validated operations library for D applications - 38 modules"
-authors "Hyperpolymath"
-license "PMPL-1.0"
-version "0.4.0"
+description "FFI bindings to libproven - formally verified safe operations for D"
+authors "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
+license "PMPL-1.0-or-later"
+version "0.9.0"
 
 targetType "library"
 sourcePaths "source"
+
+# Link against libproven (Idris 2 + Zig FFI bridge)
+libs "proven"

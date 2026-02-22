@@ -15,6 +15,7 @@ These files illustrate how safety primitives translate to platforms that:
 | Directory | Platform | Purpose |
 |-----------|----------|---------|
 | `hack/` | Nand2Tetris Hack Assembly | Shows safety at bare-metal level for CS education |
+| `7tentacles/` | 7Tentacles (MyLang group) | Interactive teaching tool for safety concepts |
 
 ## Disclaimer
 

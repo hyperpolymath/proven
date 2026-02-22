@@ -1,242 +1,120 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-import Foundation
+/// Safe content type operations delegated to libproven FFI.
+///
+/// All parsing and validation is performed by the formally verified
+/// Idris 2 core via the Zig FFI bridge.
 
-/// MIME type with validation.
-public struct ContentType: Equatable, Hashable {
+import CProven
+
+/// Parsed content type components returned from the FFI layer.
+public struct ContentTypeComponents {
     public let type: String
     public let subtype: String
-    public let parameters: [String: String]
-
-    public init?(type: String, subtype: String, parameters: [String: String] = [:]) {
-        // Validate type and subtype (alphanumeric, hyphen, plus, dot)
-        let validChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-+."))
-
-        guard !type.isEmpty && type.unicodeScalars.allSatisfy({ validChars.contains($0) }) else { return nil }
-        guard !subtype.isEmpty && subtype.unicodeScalars.allSatisfy({ validChars.contains($0) }) else { return nil }
-
-        self.type = type.lowercased()
-        self.subtype = subtype.lowercased()
-        self.parameters = parameters
-    }
-
-    /// Full MIME type string.
-    public var mimeType: String {
-        "\(type)/\(subtype)"
-    }
-
-    /// Full content type string with parameters.
-    public var full: String {
-        var result = mimeType
-        for (key, value) in parameters.sorted(by: { $0.key < $1.key }) {
-            result += "; \(key)=\(value)"
-        }
-        return result
-    }
-
-    /// Get charset parameter.
-    public var charset: String? {
-        parameters["charset"]
-    }
-
-    /// Get boundary parameter (for multipart).
-    public var boundary: String? {
-        parameters["boundary"]
-    }
-
-    /// Check if this is a text type.
-    public var isText: Bool {
-        type == "text" || (type == "application" && subtype.contains("json")) ||
-        (type == "application" && subtype.contains("xml"))
-    }
-
-    /// Check if this is an image type.
-    public var isImage: Bool {
-        type == "image"
-    }
-
-    /// Check if this is an audio type.
-    public var isAudio: Bool {
-        type == "audio"
-    }
-
-    /// Check if this is a video type.
-    public var isVideo: Bool {
-        type == "video"
-    }
-
-    /// Check if this is a multipart type.
-    public var isMultipart: Bool {
-        type == "multipart"
-    }
-
-    /// Create a copy with different charset.
-    public func withCharset(_ charset: String) -> ContentType {
-        var newParams = parameters
-        newParams["charset"] = charset
-        return ContentType(type: type, subtype: subtype, parameters: newParams)!
-    }
+    public let suffix: String?
+    public let parameters: String?
 }
 
-/// Content type utilities.
 public enum SafeContentType {
-    // MARK: - Common Content Types
+    /// Parse a Content-Type header string into its components.
+    public static func parse(_ header: String) -> Result<ContentTypeComponents, ProvenError> {
+        withStringBytes(header) { ptr, len in
+            var result = proven_content_type_parse(ptr, len)
+            if let error = ProvenError.fromStatus(result.status) {
+                proven_content_type_free(&result)
+                return .failure(error)
+            }
 
-    public static let textPlain = ContentType(type: "text", subtype: "plain")!
-    public static let textHtml = ContentType(type: "text", subtype: "html")!
-    public static let textCss = ContentType(type: "text", subtype: "css")!
-    public static let textJavascript = ContentType(type: "text", subtype: "javascript")!
-    public static let textXml = ContentType(type: "text", subtype: "xml")!
-    public static let textCsv = ContentType(type: "text", subtype: "csv")!
+            let typeStr: String
+            if let p = result.type_str {
+                typeStr = String(cString: p)
+            } else {
+                proven_content_type_free(&result)
+                return .failure(.nullPointer)
+            }
 
-    public static let applicationJson = ContentType(type: "application", subtype: "json")!
-    public static let applicationXml = ContentType(type: "application", subtype: "xml")!
-    public static let applicationOctetStream = ContentType(type: "application", subtype: "octet-stream")!
-    public static let applicationPdf = ContentType(type: "application", subtype: "pdf")!
-    public static let applicationZip = ContentType(type: "application", subtype: "zip")!
-    public static let applicationGzip = ContentType(type: "application", subtype: "gzip")!
-    public static let applicationJavascript = ContentType(type: "application", subtype: "javascript")!
+            let subtypeStr: String
+            if let p = result.subtype_str {
+                subtypeStr = String(cString: p)
+            } else {
+                proven_content_type_free(&result)
+                return .failure(.nullPointer)
+            }
 
-    public static let formUrlencoded = ContentType(type: "application", subtype: "x-www-form-urlencoded")!
-    public static let multipartFormData = ContentType(type: "multipart", subtype: "form-data")!
-    public static let multipartMixed = ContentType(type: "multipart", subtype: "mixed")!
+            let suffixStr: String? = result.suffix_str.flatMap { result.suffix_len > 0 ? String(cString: $0) : nil }
+            let paramsStr: String? = result.params_str.flatMap { result.params_len > 0 ? String(cString: $0) : nil }
 
-    public static let imageJpeg = ContentType(type: "image", subtype: "jpeg")!
-    public static let imagePng = ContentType(type: "image", subtype: "png")!
-    public static let imageGif = ContentType(type: "image", subtype: "gif")!
-    public static let imageWebp = ContentType(type: "image", subtype: "webp")!
-    public static let imageSvg = ContentType(type: "image", subtype: "svg+xml")!
-    public static let imageIco = ContentType(type: "image", subtype: "x-icon")!
+            proven_content_type_free(&result)
 
-    public static let audioMpeg = ContentType(type: "audio", subtype: "mpeg")!
-    public static let audioWav = ContentType(type: "audio", subtype: "wav")!
-    public static let audioOgg = ContentType(type: "audio", subtype: "ogg")!
-    public static let audioWebm = ContentType(type: "audio", subtype: "webm")!
+            return .success(ContentTypeComponents(
+                type: typeStr,
+                subtype: subtypeStr,
+                suffix: suffixStr,
+                parameters: paramsStr
+            ))
+        }
+    }
 
-    public static let videoMp4 = ContentType(type: "video", subtype: "mp4")!
-    public static let videoWebm = ContentType(type: "video", subtype: "webm")!
-    public static let videoOgg = ContentType(type: "video", subtype: "ogg")!
+    /// Check if a content type string can be sniffed into a dangerous type.
+    public static func canSniffDangerous(_ contentType: String) -> Result<Bool, ProvenError> {
+        withStringBytes(contentType) { ptr, len in
+            let result = proven_content_type_can_sniff_dangerous(ptr, len)
+            if let error = ProvenError.fromStatus(result.status) {
+                return .failure(error)
+            }
+            return .success(result.value)
+        }
+    }
 
-    public static let fontWoff = ContentType(type: "font", subtype: "woff")!
-    public static let fontWoff2 = ContentType(type: "font", subtype: "woff2")!
-    public static let fontTtf = ContentType(type: "font", subtype: "ttf")!
-    public static let fontOtf = ContentType(type: "font", subtype: "otf")!
+    /// Render a content type from its type and subtype components.
+    public static func render(type: String, subtype: String) -> Result<String, ProvenError> {
+        let typeUtf8 = Array(type.utf8)
+        let subtypeUtf8 = Array(subtype.utf8)
+        return typeUtf8.withUnsafeBufferPointer { typeBuf in
+            subtypeUtf8.withUnsafeBufferPointer { subtypeBuf in
+                let result = proven_content_type_render(
+                    typeBuf.baseAddress, typeBuf.count,
+                    subtypeBuf.baseAddress, subtypeBuf.count
+                )
+                return consumeStringResult(result)
+            }
+        }
+    }
 
-    // MARK: - Parsing
-
-    /// Parse Content-Type header.
-    public static func parse(_ header: String) -> ContentType? {
-        let parts = header.components(separatedBy: ";")
-        guard let mimeType = parts.first?.trimmingCharacters(in: .whitespaces) else { return nil }
-
-        let mimeParts = mimeType.components(separatedBy: "/")
-        guard mimeParts.count == 2 else { return nil }
-
-        var parameters: [String: String] = [:]
-        for part in parts.dropFirst() {
-            let trimmed = part.trimmingCharacters(in: .whitespaces)
-            if let equalsIndex = trimmed.firstIndex(of: "=") {
-                let key = String(trimmed[..<equalsIndex]).lowercased()
-                var value = String(trimmed[trimmed.index(after: equalsIndex)...])
-
-                // Remove quotes if present
-                if value.hasPrefix("\"") && value.hasSuffix("\"") {
-                    value = String(value.dropFirst().dropLast())
+    /// Check if the given subtype/suffix combination represents JSON.
+    public static func isJSON(subtype: String, suffix: String = "") -> Result<Bool, ProvenError> {
+        let subtypeUtf8 = Array(subtype.utf8)
+        let suffixUtf8 = Array(suffix.utf8)
+        return subtypeUtf8.withUnsafeBufferPointer { subtypeBuf in
+            suffixUtf8.withUnsafeBufferPointer { suffixBuf in
+                let result = proven_content_type_is_json(
+                    subtypeBuf.baseAddress, subtypeBuf.count,
+                    suffixBuf.baseAddress, suffixBuf.count
+                )
+                if let error = ProvenError.fromStatus(result.status) {
+                    return .failure(error)
                 }
-
-                parameters[key] = value
+                return .success(result.value)
             }
         }
-
-        return ContentType(type: mimeParts[0], subtype: mimeParts[1], parameters: parameters)
     }
 
-    // MARK: - File Extension Mapping
-
-    private static let extensionMap: [String: ContentType] = [
-        "html": textHtml,
-        "htm": textHtml,
-        "css": textCss,
-        "js": textJavascript,
-        "mjs": textJavascript,
-        "json": applicationJson,
-        "xml": applicationXml,
-        "txt": textPlain,
-        "csv": textCsv,
-        "pdf": applicationPdf,
-        "zip": applicationZip,
-        "gz": applicationGzip,
-        "jpg": imageJpeg,
-        "jpeg": imageJpeg,
-        "png": imagePng,
-        "gif": imageGif,
-        "webp": imageWebp,
-        "svg": imageSvg,
-        "ico": imageIco,
-        "mp3": audioMpeg,
-        "wav": audioWav,
-        "ogg": audioOgg,
-        "mp4": videoMp4,
-        "webm": videoWebm,
-        "woff": fontWoff,
-        "woff2": fontWoff2,
-        "ttf": fontTtf,
-        "otf": fontOtf
-    ]
-
-    /// Get content type from file extension.
-    public static func fromExtension(_ ext: String) -> ContentType {
-        let lowercased = ext.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
-        return extensionMap[lowercased] ?? applicationOctetStream
-    }
-
-    /// Get content type from filename.
-    public static func fromFilename(_ filename: String) -> ContentType {
-        guard let lastDot = filename.lastIndex(of: ".") else {
-            return applicationOctetStream
-        }
-        let ext = String(filename[filename.index(after: lastDot)...])
-        return fromExtension(ext)
-    }
-
-    /// Get file extension from content type.
-    public static func toExtension(_ contentType: ContentType) -> String? {
-        for (ext, ct) in extensionMap {
-            if ct.mimeType == contentType.mimeType {
-                return ext
+    /// Check if the given subtype/suffix combination represents XML.
+    public static func isXML(subtype: String, suffix: String = "") -> Result<Bool, ProvenError> {
+        let subtypeUtf8 = Array(subtype.utf8)
+        let suffixUtf8 = Array(suffix.utf8)
+        return subtypeUtf8.withUnsafeBufferPointer { subtypeBuf in
+            suffixUtf8.withUnsafeBufferPointer { suffixBuf in
+                let result = proven_content_type_is_xml(
+                    subtypeBuf.baseAddress, subtypeBuf.count,
+                    suffixBuf.baseAddress, suffixBuf.count
+                )
+                if let error = ProvenError.fromStatus(result.status) {
+                    return .failure(error)
+                }
+                return .success(result.value)
             }
         }
-        return nil
-    }
-
-    // MARK: - Content Type Helpers
-
-    /// Create JSON content type with UTF-8.
-    public static func json() -> ContentType {
-        applicationJson.withCharset("utf-8")
-    }
-
-    /// Create HTML content type with UTF-8.
-    public static func html() -> ContentType {
-        textHtml.withCharset("utf-8")
-    }
-
-    /// Create plain text content type with UTF-8.
-    public static func text() -> ContentType {
-        textPlain.withCharset("utf-8")
-    }
-
-    /// Create multipart form data with boundary.
-    public static func multipartForm(boundary: String) -> ContentType {
-        var params = multipartFormData.parameters
-        params["boundary"] = boundary
-        return ContentType(type: "multipart", subtype: "form-data", parameters: params)!
-    }
-
-    /// Generate a random boundary for multipart.
-    public static func generateBoundary() -> String {
-        let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return "----FormBoundary" + String((0..<16).map { _ in chars.randomElement()! })
     }
 }

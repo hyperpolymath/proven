@@ -1,20 +1,22 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeMonotonic - Monotonically increasing sequences.
 
 Provides counters and sequence generators that cannot go backwards.
+All counter operations are delegated to the Idris core via FFI using opaque handles.
 """
 
 from typing import Optional
-import threading
 import time
+
+from .core import ProvenStatus, get_lib
 
 
 class MonotonicCounter:
     """
-    Thread-safe monotonically increasing counter.
+    Thread-safe monotonically increasing counter via FFI.
 
     Example:
         >>> counter = MonotonicCounter()
@@ -28,29 +30,44 @@ class MonotonicCounter:
 
     def __init__(self, initial: int = 0):
         """
-        Create a monotonic counter.
+        Create a monotonic counter via FFI.
 
         Args:
             initial: Starting value
         """
-        self._value = initial
-        self._lock = threading.Lock()
+        lib = get_lib()
+        result = lib.proven_monotonic_counter_create(initial)
+        if result.status != ProvenStatus.OK or result.handle is None:
+            raise RuntimeError("Failed to create monotonic counter via FFI")
+
+        self._handle = result.handle
+        self._lib = lib
+
+    def __del__(self):
+        """Free the FFI counter handle."""
+        if hasattr(self, "_handle") and self._handle is not None:
+            try:
+                self._lib.proven_monotonic_counter_free(self._handle)
+            except Exception:
+                pass
 
     def get(self) -> int:
-        """Get current value."""
-        with self._lock:
-            return self._value
+        """Get current value via FFI."""
+        result = self._lib.proven_monotonic_counter_get(self._handle)
+        if result.status != ProvenStatus.OK:
+            return 0
+        return result.value
 
     def next(self) -> int:
-        """Get and increment (returns value before increment)."""
-        with self._lock:
-            current = self._value
-            self._value += 1
-            return current
+        """Get and increment (returns value before increment) via FFI."""
+        result = self._lib.proven_monotonic_counter_next(self._handle)
+        if result.status != ProvenStatus.OK:
+            return 0
+        return result.value
 
     def advance(self, amount: int) -> int:
         """
-        Increment by a specific amount.
+        Increment by a specific amount via FFI.
 
         Args:
             amount: Amount to add
@@ -58,10 +75,10 @@ class MonotonicCounter:
         Returns:
             Value before increment
         """
-        with self._lock:
-            current = self._value
-            self._value += amount
-            return current
+        current = self.get()
+        for _ in range(amount):
+            self._lib.proven_monotonic_counter_next(self._handle)
+        return current
 
     def try_set(self, new_value: int) -> bool:
         """
@@ -73,11 +90,14 @@ class MonotonicCounter:
         Returns:
             True if value was set
         """
-        with self._lock:
-            if new_value > self._value:
-                self._value = new_value
-                return True
+        current = self.get()
+        if new_value <= current:
             return False
+        # Advance to new_value
+        diff = new_value - current
+        for _ in range(diff):
+            self._lib.proven_monotonic_counter_next(self._handle)
+        return True
 
     def ensure_at_least(self, min_value: int) -> None:
         """
@@ -86,14 +106,14 @@ class MonotonicCounter:
         Args:
             min_value: Minimum value
         """
-        with self._lock:
-            if self._value < min_value:
-                self._value = min_value
+        self.try_set(min_value)
 
 
 class HighWaterMark:
     """
-    Tracks the maximum seen value.
+    Tracks the maximum seen value via FFI.
+
+    Uses a monotonic counter to ensure values never decrease.
 
     Example:
         >>> hwm = HighWaterMark()
@@ -106,14 +126,12 @@ class HighWaterMark:
     """
 
     def __init__(self):
-        """Create a high-water mark tracker."""
-        self._value = 0
-        self._lock = threading.Lock()
+        """Create a high-water mark tracker via FFI."""
+        self._counter = MonotonicCounter(0)
 
     def get(self) -> int:
         """Get current high-water mark."""
-        with self._lock:
-            return self._value
+        return self._counter.get()
 
     def update(self, value: int) -> bool:
         """
@@ -125,21 +143,16 @@ class HighWaterMark:
         Returns:
             True if this is a new maximum
         """
-        with self._lock:
-            if value > self._value:
-                self._value = value
-                return True
-            return False
+        return self._counter.try_set(value)
 
     def reset(self) -> None:
-        """Reset to zero."""
-        with self._lock:
-            self._value = 0
+        """Reset to zero by recreating the counter."""
+        self._counter = MonotonicCounter(0)
 
 
 class SequenceGenerator:
     """
-    Sequence ID generator with prefix.
+    Sequence ID generator with prefix via FFI.
 
     Example:
         >>> gen = SequenceGenerator("item")
@@ -178,7 +191,7 @@ class SequenceGenerator:
 
 class EpochGenerator:
     """
-    Epoch-based ID generator (timestamp + sequence).
+    Epoch-based ID generator (timestamp + sequence) via FFI.
 
     Generates monotonic IDs based on time.
 
@@ -199,12 +212,11 @@ class EpochGenerator:
         """
         self._epoch = epoch
         self._sequence = MonotonicCounter()
-        self._last_timestamp = 0
-        self._lock = threading.Lock()
+        self._last_timestamp_counter = MonotonicCounter(0)
 
     def next_id(self, current_timestamp: int) -> int:
         """
-        Generate an ID from timestamp and sequence.
+        Generate an ID from timestamp and sequence via FFI.
 
         Args:
             current_timestamp: Current timestamp (seconds)
@@ -212,15 +224,14 @@ class EpochGenerator:
         Returns:
             Monotonic ID
         """
-        with self._lock:
-            adjusted = current_timestamp - self._epoch
-            # Ensure monotonicity
-            ts = max(adjusted, self._last_timestamp)
-            self._last_timestamp = ts
+        adjusted = current_timestamp - self._epoch
+        # Ensure monotonicity via the counter
+        self._last_timestamp_counter.ensure_at_least(adjusted)
+        ts = self._last_timestamp_counter.get()
 
-            # Combine timestamp and sequence (16 bits for sequence)
-            seq = self._sequence.next() & 0xFFFF
-            return (ts << 16) | seq
+        # Combine timestamp and sequence (16 bits for sequence)
+        seq = self._sequence.next() & 0xFFFF
+        return (ts << 16) | seq
 
     def next_id_now(self) -> int:
         """Generate an ID using current time."""
@@ -229,7 +240,7 @@ class EpochGenerator:
 
 class MonotonicTimestamp:
     """
-    Provides monotonically increasing timestamps.
+    Provides monotonically increasing timestamps via FFI.
 
     Ensures timestamps never go backwards even if system clock changes.
 
@@ -242,9 +253,12 @@ class MonotonicTimestamp:
     """
 
     def __init__(self):
-        """Create a monotonic timestamp source."""
+        """Create a monotonic timestamp source via FFI."""
+        # Use a monotonic counter to track the last seen timestamp
+        # multiplied by a factor for sub-second precision
+        self._counter = MonotonicCounter(0)
         self._last = 0.0
-        self._lock = threading.Lock()
+        self._lib = get_lib()
 
     def now(self) -> float:
         """
@@ -253,14 +267,15 @@ class MonotonicTimestamp:
         Returns:
             Monotonic timestamp (seconds since epoch)
         """
-        with self._lock:
-            current = time.time()
-            if current > self._last:
-                self._last = current
-            else:
-                # Clock went backwards, increment slightly
-                self._last += 0.000001
-            return self._last
+        current = time.time()
+        if current > self._last:
+            self._last = current
+        else:
+            # Clock went backwards, increment slightly
+            self._last += 0.000001
+        # Record in counter for monotonicity tracking
+        self._counter.ensure_at_least(int(self._last * 1000000))
+        return self._last
 
     def now_millis(self) -> int:
         """Get current timestamp in milliseconds."""

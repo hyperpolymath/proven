@@ -280,4 +280,4 @@ s" ff" hex>int if . then cr       \ 255
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later

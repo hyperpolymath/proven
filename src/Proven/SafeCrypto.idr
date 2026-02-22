@@ -167,29 +167,14 @@ data NonceStatus = Fresh | Used
 public export
 data TrackedNonce : (n : Nat) -> NonceStatus -> Type where
   MkTrackedNonce : Nonce n -> TrackedNonce n Fresh
+  ||| Private constructor for marking a nonce as used.
+  ||| Only accessible via `useNonce` -- not exported publicly.
+  MkUsedNonce : Nonce n -> TrackedNonce n Used
 
 ||| Use a nonce (marks it as used)
 public export
 useNonce : TrackedNonce n Fresh -> (Nonce n, TrackedNonce n Used)
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-useNonce (MkTrackedNonce nonce) = (nonce, believe_me (MkTrackedNonce nonce))
+useNonce (MkTrackedNonce nonce) = (nonce, MkUsedNonce nonce)
 
 --------------------------------------------------------------------------------
 -- Encryption Result Types
@@ -308,52 +293,15 @@ AEADCipher ChaCha20Poly1305 where
 --------------------------------------------------------------------------------
 
 ||| Hash bytes using specified algorithm
-||| Actual implementation requires FFI
-public export
-hash : (alg : Type) -> HashAlgorithm alg => Bytes -> ByteArray (hashOutputSize {alg})
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hash alg input = believe_me (MkByteArray [])  -- Stub - requires FFI
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate hash : (alg : Type) -> HashAlgorithm alg => Bytes -> ByteArray (hashOutputSize {alg})
 
 ||| HMAC using specified hash algorithm
-public export
-hmac : (alg : Type) -> HashAlgorithm alg =>
-       HMACKey -> Bytes -> ByteArray (hashOutputSize {alg})
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hmac alg key input = believe_me (MkByteArray [])  -- Stub - requires FFI
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate hmac : (alg : Type) -> HashAlgorithm alg =>
+                 HMACKey -> Bytes -> ByteArray (hashOutputSize {alg})
 
 ||| AEAD encrypt
 public export
@@ -380,57 +328,21 @@ aeadDecrypt cipher key nonce aad ct = Left (AlgorithmNotSupported "Stub")
 --------------------------------------------------------------------------------
 
 ||| HKDF-Extract
-public export
-hkdfExtract : (alg : Type) -> HashAlgorithm alg =>
-              Bytes -> -- Salt
-              Bytes -> -- Input key material
-              ByteArray (hashOutputSize {alg})
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hkdfExtract alg salt ikm = believe_me (MkByteArray [])  -- Stub
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate hkdfExtract : (alg : Type) -> HashAlgorithm alg =>
+                         Bytes -> -- Salt
+                         Bytes -> -- Input key material
+                         ByteArray (hashOutputSize {alg})
 
 ||| HKDF-Expand
-public export
-hkdfExpand : (alg : Type) -> HashAlgorithm alg =>
-             ByteArray (hashOutputSize {alg}) -> -- PRK
-             Bytes -> -- Info
-             (n : Nat) -> -- Output length
-             ByteArray n
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
--- PROOF_TODO: Replace believe_me with actual proof
-hkdfExpand alg prk info n = believe_me (MkByteArray [])  -- Stub
+||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
+export
+postulate hkdfExpand : (alg : Type) -> HashAlgorithm alg =>
+                        ByteArray (hashOutputSize {alg}) -> -- PRK
+                        Bytes -> -- Info
+                        (n : Nat) -> -- Output length
+                        ByteArray n
 
 --------------------------------------------------------------------------------
 -- Utility Functions

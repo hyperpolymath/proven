@@ -1,29 +1,36 @@
-%% SPDX-License-Identifier: PMPL-1.0
-%% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%% SPDX-License-Identifier: PMPL-1.0-or-later
+%% Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 %%
-%% Proven - OTP Application Resource File
+%% Proven - OTP Application Resource File (NIF-based FFI to libproven)
 
 {application, proven,
- [{description, "Safe, validated operations library for Erlang"},
-  {vsn, "0.1.0"},
+ [{description, "FFI bindings to libproven - formally verified safety primitives via Idris 2 + Zig"},
+  {vsn, "0.9.1"},
   {registered, []},
   {applications,
    [kernel,
-    stdlib,
-    crypto]},
+    stdlib]},
   {env, []},
   {modules, [
-    proven_math,
-    proven_string,
-    proven_path,
-    proven_email,
-    proven_network,
+    proven,
+    proven_angle,
+    proven_color,
     proven_crypto,
-    proven_uuid,
     proven_currency,
+    proven_datetime,
+    proven_email,
+    proven_float,
+    proven_hex,
+    proven_json,
+    proven_math,
+    proven_network,
+    proven_path,
     proven_phone,
-    proven_hex
+    proven_string,
+    proven_url,
+    proven_uuid,
+    proven_version
   ]},
-  {licenses, ["PMPL-1.0"]},
+  {licenses, ["PMPL-1.0-or-later"]},
   {links, [{"GitHub", "https://github.com/hyperpolymath/proven"}]}
  ]}.

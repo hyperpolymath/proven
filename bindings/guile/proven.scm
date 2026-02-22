@@ -1,16 +1,10 @@
 ;;; SPDX-License-Identifier: PMPL-1.0-or-later
-;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;
-;;; Proven - Code that cannot crash
+;;; Proven - FFI bindings to libproven (Idris 2 verified safety library)
 ;;;
-;;; A verified safety library for Guile Scheme providing:
-;;; - SafeMath: Arithmetic without overflow/underflow/division-by-zero
-;;; - SafeString: XSS/SQL injection prevention
-;;; - SafePath: Path operations without traversal attacks
-;;; - SafeEmail: RFC-compliant email validation
-;;; - SafeNetwork: IP/CIDR/port validation
-;;; - SafeUuid: UUID validation and parsing
-;;; - SafeHex: Hexadecimal encoding and validation
+;;; All computation is performed in Idris 2 via the Zig FFI layer.
+;;; This module re-exports all submodule bindings.
 
 (define-module (proven)
   #:use-module (proven safe-math)
@@ -20,9 +14,13 @@
   #:use-module (proven safe-network)
   #:use-module (proven safe-uuid)
   #:use-module (proven safe-hex)
+  #:use-module (proven safe-crypto)
+  #:use-module (proven safe-currency)
+  #:use-module (proven safe-datetime)
+  #:use-module (proven safe-json)
+  #:use-module (proven safe-phone)
+  #:use-module (proven safe-url)
   #:re-export (;; SafeMath
-               MAX-INT64
-               MIN-INT64
                safe-add
                safe-sub
                safe-mul
@@ -32,67 +30,67 @@
                safe-negate
                clamp
                in-range?
+               MAX-INT64
+               MIN-INT64
 
                ;; SafeString
                escape-html
                escape-sql
                escape-js
-               escape-shell
-               sanitize
-               slugify
-               truncate-string
+               is-valid-utf8?
 
                ;; SafePath
                path-has-traversal?
-               path-is-absolute?
-               path-is-relative?
                sanitize-filename
-               path-validate
-               path-join-safe
-               path-extension
-               path-basename
-               path-dirname
 
                ;; SafeEmail
                email-valid?
-               email-parse
-               email-normalize
-               email-get-domain
-               email-get-local
 
                ;; SafeNetwork
-               ipv4-valid?
-               ipv6-valid?
-               ip-valid?
-               port-valid?
-               hostname-valid?
-               cidr-valid?
-               cidr-parse
-               ip-private?
-               ip-loopback?
+               ipv4-parse
+               ipv4-private?
+               ipv4-loopback?
 
                ;; SafeUuid
-               UUID-NIL
-               uuid-valid?
-               uuid-valid-v4?
+               uuid-v4
+               uuid-parse
+               uuid->string
                uuid-nil?
                uuid-version
-               uuid-normalize
-               uuid-parse
-               uuid-to-hex
-               uuid-from-hex
 
                ;; SafeHex
-               hex-valid?
-               hex-valid-bytes?
-               hex-normalize
-               hex-equals?
-               hex-byte-length
-               hex-is-md5?
-               hex-is-sha1?
-               hex-is-sha256?
-               hex-is-sha384?
-               hex-is-sha512?
-               hex-pad-left))
+               hex-encode
+               hex-decode
+
+               ;; SafeCrypto
+               constant-time-equal?
+               random-bytes
+
+               ;; SafeCurrency
+               currency-parse
+               currency-format
+
+               ;; SafeDatetime
+               datetime-parse
+               datetime-format-iso8601
+               leap-year?
+               days-in-month
+
+               ;; SafeJson
+               json-valid?
+               json-type-of
+
+               ;; SafePhone
+               phone-parse
+               phone-format-e164
+
+               ;; SafeUrl
+               url-valid?
+               url-scheme
+               url-host
+               url-port
+               url-path
+               url-query
+               url-fragment))
 
 (define proven-version "1.0.0")

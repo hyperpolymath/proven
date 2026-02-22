@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Ballerina package configuration for proven FFI bindings.
+# All computation is performed in Idris 2 via the Zig FFI bridge.
+# These bindings call libproven via JNA -- they do NOT reimplement any logic.
+
+[package]
+org = "hyperpolymath"
+name = "proven"
+version = "0.5.0"
+license = ["PMPL-1.0-or-later"]
+authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+keywords = ["safety", "verified", "ffi", "math", "validation"]
+repository = "https://github.com/hyperpolymath/proven"
+distribution = "local"
+
+[build-options]
+observabilityIncluded = false
+
+[[platform.java17.dependency]]
+path = "./lib/jna-5.14.0.jar"
+groupId = "net.java.dev.jna"
+artifactId = "jna"
+version = "5.14.0"

@@ -1,94 +1,77 @@
 ;;; SPDX-License-Identifier: PMPL-1.0-or-later
-;;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;;
-;;; SafeHex - Hexadecimal encoding with constant-time comparison for Guile Scheme
+;;; SafeHex - FFI bindings to libproven hex encoding/decoding
 ;;;
-;;; Provides safe hex encoding, decoding, and comparison operations.
+;;; All computation delegates to Idris 2 via the Zig FFI layer.
+;;; This module is a thin wrapper only -- no reimplemented logic.
 
 (define-module (proven safe-hex)
-  #:use-module (ice-9 regex)
-  #:use-module (srfi srfi-1)
-  #:use-module (srfi srfi-13)
-  #:export (hex-valid?
-            hex-valid-bytes?
-            hex-normalize
-            hex-equals?
-            hex-byte-length
-            hex-is-md5?
-            hex-is-sha1?
-            hex-is-sha256?
-            hex-is-sha384?
-            hex-is-sha512?
-            hex-pad-left
-            MD5-BYTES
-            SHA1-BYTES
-            SHA256-BYTES
-            SHA384-BYTES
-            SHA512-BYTES
-            BLAKE3-BYTES))
+  #:use-module (system foreign)
+  #:use-module (rnrs bytevectors)
+  #:export (hex-encode
+            hex-encode-upper
+            hex-decode))
 
-;;; Hex pattern
-(define hex-pattern
-  (make-regexp "^[0-9a-fA-F]*$"))
+;;; Load libproven shared library
+(define libproven (dynamic-link "libproven"))
 
-;;; Common hash lengths in bytes
-(define MD5-BYTES 16)
-(define SHA1-BYTES 20)
-(define SHA256-BYTES 32)
-(define SHA384-BYTES 48)
-(define SHA512-BYTES 64)
-(define BLAKE3-BYTES 32)
+;;; FFI function bindings
 
-;;; Check if string contains only hex characters
-(define (hex-valid? s)
-  (and (string? s)
-       (regexp-exec hex-pattern s)))
+(define ffi-hex-encode
+  (pointer->procedure '* (dynamic-func "proven_hex_encode" libproven)
+                      (list '* size_t int32)))
 
-;;; Check if string is valid hex with even length (complete bytes)
-(define (hex-valid-bytes? s)
-  (and (hex-valid? s)
-       (even? (string-length s))))
+(define ffi-hex-decode
+  (pointer->procedure '* (dynamic-func "proven_hex_decode" libproven)
+                      (list '* size_t)))
 
-;;; Normalize hex string (lowercase)
-(define (hex-normalize hex)
-  (string-downcase hex))
+(define ffi-free-string
+  (pointer->procedure void (dynamic-func "proven_free_string" libproven)
+                      (list '*)))
 
-;;; Check if hex strings are equal (case-insensitive)
-(define (hex-equals? a b)
-  (string=? (string-downcase a) (string-downcase b)))
+;;; Helper: parse StringResult struct { i32 status, ptr value, size_t length }
+(define (parse-string-result ptr)
+  (let* ((bv (pointer->bytevector ptr (+ 4 (sizeof '*) (sizeof size_t))))
+         (status (bytevector-s32-native-ref bv 0))
+         (str-ptr-offset (if (= (sizeof '*) 8) 8 4))
+         (str-ptr (make-pointer (bytevector-uint-native-ref bv str-ptr-offset (sizeof '*))))
+         (len-offset (+ str-ptr-offset (sizeof '*)))
+         (len (bytevector-uint-native-ref bv len-offset (sizeof size_t))))
+    (if (= status 0)
+        (let ((result (pointer->string str-ptr len)))
+          (ffi-free-string str-ptr)
+          result)
+        #f)))
 
-;;; Get length in bytes (hex string length / 2)
-(define (hex-byte-length hex)
-  (quotient (string-length hex) 2))
+;;; Encode bytes to hex string (delegates to Idris 2)
+(define (hex-encode bv)
+  (let* ((ptr (bytevector->pointer bv))
+         (len (bytevector-length bv)))
+    (parse-string-result (ffi-hex-encode ptr len 0))))
 
-;;; Check if string is valid MD5 hex (32 chars)
-(define (hex-is-md5? hex)
-  (and (hex-valid-bytes? hex)
-       (= (string-length hex) 32)))
+;;; Encode bytes to uppercase hex string (delegates to Idris 2)
+(define (hex-encode-upper bv)
+  (let* ((ptr (bytevector->pointer bv))
+         (len (bytevector-length bv)))
+    (parse-string-result (ffi-hex-encode ptr len 1))))
 
-;;; Check if string is valid SHA-1 hex (40 chars)
-(define (hex-is-sha1? hex)
-  (and (hex-valid-bytes? hex)
-       (= (string-length hex) 40)))
-
-;;; Check if string is valid SHA-256 hex (64 chars)
-(define (hex-is-sha256? hex)
-  (and (hex-valid-bytes? hex)
-       (= (string-length hex) 64)))
-
-;;; Check if string is valid SHA-384 hex (96 chars)
-(define (hex-is-sha384? hex)
-  (and (hex-valid-bytes? hex)
-       (= (string-length hex) 96)))
-
-;;; Check if string is valid SHA-512 hex (128 chars)
-(define (hex-is-sha512? hex)
-  (and (hex-valid-bytes? hex)
-       (= (string-length hex) 128)))
-
-;;; Pad hex string with leading zeros to specified length
-(define (hex-pad-left length hex)
-  (let ((current-len (string-length hex)))
-    (if (>= current-len length)
-        hex
-        (string-append (make-string (- length current-len) #\0) hex))))
+;;; Decode hex string to bytevector (delegates to Idris 2)
+;;; Returns #f on invalid hex input
+(define (hex-decode hex-string)
+  (let* ((str-bv (string->utf8 hex-string))
+         (ptr (bytevector->pointer str-bv))
+         (len (bytevector-length str-bv))
+         (result-ptr (ffi-hex-decode ptr len))
+         ;; HexDecodeResult has similar layout to StringResult
+         (bv (pointer->bytevector result-ptr (+ 4 (sizeof '*) (sizeof size_t))))
+         (status (bytevector-s32-native-ref bv 0))
+         (data-ptr-offset (if (= (sizeof '*) 8) 8 4))
+         (data-ptr (make-pointer (bytevector-uint-native-ref bv data-ptr-offset (sizeof '*))))
+         (data-len-offset (+ data-ptr-offset (sizeof '*)))
+         (data-len (bytevector-uint-native-ref bv data-len-offset (sizeof size_t))))
+    (if (= status 0)
+        (let ((result (pointer->bytevector data-ptr data-len)))
+          (ffi-free-string data-ptr)
+          result)
+        #f)))

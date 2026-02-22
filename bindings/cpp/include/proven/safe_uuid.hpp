@@ -1,519 +1,264 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-/**
- * @file safe_uuid.hpp
- * @brief Safe UUID generation and validation following RFC 4122
- *
- * Provides type-safe UUID handling with version/variant detection,
- * parsing from canonical string format, and formatting options.
- *
- * @example
- * @code
- * #include <proven/safe_uuid.hpp>
- * #include <iostream>
- *
- * int main() {
- *     // Parse a UUID string
- *     auto uuid = proven::SafeUuid::parse("550e8400-e29b-41d4-a716-446655440000");
- *     if (uuid) {
- *         std::cout << "Version: " << static_cast<int>(uuid->version()) << "\n";
- *         std::cout << "String: " << uuid->to_string() << "\n";
- *     }
- *
- *     // Create from bytes
- *     std::array<uint8_t, 16> randomBytes = { /* random data */ };
- *     auto v4Uuid = proven::SafeUuid::v4FromBytes(randomBytes);
- *
- *     return 0;
- * }
- * @endcode
- */
+/// @file safe_uuid.hpp
+/// @brief C++ wrapper for Proven SafeUuid FFI functions
+///
+/// Thin wrapper around the C UUID API declared in safe_uuid.h.
+/// All UUID generation, parsing, version/variant detection, and
+/// formatting are performed by the Idris2 core via the Zig FFI
+/// bridge. This header only provides RAII and std::optional
+/// convenience.
 
-#ifndef PROVEN_SAFE_UUID_HPP
-#define PROVEN_SAFE_UUID_HPP
+#pragma once
 
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <algorithm>
-#include <cctype>
+
+extern "C" {
+
+// UUID C API types and functions from safe_uuid.h
+
+enum UuidStatus : int32_t {
+    UUID_OK                  =  0,
+    UUID_ERR_NULL_POINTER    = -1,
+    UUID_ERR_INVALID_FORMAT  = -2,
+    UUID_ERR_INVALID_LENGTH  = -3,
+    UUID_ERR_INVALID_HEX    = -4,
+    UUID_ERR_BUFFER_TOO_SMALL = -5,
+    UUID_ERR_RANDOM_FAILED   = -6
+};
+
+enum UuidVersion_C : int32_t {
+    UUID_VERSION_NIL = 0,
+    UUID_VERSION_1   = 1,
+    UUID_VERSION_2   = 2,
+    UUID_VERSION_3   = 3,
+    UUID_VERSION_4   = 4,
+    UUID_VERSION_5   = 5
+};
+
+enum UuidVariant_C : int32_t {
+    UUID_VARIANT_NCS       = 0,
+    UUID_VARIANT_RFC4122   = 1,
+    UUID_VARIANT_MICROSOFT = 2,
+    UUID_VARIANT_FUTURE    = 3
+};
+
+struct Uuid_C {
+    uint8_t bytes[16];
+};
+
+struct UuidResult_C {
+    UuidStatus status;
+    Uuid_C uuid;
+};
+
+struct UuidVersionResult_C {
+    UuidStatus status;
+    UuidVersion_C version;
+};
+
+struct UuidVariantResult_C {
+    UuidStatus status;
+    UuidVariant_C variant;
+};
+
+UuidStatus uuid_v4_generate(Uuid_C* uuid);
+UuidStatus uuid_v4_from_bytes(const uint8_t random_bytes[16], Uuid_C* uuid);
+UuidStatus uuid_parse(const char* str, size_t len, Uuid_C* uuid);
+UuidStatus uuid_parse_cstr(const char* str, Uuid_C* uuid);
+UuidStatus uuid_from_bytes(const uint8_t bytes[16], Uuid_C* uuid);
+UuidStatus uuid_to_string(const Uuid_C* uuid, char* buf, size_t buf_size);
+UuidStatus uuid_to_urn(const Uuid_C* uuid, char* buf, size_t buf_size);
+UuidStatus uuid_to_string_upper(const Uuid_C* uuid, char* buf, size_t buf_size);
+UuidVersionResult_C uuid_get_version(const Uuid_C* uuid);
+UuidVariantResult_C uuid_get_variant(const Uuid_C* uuid);
+bool uuid_is_nil(const Uuid_C* uuid);
+int uuid_compare(const Uuid_C* a, const Uuid_C* b);
+bool uuid_equals(const Uuid_C* a, const Uuid_C* b);
+bool uuid_is_valid(const char* str, size_t len);
+bool uuid_is_valid_cstr(const char* str);
+
+} // extern "C"
 
 namespace proven {
 
-// ============================================================================
-// UUID Version
-// ============================================================================
-
-/**
- * @brief UUID version types as defined in RFC 4122
- */
+/// @brief UUID version types (mirrors C enum)
 enum class UuidVersion : uint8_t {
-    Nil = 0,  ///< Nil UUID (all zeros)
-    V1 = 1,   ///< Time-based version
-    V2 = 2,   ///< DCE Security version
-    V3 = 3,   ///< Name-based (MD5)
-    V4 = 4,   ///< Random
-    V5 = 5,   ///< Name-based (SHA-1)
-    V6 = 6,   ///< Reordered time-based (draft)
-    V7 = 7,   ///< Unix epoch time-based (draft)
-    V8 = 8,   ///< Custom (draft)
-    Unknown = 255
+    Nil = 0, V1 = 1, V2 = 2, V3 = 3, V4 = 4, V5 = 5, Unknown = 255
 };
 
-/**
- * @brief Get string representation of UUID version
- */
-[[nodiscard]] constexpr const char* uuidVersionToString(UuidVersion version) noexcept {
-    switch (version) {
-        case UuidVersion::Nil: return "nil";
-        case UuidVersion::V1: return "v1";
-        case UuidVersion::V2: return "v2";
-        case UuidVersion::V3: return "v3";
-        case UuidVersion::V4: return "v4";
-        case UuidVersion::V5: return "v5";
-        case UuidVersion::V6: return "v6";
-        case UuidVersion::V7: return "v7";
-        case UuidVersion::V8: return "v8";
-        default: return "unknown";
-    }
-}
-
-// ============================================================================
-// UUID Variant
-// ============================================================================
-
-/**
- * @brief UUID variant types as defined in RFC 4122
- */
+/// @brief UUID variant types (mirrors C enum)
 enum class UuidVariant : uint8_t {
-    Ncs = 0,       ///< NCS backward compatibility
-    Rfc4122 = 1,   ///< RFC 4122 (standard)
-    Microsoft = 2, ///< Microsoft backward compatibility
-    Future = 3     ///< Reserved for future definition
+    Ncs = 0, Rfc4122 = 1, Microsoft = 2, Future = 3
 };
 
-/**
- * @brief Get string representation of UUID variant
- */
-[[nodiscard]] constexpr const char* uuidVariantToString(UuidVariant variant) noexcept {
-    switch (variant) {
-        case UuidVariant::Ncs: return "ncs";
-        case UuidVariant::Rfc4122: return "rfc4122";
-        case UuidVariant::Microsoft: return "microsoft";
-        case UuidVariant::Future: return "future";
-        default: return "unknown";
-    }
-}
-
-// ============================================================================
-// UUID Class
-// ============================================================================
-
-/**
- * @brief A validated UUID (128 bits)
- *
- * Stores UUID as a 16-byte array and provides version/variant detection,
- * formatting, and comparison operations.
- */
+/// @brief A validated UUID (128 bits), backed by libproven FFI
 class Uuid {
 public:
-    /// Size of UUID in bytes
     static constexpr size_t ByteSize = 16;
-
-    /// Size of canonical string representation
     static constexpr size_t StringSize = 36;
 
-    /// The nil UUID (all zeros)
-    static const Uuid Nil;
+    /// @brief Default constructor creates nil UUID
+    Uuid() noexcept { std::memset(&raw_, 0, sizeof(raw_)); }
 
-    /// DNS namespace UUID (6ba7b810-9dad-11d1-80b4-00c04fd430c8)
-    static const Uuid NamespaceDns;
+    /// @brief Construct from C UUID struct
+    explicit Uuid(const Uuid_C& c) noexcept : raw_(c) {}
 
-    /// URL namespace UUID (6ba7b811-9dad-11d1-80b4-00c04fd430c8)
-    static const Uuid NamespaceUrl;
-
-    /// OID namespace UUID (6ba7b812-9dad-11d1-80b4-00c04fd430c8)
-    static const Uuid NamespaceOid;
-
-    /// X.500 DN namespace UUID (6ba7b814-9dad-11d1-80b4-00c04fd430c8)
-    static const Uuid NamespaceX500;
-
-    /**
-     * @brief Default constructor creates nil UUID
-     */
-    constexpr Uuid() noexcept : bytes_{{}} {}
-
-    /**
-     * @brief Construct from byte array
-     */
-    constexpr explicit Uuid(const std::array<uint8_t, ByteSize>& bytes) noexcept
-        : bytes_(bytes) {}
-
-    /**
-     * @brief Construct from individual bytes
-     */
-    constexpr Uuid(
-        uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3,
-        uint8_t b4, uint8_t b5, uint8_t b6, uint8_t b7,
-        uint8_t b8, uint8_t b9, uint8_t b10, uint8_t b11,
-        uint8_t b12, uint8_t b13, uint8_t b14, uint8_t b15
-    ) noexcept
-        : bytes_{{b0, b1, b2, b3, b4, b5, b6, b7,
-                  b8, b9, b10, b11, b12, b13, b14, b15}} {}
-
-    /**
-     * @brief Get the underlying bytes
-     */
-    [[nodiscard]] constexpr const std::array<uint8_t, ByteSize>& bytes() const noexcept {
-        return bytes_;
+    /// @brief Construct from byte array
+    explicit Uuid(const std::array<uint8_t, ByteSize>& bytes) noexcept {
+        std::memcpy(raw_.bytes, bytes.data(), ByteSize);
     }
 
-    /**
-     * @brief Get pointer to underlying data
-     */
-    [[nodiscard]] constexpr const uint8_t* data() const noexcept {
-        return bytes_.data();
+    /// @brief Get the underlying bytes
+    [[nodiscard]] std::array<uint8_t, ByteSize> bytes() const noexcept {
+        std::array<uint8_t, ByteSize> arr{};
+        std::memcpy(arr.data(), raw_.bytes, ByteSize);
+        return arr;
     }
 
-    /**
-     * @brief Access individual byte
-     */
-    [[nodiscard]] constexpr uint8_t operator[](size_t index) const noexcept {
-        return bytes_[index];
-    }
-
-    /**
-     * @brief Get the UUID version
-     */
-    [[nodiscard]] constexpr UuidVersion version() const noexcept {
-        const uint8_t versionNibble = (bytes_[6] >> 4) & 0x0F;
-        switch (versionNibble) {
-            case 0: return isNil() ? UuidVersion::Nil : UuidVersion::Unknown;
-            case 1: return UuidVersion::V1;
-            case 2: return UuidVersion::V2;
-            case 3: return UuidVersion::V3;
-            case 4: return UuidVersion::V4;
-            case 5: return UuidVersion::V5;
-            case 6: return UuidVersion::V6;
-            case 7: return UuidVersion::V7;
-            case 8: return UuidVersion::V8;
-            default: return UuidVersion::Unknown;
+    /// @brief Get UUID version via FFI
+    [[nodiscard]] UuidVersion version() const noexcept {
+        auto result = uuid_get_version(&raw_);
+        if (result.status != UUID_OK) return UuidVersion::Unknown;
+        if (result.version >= UUID_VERSION_NIL && result.version <= UUID_VERSION_5) {
+            return static_cast<UuidVersion>(result.version);
         }
+        return UuidVersion::Unknown;
     }
 
-    /**
-     * @brief Get the UUID variant
-     */
-    [[nodiscard]] constexpr UuidVariant variant() const noexcept {
-        const uint8_t variantByte = bytes_[8];
-        if ((variantByte >> 7) == 0) {
-            return UuidVariant::Ncs;
-        } else if ((variantByte >> 6) == 0b10) {
-            return UuidVariant::Rfc4122;
-        } else if ((variantByte >> 5) == 0b110) {
-            return UuidVariant::Microsoft;
-        } else {
-            return UuidVariant::Future;
-        }
+    /// @brief Get UUID variant via FFI
+    [[nodiscard]] UuidVariant variant() const noexcept {
+        auto result = uuid_get_variant(&raw_);
+        if (result.status != UUID_OK) return UuidVariant::Future;
+        return static_cast<UuidVariant>(result.variant);
     }
 
-    /**
-     * @brief Check if this is the nil UUID
-     */
-    [[nodiscard]] constexpr bool isNil() const noexcept {
-        for (const auto& byte : bytes_) {
-            if (byte != 0) return false;
-        }
-        return true;
+    /// @brief Check if nil via FFI
+    [[nodiscard]] bool is_nil() const noexcept {
+        return uuid_is_nil(&raw_);
     }
 
-    /**
-     * @brief Check if this is an RFC 4122 compliant UUID
-     */
-    [[nodiscard]] constexpr bool isRfc4122() const noexcept {
+    /// @brief Check if RFC 4122 compliant
+    [[nodiscard]] bool is_rfc4122() const noexcept {
         return variant() == UuidVariant::Rfc4122;
     }
 
-    /**
-     * @brief Format as canonical string (lowercase)
-     *
-     * Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-     */
-    [[nodiscard]] std::string toString() const {
-        static constexpr char hexChars[] = "0123456789abcdef";
-        std::string result;
-        result.reserve(StringSize);
-
-        for (size_t i = 0; i < ByteSize; ++i) {
-            if (i == 4 || i == 6 || i == 8 || i == 10) {
-                result += '-';
-            }
-            result += hexChars[(bytes_[i] >> 4) & 0x0F];
-            result += hexChars[bytes_[i] & 0x0F];
+    /// @brief Format as canonical lowercase string via FFI
+    [[nodiscard]] std::string to_string() const {
+        char buf[37] = {};
+        if (uuid_to_string(&raw_, buf, sizeof(buf)) == UUID_OK) {
+            return std::string(buf, StringSize);
         }
-
-        return result;
+        return std::string(StringSize, '0');
     }
 
-    /**
-     * @brief Format as uppercase string
-     */
-    [[nodiscard]] std::string toStringUpper() const {
-        static constexpr char hexChars[] = "0123456789ABCDEF";
-        std::string result;
-        result.reserve(StringSize);
-
-        for (size_t i = 0; i < ByteSize; ++i) {
-            if (i == 4 || i == 6 || i == 8 || i == 10) {
-                result += '-';
-            }
-            result += hexChars[(bytes_[i] >> 4) & 0x0F];
-            result += hexChars[bytes_[i] & 0x0F];
+    /// @brief Format as uppercase string via FFI
+    [[nodiscard]] std::string to_string_upper() const {
+        char buf[37] = {};
+        if (uuid_to_string_upper(&raw_, buf, sizeof(buf)) == UUID_OK) {
+            return std::string(buf, StringSize);
         }
-
-        return result;
+        return std::string(StringSize, '0');
     }
 
-    /**
-     * @brief Format as URN (urn:uuid:...)
-     */
-    [[nodiscard]] std::string toUrn() const {
-        return "urn:uuid:" + toString();
-    }
-
-    /**
-     * @brief Format as hex string without dashes
-     */
-    [[nodiscard]] std::string toHex() const {
-        static constexpr char hexChars[] = "0123456789abcdef";
-        std::string result;
-        result.reserve(ByteSize * 2);
-
-        for (const auto& byte : bytes_) {
-            result += hexChars[(byte >> 4) & 0x0F];
-            result += hexChars[byte & 0x0F];
+    /// @brief Format as URN via FFI
+    [[nodiscard]] std::string to_urn() const {
+        char buf[46] = {};
+        if (uuid_to_urn(&raw_, buf, sizeof(buf)) == UUID_OK) {
+            return std::string(buf);
         }
-
-        return result;
+        return "urn:uuid:" + to_string();
     }
 
-    // Comparison operators
-    [[nodiscard]] constexpr bool operator==(const Uuid& other) const noexcept {
-        return bytes_ == other.bytes_;
+    /// @brief Access underlying C struct for FFI interop
+    [[nodiscard]] const Uuid_C& c_uuid() const noexcept { return raw_; }
+
+    // Comparison operators via FFI
+    [[nodiscard]] bool operator==(const Uuid& other) const noexcept {
+        return uuid_equals(&raw_, &other.raw_);
     }
 
-    [[nodiscard]] constexpr bool operator!=(const Uuid& other) const noexcept {
-        return bytes_ != other.bytes_;
+    [[nodiscard]] bool operator!=(const Uuid& other) const noexcept {
+        return !uuid_equals(&raw_, &other.raw_);
     }
 
-    [[nodiscard]] constexpr bool operator<(const Uuid& other) const noexcept {
-        return bytes_ < other.bytes_;
+    [[nodiscard]] bool operator<(const Uuid& other) const noexcept {
+        return uuid_compare(&raw_, &other.raw_) < 0;
     }
 
-    [[nodiscard]] constexpr bool operator<=(const Uuid& other) const noexcept {
-        return bytes_ <= other.bytes_;
+    [[nodiscard]] bool operator<=(const Uuid& other) const noexcept {
+        return uuid_compare(&raw_, &other.raw_) <= 0;
     }
 
-    [[nodiscard]] constexpr bool operator>(const Uuid& other) const noexcept {
-        return bytes_ > other.bytes_;
+    [[nodiscard]] bool operator>(const Uuid& other) const noexcept {
+        return uuid_compare(&raw_, &other.raw_) > 0;
     }
 
-    [[nodiscard]] constexpr bool operator>=(const Uuid& other) const noexcept {
-        return bytes_ >= other.bytes_;
+    [[nodiscard]] bool operator>=(const Uuid& other) const noexcept {
+        return uuid_compare(&raw_, &other.raw_) >= 0;
     }
 
 private:
-    std::array<uint8_t, ByteSize> bytes_;
+    Uuid_C raw_;
 };
 
-// Static member definitions
-inline const Uuid Uuid::Nil = Uuid();
-
-inline const Uuid Uuid::NamespaceDns = Uuid(
-    0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1,
-    0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
-);
-
-inline const Uuid Uuid::NamespaceUrl = Uuid(
-    0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1,
-    0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
-);
-
-inline const Uuid Uuid::NamespaceOid = Uuid(
-    0x6b, 0xa7, 0xb8, 0x12, 0x9d, 0xad, 0x11, 0xd1,
-    0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
-);
-
-inline const Uuid Uuid::NamespaceX500 = Uuid(
-    0x6b, 0xa7, 0xb8, 0x14, 0x9d, 0xad, 0x11, 0xd1,
-    0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
-);
-
-// ============================================================================
-// SafeUuid Operations
-// ============================================================================
-
-/**
- * @brief Safe UUID operations
- *
- * Provides parsing, validation, and generation helpers for UUIDs.
- */
+/// @brief Safe UUID operations delegating to libproven FFI
 class SafeUuid {
 public:
-    /**
-     * @brief Parse UUID from canonical string format
-     *
-     * Accepts format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-     * Case-insensitive.
-     *
-     * @param input The string to parse
-     * @return The parsed UUID, or std::nullopt if invalid
-     */
+    /// @brief Parse UUID from canonical string format via FFI
     [[nodiscard]] static std::optional<Uuid> parse(std::string_view input) noexcept {
-        if (input.size() != Uuid::StringSize) {
+        Uuid_C raw{};
+        if (uuid_parse(input.data(), input.size(), &raw) != UUID_OK) {
             return std::nullopt;
         }
+        return Uuid(raw);
+    }
 
-        // Validate dash positions
-        if (input[8] != '-' || input[13] != '-' ||
-            input[18] != '-' || input[23] != '-') {
+    /// @brief Check if string is valid UUID format via FFI
+    [[nodiscard]] static bool is_valid(std::string_view input) noexcept {
+        return uuid_is_valid(input.data(), input.size());
+    }
+
+    /// @brief Generate a random v4 UUID via FFI
+    [[nodiscard]] static std::optional<Uuid> generate_v4() noexcept {
+        Uuid_C raw{};
+        if (uuid_v4_generate(&raw) != UUID_OK) {
             return std::nullopt;
         }
-
-        std::array<uint8_t, Uuid::ByteSize> bytes{};
-        size_t byteIndex = 0;
-
-        for (size_t i = 0; i < input.size(); ++i) {
-            if (input[i] == '-') continue;
-
-            if (byteIndex >= Uuid::ByteSize) {
-                return std::nullopt;
-            }
-
-            const auto highNibble = hexCharToNibble(input[i]);
-            if (!highNibble) return std::nullopt;
-
-            ++i;
-            if (i >= input.size()) return std::nullopt;
-
-            const auto lowNibble = hexCharToNibble(input[i]);
-            if (!lowNibble) return std::nullopt;
-
-            bytes[byteIndex++] = (*highNibble << 4) | *lowNibble;
-        }
-
-        if (byteIndex != Uuid::ByteSize) {
-            return std::nullopt;
-        }
-
-        return Uuid(bytes);
+        return Uuid(raw);
     }
 
-    /**
-     * @brief Parse UUID from hex string (no dashes)
-     *
-     * @param hex 32-character hex string
-     * @return The parsed UUID, or std::nullopt if invalid
-     */
-    [[nodiscard]] static std::optional<Uuid> parseHex(std::string_view hex) noexcept {
-        if (hex.size() != Uuid::ByteSize * 2) {
-            return std::nullopt;
-        }
-
-        std::array<uint8_t, Uuid::ByteSize> bytes{};
-
-        for (size_t i = 0; i < Uuid::ByteSize; ++i) {
-            const auto highNibble = hexCharToNibble(hex[i * 2]);
-            if (!highNibble) return std::nullopt;
-
-            const auto lowNibble = hexCharToNibble(hex[i * 2 + 1]);
-            if (!lowNibble) return std::nullopt;
-
-            bytes[i] = (*highNibble << 4) | *lowNibble;
-        }
-
-        return Uuid(bytes);
-    }
-
-    /**
-     * @brief Check if string is valid UUID format
-     */
-    [[nodiscard]] static bool isValid(std::string_view input) noexcept {
-        return parse(input).has_value();
-    }
-
-    /**
-     * @brief Create a version 4 (random) UUID from provided random bytes
-     *
-     * Sets the version and variant bits appropriately.
-     *
-     * @param randomBytes 16 bytes of random data
-     * @return A valid v4 UUID
-     */
-    [[nodiscard]] static Uuid v4FromBytes(std::array<uint8_t, Uuid::ByteSize> randomBytes) noexcept {
-        // Set version to 4 (bits 12-15 of time_hi_and_version)
-        randomBytes[6] = (randomBytes[6] & 0x0F) | 0x40;
-        // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
-        randomBytes[8] = (randomBytes[8] & 0x3F) | 0x80;
-
-        return Uuid(randomBytes);
-    }
-
-    /**
-     * @brief Create a version 7 (Unix epoch time-based) UUID from timestamp and random bytes
-     *
-     * @param unixTimestampMs Unix timestamp in milliseconds
-     * @param randomBytes 10 bytes of random data (only 74 bits used)
-     * @return A valid v7 UUID
-     */
-    [[nodiscard]] static Uuid v7FromTimestamp(
-        uint64_t unixTimestampMs,
-        const std::array<uint8_t, 10>& randomBytes
+    /// @brief Create a v4 UUID from provided random bytes via FFI
+    [[nodiscard]] static std::optional<Uuid> v4_from_bytes(
+        const std::array<uint8_t, 16>& random_bytes
     ) noexcept {
-        std::array<uint8_t, Uuid::ByteSize> bytes{};
-
-        // First 48 bits: Unix timestamp in milliseconds (big-endian)
-        bytes[0] = static_cast<uint8_t>((unixTimestampMs >> 40) & 0xFF);
-        bytes[1] = static_cast<uint8_t>((unixTimestampMs >> 32) & 0xFF);
-        bytes[2] = static_cast<uint8_t>((unixTimestampMs >> 24) & 0xFF);
-        bytes[3] = static_cast<uint8_t>((unixTimestampMs >> 16) & 0xFF);
-        bytes[4] = static_cast<uint8_t>((unixTimestampMs >> 8) & 0xFF);
-        bytes[5] = static_cast<uint8_t>(unixTimestampMs & 0xFF);
-
-        // Version 7 and random bits
-        bytes[6] = 0x70 | (randomBytes[0] & 0x0F);
-        bytes[7] = randomBytes[1];
-
-        // Variant (RFC 4122) and random bits
-        bytes[8] = 0x80 | (randomBytes[2] & 0x3F);
-
-        // Remaining random bytes
-        for (size_t i = 3; i < 10; ++i) {
-            bytes[6 + i] = randomBytes[i];
+        Uuid_C raw{};
+        if (uuid_v4_from_bytes(random_bytes.data(), &raw) != UUID_OK) {
+            return std::nullopt;
         }
-
-        return Uuid(bytes);
+        return Uuid(raw);
     }
 
-    /**
-     * @brief Get the nil UUID
-     */
-    [[nodiscard]] static constexpr Uuid nil() noexcept {
+    /// @brief Create UUID from raw bytes via FFI
+    [[nodiscard]] static std::optional<Uuid> from_bytes(
+        const std::array<uint8_t, 16>& bytes
+    ) noexcept {
+        Uuid_C raw{};
+        if (uuid_from_bytes(bytes.data(), &raw) != UUID_OK) {
+            return std::nullopt;
+        }
+        return Uuid(raw);
+    }
+
+    /// @brief Get the nil UUID
+    [[nodiscard]] static Uuid nil() noexcept {
         return Uuid();
-    }
-
-private:
-    /**
-     * @brief Convert hex character to nibble value
-     */
-    [[nodiscard]] static std::optional<uint8_t> hexCharToNibble(char c) noexcept {
-        if (c >= '0' && c <= '9') return static_cast<uint8_t>(c - '0');
-        if (c >= 'a' && c <= 'f') return static_cast<uint8_t>(c - 'a' + 10);
-        if (c >= 'A' && c <= 'F') return static_cast<uint8_t>(c - 'A' + 10);
-        return std::nullopt;
     }
 };
 
@@ -524,15 +269,14 @@ namespace std {
 template <>
 struct hash<proven::Uuid> {
     size_t operator()(const proven::Uuid& uuid) const noexcept {
-        // FNV-1a hash
-        size_t hash = 14695981039346656037ULL;
-        for (const auto& byte : uuid.bytes()) {
-            hash ^= static_cast<size_t>(byte);
-            hash *= 1099511628211ULL;
+        auto b = uuid.bytes();
+        // FNV-1a hash over 16 bytes
+        size_t h = 14695981039346656037ULL;
+        for (auto byte : b) {
+            h ^= static_cast<size_t>(byte);
+            h *= 1099511628211ULL;
         }
-        return hash;
+        return h;
     }
 };
 } // namespace std
-
-#endif // PROVEN_SAFE_UUID_HPP

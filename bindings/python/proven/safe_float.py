@@ -1,23 +1,25 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# SPDX-FileCopyrightText: 2025 Hyperpolymath
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 """
 SafeFloat - Floating point operations without NaN/Infinity surprises.
 
 Provides safe floating-point operations with NaN and Infinity prevention.
+All operations are delegated to the Idris core via FFI.
 """
 
 from typing import Optional
-import math
+
+from .core import ProvenStatus, get_lib
 
 
 class SafeFloat:
-    """Safe floating-point operations."""
+    """Safe floating-point operations via FFI."""
 
     @staticmethod
     def is_finite(value: float) -> bool:
         """
-        Check if value is finite (not NaN or Infinity).
+        Check if value is finite (not NaN or Infinity) via FFI.
 
         Args:
             value: Float to check
@@ -25,22 +27,26 @@ class SafeFloat:
         Returns:
             True if finite
         """
-        return math.isfinite(value)
+        lib = get_lib()
+        result = lib.proven_float_is_finite(value)
+        if result.status != ProvenStatus.OK:
+            return False
+        return result.value
 
     @staticmethod
     def is_nan(value: float) -> bool:
         """Check if value is NaN."""
-        return math.isnan(value)
+        return not SafeFloat.is_finite(value) and value != value
 
     @staticmethod
     def is_inf(value: float) -> bool:
         """Check if value is positive or negative infinity."""
-        return math.isinf(value)
+        return not SafeFloat.is_finite(value) and value == value
 
     @staticmethod
     def div(numerator: float, denominator: float) -> Optional[float]:
         """
-        Safe division that returns None instead of Infinity or NaN.
+        Safe division that returns None instead of Infinity or NaN via FFI.
 
         Args:
             numerator: The dividend
@@ -55,17 +61,16 @@ class SafeFloat:
             >>> SafeFloat.div(1.0, 0.0)
             None
         """
-        if denominator == 0.0:
+        lib = get_lib()
+        result = lib.proven_float_div(numerator, denominator)
+        if result.status != ProvenStatus.OK:
             return None
-        result = numerator / denominator
-        if not math.isfinite(result):
-            return None
-        return result
+        return result.value
 
     @staticmethod
     def add(a: float, b: float) -> Optional[float]:
         """
-        Safe addition that returns None on overflow.
+        Safe addition that returns None on overflow via FFI.
 
         Args:
             a: First operand
@@ -74,31 +79,34 @@ class SafeFloat:
         Returns:
             Sum, or None if result is infinite
         """
-        result = a + b
-        if not math.isfinite(result):
+        lib = get_lib()
+        result = lib.proven_float_add(a, b)
+        if result.status != ProvenStatus.OK:
             return None
-        return result
+        return result.value
 
     @staticmethod
     def sub(a: float, b: float) -> Optional[float]:
-        """Safe subtraction that returns None on overflow."""
-        result = a - b
-        if not math.isfinite(result):
+        """Safe subtraction that returns None on overflow via FFI."""
+        lib = get_lib()
+        result = lib.proven_float_sub(a, b)
+        if result.status != ProvenStatus.OK:
             return None
-        return result
+        return result.value
 
     @staticmethod
     def mul(a: float, b: float) -> Optional[float]:
-        """Safe multiplication that returns None on overflow."""
-        result = a * b
-        if not math.isfinite(result):
+        """Safe multiplication that returns None on overflow via FFI."""
+        lib = get_lib()
+        result = lib.proven_float_mul(a, b)
+        if result.status != ProvenStatus.OK:
             return None
-        return result
+        return result.value
 
     @staticmethod
     def sqrt(value: float) -> Optional[float]:
         """
-        Safe square root that returns None for negative numbers.
+        Safe square root that returns None for negative numbers via FFI.
 
         Args:
             value: Value to take square root of
@@ -106,14 +114,16 @@ class SafeFloat:
         Returns:
             Square root, or None if negative
         """
-        if value < 0:
+        lib = get_lib()
+        result = lib.proven_float_sqrt(value)
+        if result.status != ProvenStatus.OK:
             return None
-        return math.sqrt(value)
+        return result.value
 
     @staticmethod
     def log(value: float) -> Optional[float]:
         """
-        Safe natural logarithm that returns None for non-positive numbers.
+        Safe natural logarithm that returns None for non-positive numbers via FFI.
 
         Args:
             value: Value to take log of
@@ -121,21 +131,25 @@ class SafeFloat:
         Returns:
             Natural log, or None if value <= 0
         """
-        if value <= 0:
+        lib = get_lib()
+        result = lib.proven_float_log(value)
+        if result.status != ProvenStatus.OK:
             return None
-        return math.log(value)
+        return result.value
 
     @staticmethod
     def log10(value: float) -> Optional[float]:
-        """Safe base-10 logarithm."""
-        if value <= 0:
+        """Safe base-10 logarithm via FFI."""
+        lib = get_lib()
+        result = lib.proven_float_log10(value)
+        if result.status != ProvenStatus.OK:
             return None
-        return math.log10(value)
+        return result.value
 
     @staticmethod
     def pow(base: float, exp: float) -> Optional[float]:
         """
-        Safe exponentiation that returns None on invalid results.
+        Safe exponentiation that returns None on invalid results via FFI.
 
         Args:
             base: Base
@@ -144,18 +158,16 @@ class SafeFloat:
         Returns:
             Result, or None if NaN or Infinity
         """
-        try:
-            result = math.pow(base, exp)
-            if not math.isfinite(result):
-                return None
-            return result
-        except (ValueError, OverflowError):
+        lib = get_lib()
+        result = lib.proven_float_pow(base, exp)
+        if result.status != ProvenStatus.OK:
             return None
+        return result.value
 
     @staticmethod
     def clamp(value: float, lo: float, hi: float) -> float:
         """
-        Clamp value to range [lo, hi].
+        Clamp value to range [lo, hi] via FFI.
 
         Handles NaN by returning lo.
 
@@ -167,9 +179,11 @@ class SafeFloat:
         Returns:
             Clamped value
         """
-        if math.isnan(value):
+        lib = get_lib()
+        result = lib.proven_float_clamp(value, lo, hi)
+        if result.status != ProvenStatus.OK:
             return lo
-        return max(lo, min(hi, value))
+        return result.value
 
     @staticmethod
     def finite_or(value: float, default: float) -> float:
@@ -183,12 +197,14 @@ class SafeFloat:
         Returns:
             value if finite, else default
         """
-        return value if math.isfinite(value) else default
+        if SafeFloat.is_finite(value):
+            return value
+        return default
 
     @staticmethod
     def approximately_equal(a: float, b: float, epsilon: float = 1e-9) -> bool:
         """
-        Check if two floats are approximately equal.
+        Check if two floats are approximately equal via FFI.
 
         Args:
             a: First value
@@ -198,14 +214,16 @@ class SafeFloat:
         Returns:
             True if |a - b| <= epsilon
         """
-        if not math.isfinite(a) or not math.isfinite(b):
+        lib = get_lib()
+        result = lib.proven_float_approx_eq(a, b, epsilon)
+        if result.status != ProvenStatus.OK:
             return False
-        return abs(a - b) <= epsilon
+        return result.value
 
     @staticmethod
     def lerp(a: float, b: float, t: float) -> Optional[float]:
         """
-        Linear interpolation between a and b.
+        Linear interpolation between a and b via FFI.
 
         Args:
             a: Start value
@@ -215,7 +233,8 @@ class SafeFloat:
         Returns:
             Interpolated value, or None if result is not finite
         """
-        result = a + (b - a) * t
-        if not math.isfinite(result):
+        lib = get_lib()
+        result = lib.proven_float_lerp(a, b, t)
+        if result.status != ProvenStatus.OK:
             return None
-        return result
+        return result.value

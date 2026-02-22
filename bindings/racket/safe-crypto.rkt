@@ -1,78 +1,40 @@
 #lang racket/base
 
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; SPDX-FileCopyrightText: 2025 Hyperpolymath
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;
-;; Proven SafeCrypto - Cryptographic operations for Racket
+;; SafeCrypto - FFI bindings to libproven cryptographic operations
 ;;
+;; All computation delegates to Idris 2 via the Zig FFI layer.
 
-(require racket/format
-         racket/random
-         file/sha1)
+(require ffi/unsafe)
 
-(provide
- constant-time-equal?
- sha256-hash
- sha1-hash
- bytes->hex
- generate-token
- random-int
- secure-wipe!)
+(provide constant-time-equal? random-bytes)
 
-;; Token character set
-(define TOKEN-CHARS
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+(define libproven (ffi-lib "libproven"))
 
-;; Constant-time comparison to prevent timing attacks
+(define-cstruct _BoolResult
+  ([status _int32]
+   [value  _int32]))
+
+(define ffi-constant-time-eq
+  (get-ffi-obj "proven_crypto_constant_time_eq" libproven
+               (_fun _pointer _size _pointer _size -> _BoolResult)))
+
+(define ffi-random-bytes
+  (get-ffi-obj "proven_crypto_random_bytes" libproven
+               (_fun _pointer _size -> _int32)))
+
+;; Constant-time comparison (delegates to Idris 2)
 (define (constant-time-equal? a b)
-  (cond
-    [(not (= (string-length a) (string-length b))) #f]
-    [else
-     (define diff
-       (for/fold ([d 0])
-                 ([ca (in-string a)]
-                  [cb (in-string b)])
-         (bitwise-ior d (bitwise-xor (char->integer ca)
-                                      (char->integer cb)))))
-     (= diff 0)]))
+  (define ba (string->bytes/utf-8 a))
+  (define bb (string->bytes/utf-8 b))
+  (define result (ffi-constant-time-eq ba (bytes-length ba) bb (bytes-length bb)))
+  (and (= (BoolResult-status result) 0)
+       (not (= (BoolResult-value result) 0))))
 
-;; SHA-256 hash using Racket's crypto library
-(define (sha256-hash input)
-  (require openssl/sha256)
-  (bytes->hex-string (sha256-bytes (string->bytes/utf-8 input))))
-
-;; SHA-1 hash (for compatibility, not recommended for security)
-(define (sha1-hash input)
-  (sha1 (open-input-string input)))
-
-;; Convert bytes to hexadecimal string
-(define (bytes->hex bstr)
-  (apply string-append
-         (for/list ([b (in-bytes bstr)])
-           (~a (number->string b 16) #:width 2 #:align 'right #:pad-string "0"))))
-
-;; Generate a random token
-(define (generate-token length)
-  (define chars-len (string-length TOKEN-CHARS))
-  (list->string
-   (for/list ([_ (in-range length)])
-     (string-ref TOKEN-CHARS (random chars-len)))))
-
-;; Random integer in range [min-val, max-val]
-(define (random-int min-val max-val)
-  (+ min-val (random (+ 1 (- max-val min-val)))))
-
-;; Secure wipe (best effort - overwrites string contents)
-;; Note: Due to GC, this is not guaranteed to fully wipe memory
-(define (secure-wipe! str-box)
-  (define str (unbox str-box))
-  (define len (string-length str))
-
-  ;; Overwrite with zeros
-  (set-box! str-box (make-string len #\nul))
-
-  ;; Overwrite with ones
-  (set-box! str-box (make-string len #\xff))
-
-  ;; Final zeros
-  (set-box! str-box (make-string len #\nul)))
+;; Generate secure random bytes (delegates to Idris 2)
+(define (random-bytes len)
+  (define buf (make-bytes len 0))
+  (define status (ffi-random-bytes buf len))
+  (if (= status 0) buf (make-bytes 0)))

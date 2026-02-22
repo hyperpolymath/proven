@@ -1,0 +1,49 @@
+(********************************************************************)
+(*  SPDX-License-Identifier: PMPL-1.0-or-later                     *)
+(*  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)         *)
+(*  <jonathan.jewell@open.ac.uk>                                    *)
+(*                                                                  *)
+(*  safe_url.s7i -- URL parsing and validation.                     *)
+(*  Thin wrapper over libproven FFI -- all logic lives in Idris 2.  *)
+(*  Returns EMPTY on error.                                         *)
+(********************************************************************)
+
+include "proven.s7i";
+
+(* ---------------------------------------------------------------------------
+   External C declarations (raw FFI)
+   --------------------------------------------------------------------------- *)
+
+const func integer: c_proven_url_parse (in string: ptr, in integer: len) is
+  external "proven_url_parse" integer;
+
+const proc: c_proven_url_free (in integer: components_ptr) is
+  external "proven_url_free";
+
+const func integer: c_proven_network_parse_ipv4 (in string: ptr, in integer: len) is
+  external "proven_network_parse_ipv4" integer;
+
+(* ---------------------------------------------------------------------------
+   High-level wrappers
+   --------------------------------------------------------------------------- *)
+
+(** Validate a URL (returns TRUE if parseable, FALSE otherwise). *)
+const func boolean: isValidUrl (in string: value) is func
+  result
+    var boolean: valid is FALSE;
+  begin
+    if length(value) > 0 then
+      valid := c_proven_url_parse(value, length(value)) = 0;
+    end if;
+  end func;
+
+(** Validate an IPv4 address string.
+    Returns TRUE if valid, FALSE otherwise. *)
+const func boolean: isValidIpv4 (in string: value) is func
+  result
+    var boolean: valid is FALSE;
+  begin
+    if length(value) > 0 then
+      valid := c_proven_network_parse_ipv4(value, length(value)) = 0;
+    end if;
+  end func;

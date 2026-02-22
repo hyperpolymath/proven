@@ -1,140 +1,64 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
-
-//! Safe physical unit operations with dimension checking.
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+//
+// Proven SafeUnit - FFI bindings to libproven unit conversion operations.
+// All computation is performed in verified Idris 2 code via libproven.
 
 const std = @import("std");
+const c = @cImport(@cInclude("proven.h"));
 
+/// Error types for unit operations.
 pub const UnitError = error{
-    DimensionMismatch,
-    DivisionByZero,
+    InvalidArgument,
+    OutOfBounds,
+    ProvenError,
 };
 
-/// Physical dimensions (SI base units).
-pub const Dimension = struct {
-    length: i8 = 0,     // L (meter)
-    mass: i8 = 0,       // M (kilogram)
-    time: i8 = 0,       // T (second)
-    current: i8 = 0,    // I (ampere)
-    temperature: i8 = 0, // Θ (kelvin)
-    amount: i8 = 0,     // N (mole)
-    luminosity: i8 = 0, // J (candela)
-
-    pub fn eql(self: Dimension, other: Dimension) bool {
-        return self.length == other.length and
-            self.mass == other.mass and
-            self.time == other.time and
-            self.current == other.current and
-            self.temperature == other.temperature and
-            self.amount == other.amount and
-            self.luminosity == other.luminosity;
-    }
-
-    pub fn mul(self: Dimension, other: Dimension) Dimension {
-        return .{
-            .length = self.length + other.length,
-            .mass = self.mass + other.mass,
-            .time = self.time + other.time,
-            .current = self.current + other.current,
-            .temperature = self.temperature + other.temperature,
-            .amount = self.amount + other.amount,
-            .luminosity = self.luminosity + other.luminosity,
-        };
-    }
-
-    pub fn div(self: Dimension, other: Dimension) Dimension {
-        return .{
-            .length = self.length - other.length,
-            .mass = self.mass - other.mass,
-            .time = self.time - other.time,
-            .current = self.current - other.current,
-            .temperature = self.temperature - other.temperature,
-            .amount = self.amount - other.amount,
-            .luminosity = self.luminosity - other.luminosity,
-        };
-    }
+/// Length units (matching ProvenLengthUnit enum).
+pub const LengthUnit = enum(c_int) {
+    meters = c.PROVEN_LENGTH_METERS,
+    kilometers = c.PROVEN_LENGTH_KILOMETERS,
+    centimeters = c.PROVEN_LENGTH_CENTIMETERS,
+    millimeters = c.PROVEN_LENGTH_MILLIMETERS,
+    feet = c.PROVEN_LENGTH_FEET,
+    inches = c.PROVEN_LENGTH_INCHES,
+    miles = c.PROVEN_LENGTH_MILES,
+    yards = c.PROVEN_LENGTH_YARDS,
 };
 
-// Common dimensions
-pub const dimensionless = Dimension{};
-pub const length_dim = Dimension{ .length = 1 };
-pub const mass_dim = Dimension{ .mass = 1 };
-pub const time_dim = Dimension{ .time = 1 };
-pub const velocity_dim = Dimension{ .length = 1, .time = -1 };
-pub const acceleration_dim = Dimension{ .length = 1, .time = -2 };
-pub const force_dim = Dimension{ .length = 1, .mass = 1, .time = -2 };
-pub const energy_dim = Dimension{ .length = 2, .mass = 1, .time = -2 };
-pub const power_dim = Dimension{ .length = 2, .mass = 1, .time = -3 };
-
-/// A quantity with value and dimension.
-pub const Quantity = struct {
-    value: f64,
-    dim: Dimension,
-
-    pub fn add(self: Quantity, other: Quantity) UnitError!Quantity {
-        if (!self.dim.eql(other.dim)) return error.DimensionMismatch;
-        return .{ .value = self.value + other.value, .dim = self.dim };
-    }
-
-    pub fn sub(self: Quantity, other: Quantity) UnitError!Quantity {
-        if (!self.dim.eql(other.dim)) return error.DimensionMismatch;
-        return .{ .value = self.value - other.value, .dim = self.dim };
-    }
-
-    pub fn mul(self: Quantity, other: Quantity) Quantity {
-        return .{
-            .value = self.value * other.value,
-            .dim = self.dim.mul(other.dim),
-        };
-    }
-
-    pub fn div(self: Quantity, other: Quantity) UnitError!Quantity {
-        if (other.value == 0.0) return error.DivisionByZero;
-        return .{
-            .value = self.value / other.value,
-            .dim = self.dim.div(other.dim),
-        };
-    }
-
-    pub fn scale(self: Quantity, factor: f64) Quantity {
-        return .{ .value = self.value * factor, .dim = self.dim };
-    }
+/// Temperature units (matching ProvenTempUnit enum).
+pub const TempUnit = enum(c_int) {
+    celsius = c.PROVEN_TEMP_CELSIUS,
+    fahrenheit = c.PROVEN_TEMP_FAHRENHEIT,
+    kelvin = c.PROVEN_TEMP_KELVIN,
 };
 
-// Constructors for common units
-pub fn meters(value: f64) Quantity {
-    return .{ .value = value, .dim = length_dim };
+/// Convert length between units via libproven.
+pub fn convertLength(value: f64, from: LengthUnit, to: LengthUnit) UnitError!f64 {
+    const result = c.proven_unit_convert_length(value, @intFromEnum(from), @intFromEnum(to));
+    return switch (result.status) {
+        c.PROVEN_OK => result.value,
+        c.PROVEN_ERR_INVALID_ARGUMENT => error.InvalidArgument,
+        else => error.ProvenError,
+    };
 }
 
-pub fn kilometers(value: f64) Quantity {
-    return .{ .value = value * 1000.0, .dim = length_dim };
+/// Convert temperature between units via libproven.
+pub fn convertTemp(value: f64, from: TempUnit, to: TempUnit) UnitError!f64 {
+    const result = c.proven_unit_convert_temp(value, @intFromEnum(from), @intFromEnum(to));
+    return switch (result.status) {
+        c.PROVEN_OK => result.value,
+        c.PROVEN_ERR_OUT_OF_BOUNDS => error.OutOfBounds,
+        else => error.ProvenError,
+    };
 }
 
-pub fn seconds(value: f64) Quantity {
-    return .{ .value = value, .dim = time_dim };
+test "convertLength" {
+    const meters = try convertLength(1.0, .kilometers, .meters);
+    try std.testing.expectApproxEqAbs(@as(f64, 1000.0), meters, 0.01);
 }
 
-pub fn kilograms(value: f64) Quantity {
-    return .{ .value = value, .dim = mass_dim };
-}
-
-pub fn newtons(value: f64) Quantity {
-    return .{ .value = value, .dim = force_dim };
-}
-
-pub fn joules(value: f64) Quantity {
-    return .{ .value = value, .dim = energy_dim };
-}
-
-test "Quantity dimension check" {
-    const dist = meters(100.0);
-    const time = seconds(10.0);
-    const velocity = try dist.div(time);
-    try std.testing.expect(velocity.dim.eql(velocity_dim));
-}
-
-test "Quantity dimension mismatch" {
-    const dist = meters(100.0);
-    const mass = kilograms(10.0);
-    try std.testing.expectError(error.DimensionMismatch, dist.add(mass));
+test "convertTemp" {
+    const fahrenheit = try convertTemp(100.0, .celsius, .fahrenheit);
+    try std.testing.expectApproxEqAbs(@as(f64, 212.0), fahrenheit, 0.01);
 }

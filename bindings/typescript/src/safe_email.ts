@@ -1,93 +1,35 @@
-// SPDX-License-Identifier: PMPL-1.0
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
 /**
- * SafeEmail - Email validation that cannot crash.
+ * SafeEmail - Typed wrapper for email validation that cannot crash.
  *
- * Provides safe email validation without regex catastrophic backtracking.
+ * Delegates all validation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
+ *
+ * @module
  */
 
-import { getExports, encodeString, freePtr } from './wasm.js';
-import { statusFromCode } from './error.js';
+import { SafeEmail as JsSafeEmail } from '../../javascript/src/safe_email.js';
+
+/** Result type for email operations. */
+export type EmailResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: string };
 
 /**
- * Safe email operations with proven correctness guarantees.
+ * Safe email operations backed by formally verified Idris 2 code.
+ * All validation delegates to the JavaScript FFI wrapper.
  */
 export class SafeEmail {
   /**
    * Check if an email address is valid.
+   * Delegates to proven_email_is_valid via FFI.
    *
-   * Uses a proven-correct parser that cannot suffer from
-   * regex catastrophic backtracking.
-   *
-   * @example
-   * SafeEmail.isValid("user@example.com")  // true
-   * SafeEmail.isValid("not-an-email")      // false
+   * @param email - The email address to validate.
+   * @returns Result with boolean validity flag, or error.
    */
-  static isValid(email: string): boolean {
-    const exports = getExports();
-    const fn = exports['proven_email_is_valid'] as (ptr: number, len: number) => number;
-
-    const { ptr, len } = encodeString(email);
-    const result = fn(ptr, len);
-    freePtr(ptr);
-
-    const status = result >> 16;
-    const value = result & 0xffff;
-
-    return statusFromCode(status) === 'ok' && value === 1;
-  }
-
-  /**
-   * Split an email into local part and domain.
-   *
-   * @example
-   * SafeEmail.split("user@example.com")  // ["user", "example.com"]
-   */
-  static split(email: string): [string, string] | null {
-    if (!SafeEmail.isValid(email)) {
-      return null;
-    }
-
-    const atPos = email.lastIndexOf('@');
-    if (atPos === -1) {
-      return null;
-    }
-
-    return [email.slice(0, atPos), email.slice(atPos + 1)];
-  }
-
-  /**
-   * Extract the domain from an email address.
-   *
-   * @example
-   * SafeEmail.getDomain("user@example.com")  // "example.com"
-   */
-  static getDomain(email: string): string | null {
-    const parts = SafeEmail.split(email);
-    return parts?.[1] ?? null;
-  }
-
-  /**
-   * Extract the local part from an email address.
-   *
-   * @example
-   * SafeEmail.getLocalPart("user@example.com")  // "user"
-   */
-  static getLocalPart(email: string): string | null {
-    const parts = SafeEmail.split(email);
-    return parts?.[0] ?? null;
-  }
-
-  /**
-   * Normalize an email address (lowercase domain).
-   *
-   * @example
-   * SafeEmail.normalize("User@EXAMPLE.COM")  // "User@example.com"
-   */
-  static normalize(email: string): string | null {
-    const parts = SafeEmail.split(email);
-    if (!parts) return null;
-    return `${parts[0]}@${parts[1].toLowerCase()}`;
+  static isValid(email: string): EmailResult<boolean> {
+    return JsSafeEmail.isValid(email) as EmailResult<boolean>;
   }
 }

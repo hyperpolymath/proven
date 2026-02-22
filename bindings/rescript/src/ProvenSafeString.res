@@ -1,181 +1,70 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Jonathan D.A. Jewell
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
 /**
- * SafeString - String operations that cannot crash
+ * SafeString - Typed wrapper for string operations that cannot crash.
  *
- * ReScript bindings to proven's formally verified string module
+ * Delegates all computation to the JavaScript FFI binding, which calls
+ * libproven (Idris 2 + Zig) via Deno.dlopen. No logic is reimplemented here.
  */
 
 open ProvenResult
 
-// JavaScript bindings to proven/safe_string
+/** JavaScript bindings to the SafeString FFI wrapper. */
 module SafeStringJs = {
-  @module("proven/safe_string") @scope("SafeString")
-  external isEmpty: string => bool = "isEmpty"
+  @module("../../javascript/src/safe_string.js") @scope("SafeString")
+  external isValidUtf8: string => jsResult<bool> = "isValidUtf8"
 
-  @module("proven/safe_string") @scope("SafeString")
-  external length: string => int = "length"
+  @module("../../javascript/src/safe_string.js") @scope("SafeString")
+  external escapeSql: string => jsResult<string> = "escapeSql"
 
-  @module("proven/safe_string") @scope("SafeString")
-  external charAt: (string, int) => jsResult<string> = "charAt"
+  @module("../../javascript/src/safe_string.js") @scope("SafeString")
+  external escapeHtml: string => jsResult<string> = "escapeHtml"
 
-  @module("proven/safe_string") @scope("SafeString")
-  external substring: (string, int, option<int>) => jsResult<string> = "substring"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external trim: string => string = "trim"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external toUpperCase: string => string = "toUpperCase"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external toLowerCase: string => string = "toLowerCase"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external contains: (string, string) => bool = "contains"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external startsWith: (string, string) => bool = "startsWith"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external endsWith: (string, string) => bool = "endsWith"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external split: (string, string) => array<string> = "split"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external join: (array<string>, string) => string = "join"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external replace: (string, string, string) => string = "replace"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external replaceAll: (string, string, string) => string = "replaceAll"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external repeat: (string, int) => jsResult<string> = "repeat"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external padStart: (string, int, option<string>) => string = "padStart"
-
-  @module("proven/safe_string") @scope("SafeString")
-  external padEnd: (string, int, option<string>) => string = "padEnd"
-}
-
-// Type-safe ReScript API
-
-/**
- * Check if string is empty
- */
-let isEmpty = SafeStringJs.isEmpty
-
-/**
- * Get string length
- */
-let length = SafeStringJs.length
-
-/**
- * Get character at index (safe)
- *
- * @param str String to access
- * @param index Character index
- * @returns Result with character or error if index out of bounds
- */
-let charAt = (str: string, index: int) => {
-  SafeStringJs.charAt(str, index)->fromJs
+  @module("../../javascript/src/safe_string.js") @scope("SafeString")
+  external escapeJs: string => jsResult<string> = "escapeJs"
 }
 
 /**
- * Get substring (safe)
+ * Check if a byte sequence is valid UTF-8.
+ * Delegates to proven_string_is_valid_utf8 via FFI.
  *
- * @param str String to slice
- * @param start Start index
- * @param end Optional end index
- * @returns Result with substring or error if indices invalid
+ * @param input Input string.
+ * @returns Ok(true/false) or Error.
  */
-let substring = (str: string, ~start: int, ~end: option<int>=?) => {
-  SafeStringJs.substring(str, start, end)->fromJs
+let isValidUtf8 = (input: string): result<bool, string> => {
+  SafeStringJs.isValidUtf8(input)->fromJs
 }
 
 /**
- * Trim whitespace from both ends
- */
-let trim = SafeStringJs.trim
-
-/**
- * Convert to uppercase
- */
-let toUpperCase = SafeStringJs.toUpperCase
-
-/**
- * Convert to lowercase
- */
-let toLowerCase = SafeStringJs.toLowerCase
-
-/**
- * Check if string contains substring
- */
-let contains = SafeStringJs.contains
-
-/**
- * Check if string starts with prefix
- */
-let startsWith = SafeStringJs.startsWith
-
-/**
- * Check if string ends with suffix
- */
-let endsWith = SafeStringJs.endsWith
-
-/**
- * Split string by delimiter
- */
-let split = SafeStringJs.split
-
-/**
- * Join array of strings with delimiter
- */
-let join = SafeStringJs.join
-
-/**
- * Replace first occurrence of substring
- */
-let replace = SafeStringJs.replace
-
-/**
- * Replace all occurrences of substring
- */
-let replaceAll = SafeStringJs.replaceAll
-
-/**
- * Repeat string n times (safe)
+ * Escape a string for safe SQL interpolation.
+ * Delegates to proven_string_escape_sql via FFI.
  *
- * @param str String to repeat
- * @param count Number of repetitions
- * @returns Result with repeated string or error if count invalid
+ * @param value Input string.
+ * @returns Ok(escaped) or Error.
  */
-let repeat = (str: string, count: int) => {
-  SafeStringJs.repeat(str, count)->fromJs
+let escapeSql = (value: string): result<string, string> => {
+  SafeStringJs.escapeSql(value)->fromJs
 }
 
 /**
- * Pad string at start
+ * Escape a string for safe HTML insertion (prevents XSS).
+ * Delegates to proven_string_escape_html via FFI.
  *
- * @param str String to pad
- * @param targetLength Target length
- * @param padString Optional padding string (default: space)
+ * @param value Input string.
+ * @returns Ok(escaped) or Error.
  */
-let padStart = (str: string, targetLength: int, ~padString: option<string>=?) => {
-  SafeStringJs.padStart(str, targetLength, padString)
+let escapeHtml = (value: string): result<string, string> => {
+  SafeStringJs.escapeHtml(value)->fromJs
 }
 
 /**
- * Pad string at end
+ * Escape a string for safe JavaScript string literal insertion.
+ * Delegates to proven_string_escape_js via FFI.
  *
- * @param str String to pad
- * @param targetLength Target length
- * @param padString Optional padding string (default: space)
+ * @param value Input string.
+ * @returns Ok(escaped) or Error.
  */
-let padEnd = (str: string, targetLength: int, ~padString: option<string>=?) => {
-  SafeStringJs.padEnd(str, targetLength, padString)
+let escapeJs = (value: string): result<string, string> => {
+  SafeStringJs.escapeJs(value)->fromJs
 }

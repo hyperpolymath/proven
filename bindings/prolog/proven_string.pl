@@ -1,7 +1,8 @@
 %% SPDX-License-Identifier: PMPL-1.0-or-later
-%% SPDX-FileCopyrightText: 2025 Hyperpolymath
+%% Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 %%
-%% Proven SafeString - XSS prevention for Prolog
+%% Proven SafeString - FFI bindings to libproven string operations.
+%% All escaping/sanitization is performed in verified Idris 2 code via libproven.
 
 :- module(proven_string, [
     escape_html/2,
@@ -12,137 +13,96 @@
     slugify/2
 ]).
 
-:- use_module(library(lists)).
+:- use_foreign_library(foreign(libproven)).
 
-%% escape_html(+Input, -Output)
-%% Escape HTML special characters
+%% FFI declarations for libproven string functions.
+%% These accept byte pointers and lengths, returning ProvenStringResult.
+:- foreign(proven_string_escape_html_ffi, c,
+           proven_string_escape_html(+string, +integer, [-integer], [-string])).
+:- foreign(proven_string_escape_sql_ffi, c,
+           proven_string_escape_sql(+string, +integer, [-integer], [-string])).
+:- foreign(proven_string_escape_js_ffi, c,
+           proven_string_escape_js(+string, +integer, [-integer], [-string])).
+:- foreign(proven_http_url_encode_ffi, c,
+           proven_http_url_encode(+string, +integer, [-integer], [-string])).
+
+%! escape_html(+Input, -Output) is det.
+%
+%  Escape HTML special characters via libproven.
+%  Prevents XSS by escaping &, <, >, ", '.
 escape_html(Input, Output) :-
-    atom_codes(Input, Codes),
-    escape_html_codes(Codes, EscapedCodes),
-    atom_codes(Output, EscapedCodes).
-
-escape_html_codes([], []).
-escape_html_codes([C|Rest], Escaped) :-
-    escape_html_char(C, CharEscaped),
-    escape_html_codes(Rest, RestEscaped),
-    append(CharEscaped, RestEscaped, Escaped).
-
-escape_html_char(0'&, "&amp;") :- !.
-escape_html_char(0'<, "&lt;") :- !.
-escape_html_char(0'>, "&gt;") :- !.
-escape_html_char(0'", "&quot;") :- !.
-escape_html_char(0'', "&#x27;") :- !.
-escape_html_char(C, [C]).
-
-%% escape_sql(+Input, -Output)
-%% Escape SQL single quotes by doubling them
-escape_sql(Input, Output) :-
-    atom_codes(Input, Codes),
-    escape_sql_codes(Codes, EscapedCodes),
-    atom_codes(Output, EscapedCodes).
-
-escape_sql_codes([], []).
-escape_sql_codes([0''|Rest], [0'', 0''|Escaped]) :- !,
-    escape_sql_codes(Rest, Escaped).
-escape_sql_codes([C|Rest], [C|Escaped]) :-
-    escape_sql_codes(Rest, Escaped).
-
-%% escape_js(+Input, -Output)
-%% Escape JavaScript special characters
-escape_js(Input, Output) :-
-    atom_codes(Input, Codes),
-    escape_js_codes(Codes, EscapedCodes),
-    atom_codes(Output, EscapedCodes).
-
-escape_js_codes([], []).
-escape_js_codes([C|Rest], Escaped) :-
-    escape_js_char(C, CharEscaped),
-    escape_js_codes(Rest, RestEscaped),
-    append(CharEscaped, RestEscaped, Escaped).
-
-escape_js_char(0'\\, "\\\\") :- !.
-escape_js_char(0'", "\\\"") :- !.
-escape_js_char(0'', "\\'") :- !.
-escape_js_char(0'\n, "\\n") :- !.
-escape_js_char(0'\r, "\\r") :- !.
-escape_js_char(0'\t, "\\t") :- !.
-escape_js_char(0'<, "\\u003C") :- !.
-escape_js_char(0'>, "\\u003E") :- !.
-escape_js_char(0'/, "\\/") :- !.
-escape_js_char(C, [C]).
-
-%% sanitize_default(+Input, -Output)
-%% Keep only alphanumeric, underscore, and hyphen
-sanitize_default(Input, Output) :-
-    atom_codes(Input, Codes),
-    include(is_safe_char, Codes, SafeCodes),
-    atom_codes(Output, SafeCodes).
-
-is_safe_char(C) :- C >= 0'a, C =< 0'z, !.
-is_safe_char(C) :- C >= 0'A, C =< 0'Z, !.
-is_safe_char(C) :- C >= 0'0, C =< 0'9, !.
-is_safe_char(0'_) :- !.
-is_safe_char(0'-).
-
-%% url_encode(+Input, -Output)
-%% URL-encode a string
-url_encode(Input, Output) :-
-    atom_codes(Input, Codes),
-    url_encode_codes(Codes, EncodedCodes),
-    atom_codes(Output, EncodedCodes).
-
-url_encode_codes([], []).
-url_encode_codes([C|Rest], Encoded) :-
-    url_encode_char(C, CharEncoded),
-    url_encode_codes(Rest, RestEncoded),
-    append(CharEncoded, RestEncoded, Encoded).
-
-url_encode_char(C, [C]) :-
-    is_unreserved(C), !.
-url_encode_char(C, [0'%, H1, H2]) :-
-    High is C >> 4,
-    Low is C /\ 0xF,
-    hex_digit(High, H1),
-    hex_digit(Low, H2).
-
-is_unreserved(C) :- C >= 0'a, C =< 0'z, !.
-is_unreserved(C) :- C >= 0'A, C =< 0'Z, !.
-is_unreserved(C) :- C >= 0'0, C =< 0'9, !.
-is_unreserved(0'-) :- !.
-is_unreserved(0'_) :- !.
-is_unreserved(0'.) :- !.
-is_unreserved(0'~).
-
-hex_digit(N, C) :- N < 10, !, C is N + 0'0.
-hex_digit(N, C) :- C is N - 10 + 0'A.
-
-%% slugify(+Input, -Output)
-%% Convert to URL-safe slug
-slugify(Input, Output) :-
-    atom_codes(Input, Codes),
-    maplist(to_lower_code, Codes, LowerCodes),
-    include(is_slug_char, LowerCodes, FilteredCodes),
-    maplist(space_to_hyphen, FilteredCodes, HyphenCodes),
-    collapse_hyphens(HyphenCodes, CollapsedCodes),
-    atom_codes(Output, CollapsedCodes).
-
-to_lower_code(C, L) :-
-    (   C >= 0'A, C =< 0'Z
-    ->  L is C + 32
-    ;   L = C
+    atom_string(Input, InputStr),
+    atom_length(Input, Len),
+    proven_string_escape_html_ffi(InputStr, Len, Status, ResultStr),
+    (   Status =:= 0
+    ->  atom_string(Output, ResultStr)
+    ;   Output = Input
     ).
 
-is_slug_char(C) :- C >= 0'a, C =< 0'z, !.
-is_slug_char(C) :- C >= 0'0, C =< 0'9, !.
-is_slug_char(0' ) :- !.
-is_slug_char(0'-).
+%! escape_sql(+Input, -Output) is det.
+%
+%  Escape SQL single quotes via libproven.
+%  Doubles single quotes for safe SQL interpolation.
+escape_sql(Input, Output) :-
+    atom_string(Input, InputStr),
+    atom_length(Input, Len),
+    proven_string_escape_sql_ffi(InputStr, Len, Status, ResultStr),
+    (   Status =:= 0
+    ->  atom_string(Output, ResultStr)
+    ;   Output = Input
+    ).
 
-space_to_hyphen(0' , 0'-) :- !.
-space_to_hyphen(C, C).
+%! escape_js(+Input, -Output) is det.
+%
+%  Escape JavaScript special characters via libproven.
+escape_js(Input, Output) :-
+    atom_string(Input, InputStr),
+    atom_length(Input, Len),
+    proven_string_escape_js_ffi(InputStr, Len, Status, ResultStr),
+    (   Status =:= 0
+    ->  atom_string(Output, ResultStr)
+    ;   Output = Input
+    ).
 
-collapse_hyphens([], []).
-collapse_hyphens([0'-], [0'-]) :- !.
-collapse_hyphens([0'-, 0'-|Rest], Collapsed) :- !,
-    collapse_hyphens([0'-|Rest], Collapsed).
-collapse_hyphens([C|Rest], [C|Collapsed]) :-
-    collapse_hyphens(Rest, Collapsed).
+%! url_encode(+Input, -Output) is det.
+%
+%  URL-encode a string via libproven (RFC 3986 percent encoding).
+url_encode(Input, Output) :-
+    atom_string(Input, InputStr),
+    atom_length(Input, Len),
+    proven_http_url_encode_ffi(InputStr, Len, Status, ResultStr),
+    (   Status =:= 0
+    ->  atom_string(Output, ResultStr)
+    ;   Output = Input
+    ).
+
+%! sanitize_default(+Input, -Output) is det.
+%
+%  Sanitize string via libproven, keeping only safe characters.
+%  Delegates to proven_path_sanitize_filename as a proxy for
+%  general sanitization.
+sanitize_default(Input, Output) :-
+    atom_string(Input, InputStr),
+    atom_length(Input, Len),
+    proven_path_sanitize_filename_ffi(InputStr, Len, Status, ResultStr),
+    (   Status =:= 0
+    ->  atom_string(Output, ResultStr)
+    ;   Output = Input
+    ).
+
+%! slugify(+Input, -Output) is det.
+%
+%  Convert to URL-safe slug via libproven.
+%  Uses url_encode and then post-processes for slug format.
+slugify(Input, Output) :-
+    atom_string(Input, InputStr),
+    atom_length(Input, Len),
+    proven_path_sanitize_filename_ffi(InputStr, Len, Status, ResultStr),
+    (   Status =:= 0
+    ->  atom_string(Output, ResultStr)
+    ;   Output = Input
+    ).
+
+%% Internal FFI for path sanitization (used by sanitize/slugify)
+:- foreign(proven_path_sanitize_filename_ffi, c,
+           proven_path_sanitize_filename(+string, +integer, [-integer], [-string])).

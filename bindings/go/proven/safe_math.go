@@ -1,99 +1,79 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 Hyperpolymath
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 
-// Package proven provides safety-first utility functions with formal verification guarantees.
+// SafeMath provides checked arithmetic operations that cannot crash.
+// All computation is performed in Idris 2 via the Proven FFI.
+
 package proven
 
-import (
-	"math"
-)
+// #include <stdint.h>
+import "C"
 
-// SafeDiv safely divides two integers, returning ok=false on division by zero.
-func SafeDiv(numerator, denominator int64) (result int64, ok bool) {
-	if denominator == 0 {
-		return 0, false
+// SafeDiv safely divides two integers. Returns an error on division by zero.
+func SafeDiv(numerator, denominator int64) (int64, error) {
+	result := C.proven_math_div(C.int64_t(numerator), C.int64_t(denominator))
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-	return numerator / denominator, true
+	return int64(result.value), nil
 }
 
-// SafeMod safely computes modulo, returning ok=false on division by zero.
-func SafeMod(numerator, denominator int64) (result int64, ok bool) {
-	if denominator == 0 {
-		return 0, false
+// SafeMod safely computes the modulo. Returns an error on division by zero.
+func SafeMod(numerator, denominator int64) (int64, error) {
+	result := C.proven_math_mod(C.int64_t(numerator), C.int64_t(denominator))
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-	return numerator % denominator, true
+	return int64(result.value), nil
 }
 
-// SafeAdd safely adds two integers, returning ok=false on overflow.
-func SafeAdd(a, b int64) (result int64, ok bool) {
-	if b > 0 && a > math.MaxInt64-b {
-		return 0, false
+// SafeAdd performs checked addition. Returns an error on overflow.
+func SafeAdd(a, b int64) (int64, error) {
+	result := C.proven_math_add_checked(C.int64_t(a), C.int64_t(b))
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-	if b < 0 && a < math.MinInt64-b {
-		return 0, false
-	}
-	return a + b, true
+	return int64(result.value), nil
 }
 
-// SafeSub safely subtracts two integers, returning ok=false on overflow.
-func SafeSub(a, b int64) (result int64, ok bool) {
-	if b < 0 && a > math.MaxInt64+b {
-		return 0, false
+// SafeSub performs checked subtraction. Returns an error on underflow.
+func SafeSub(a, b int64) (int64, error) {
+	result := C.proven_math_sub_checked(C.int64_t(a), C.int64_t(b))
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-	if b > 0 && a < math.MinInt64+b {
-		return 0, false
-	}
-	return a - b, true
+	return int64(result.value), nil
 }
 
-// SafeMul safely multiplies two integers, returning ok=false on overflow.
-func SafeMul(a, b int64) (result int64, ok bool) {
-	if a == 0 || b == 0 {
-		return 0, true
+// SafeMul performs checked multiplication. Returns an error on overflow.
+func SafeMul(a, b int64) (int64, error) {
+	result := C.proven_math_mul_checked(C.int64_t(a), C.int64_t(b))
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-
-	result = a * b
-	if result/a != b {
-		return 0, false
-	}
-	return result, true
+	return int64(result.value), nil
 }
 
-// MathError represents arithmetic errors.
-type MathError int
-
-const (
-	// MathOK indicates no error.
-	MathOK MathError = iota
-	// MathOverflow indicates arithmetic overflow.
-	MathOverflow
-	// MathDivisionByZero indicates division by zero.
-	MathDivisionByZero
-)
-
-// CheckedAdd adds two integers with error reporting.
-func CheckedAdd(a, b int64) (int64, MathError) {
-	result, ok := SafeAdd(a, b)
-	if !ok {
-		return 0, MathOverflow
+// AbsSafe computes the absolute value safely. Returns an error if the value
+// is the minimum int64 (which cannot be negated without overflow).
+func AbsSafe(n int64) (int64, error) {
+	result := C.proven_math_abs_safe(C.int64_t(n))
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-	return result, MathOK
+	return int64(result.value), nil
 }
 
-// CheckedSub subtracts two integers with error reporting.
-func CheckedSub(a, b int64) (int64, MathError) {
-	result, ok := SafeSub(a, b)
-	if !ok {
-		return 0, MathOverflow
-	}
-	return result, MathOK
+// Clamp restricts a value to the range [lo, hi].
+func Clamp(lo, hi, value int64) int64 {
+	return int64(C.proven_math_clamp(C.int64_t(lo), C.int64_t(hi), C.int64_t(value)))
 }
 
-// CheckedMul multiplies two integers with error reporting.
-func CheckedMul(a, b int64) (int64, MathError) {
-	result, ok := SafeMul(a, b)
-	if !ok {
-		return 0, MathOverflow
+// PowChecked computes base^exp with overflow checking.
+func PowChecked(base int64, exp uint32) (int64, error) {
+	result := C.proven_math_pow_checked(C.int64_t(base), C.uint32_t(exp))
+	if int(result.status) != StatusOK {
+		return 0, newError(int(result.status))
 	}
-	return result, MathOK
+	return int64(result.value), nil
 }

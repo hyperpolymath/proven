@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+/* SafeString - Textove operace s bezpecnym kodovanim pres libproven FFI.
+ *
+ * Oblibeny typy zaruci, ze chyby kodovani, nulove ukazatele a selhani
+ * alokace jsou zachyceny v navratovem typu Vysledek<T, Ch> a musi byt
+ * obsouzeny volatelem.
+ *
+ * Veskere vypocty provadi Idris 2 pres Zig FFI vrstvu.
+ * ZADNA retezova logika neni reimplementovana v Oblibeny.
+ */
+
+modul Proven.SafeString
+
+import Proven.FFI
+import Proven (ProvenChyba, Výsledek, bool_vysledek_prevod, string_vysledek_prevod)
+
+// ============================================================================
+// UTF-8 validace
+// ============================================================================
+
+// Zkontroluje, zda jsou bajty platne UTF-8 kodovani.
+// Vraci Vysledek<Bool, ProvenChyba> kde Uspech(true) znamena platne UTF-8.
+// Deleguje na proven_string_is_valid_utf8 v libproven.
+fn je_platné_utf8(vstup : Bytes) -> Výsledek<Bool, ProvenChyba> =
+  bool_vysledek_prevod(
+    FFI.proven_string_is_valid_utf8(vstup.ptr, vstup.len)
+  )
+
+// ============================================================================
+// Escapovani retezcu pro prevenci injekce
+// ============================================================================
+
+// Escapuje retezec pro bezpecnou SQL interpolaci (jednoduche uvozovky).
+// Vraci escapovany retezec nebo chybu pokud alokace selze.
+// POZNAMKA: Preferujte parametrizovane dotazy pred escapovanim retezcu.
+// Deleguje na proven_string_escape_sql v libproven.
+fn escapovat_sql(vstup : String) -> Výsledek<String, ProvenChyba> =
+  let bajty = string_to_utf8(vstup)
+  string_vysledek_prevod(
+    FFI.proven_string_escape_sql(bajty.ptr, bajty.len)
+  )
+
+// Escapuje retezec pro bezpecny HTML vystup (prevence XSS).
+// Escapuje znaky &, <, >, ", a '.
+// Deleguje na proven_string_escape_html v libproven.
+fn escapovat_html(vstup : String) -> Výsledek<String, ProvenChyba> =
+  let bajty = string_to_utf8(vstup)
+  string_vysledek_prevod(
+    FFI.proven_string_escape_html(bajty.ptr, bajty.len)
+  )
+
+// Escapuje retezec pro bezpecne JavaScript retezove literaly.
+// Prevence injekce pri vkladani dat do JS kontextu.
+// Deleguje na proven_string_escape_js v libproven.
+fn escapovat_js(vstup : String) -> Výsledek<String, ProvenChyba> =
+  let bajty = string_to_utf8(vstup)
+  string_vysledek_prevod(
+    FFI.proven_string_escape_js(bajty.ptr, bajty.len)
+  )
+
+// ============================================================================
+// Bezpecnost cest
+// ============================================================================
+
+// Zkontroluje, zda cesta obsahuje sekvence pruchodu adresarem ("..").
+// Vraci Uspech(true) pokud je detekovan pruchod, Uspech(false) pokud je bezpecne.
+// Deleguje na proven_path_has_traversal v libproven.
+fn cesta_ma_pruchod(cesta : String) -> Výsledek<Bool, ProvenChyba> =
+  let bajty = string_to_utf8(cesta)
+  bool_vysledek_prevod(
+    FFI.proven_path_has_traversal(bajty.ptr, bajty.len)
+  )
+
+// Sanitizuje nazev souboru odstranenenim nebezpecnych znaku.
+// Vraci sanitizovany nazev souboru.
+// Deleguje na proven_path_sanitize_filename v libproven.
+fn sanitizovat_název_souboru(název : String) -> Výsledek<String, ProvenChyba> =
+  let bajty = string_to_utf8(název)
+  string_vysledek_prevod(
+    FFI.proven_path_sanitize_filename(bajty.ptr, bajty.len)
+  )
