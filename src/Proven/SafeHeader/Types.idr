@@ -495,7 +495,7 @@ hasCRLF s = isInfixOf "\r" s || isInfixOf "\n" s
 --------------------------------------------------------------------------------
 
 ||| Decide whether a string's length is within a bound.
-||| Returns a proof when True, enabling believe_me-free construction.
+||| Returns a proof when True, enabling cast-free construction.
 public export
 decHeaderNameBounded : (s : String) ->
                        Dec (length (unpack s) <= maxNameLength = True)

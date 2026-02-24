@@ -80,7 +80,7 @@ Show EntropySource where
 -- via the Idris2 RefC -> Zig FFI pipeline. At link time, Zig calls
 -- platform-native entropy sources (getrandom, /dev/urandom, CryptGenRandom).
 --
--- Using postulate instead of believe_me: the type signatures correctly
+-- Using postulate instead of cast: the type signatures correctly
 -- describe the FFI contract. Values are provided at runtime by the
 -- native entropy source.
 --------------------------------------------------------------------------------

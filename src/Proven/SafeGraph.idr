@@ -80,6 +80,39 @@ removeEdge src tgt g =
   MkGraph g.vertices (filter (\e => not (e.source == src && e.target == tgt)) g.edges)
 
 --------------------------------------------------------------------------------
+-- Strict Operations
+--------------------------------------------------------------------------------
+
+||| High-rigor graph operations that enforce existence invariants
+namespace Strict
+  ||| Add an edge only if both nodes already exist
+  public export
+  addEdge : (Eq v, Show v) => v -> v -> w -> Graph v w -> Result SafeError (Graph v w)
+  addEdge src tgt weight g =
+    if not (hasVertex src g)
+      then Err (MkError ("Source node " ++ show src ++ " not found"))
+      else if not (hasVertex tgt g)
+        then Err (MkError ("Target node " ++ show tgt ++ " not found"))
+        else Ok (MkGraph g.vertices (MkEdge src tgt weight :: g.edges))
+
+  ||| Remove a vertex, returning an error if it doesn't exist
+  public export
+  removeVertex : (Eq v, Show v) => v -> Graph v w -> Result SafeError (Graph v w)
+  removeVertex v g =
+    if not (hasVertex v g)
+      then Err (MkError ("Node " ++ show v ++ " not found"))
+      else Ok (MkGraph (filter (/= v) g.vertices)
+                       (filter (\e => e.source /= v && e.target /= v) g.edges))
+
+  ||| Remove an edge, returning an error if it doesn't exist
+  public export
+  removeEdge : (Eq v, Show v) => v -> v -> Graph v w -> Result SafeError (Graph v w)
+  removeEdge src tgt g =
+    if not (hasEdge src tgt g)
+      then Err (MkError ("Edge from " ++ show src ++ " to " ++ show tgt ++ " not found"))
+      else Ok (MkGraph g.vertices (filter (\e => not (e.source == src && e.target == tgt)) g.edges))
+
+--------------------------------------------------------------------------------
 -- Queries
 --------------------------------------------------------------------------------
 

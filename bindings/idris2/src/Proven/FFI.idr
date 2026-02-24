@@ -108,6 +108,7 @@ data ProvenError
   | OutOfBounds
   | EncodingError
   | AllocationFailed
+  | NotFound
   | NotImplemented
   | UnknownError Int
 
@@ -124,6 +125,7 @@ Show ProvenError where
   show OutOfBounds      = "ProvenError: index out of bounds"
   show EncodingError    = "ProvenError: encoding error"
   show AllocationFailed = "ProvenError: allocation failed"
+  show NotFound         = "ProvenError: entity not found"
   show NotImplemented   = "ProvenError: not implemented"
   show (UnknownError n) = "ProvenError: unknown error code " ++ show n
 
@@ -142,6 +144,7 @@ statusToError (-7) = Just ValidationFailed
 statusToError (-8) = Just OutOfBounds
 statusToError (-9) = Just EncodingError
 statusToError (-10) = Just AllocationFailed
+statusToError (-11) = Just NotFound
 statusToError (-99) = Just NotImplemented
 statusToError n    = Just (UnknownError n)
 

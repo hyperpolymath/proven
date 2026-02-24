@@ -506,7 +506,7 @@ strictOptions = MkContentTypeOptions
 --------------------------------------------------------------------------------
 
 ||| Decide whether a string's length is within a bound.
-||| Returns a proof when True, enabling believe_me-free construction.
+||| Returns a proof when True, enabling cast-free construction.
 public export
 decLengthLTE : (s : String) -> (maxLen : Nat) ->
                Dec (length (unpack s) <= maxLen = True)

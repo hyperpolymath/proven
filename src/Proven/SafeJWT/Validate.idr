@@ -179,7 +179,7 @@ validateRequiredClaims (name :: rest) claims =
 -- verification is performed via the Idris2 RefC -> Zig FFI pipeline,
 -- calling platform crypto libraries (OpenSSL, libsodium, etc.).
 --
--- Using postulate instead of believe_me: the type signatures correctly
+-- Using postulate instead of cast: the type signatures correctly
 -- describe the FFI contract. Signature verification results are provided
 -- at runtime by the native crypto library.
 --------------------------------------------------------------------------------

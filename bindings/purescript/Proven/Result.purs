@@ -50,6 +50,7 @@ data ProvenError
   | ValidationFailed
   | NullPointer
   | EncodingError
+  | NotFound
   | Custom String
 
 derive instance eqProvenError :: Eq ProvenError
@@ -77,6 +78,7 @@ instance showProvenError :: Show ProvenError where
   show ValidationFailed = "ValidationFailed"
   show NullPointer = "NullPointer"
   show EncodingError = "EncodingError"
+  show NotFound = "NotFound"
   show (Custom s) = "Custom: " <> s
 
 -- | Result type for operations that can fail

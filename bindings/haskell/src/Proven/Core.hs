@@ -45,6 +45,7 @@ data ProvenError
   | ErrOutOfBounds       -- ^ Out of bounds
   | ErrEncodingError     -- ^ Encoding error
   | ErrAllocationFailed  -- ^ Memory allocation failed
+  | ErrNotFound          -- ^ Entity not found
   | ErrNotImplemented    -- ^ Not implemented
   | ErrUnknown !Int      -- ^ Unknown error code
   deriving (Eq, Show)
@@ -62,8 +63,9 @@ statusToError (-5)  = ErrDivisionByZero
 statusToError (-6)  = ErrParseFailure
 statusToError (-7)  = ErrValidationFailed
 statusToError (-8)  = ErrOutOfBounds
-statusToError (-9)  = ErrEncodingError
+statusToError (-9) = ErrEncodingError
 statusToError (-10) = ErrAllocationFailed
+statusToError (-11) = ErrNotFound
 statusToError (-99) = ErrNotImplemented
 statusToError n     = ErrUnknown (fromIntegral n)
 

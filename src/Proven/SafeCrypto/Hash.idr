@@ -221,7 +221,7 @@ HMACKey = Bytes
 -- and call platform-native cryptographic libraries (e.g., OpenSSL, libsodium).
 -- At link time, the Zig FFI bridge replaces these with real hash computations.
 --
--- Using postulate instead of believe_me: the type signatures are correct
+-- Using postulate instead of cast: the type signatures are correct
 -- (output has the right ByteVector length) and values will be provided by
 -- the FFI layer at runtime. These functions are never called in pure Idris2
 -- proof contexts.
