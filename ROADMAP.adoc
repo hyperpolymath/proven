@@ -241,6 +241,25 @@ proven aims to be the **definitive verified safety library** across all programm
   - From regex to SafeRegex
   - From JSON libraries to SafeJson
 
+**Critical Starter App Cores (Opt-In, Not Full-Stack Migration)**
+
+* [ ] Publish small reference app cores for high-assurance use cases
+  - Mail relay core (queue + retry + safe header/content checks)
+  - Key/certificate service core (rotation + policy-safe parsing)
+  - Safety envelope service core (strict ingress validation + typed policy boundaries)
+* [ ] Keep these cores intentionally small and composable
+  - Position them as reinforcement blocks for critical boundaries
+  - Keep mainstream language integration as the default around the core
+* [ ] Add "When to use proven core vs standard stack" guidance
+  - Use proven core where failure cost is unacceptable
+  - Prefer best-fit implementation languages elsewhere (Rust, Ada, etc.)
+  - Avoid treating proven as a blanket replacement strategy
+  - Publish and maintain a user/AI decision flowchart (`docs/ADOPTION-FLOWCHART.md`)
+* [ ] Provide cost/benefit adoption notes per core
+  - Integration time
+  - Runtime overhead expectations
+  - Community and maintenance tradeoffs
+
 === v1.2.0 - Ecosystem Integration (Q3 2026)
 
 *Timeline:* 2-3 months +
