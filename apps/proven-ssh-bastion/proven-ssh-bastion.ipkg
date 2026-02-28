@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-ssh-bastion
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "SSH bastion host that cannot crash on malformed connections"
+
+sourcedir = "src"
+main = Main
+executable = "proven-ssh-bastion"
+
+modules = SSH
+        , SSH.Transport
+        , SSH.Auth
+        , SSH.Channel
+        , SSH.Session
+        , SSH.Config
+
+-- depends = proven

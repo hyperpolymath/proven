@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-mqtt
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "MQTT 3.1.1 broker that cannot crash on malformed packets"
+
+sourcedir = "src"
+main = Main
+executable = "proven-mqtt"
+
+modules = MQTT
+        , MQTT.PacketType
+        , MQTT.QoS
+        , MQTT.Topic
+        , MQTT.Session
+        , MQTT.Packet
+
+-- depends = proven

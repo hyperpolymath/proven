@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-httpd
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "HTTP/1.1 server that cannot crash on malformed requests"
+
+sourcedir = "src"
+main = Main
+executable = "proven-httpd"
+
+modules = HTTP
+        , HTTP.Method
+        , HTTP.Status
+        , HTTP.Request
+        , HTTP.Response
+        , HTTP.Router
+
+-- depends = proven

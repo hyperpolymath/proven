@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-tftp
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "TFTP server that cannot crash on malformed packets"
+
+sourcedir = "src"
+main = Main
+executable = "proven-tftp"
+
+modules = TFTP
+        , TFTP.Opcode
+        , TFTP.Error
+        , TFTP.Packet
+        , TFTP.Transfer
+        , TFTP.Mode
+
+-- depends = proven

@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-cli
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "CLI framework that cannot crash on malformed arguments"
+
+sourcedir = "src"
+main = Main
+executable = "proven-cli"
+
+modules = CLI
+        , CLI.ArgType
+        , CLI.Option
+        , CLI.Command
+        , CLI.Parser
+        , CLI.Help
+
+-- depends = proven

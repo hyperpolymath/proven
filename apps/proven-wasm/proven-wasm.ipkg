@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-wasm
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "WebAssembly module builder with verified memory safety"
+
+sourcedir = "src"
+main = Main
+executable = "proven-wasm"
+
+modules = WASM
+        , WASM.ValType
+        , WASM.Instruction
+        , WASM.Module
+        , WASM.Memory
+        , WASM.Types
+
+-- depends = proven

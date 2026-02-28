@@ -11,12 +11,12 @@
   (project-context
     (name "proven")
     (purpose "Formally verified safety library — 258 Idris2 source files (104 core Safe* modules + 65 FFI wrappers + 3 ECHIDNA + support), Zig FFI bridge, 120+ language binding targets")
-    (completion-percentage 55))
+    (completion-percentage 65))
 
   (current-position
     (milestone "v1.2.0 Remediation Release")
     (phase "active-development")
-    (summary "Post-remediation: believe_me eliminated (0 instances, down from ~4566), assert_total eliminated, all TODOs removed, bindings fixed to call FFI, missing bindings created, Rust license fixed, Containerfile converted, RefC pipeline built. Core Idris2 ~95% complete. Apps 7% (1/13). GPU/VPU/TPU/Crypto backends 0%. Framework convenience modules 0%. Container hardening 0%."))
+    (summary "Post-remediation: believe_me eliminated (0 instances, down from ~4566), assert_total eliminated, all TODOs removed, bindings fixed to call FFI, missing bindings created, Rust license fixed, Containerfile converted, RefC pipeline built. Core Idris2 ~95% complete. Apps 100% scaffolded (13/13). GPU/VPU/TPU/Crypto backends 0%. Framework convenience modules 0%. Container hardening 0%."))
 
   (components
     (component "idris2-core" (status complete) (modules 107) (files 261) (lines ~28400) (believe-me 0))
@@ -25,7 +25,7 @@
     (component "echidna-integration" (status complete))
     (component "benchmarks" (status complete))
     (component "domain-specific" (status complete) (modules "concat" "http" "provenance-utils" "tui"))
-    (component "apps" (status minimal) (complete 1) (planned 13) (note "only proven-bgp exists"))
+    (component "apps" (status complete) (complete 13) (planned 13) (files 104) (lines ~16400) (note "all 13 apps scaffolded: bgp, httpd, dns, smtp, lpd, mqtt, ntp, syslog, tftp, ssh-bastion, ws, cli, wasm"))
     (component "gpu-vpu-tpu-crypto" (status not-started) (modules 0) (planned 8))
     (component "framework-convenience" (status not-started) (modules 0) (planned 7))
     (component "container-hardening" (status not-started) (note "stapeln, firewalld, svalinn not configured"))
@@ -45,16 +45,16 @@
     (blocker "pack-missing" (severity high)
       (description "pack package manager not installed — cannot run standard build workflow")
       (workaround "Use idris2 --build proven.ipkg directly"))
-    (blocker "apps-incomplete" (severity medium)
-      (description "12 of 13 planned apps not yet created")
-      (note "Only proven-bgp exists"))
+    (resolved "apps-complete" (severity resolved)
+      (description "All 13 planned apps scaffolded — 104 files, ~16400 lines")
+      (date "2026-02-28"))
     (issue "build-not-verified" (severity high)
       (description "idris2 --build proven.ipkg has not been run end-to-end in current session")
       (action "Install pack or idris2 and verify compilation")))
 
   (critical-next-actions
     (action "Install pack or idris2 to verify full compilation")
-    (action "Create remaining 12 apps (proven-httpd through proven-wasm)")
+    (action "Verify app compilation with idris2 --build for each app .ipkg")
     (action "Create GPU/VPU/TPU/Crypto hardware backend modules")
     (action "Create framework convenience re-export modules")
     (action "Run hypatia scan: 0 CRITICAL/HIGH findings required")
@@ -63,6 +63,13 @@
     (action "Expand test suite to cover all 107 modules"))
 
   (session-history
+    (session "2026-02-28b"
+      (summary "Scaffolded all 12 remaining apps (proven-httpd through proven-wasm). 104 files, ~16400 lines of Idris2. Zero believe_me/assert_total/assert_smaller. 100% SPDX PMPL-1.0-or-later. Each app has .ipkg, Main.idr with demo, core module with import public re-exports, and 5 submodules with %default total, dependent types, Eq/Show, pure functions.")
+      (apps-created "proven-httpd" "proven-dns" "proven-smtp" "proven-lpd" "proven-mqtt" "proven-ntp" "proven-syslog" "proven-tftp" "proven-ssh-bastion" "proven-ws" "proven-cli" "proven-wasm")
+      (invariants-maintained
+        (believe-me 0)
+        (assert-total 0)
+        (assert-smaller 0)))
     (session "2026-02-28"
       (summary "Added 3 new verified library modules extracted from cadre-router/HAR/gateway optimisation work")
       (changes

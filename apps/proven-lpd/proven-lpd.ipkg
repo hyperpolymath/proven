@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-lpd
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "Line Printer Daemon that cannot crash on malformed print jobs"
+
+sourcedir = "src"
+main = Main
+executable = "proven-lpd"
+
+modules = LPD
+        , LPD.Command
+        , LPD.Job
+        , LPD.Queue
+        , LPD.Protocol
+        , LPD.Spool
+
+-- depends = proven

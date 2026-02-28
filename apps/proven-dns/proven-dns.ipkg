@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+
+package proven-dns
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "DNS resolver that cannot crash on malformed queries"
+
+sourcedir = "src"
+main = Main
+executable = "proven-dns"
+
+modules = DNS
+        , DNS.RecordType
+        , DNS.Query
+        , DNS.Response
+        , DNS.Zone
+        , DNS.Name
+
+-- depends = proven
