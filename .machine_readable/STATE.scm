@@ -16,7 +16,7 @@
   (current-position
     (milestone "v1.2.0 Remediation Release")
     (phase "active-development")
-    (summary "Post-remediation: believe_me eliminated (0 instances, down from ~4566), assert_total eliminated, all TODOs removed, bindings fixed to call FFI, missing bindings created, Rust license fixed, Containerfile converted, RefC pipeline built. Core Idris2 ~95% complete. Apps 100% scaffolded (13/13). GPU/VPU/TPU/Crypto backends 0%. Framework convenience modules 0%. Container hardening 0%."))
+    (summary "Post-remediation: believe_me eliminated (0 instances, down from ~4566), assert_total eliminated, all TODOs removed, bindings fixed to call FFI, missing bindings created, Rust license fixed, Containerfile converted, RefC pipeline built. Core Idris2 ~95% complete. Apps 100% scaffolded (13/13). GPU/VPU/TPU/Crypto backends 100% (8/8). Framework convenience modules 0%. Container hardening 0%."))
 
   (components
     (component "idris2-core" (status complete) (modules 107) (files 261) (lines ~28400) (believe-me 0))
@@ -26,7 +26,8 @@
     (component "benchmarks" (status complete))
     (component "domain-specific" (status complete) (modules "concat" "http" "provenance-utils" "tui"))
     (component "apps" (status complete) (complete 13) (planned 13) (files 104) (lines ~16400) (note "all 13 apps scaffolded: bgp, httpd, dns, smtp, lpd, mqtt, ntp, syslog, tftp, ssh-bastion, ws, cli, wasm"))
-    (component "gpu-vpu-tpu-crypto" (status not-started) (modules 0) (planned 8))
+    (component "gpu-vpu-tpu-crypto" (status complete) (modules 8) (planned 8)
+      (note "SafeGPU, SafeVPU, SafeTPU, SafeCryptoAccel, SafeFPGA, SafeNPU, SafeDSP, SafeISA"))
     (component "framework-convenience" (status not-started) (modules 0) (planned 7))
     (component "container-hardening" (status not-started) (note "stapeln, firewalld, svalinn not configured"))
     (component "rsr-compliance" (status mostly-complete) (note "CODEOWNERS, 0-AI-MANIFEST, .well-known added 2026-02-22")))
@@ -55,7 +56,7 @@
   (critical-next-actions
     (action "Install pack or idris2 to verify full compilation")
     (action "Verify app compilation with idris2 --build for each app .ipkg")
-    (action "Create GPU/VPU/TPU/Crypto hardware backend modules")
+    (action "GPU/VPU/TPU/Crypto hardware backend modules — DONE (8/8)")
     (action "Create framework convenience re-export modules")
     (action "Run hypatia scan: 0 CRITICAL/HIGH findings required")
     (action "Implement container hardening (stapeln, firewalld, svalinn)")
@@ -63,6 +64,13 @@
     (action "Expand test suite to cover all 107 modules"))
 
   (session-history
+    (session "2026-02-28c"
+      (summary "Created all 8 hardware backend modules: SafeGPU, SafeVPU, SafeTPU, SafeCryptoAccel, SafeFPGA, SafeNPU, SafeDSP, SafeISA. ~880 lines of Idris2. Pure dependent-type validated configs for GPU compute, video processing, tensor processing, crypto acceleration, FPGA synthesis, neural processing, DSP pipelines, and ISA targeting. Zero believe_me/assert_total/assert_smaller. All modules added to proven.ipkg.")
+      (modules-created "Proven.SafeGPU" "Proven.SafeVPU" "Proven.SafeTPU" "Proven.SafeCryptoAccel" "Proven.SafeFPGA" "Proven.SafeNPU" "Proven.SafeDSP" "Proven.SafeISA")
+      (invariants-maintained
+        (believe-me 0)
+        (assert-total 0)
+        (assert-smaller 0)))
     (session "2026-02-28b"
       (summary "Scaffolded all 12 remaining apps (proven-httpd through proven-wasm). 104 files, ~16400 lines of Idris2. Zero believe_me/assert_total/assert_smaller. 100% SPDX PMPL-1.0-or-later. Each app has .ipkg, Main.idr with demo, core module with import public re-exports, and 5 submodules with %default total, dependent types, Eq/Show, pure functions.")
       (apps-created "proven-httpd" "proven-dns" "proven-smtp" "proven-lpd" "proven-mqtt" "proven-ntp" "proven-syslog" "proven-tftp" "proven-ssh-bastion" "proven-ws" "proven-cli" "proven-wasm")
