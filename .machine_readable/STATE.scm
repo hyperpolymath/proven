@@ -1,11 +1,11 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
 ;; STATE.scm — Current project state for proven
-;; Last updated: 2026-02-22
+;; Last updated: 2026-02-28
 
 (state
   (metadata
     (version "1.2.0")
-    (last-updated "2026-02-22")
+    (last-updated "2026-02-28")
     (status active))
 
   (project-context
@@ -19,7 +19,7 @@
     (summary "Post-remediation: believe_me eliminated (0 instances, down from ~4566), assert_total eliminated, all TODOs removed, bindings fixed to call FFI, missing bindings created, Rust license fixed, Containerfile converted, RefC pipeline built. Core Idris2 ~95% complete. Apps 7% (1/13). GPU/VPU/TPU/Crypto backends 0%. Framework convenience modules 0%. Container hardening 0%."))
 
   (components
-    (component "idris2-core" (status complete) (modules 104) (files 258) (lines ~27600) (believe-me 0))
+    (component "idris2-core" (status complete) (modules 107) (files 261) (lines ~28400) (believe-me 0))
     (component "zig-ffi-bridge" (status complete) (exports 65))
     (component "language-bindings" (status partial) (complete 18) (scaffolded 102) (total 120))
     (component "echidna-integration" (status complete))
@@ -60,4 +60,17 @@
     (action "Run hypatia scan: 0 CRITICAL/HIGH findings required")
     (action "Implement container hardening (stapeln, firewalld, svalinn)")
     (action "Complete remaining ~102 language binding implementations")
-    (action "Expand test suite to cover all 104 modules")))
+    (action "Expand test suite to cover all 107 modules"))
+
+  (session-history
+    (session "2026-02-28"
+      (summary "Added 3 new verified library modules extracted from cadre-router/HAR/gateway optimisation work")
+      (changes
+        (added "Proven.SafeTrust" "Formally verified trust level hierarchy with monotonicity proof — extracted from http-capability-gateway access control")
+        (added "Proven.SafeAttestation" "Verified a2ml attestation types with non-empty hash invariant and round-trip proofs — extracted from hybrid-automation-router audit trail")
+        (added "Proven.SafeCycleDetect" "Fuel-bounded DFS cycle detection for directed graphs — extracted from HAR dependency graph validation"))
+      (invariants-maintained
+        (believe-me 0)
+        (assert-total 0)
+        (assert-smaller 0)
+        (total-checking "all three modules use %default total")))))

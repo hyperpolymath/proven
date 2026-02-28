@@ -159,6 +159,10 @@ modules = Proven
         -- Policy & audit
         , Proven.SafePolicy
         , Proven.SafeProvenance
+        -- Infrastructure verification (trust, attestation, cycle detection)
+        , Proven.SafeAttestation
+        , Proven.SafeCycleDetect
+        , Proven.SafeTrust
         -- State machines
         , Proven.SafeStateMachine
         -- Format safety
