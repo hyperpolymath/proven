@@ -229,6 +229,14 @@ modules = Proven
         , Proven.SafeBibTeX
         , Proven.SafeMCP
         , Proven.SafeML
+        -- Framework convenience re-export modules
+        , Proven.Network
+        , Proven.Crypto
+        , Proven.Hardware
+        , Proven.Data
+        , Proven.Collections
+        , Proven.System
+        , Proven.Safety
         -- Hardware backend modules (GPU, VPU, TPU, crypto, FPGA, NPU, DSP, ISA)
         , Proven.SafeGPU
         , Proven.SafeVPU
