@@ -311,7 +311,8 @@ satisfiesMonotone Untrusted Untrusted InternalOnly _ prf = absurd prf
 satisfiesMonotone Untrusted Authenticated InternalOnly _ prf = absurd prf
 satisfiesMonotone Untrusted Internal InternalOnly _ prf = absurd prf
 -- t1 = Authenticated (rank 1): LTE 1 n requires t2 in {Authenticated, Internal}
--- LTE 1 0 is impossible, so Untrusted cases for t2 cannot arise
+-- LTE 1 0 is impossible (Authenticated → Untrusted demotion cannot happen)
+satisfiesMonotone Authenticated Untrusted _ lte _ = absurd lte
 satisfiesMonotone Authenticated Authenticated Public _ _ = Refl
 satisfiesMonotone Authenticated Internal Public _ _ = Refl
 satisfiesMonotone Authenticated Authenticated AuthenticatedOnly _ _ = Refl
@@ -320,6 +321,11 @@ satisfiesMonotone Authenticated Internal AuthenticatedOnly _ _ = Refl
 satisfiesMonotone Authenticated Authenticated InternalOnly _ prf = absurd prf
 satisfiesMonotone Authenticated Internal InternalOnly _ _ = Refl
 -- t1 = Internal (rank 2): LTE 2 n requires t2 = Internal
+-- LTE 2 0 is impossible (Internal → Untrusted demotion cannot happen)
+satisfiesMonotone Internal Untrusted _ lte _ = absurd lte
+-- LTE 2 1 is impossible (Internal → Authenticated demotion cannot happen)
+-- Unwrap one LTESucc layer to expose LTE 1 0, which is uninhabited
+satisfiesMonotone Internal Authenticated _ (LTESucc lte) _ = absurd lte
 satisfiesMonotone Internal Internal Public _ _ = Refl
 satisfiesMonotone Internal Internal AuthenticatedOnly _ _ = Refl
 satisfiesMonotone Internal Internal InternalOnly _ _ = Refl

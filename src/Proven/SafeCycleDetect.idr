@@ -47,6 +47,7 @@ module Proven.SafeCycleDetect
 
 import public Proven.Core
 import Data.List
+import Data.Maybe
 import Data.SortedMap
 
 %default total
