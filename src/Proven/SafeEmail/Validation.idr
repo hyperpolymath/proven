@@ -11,6 +11,7 @@ module Proven.SafeEmail.Validation
 import Proven.Core
 import Proven.SafeEmail.Parser
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
@@ -110,17 +111,17 @@ validateDomain "" =
   invalidResult (MkValidationIssue Error "E010" "Domain cannot be empty")
 validateDomain domain =
   let result = validResult
-      labels = split '.' domain
+      labels = split (== '.') domain
       result' = if length domain > 253
                   then addIssue (MkValidationIssue Error "E011" "Domain exceeds 253 characters") result
                   else result
-      result'' = if any null labels
+      result'' = if any (\l => l == "") labels
                    then addIssue (MkValidationIssue Error "E012" "Domain contains empty label") result'
                    else result'
       result''' = if any (\l => length l > 63) labels
                     then addIssue (MkValidationIssue Error "E013" "Domain label exceeds 63 characters") result''
                     else result''
-      result'''' = if length labels < 2
+      result'''' = if length (forget labels) < 2
                      then addIssue (MkValidationIssue Warning "W001" "Domain has only one label (no TLD)") result'''
                      else result'''
   in result''''
