@@ -286,7 +286,7 @@ data CookieError : Type where
   ||| Invalid path
   InvalidPath : (path : String) -> (reason : String) -> CookieError
   ||| Prefix requirements not met
-  PrefixViolation : (name : String) -> (prefix : CookiePrefix) -> (reason : String) -> CookieError
+  PrefixViolation : (name : String) -> (pfx : CookiePrefix) -> (reason : String) -> CookieError
   ||| SameSite=None requires Secure
   SameSiteNoneRequiresSecure : CookieError
   ||| Total cookie size too large

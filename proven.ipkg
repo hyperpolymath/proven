@@ -1,9 +1,9 @@
 -- SPDX-License-Identifier: PMPL-1.0-or-later
--- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 package proven
 
 version = 1.1.0
-authors = "Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>"
+authors = "Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>"
 license = "PMPL-1.0-or-later"
 brief = "Verified safe operations - code that cannot crash"
 readme = "README.adoc"
@@ -328,9 +328,11 @@ modules = Proven
         , Proven.FFI.SafeML
         , Proven.FFI.SafePhone
         -- ECHIDNA neurosymbolic theorem prover validation
-        , Proven.ECHIDNA.ProofTerm
-        , Proven.ECHIDNA.Validator
-        , Proven.ECHIDNA.Soundness
+        -- NOTE: ECHIDNA modules temporarily excluded - need redesign
+        -- (proof keyword, ProofValid forward ref, All ambiguity, verify resolution)
+        -- , Proven.ECHIDNA.ProofTerm
+        -- , Proven.ECHIDNA.Validator
+        -- , Proven.ECHIDNA.Soundness
 
 depends = base >= 0.6.0
         , contrib

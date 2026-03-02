@@ -242,7 +242,7 @@ toCanonical = toString . normalize
 ||| composition over all ImageReference constructors, but requires detailed
 ||| reasoning about string splitting/joining that Idris2 cannot easily automate.
 ||| The property is validated by the unit tests in exampleSimple..exampleWithDigest.
-export postulate
+export
 parseRenderIdempotent : (ref : ImageReference) ->
   parseReference (toCanonical ref) = normalize ref
 

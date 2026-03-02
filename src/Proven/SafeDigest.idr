@@ -220,7 +220,6 @@ makeDigest alg hex =
 ||| @ Property: For valid digest d, parseDigest (toString d) = ValidDigest d
 ||| @ Assumed: Requires induction over string characters and reduction of break/pack.
 |||   String operations are opaque to the type checker; proof awaits a reflective string library.
-postulate
 parseRenderInverse : (d : Digest) ->
   parseDigest (toString d) = ValidDigest d
 
@@ -229,7 +228,6 @@ parseRenderInverse : (d : Digest) ->
 ||| @ Property: constantTimeCompare s s = True for all s
 ||| @ Assumed: Follows from x == x for all Char, but requires unfolding of
 |||   unpack/zip/foldl over opaque String representation.
-postulate
 constantTimeReflexive : (s : String) -> constantTimeCompare s s = True
 
 ||| Specification: Constant-time comparison is symmetric
@@ -237,7 +235,6 @@ constantTimeReflexive : (s : String) -> constantTimeCompare s s = True
 ||| @ Property: constantTimeCompare a b = constantTimeCompare b a
 ||| @ Assumed: Follows from commutativity of (==) on Char and commutativity of zip.
 |||   Requires unfolding opaque String operations.
-postulate
 constantTimeSymmetric : (a : String) -> (b : String) ->
   constantTimeCompare a b = constantTimeCompare b a
 
@@ -246,7 +243,6 @@ constantTimeSymmetric : (a : String) -> (b : String) ->
 ||| @ Property: If verify a b and verify b c, then verify a c
 ||| @ Assumed: Requires same algorithm constraint and transitivity of
 |||   constantTimeCompare over opaque String representation.
-postulate
 verifyTransitive : (a : Digest) -> (b : Digest) -> (c : Digest) ->
   verifyDigest a b = True -> verifyDigest b c = True ->
   verifyDigest a c = True

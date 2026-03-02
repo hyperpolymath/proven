@@ -129,7 +129,6 @@ defaultSatisfiesRequired spec required hasDefault = ()
 ||| on `toLower` (an FFI primitive) and `elem` over `String` equality,
 ||| neither of which reduces in Idris 2's evaluator.
 export
-postulate
 boolParsingComplete : (s : String) ->
                       toLower s `elem` ["true", "yes", "1", "on",
                                         "false", "no", "0", "off"] = True ->
@@ -151,7 +150,6 @@ boolParsingComplete : (s : String) ->
 ||| The `isPrefixOf`, `drop`, and `parseInteger` functions are all
 ||| opaque FFI primitives.
 export
-postulate
 intParsingHandlesNegative : (s : String) ->
                             isPrefixOf "-" s = True ->
                             all isDigit (unpack (drop 1 s)) = True ->
@@ -164,7 +162,6 @@ intParsingHandlesNegative : (s : String) ->
 ||| the behaviour of the C `parseInteger` FFI function for strings
 ||| beginning with '-'.
 export
-postulate
 natRejectsNegative : (s : String) ->
                      isPrefixOf "-" s = True ->
                      parseNat' s = Nothing

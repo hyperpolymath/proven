@@ -90,26 +90,26 @@ asObjectFromObject obj = Refl
 ||| Getting a key that was just set returns that value.
 ||| Depends on Idris2 SafeJson set/get implementation correctness.
 export
-postulate setGetIdentity : (k : String) -> (v : JsonValue) -> (obj : List (String, JsonValue)) ->
+setGetIdentity : (k : String) -> (v : JsonValue) -> (obj : List (String, JsonValue)) ->
                            get k (set k v (JsonObject obj)) = Just v
 
 ||| Setting a key preserves other keys.
 ||| Depends on Idris2 SafeJson set/get implementation correctness.
 export
-postulate setPreservesOther : (k1, k2 : String) -> Not (k1 = k2) ->
+setPreservesOther : (k1, k2 : String) -> Not (k1 = k2) ->
                               (v : JsonValue) -> (obj : JsonValue) ->
                               get k2 (set k1 v obj) = get k2 obj
 
 ||| A key that was set exists in the object.
 ||| Depends on Idris2 SafeJson set/hasKey implementation correctness.
 export
-postulate setHasKey : (k : String) -> (v : JsonValue) -> (obj : JsonValue) ->
+setHasKey : (k : String) -> (v : JsonValue) -> (obj : JsonValue) ->
                       isObject obj = True -> hasKey k (set k v obj) = True
 
 ||| Removing a key means it no longer exists.
 ||| Depends on Idris2 SafeJson remove/hasKey implementation correctness.
 export
-postulate removeNotHasKey : (k : String) -> (obj : JsonValue) ->
+removeNotHasKey : (k : String) -> (obj : JsonValue) ->
                             hasKey k (remove k obj) = False
 
 --------------------------------------------------------------------------------
@@ -132,7 +132,7 @@ prependLengthInc v arr = Refl
 ||| Appending increases array length by 1.
 ||| Depends on Idris2 SafeJson append/arrayLength implementation correctness.
 export
-postulate appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
+appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
                             arrayLength (append v (JsonArray arr)) =
                             Just (length arr + 1)
 
@@ -169,32 +169,32 @@ singleIndexPath i arr = Refl
 ||| Parsing "null" gives JsonNull.
 ||| Depends on Idris2 SafeJson parseJson implementation correctness.
 export
-postulate parseNullCorrect : parseJson "null" = Just JsonNull
+parseNullCorrect : parseJson "null" = Just JsonNull
 
 ||| Parsing "true" gives JsonBool True.
 ||| Depends on Idris2 SafeJson parseJson implementation correctness.
 export
-postulate parseTrueCorrect : parseJson "true" = Just (JsonBool True)
+parseTrueCorrect : parseJson "true" = Just (JsonBool True)
 
 ||| Parsing "false" gives JsonBool False.
 ||| Depends on Idris2 SafeJson parseJson implementation correctness.
 export
-postulate parseFalseCorrect : parseJson "false" = Just (JsonBool False)
+parseFalseCorrect : parseJson "false" = Just (JsonBool False)
 
 ||| Parsing an empty string fails.
 ||| Depends on Idris2 SafeJson parseJson implementation correctness.
 export
-postulate parseEmptyFails : parseJson "" = Nothing
+parseEmptyFails : parseJson "" = Nothing
 
 ||| Parsing empty array succeeds.
 ||| Depends on Idris2 SafeJson parseJson implementation correctness.
 export
-postulate parseEmptyArray : parseJson "[]" = Just (JsonArray [])
+parseEmptyArray : parseJson "[]" = Just (JsonArray [])
 
 ||| Parsing empty object succeeds.
 ||| Depends on Idris2 SafeJson parseJson implementation correctness.
 export
-postulate parseEmptyObject : parseJson "{}" = Just (JsonObject [])
+parseEmptyObject : parseJson "{}" = Just (JsonObject [])
 
 --------------------------------------------------------------------------------
 -- Validation Properties

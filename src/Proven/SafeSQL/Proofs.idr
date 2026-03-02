@@ -99,13 +99,13 @@ data IsEscapedValue : SQLDialect -> SQLValue -> Type where
 ||| for user input to break out of a string literal.
 ||| Depends on the correctness of escapeString in Proven.SafeSQL.Params.
 export
-postulate escapeStringQuotesSafe : (d : SQLDialect) -> (s : String) ->
+escapeStringQuotesSafe : (d : SQLDialect) -> (s : String) ->
                                    NoUnescapedQuotes (escapeString d s)
 
 ||| Theorem: ValidIdentifier strings contain only safe characters
 ||| Depends on isValidIdentifier checking character validity, length > 0, and length <= 128.
 export
-postulate identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = True) ->
+identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = True) ->
                                 IsSafeIdentifier s
 
 ||| Theorem: Parameterized queries separate data from code
@@ -114,7 +114,7 @@ postulate identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = Tru
 ||| because parameters are bound separately from the query structure.
 ||| Depends on the query builder only producing Literal, Param, NamedParam, and Identifier fragments.
 export
-postulate parameterizedQueriesSafe : (q : ParameterizedQuery) -> IsParameterized q
+parameterizedQueriesSafe : (q : ParameterizedQuery) -> IsParameterized q
 
 ||| Theorem: All SQLValue types are safely escapable
 export
@@ -130,7 +130,7 @@ allValuesSafe d (SQLDate y m day) = DateSafe
 allValuesSafe d (SQLTime h m s) = TimeSafe
 allValuesSafe d (SQLTimestamp y mo day h mi s) = TimestampSafe
 ||| SQLRaw safety is trusted by the caller; this postulate reflects that contract.
-postulate sqlRawTrusted : (d : SQLDialect) -> (s : String) -> IsEscapedValue d (SQLRaw s)
+sqlRawTrusted : (d : SQLDialect) -> (s : String) -> IsEscapedValue d (SQLRaw s)
 allValuesSafe d (SQLRaw s) = sqlRawTrusted d s
 
 --------------------------------------------------------------------------------

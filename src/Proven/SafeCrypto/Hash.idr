@@ -232,35 +232,35 @@ HMACKey = Bytes
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_sha256,libproven"
-postulate prim__sha256 : Bytes -> SHA256Digest
+prim__sha256 : Bytes -> SHA256Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_sha512,libproven"
-postulate prim__sha512 : Bytes -> SHA512Digest
+prim__sha512 : Bytes -> SHA512Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_sha3_256,libproven"
-postulate prim__sha3_256 : Bytes -> SHA3_256Digest
+prim__sha3_256 : Bytes -> SHA3_256Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_blake2b,libproven"
-postulate prim__blake2b : Bytes -> BLAKE2bDigest
+prim__blake2b : Bytes -> BLAKE2bDigest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_blake3,libproven"
-postulate prim__blake3 : Bytes -> BLAKE3Digest
+prim__blake3 : Bytes -> BLAKE3Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_hash_finalize,libproven"
-postulate prim__hashFinalize : {alg : HashAlg} -> HashContext alg -> ByteVector (hashOutputSize alg)
+prim__hashFinalize : {alg : HashAlg} -> HashContext alg -> ByteVector (hashOutputSize alg)
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_hmac_sha256,libproven"
-postulate prim__hmacSha256 : HMACKey -> Bytes -> SHA256Digest
+prim__hmacSha256 : HMACKey -> Bytes -> SHA256Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_hmac_sha512,libproven"
-postulate prim__hmacSha512 : HMACKey -> Bytes -> SHA512Digest
+prim__hmacSha512 : HMACKey -> Bytes -> SHA512Digest
 
 --------------------------------------------------------------------------------
 -- Hash Function Public API

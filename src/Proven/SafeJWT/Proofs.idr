@@ -165,7 +165,6 @@ validatedMeansChecked vjwt = MkFullyValidated vjwt
 ||| Theorem: If validateExp succeeds, token is not expired
 ||| Depends on Idris2 SafeJWT validateExp implementation correctness.
 export
-postulate
 expValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : JWTClaims) ->
                      isOk (validateExp currentTime skew claims) = True ->
                      (exp : Integer) -> claims.exp = Just exp ->
@@ -174,7 +173,6 @@ expValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : 
 ||| Theorem: If validateNbf succeeds, token is valid now
 ||| Depends on Idris2 SafeJWT validateNbf implementation correctness.
 export
-postulate
 nbfValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : JWTClaims) ->
                      isOk (validateNbf currentTime skew claims) = True ->
                      (nbf : Integer) -> claims.nbf = Just nbf ->
@@ -183,7 +181,6 @@ nbfValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : 
 ||| Theorem: Issuer validation ensures correct issuer
 ||| Depends on Idris2 SafeJWT validateIssuer implementation correctness.
 export
-postulate
 issuerValidationSound : (expected : String) -> (claims : JWTClaims) ->
                         isOk (validateIssuer expected claims) = True ->
                         claims.iss = Just expected
@@ -191,7 +188,6 @@ issuerValidationSound : (expected : String) -> (claims : JWTClaims) ->
 ||| Theorem: Audience validation ensures token is for intended audience
 ||| Depends on Idris2 SafeJWT validateAudience implementation correctness.
 export
-postulate
 audienceValidationSound : (expected : String) -> (claims : JWTClaims) ->
                           isOk (validateAudience expected claims) = True ->
                           expected `elem` getAudienceList claims = True
@@ -203,7 +199,6 @@ audienceValidationSound : (expected : String) -> (claims : JWTClaims) ->
 ||| Theorem: Signature verification requires matching key type
 ||| Depends on Idris2 SafeJWT verifySignature implementation correctness.
 export
-postulate
 keyMustMatchAlgorithm : (key : SigningKey) -> (jwt : DecodedJWT) ->
                         isOk (verifySignature key jwt) = True ->
                         isKeyValidForAlgorithm key jwt.header.alg = True
@@ -211,7 +206,6 @@ keyMustMatchAlgorithm : (key : SigningKey) -> (jwt : DecodedJWT) ->
 ||| Theorem: NoKey can only be used with 'none' algorithm
 ||| Depends on Idris2 SafeJWT verifySignature implementation correctness.
 export
-postulate
 noKeyOnlyForNone : (jwt : DecodedJWT) ->
                    isOk (verifySignature NoKey jwt) = True ->
                    jwt.header.alg = None
@@ -219,7 +213,6 @@ noKeyOnlyForNone : (jwt : DecodedJWT) ->
 ||| Theorem: SecretKey requires HMAC algorithm
 ||| Depends on Idris2 SafeJWT verifySignature implementation correctness.
 export
-postulate
 secretKeyRequiresHMAC : (secret : List Bits8) -> (jwt : DecodedJWT) ->
                         isOk (verifySignature (SecretKey secret) jwt) = True ->
                         isSymmetric jwt.header.alg = True
@@ -231,7 +224,6 @@ secretKeyRequiresHMAC : (secret : List Bits8) -> (jwt : DecodedJWT) ->
 ||| Theorem: Required claims check ensures claim presence
 ||| Depends on Idris2 SafeJWT validateRequiredClaims implementation correctness.
 export
-postulate
 requiredClaimsPresent : (claims : List String) -> (jwtClaims : JWTClaims) ->
                         isOk (validateRequiredClaims claims jwtClaims) = True ->
                         (name : String) -> name `elem` claims = True ->
@@ -240,7 +232,6 @@ requiredClaimsPresent : (claims : List String) -> (jwtClaims : JWTClaims) ->
 ||| Theorem: Max age validation ensures token is not too old
 ||| Depends on Idris2 SafeJWT validateMaxAge implementation correctness.
 export
-postulate
 maxAgeValidationSound : (currentTime : Integer) -> (maxAge : Nat) -> (claims : JWTClaims) ->
                         isOk (validateMaxAge currentTime maxAge claims) = True ->
                         (iat : Integer) -> claims.iat = Just iat ->
@@ -253,7 +244,6 @@ maxAgeValidationSound : (currentTime : Integer) -> (maxAge : Nat) -> (claims : J
 ||| Theorem: Full validation implies all sub-validations pass
 ||| Depends on Idris2 SafeJWT validateDecoded implementation correctness.
 export
-postulate
 fullValidationImpliesAll :
   (opts : ValidationOptions) -> (currentTime : Integer) -> (jwt : DecodedJWT) ->
   isOk (validateDecoded opts currentTime jwt) = True ->
@@ -267,7 +257,6 @@ fullValidationImpliesAll :
 ||| called in the validate function after all checks pass.
 ||| Depends on Idris2 SafeJWT validate implementation correctness.
 export
-postulate
 validatedJWTFromValidation : (vjwt : ValidatedJWT) ->
                               (opts : ValidationOptions ** key : SigningKey ** currentTime : Integer **
                                decoded : DecodedJWT **
@@ -280,7 +269,6 @@ validatedJWTFromValidation : (vjwt : ValidatedJWT) ->
 ||| Theorem: Using rejectNone=True prevents 'none' algorithm tokens
 ||| Depends on Idris2 SafeJWT validateDecoded implementation correctness.
 export
-postulate
 rejectNonePreventsNone : (opts : ValidationOptions) -> opts.rejectNone = True ->
                          (jwt : DecodedJWT) -> jwt.header.alg = None ->
                          isOk (validateDecoded opts 0 jwt) = False
@@ -288,7 +276,6 @@ rejectNonePreventsNone : (opts : ValidationOptions) -> opts.rejectNone = True ->
 ||| Theorem: allowedAlgorithms restricts accepted algorithms
 ||| Depends on Idris2 SafeJWT validateDecoded implementation correctness.
 export
-postulate
 allowedAlgorithmsRestrictive : (opts : ValidationOptions) ->
                                (alg : JWTAlgorithm) -> not (null opts.allowedAlgorithms) = True ->
                                not (alg `elem` opts.allowedAlgorithms) = True ->
@@ -367,7 +354,6 @@ SafeJWT Security Guarantees:
 ||| SafeJWT prevents this by validating key types match algorithms.
 ||| Depends on isKeyValidForAlgorithm distinguishing key types from algorithms.
 export
-postulate
 algorithmConfusionPrevented :
   (jwt : DecodedJWT) -> jwt.header.alg = HS256 ->
   (rsaKey : SigningKey) -> isKeyValidForAlgorithm rsaKey RS256 = True ->
@@ -379,7 +365,6 @@ algorithmConfusionPrevented :
 ||| different issuers/audiences are rejected.
 ||| Depends on Idris2 SafeJWT validateDecoded implementation correctness.
 export
-postulate
 tokenSubstitutionPrevented :
   (opts : ValidationOptions) -> opts.requiredIssuer = Just "expected-issuer" ->
   (jwt : DecodedJWT) -> jwt.claims.iss = Just "malicious-issuer" ->
@@ -390,7 +375,6 @@ tokenSubstitutionPrevented :
 ||| Setting maxAge limits how long a token can be replayed.
 ||| Depends on Idris2 SafeJWT validateDecoded implementation correctness.
 export
-postulate
 replayMitigatedWithMaxAge :
   (opts : ValidationOptions) -> opts.maxAge = Just 300 ->
   (currentTime : Integer) -> (jwt : DecodedJWT) ->

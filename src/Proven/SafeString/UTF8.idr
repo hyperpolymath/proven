@@ -19,12 +19,12 @@ import Data.Bits
 ||| Classify a byte in UTF-8 encoding
 public export
 data UTF8ByteType
-  = ASCII           -- 0xxxxxxx - Single byte (ASCII)
-  | LeadingByte2    -- 110xxxxx - Start of 2-byte sequence
-  | LeadingByte3    -- 1110xxxx - Start of 3-byte sequence
-  | LeadingByte4    -- 11110xxx - Start of 4-byte sequence
+  = ASCII            -- 0xxxxxxx - Single byte (ASCII)
+  | LeadingByte2     -- 110xxxxx - Start of 2-byte sequence
+  | LeadingByte3     -- 1110xxxx - Start of 3-byte sequence
+  | LeadingByte4     -- 11110xxx - Start of 4-byte sequence
   | ContinuationByte -- 10xxxxxx - Continuation byte
-  | InvalidByte     -- Invalid UTF-8 byte
+  | InvalidByte      -- Invalid UTF-8 byte
 
 ||| Classify a byte for UTF-8
 public export
@@ -38,49 +38,74 @@ classifyByte b =
   else InvalidByte
 
 --------------------------------------------------------------------------------
+-- Bitwise helpers for Bits8 (using Data.Bits interface)
+--------------------------------------------------------------------------------
+
+||| Bitwise AND for Bits8
+bitAnd8 : Bits8 -> Bits8 -> Bits8
+bitAnd8 = (.&.)
+
+||| Bitwise AND for Nat via Bits32 intermediary
+||| Used for codepoint manipulation
+natBitAnd : Nat -> Nat -> Nat
+natBitAnd a b = cast ((.&.) {a=Bits32} (cast a) (cast b))
+
+||| Right shift for Nat using Integer division by powers of 2
+natShiftR : Nat -> Nat -> Nat
+natShiftR val 0 = val
+natShiftR val (S n) = natShiftR (div val 2) n
+
+||| Left shift for Nat using multiplication by powers of 2
+natShiftL : Nat -> Nat -> Nat
+natShiftL val 0 = val
+natShiftL val (S n) = natShiftL (val * 2) n
+
+--------------------------------------------------------------------------------
 -- UTF-8 Validation
 --------------------------------------------------------------------------------
 
 ||| Result of UTF-8 validation
 public export
 data UTF8ValidationResult
-  = Valid                           -- String is valid UTF-8
-  | InvalidSequence Nat             -- Invalid sequence at byte offset
-  | UnexpectedEnd Nat               -- Truncated sequence at byte offset
-  | OverlongEncoding Nat            -- Overlong encoding at byte offset
-  | InvalidCodepoint Nat Nat        -- Invalid codepoint at offset with value
+  = ValidUTF8                      -- String is valid UTF-8
+  | InvalidSequence Nat            -- Invalid sequence at byte offset
+  | UnexpectedEnd Nat              -- Truncated sequence at byte offset
+  | OverlongEncoding Nat           -- Overlong encoding at byte offset
+  | InvalidCodepoint Nat Nat       -- Invalid codepoint at offset with value
 
-||| Validate UTF-8 byte sequence
+||| Validate UTF-8 byte sequence, bounded by fuel parameter for totality
 public export
 validateUTF8 : List Bits8 -> UTF8ValidationResult
-validateUTF8 bytes = go bytes 0
+validateUTF8 bytes = go (length bytes) bytes 0
   where
     -- Check continuation bytes
-    checkContinuation : List Bits8 -> Nat -> Nat -> (List Bits8, Bool)
-    checkContinuation bs offset 0 = (bs, True)
-    checkContinuation [] offset _ = ([], False)
-    checkContinuation (b :: bs) offset n =
+    checkContinuation : Nat -> List Bits8 -> Nat -> Nat -> (List Bits8, Bool)
+    checkContinuation _ bs offset 0 = (bs, True)
+    checkContinuation 0 _ offset _ = ([], False)
+    checkContinuation (S fuel) [] offset _ = ([], False)
+    checkContinuation (S fuel) (b :: bs) offset n =
       case classifyByte b of
-        ContinuationByte => checkContinuation bs (S offset) (minus n 1)
+        ContinuationByte => checkContinuation fuel bs (S offset) (minus n 1)
         _ => (b :: bs, False)
 
-    go : List Bits8 -> Nat -> UTF8ValidationResult
-    go [] _ = Valid
-    go (b :: bs) offset =
+    go : Nat -> List Bits8 -> Nat -> UTF8ValidationResult
+    go _ [] _ = ValidUTF8
+    go 0 _ offset = UnexpectedEnd offset  -- Fuel exhausted
+    go (S fuel) (b :: bs) offset =
       case classifyByte b of
-        ASCII => go bs (S offset)
-        ContinuationByte => InvalidSequence offset  -- Unexpected continuation
+        ASCII => go fuel bs (S offset)
+        ContinuationByte => InvalidSequence offset
         LeadingByte2 =>
-          case checkContinuation bs (S offset) 1 of
-            (rest, True) => go rest (S (S offset))
+          case checkContinuation fuel bs (S offset) 1 of
+            (rest, True) => go fuel rest (S (S offset))
             (_, False) => UnexpectedEnd offset
         LeadingByte3 =>
-          case checkContinuation bs (S offset) 2 of
-            (rest, True) => go rest (S (S (S offset)))
+          case checkContinuation fuel bs (S offset) 2 of
+            (rest, True) => go fuel rest (S (S (S offset)))
             (_, False) => UnexpectedEnd offset
         LeadingByte4 =>
-          case checkContinuation bs (S offset) 3 of
-            (rest, True) => go rest (S (S (S (S offset))))
+          case checkContinuation fuel bs (S offset) 3 of
+            (rest, True) => go fuel rest (S (S (S (S offset))))
             (_, False) => UnexpectedEnd offset
         InvalidByte => InvalidSequence offset
 
@@ -88,7 +113,7 @@ validateUTF8 bytes = go bytes 0
 public export
 isValidUTF8 : List Bits8 -> Bool
 isValidUTF8 bytes = case validateUTF8 bytes of
-  Valid => True
+  ValidUTF8 => True
   _ => False
 
 --------------------------------------------------------------------------------
@@ -110,42 +135,43 @@ public export
 isValidCodepoint : Codepoint -> Bool
 isValidCodepoint cp = cp <= maxCodepoint && not (cp >= 0xD800 && cp <= 0xDFFF)
 
-||| Decode UTF-8 bytes to codepoints
+||| Extract continuation bits from a byte (lower 6 bits)
+contBits : Bits8 -> Nat
+contBits b = cast (bitAnd8 b 0x3F)
+
+||| Decode UTF-8 bytes to codepoints, bounded by fuel for totality
 public export
 decodeUTF8 : List Bits8 -> Maybe (List Codepoint)
-decodeUTF8 bytes = go bytes []
+decodeUTF8 bytes = go (length bytes) bytes []
   where
-    -- Extract value bits from continuation byte
-    contBits : Bits8 -> Nat
-    contBits b = cast (b `and` 0x3F)
-
-    go : List Bits8 -> List Codepoint -> Maybe (List Codepoint)
-    go [] acc = Just (reverse acc)
-    go (b :: bs) acc =
+    go : Nat -> List Bits8 -> List Codepoint -> Maybe (List Codepoint)
+    go _ [] acc = Just (reverse acc)
+    go 0 _ _ = Nothing  -- Fuel exhausted
+    go (S fuel) (b :: bs) acc =
       case classifyByte b of
-        ASCII => go bs (cast b :: acc)
+        ASCII => go fuel bs (cast b :: acc)
         LeadingByte2 =>
           case bs of
             (c :: rest) =>
-              let cp = (cast (b `and` 0x1F) `shiftL` 6) + contBits c
-              in go rest (cp :: acc)
+              let cp = natShiftL (cast (bitAnd8 b 0x1F)) 6 + contBits c
+              in go fuel rest (cp :: acc)
             _ => Nothing
         LeadingByte3 =>
           case bs of
             (c1 :: c2 :: rest) =>
-              let cp = (cast (b `and` 0x0F) `shiftL` 12) +
-                       (contBits c1 `shiftL` 6) +
+              let cp = natShiftL (cast (bitAnd8 b 0x0F)) 12 +
+                       natShiftL (contBits c1) 6 +
                        contBits c2
-              in go rest (cp :: acc)
+              in go fuel rest (cp :: acc)
             _ => Nothing
         LeadingByte4 =>
           case bs of
             (c1 :: c2 :: c3 :: rest) =>
-              let cp = (cast (b `and` 0x07) `shiftL` 18) +
-                       (contBits c1 `shiftL` 12) +
-                       (contBits c2 `shiftL` 6) +
+              let cp = natShiftL (cast (bitAnd8 b 0x07)) 18 +
+                       natShiftL (contBits c1) 12 +
+                       natShiftL (contBits c2) 6 +
                        contBits c3
-              in go rest (cp :: acc)
+              in go fuel rest (cp :: acc)
             _ => Nothing
         _ => Nothing
 
@@ -162,18 +188,18 @@ encodeCodepoint cp =
     else if cp < 0x80
       then Just [cast cp]
     else if cp < 0x800
-      then Just [ cast (0xC0 + (cp `shiftR` 6))
-                , cast (0x80 + (cp `and` 0x3F))
+      then Just [ cast (0xC0 + natShiftR cp 6)
+                , cast (0x80 + natBitAnd cp 0x3F)
                 ]
     else if cp < 0x10000
-      then Just [ cast (0xE0 + (cp `shiftR` 12))
-                , cast (0x80 + ((cp `shiftR` 6) `and` 0x3F))
-                , cast (0x80 + (cp `and` 0x3F))
+      then Just [ cast (0xE0 + natShiftR cp 12)
+                , cast (0x80 + natBitAnd (natShiftR cp 6) 0x3F)
+                , cast (0x80 + natBitAnd cp 0x3F)
                 ]
-    else Just [ cast (0xF0 + (cp `shiftR` 18))
-              , cast (0x80 + ((cp `shiftR` 12) `and` 0x3F))
-              , cast (0x80 + ((cp `shiftR` 6) `and` 0x3F))
-              , cast (0x80 + (cp `and` 0x3F))
+    else Just [ cast (0xF0 + natShiftR cp 18)
+              , cast (0x80 + natBitAnd (natShiftR cp 12) 0x3F)
+              , cast (0x80 + natBitAnd (natShiftR cp 6) 0x3F)
+              , cast (0x80 + natBitAnd cp 0x3F)
               ]
 
 ||| Encode a list of codepoints to UTF-8 bytes

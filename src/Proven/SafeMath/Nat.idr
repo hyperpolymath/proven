@@ -100,10 +100,15 @@ clampNat lo hi n =
 --------------------------------------------------------------------------------
 
 ||| Greatest Common Divisor (Euclidean algorithm)
+||| Uses fuel parameter for totality since div/mod aren't structurally decreasing
 public export
 gcd : Nat -> Nat -> Nat
-gcd a Z = a
-gcd a b = gcd b (mod a b)
+gcd a b = gcdFuel (a + b + 1) a b
+  where
+    gcdFuel : Nat -> Nat -> Nat -> Nat
+    gcdFuel 0 a _ = a  -- Fuel exhausted, return current value
+    gcdFuel _ a Z = a
+    gcdFuel (S fuel) a b = gcdFuel fuel b (mod a b)
 
 ||| Least Common Multiple (safe from overflow in result, not in computation)
 public export
@@ -142,24 +147,28 @@ choose n k =
 --------------------------------------------------------------------------------
 
 ||| Count digits in base 10
+||| Uses fuel for totality since div is not structurally decreasing
 public export
 digitCount : Nat -> Nat
 digitCount Z = 1
-digitCount n = go n 0
+digitCount n = go (S n) n 0
   where
-    go : Nat -> Nat -> Nat
-    go Z acc = acc
-    go m acc = go (div m 10) (S acc)
+    go : Nat -> Nat -> Nat -> Nat
+    go 0 _ acc = acc
+    go _ Z acc = acc
+    go (S fuel) m acc = go fuel (div m 10) (S acc)
 
-||| Extract digits in base 10 (least significant first)
+||| Extract digits in base 10 (most significant first)
+||| Uses fuel for totality since div is not structurally decreasing
 public export
 digits : Nat -> List Nat
 digits Z = [0]
-digits n = go n []
+digits n = go (S n) n []
   where
-    go : Nat -> List Nat -> List Nat
-    go Z acc = acc
-    go m acc = go (div m 10) (mod m 10 :: acc)
+    go : Nat -> Nat -> List Nat -> List Nat
+    go 0 _ acc = acc
+    go _ Z acc = acc
+    go (S fuel) m acc = go fuel (div m 10) (mod m 10 :: acc)
 
 ||| Sum of digits
 public export

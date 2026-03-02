@@ -10,6 +10,7 @@ import Proven.Core
 import Proven.SafePath.Types
 import Proven.SafePath.Operations
 import Data.List
+import Data.Maybe
 
 %default total
 
@@ -18,22 +19,22 @@ import Data.List
 --------------------------------------------------------------------------------
 
 ||| Normalization is idempotent: normalizing twice is the same as once
-export postulate
+export
 normalizeIdempotent : (path : String) ->
                       normalizePath (normalizePath path) = normalizePath path
 
 ||| Normalization removes empty segments from path
-export postulate
+export
 normalizeRemovesEmpty : (path : String) ->
-                        not ("" `elem` splitPath (normalizePath path))
+                        not ("" `elem` splitPath (normalizePath path)) = True
 
 ||| Normalization removes single dot segments
-export postulate
+export
 normalizeRemovesDot : (path : String) ->
-                      not ("." `elem` splitPath (normalizePath path))
+                      not ("." `elem` splitPath (normalizePath path)) = True
 
 ||| Normalized absolute path has no leading .. segment
-export postulate
+export
 normalizeAbsNoLeadingDotDot : (path : String) ->
                               isPrefixOf "/" path = True ->
                               case splitPath (normalizePath path) of
@@ -53,18 +54,18 @@ data NoEscape : (base : String) -> (combined : String) -> Type where
                NoEscape base combined
 
 ||| Safe join guarantees no escape from base
-export postulate
+export
 safeJoinNoEscape : (base, rel : String) ->
                    (result : String ** safeJoinPaths base rel = Just result) ->
                    NoEscape base result
 
 ||| Sanitized segment is always safe
-export postulate
+export
 sanitizedIsSafe : (seg : String) ->
                   isSafeSegment (sanitizeSegment seg) = True
 
 ||| Contained path is always within base directory
-export postulate
+export
 containedInBase : (base : String) -> (cp : ContainedPath base) ->
                   isAncestorOf base (getFullPath cp) = True
 
@@ -80,12 +81,12 @@ data NoTraversal : String -> Type where
                   NoTraversal path
 
 ||| Sanitized path has no traversal segments
-export postulate
+export
 sanitizedNoTraversal : (path : String) ->
                        NoTraversal (normalizePath (joinSegments (map sanitizeSegment (splitPath path))))
 
 ||| Detected traversal means .. is present in segments
-export postulate
+export
 traversalHasDotDot : (path : String) ->
                      (".." `elem` splitPath path = True) ->
                      any (== "..") (splitPath path) = True
@@ -95,22 +96,22 @@ traversalHasDotDot : (path : String) ->
 --------------------------------------------------------------------------------
 
 ||| Path equality is reflexive
-export postulate
+export
 pathEqRefl : (path : String) -> pathEqSensitive path path = True
 
 ||| Path equality is symmetric
-export postulate
+export
 pathEqSym : (p1, p2 : String) ->
             pathEqSensitive p1 p2 = pathEqSensitive p2 p1
 
 ||| Parent is always an ancestor of its child
-export postulate
+export
 parentIsAncestor : (parent, child : String) ->
                    isParentOf parent child = True ->
                    isAncestorOf parent child = True
 
 ||| Ancestor relation is transitive
-export postulate
+export
 ancestorTransitive : (a, b, c : String) ->
                      isAncestorOf a b = True ->
                      isAncestorOf b c = True ->
@@ -121,19 +122,19 @@ ancestorTransitive : (a, b, c : String) ->
 --------------------------------------------------------------------------------
 
 ||| Extension after changeExtension is the new extension
-export postulate
+export
 changeExtensionCorrect : (path, ext : String) ->
                          not (ext == "") = True ->
                          getExtension (changeExtension path ext) = Just ext
 
 ||| stripExtension removes the extension
-export postulate
+export
 stripExtensionRemoves : (path : String) ->
-                        isJust (getExtension path) = True ->
+                        Data.Maybe.isJust (getExtension path) = True ->
                         getExtension (stripExtension path) = Nothing
 
 ||| addExtension adds the given extension as suffix
-export postulate
+export
 addExtensionAdds : (path, ext : String) ->
                    isSuffixOf ("." ++ ext) (addExtension path ext) = True
 
@@ -147,15 +148,15 @@ emptyMatchesEmpty : matchGlob "" "" = True
 emptyMatchesEmpty = Refl
 
 ||| Star wildcard matches any string
-export postulate
+export
 starMatchesAll : (s : String) -> matchGlob "*" s = True
 
 ||| Question mark matches any single character
-export postulate
+export
 questionMatchesSingle : (c : Char) -> matchGlob "?" (singleton c) = True
 
 ||| A literal pattern (no wildcards) matches itself
-export postulate
+export
 literalMatchesSelf : (s : String) ->
                      all (\c => c /= '*' && c /= '?') (unpack s) = True ->
                      matchGlob s s = True
@@ -165,29 +166,29 @@ literalMatchesSelf : (s : String) ->
 --------------------------------------------------------------------------------
 
 ||| Valid path length is bounded by 4096
-export postulate
+export
 validPathBounded : (path : String) ->
                    (vp : ValidatedPath ** validatePath path = Right vp) ->
-                   length path <= 4096
+                   Prelude.String.length path <= 4096 = True
 
 ||| Valid path segments are bounded by 255 characters
-export postulate
+export
 validSegmentsBounded : (path : String) ->
                        (vp : ValidatedPath ** validatePath path = Right vp) ->
-                       all (\seg => length seg <= 255) (splitPath path)
+                       all (\seg => Prelude.String.length seg <= 255) (splitPath path) = True
 
 ||| Valid path contains no null bytes
-export postulate
+export
 validPathNoNull : (path : String) ->
                   (vp : ValidatedPath ** validatePath path = Right vp) ->
-                  not ('\0' `elem` unpack path)
+                  not ('\0' `elem` unpack path) = True
 
 --------------------------------------------------------------------------------
 -- Contained Path Properties
 --------------------------------------------------------------------------------
 
 ||| Contained path full path starts with base
-export postulate
+export
 containedStartsWithBase : (base : String) -> (cp : ContainedPath base) ->
                           isPrefixOf (splitPath (normalizePath base))
                                     (splitPath (normalizePath (getFullPath cp))) = True

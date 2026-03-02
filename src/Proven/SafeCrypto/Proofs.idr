@@ -20,11 +20,11 @@ import Data.Vect
 --------------------------------------------------------------------------------
 
 ||| Constant-time comparison is reflexive
-export postulate
+export
 constantTimeRefl : (xs : List Bits8) -> digestEqList xs xs = True
 
 ||| Constant-time comparison is symmetric
-export postulate
+export
 constantTimeSym : (xs, ys : List Bits8) ->
                   constantTimeEqList xs ys = constantTimeEqList ys xs
 
@@ -82,13 +82,13 @@ sha1NotSecure : isSecure SHA1_ALG = False
 sha1NotSecure = Refl
 
 ||| Modern algorithms are secure
-export postulate
+export
 modernIsSecure : (alg : HashAlg) ->
                  securityLevel alg = Modern ->
                  isSecure alg = True
 
 ||| Standard algorithms are secure
-export postulate
+export
 standardIsSecure : (alg : HashAlg) ->
                    securityLevel alg = Standard ->
                    isSecure alg = True
@@ -98,15 +98,15 @@ standardIsSecure : (alg : HashAlg) ->
 --------------------------------------------------------------------------------
 
 ||| Digest equality is reflexive
-export postulate
+export
 digestEqRefl : (d : ByteVector n) -> digestEq d d = True
 
 ||| Digest equality is symmetric
-export postulate
+export
 digestEqSym : (d1, d2 : ByteVector n) -> digestEq d1 d2 = digestEq d2 d1
 
 ||| Different digests compare unequal (probabilistic property)
-export postulate
+export
 differentDigestsUnequal : (d1, d2 : ByteVector n) ->
                           d1 /= d2 ->
                           digestEq d1 d2 = False
@@ -116,21 +116,21 @@ differentDigestsUnequal : (d1, d2 : ByteVector n) ->
 --------------------------------------------------------------------------------
 
 ||| Random bytes generates correct length output
-export postulate
+export
 randomBytesLength : (n : Nat) ->
                     case randomBytes n of
                       Right (MkByteVec v) => length v = n
                       Left _ => ()
 
 ||| Random generation within bounds
-export postulate
+export
 randomNatBounded : (max : Nat) -> {auto ok : IsSucc max} ->
                    case randomNat max of
                      Right n => LT n max
                      Left _ => ()
 
 ||| Random range respects min and max bounds
-export postulate
+export
 randomRangeBounded : (min, max : Nat) -> {auto ok : LTE min max} ->
                      case randomNatRange min max of
                        Right n => (LTE min n, LTE n max)
@@ -141,13 +141,13 @@ randomRangeBounded : (min, max : Nat) -> {auto ok : LTE min max} ->
 --------------------------------------------------------------------------------
 
 ||| Counter nonces are unique for different counters
-export postulate
-counterNonceUnique : (prefix : ByteVec 8) -> (c1, c2 : Bits64) ->
+export
+counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
                      c1 /= c2 ->
                      counterNonce prefix c1 /= counterNonce prefix c2
 
 ||| Fresh nonces have correct size
-export postulate
+export
 freshNonceSize : (n : Nat) ->
                  case freshNonce n of
                    Right (MkByteVec v) => length v = n
@@ -158,14 +158,14 @@ freshNonceSize : (n : Nat) ->
 --------------------------------------------------------------------------------
 
 ||| Random token has expected length (base64 expansion)
-export postulate
+export
 tokenLengthApprox : (bytes : Nat) ->
                     case randomToken bytes of
                       Right s => length s <= (bytes * 4 `div` 3) + 3
                       Left _ => ()
 
 ||| UUID v4 has correct format (36 chars with hyphens)
-export postulate
+export
 uuidLength : case randomUUID of
                Right s => length s = 36
                Left _ => ()
@@ -209,6 +209,6 @@ hexEncodeDeterministic : (bs : List Bits8) ->
 hexEncodeDeterministic bs = Refl
 
 ||| Hex encoding produces even-length string
-export postulate
+export
 hexEncodeEvenLength : (bs : List Bits8) ->
                       mod (length (bytesToHex bs)) 2 = 0

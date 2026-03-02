@@ -87,19 +87,19 @@ Show EntropySource where
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Reads n bytes from system CSPRNG
-postulate prim__randomBytes : (n : Nat) -> ByteVec n
+prim__randomBytes : (n : Nat) -> ByteVec n
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Returns a uniformly distributed natural number in [0, max)
-postulate prim__randomNat : (max : Nat) -> Nat
+prim__randomNat : (max : Nat) -> Nat
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Returns a uniformly distributed integer in [min, max]
-postulate prim__randomInt : (min : Integer) -> (max : Integer) -> Integer
+prim__randomInt : (min : Integer) -> (max : Integer) -> Integer
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Returns a uniformly distributed double in [0, 1)
-postulate prim__randomDouble : Double
+prim__randomDouble : Double
 
 --------------------------------------------------------------------------------
 -- Random Generation Interface
@@ -286,7 +286,7 @@ freshNonce = randomBytes
 ||| Generate a unique counter-based nonce (needs state)
 ||| For single-use nonces, prefer freshNonce
 public export
-counterNonce : (prefix : ByteVec 8) -> (counter : Bits64) -> ByteVec 12
+counterNonce : (pfx : ByteVec 8) -> (counter : Bits64) -> ByteVec 12
 counterNonce (MkByteVec prefix) counter =
   let counterBytes = [ cast (shiftR counter 24)
                      , cast (shiftR counter 16)

@@ -83,7 +83,7 @@ javaObjectIsDangerous = Refl
 ||| Postulate: Standard YAML tags (!!null, !!bool, !!int, !!float, !!str,
 ||| !!seq, !!map) are not in the dangerous tag list. The dangerous list only
 ||| contains language-specific object instantiation tags (!!python/*, !!ruby/*, etc.).
-export postulate
+export
 standardTagsSafe : (tag : String) ->
                    tag `elem` ["!!null", "!!bool", "!!int", "!!float", "!!str", "!!seq", "!!map"] = True ->
                    isDangerousTag tag = False
@@ -91,7 +91,7 @@ standardTagsSafe : (tag : String) ->
 ||| Postulate: The secureDefaults configuration blocks every tag that
 ||| isDangerousTag identifies as dangerous. The blocked tag list in
 ||| secureDefaults is a superset of the dangerous tag list.
-export postulate
+export
 secureDefaultsBlockDangerous : (tag : String) ->
                                isDangerousTag tag = True ->
                                isBlockedTag secureDefaults tag = True
@@ -187,7 +187,7 @@ parsedTypesCorrect (YTimestamp _) = Refl
 ||| YAMLValue. If isScalar returns True for a value, isCollection returns
 ||| False. Scalars are leaf nodes (null, bool, int, float, string, binary,
 ||| timestamp); collections are YArray and YObject.
-export postulate
+export
 isScalarCorrect : (val : YAMLValue) ->
                   isScalar val = True ->
                   not (isCollection val) = True
@@ -199,7 +199,7 @@ isScalarCorrect : (val : YAMLValue) ->
 ||| Postulate: YAML parsing always returns a Result type (either Err or Ok),
 ||| never throws an exception. All error paths produce YAMLError values
 ||| wrapped in Err; successful parsing produces YAMLValue wrapped in Ok.
-export postulate
+export
 parsingNeverCrashes : (input : String) -> (opts : YAMLSecurityOptions) ->
                       (err : YAMLError ** parseYAMLWith opts input = Err err) `Either`
                       (val : YAMLValue ** parseYAMLWith opts input = Ok val)

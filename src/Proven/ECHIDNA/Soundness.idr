@@ -4,7 +4,7 @@
 ||| Formal soundness guarantees for ECHIDNA neurosymbolic theorem prover
 |||
 ||| This module provides the formal soundness theorem for ECHIDNA:
-||| If the system accepts a proof, it is guaranteed to be valid under
+||| If the system accepts a proof term, it is guaranteed to be valid under
 ||| the proof theory of the underlying theorem prover backend.
 |||
 ||| Key insight: We never trust ML predictions directly. All verification
@@ -21,21 +21,21 @@ import Proven.ECHIDNA.Validator
 -- Prover Backend Abstraction
 --------------------------------------------------------------------------------
 
-||| A theorem prover backend that can verify proofs
+||| A theorem prover backend that can verify proof terms
 public export
 interface ProverBackend prover where
   ||| Verify a proof term under this prover's proof theory
   verify : prover -> ProofTerm -> Bool
 
   ||| Soundness guarantee of the prover itself
-  ||| If the prover accepts a proof, it is valid
-  proverSound : (p : prover) -> (proof : ProofTerm) ->
-                verify p proof = True -> ProofValid proof
+  ||| If the prover accepts a term, it is valid
+  proverSound : (p : prover) -> (prf : ProofTerm) ->
+                verify p prf = True -> ProofValid prf
 
-||| Evidence that a proof is valid under a prover's proof theory
+||| Evidence that a proof term is valid under a prover's proof theory
 public export
 data ProofValid : ProofTerm -> Type where
-  ValidProof : (proof : ProofTerm) -> ProofValid proof
+  ValidProof : (prf : ProofTerm) -> ProofValid prf
 
 --------------------------------------------------------------------------------
 -- ML Model Abstraction
@@ -69,58 +69,57 @@ record ECHIDNA prover where
 -- Soundness Theorem
 --------------------------------------------------------------------------------
 
-||| Main soundness theorem: If ECHIDNA accepts a proof, it is valid
+||| Main soundness theorem: If ECHIDNA accepts a proof term, it is valid
 |||
 ||| This is the formal guarantee that ECHIDNA provides:
 ||| The ML model may suggest anything (including unsound tactics),
-||| but ECHIDNA only accepts proofs that pass both:
+||| but ECHIDNA only accepts terms that pass both:
 |||   1. Internal dependent type validation
 |||   2. External prover backend verification
 |||
-||| Therefore, no unsound proofs can be accepted.
+||| Therefore, no unsound terms can be accepted.
 public export
 echidnaSoundness : ProverBackend prover =>
                    (sys : ECHIDNA prover) ->
-                   (proof : ProofTerm) ->
-                   (validated : sys.validator proof = Valid) ->
-                   (verified : verify sys.backend proof = True) ->
-                   ProofValid proof
-echidnaSoundness sys proof validated verified =
+                   (prf : ProofTerm) ->
+                   (validated : sys.validator prf = IsValid prf) ->
+                   (verified : verify sys.backend prf = True) ->
+                   ProofValid prf
+echidnaSoundness sys prf validated verified =
   -- By the soundness of the prover backend
-  proverSound sys.backend proof verified
+  proverSound sys.backend prf verified
 
 --------------------------------------------------------------------------------
 -- Corollaries
 --------------------------------------------------------------------------------
 
-||| ECHIDNA never accepts invalid proofs:
-||| If the prover rejects a proof, ECHIDNA cannot produce a soundness
+||| ECHIDNA never accepts invalid proof terms:
+||| If the prover rejects a term, ECHIDNA cannot produce a soundness
 ||| guarantee for it (the echidnaSoundness theorem requires verified=True).
-||| This is an immediate consequence of echidnaSoundness requiring a
-||| proof of `verify sys.backend proof = True`, which contradicts
-||| `verify sys.backend proof = False` by Uninhabited.
+||| This is an immediate consequence of echidnaSoundness requiring
+||| verified=True, which contradicts verified=False by Uninhabited.
 public export
 noFalsePositives : ProverBackend prover =>
                    (sys : ECHIDNA prover) ->
-                   (proof : ProofTerm) ->
-                   verify sys.backend proof = False ->
-                   verify sys.backend proof = True -> Void
-noFalsePositives sys proof notVerified verified = absurd (trans (sym notVerified) verified)
+                   (prf : ProofTerm) ->
+                   verify sys.backend prf = False ->
+                   verify sys.backend prf = True -> Void
+noFalsePositives sys prf notVerified verified = absurd (trans (sym notVerified) verified)
 
-||| If the validator accepts and prover accepts, the proof is valid
+||| If the validator accepts and prover accepts, the term is valid
 public export
 doubleCheck : ProverBackend prover =>
               (sys : ECHIDNA prover) ->
-              (proof : ProofTerm) ->
-              sys.validator proof = Valid ->
-              verify sys.backend proof = True ->
-              ProofValid proof
-doubleCheck sys proof validatorOk proverOk =
-  echidnaSoundness sys proof validatorOk proverOk
+              (prf : ProofTerm) ->
+              sys.validator prf = IsValid prf ->
+              verify sys.backend prf = True ->
+              ProofValid prf
+doubleCheck sys prf validatorOk proverOk =
+  echidnaSoundness sys prf validatorOk proverOk
 
 ||| ML suggestions don't affect soundness (can be arbitrary)
 ||| Even if the ML model suggests a tactic, the prover backend's rejection
-||| prevents echidnaSoundness from producing a validity proof.
+||| prevents echidnaSoundness from producing a validity guarantee.
 ||| The ML suggestion is irrelevant to the formal guarantee.
 public export
 mlIndependence : ProverBackend prover =>
@@ -145,13 +144,13 @@ mlIndependence sys goal tactic suggested notVerified verified =
 public export
 data Consensus : List prover -> ProofTerm -> Type where
   AllAgree : {provers : List prover} ->
-             (proof : ProofTerm) ->
-             (allVerify : All (\p => ProverBackend prover => verify p proof = True) provers) ->
-             Consensus provers proof
+             (prf : ProofTerm) ->
+             (allVerify : All (\p => ProverBackend prover => verify p prf = True) provers) ->
+             Consensus provers prf
 
-||| Stronger guarantee: If N provers agree, proof is valid under all their theories
+||| Stronger guarantee: If N provers agree, the term is valid under all their theories
 ||| Each prover's individual soundness guarantee (proverSound) produces a
-||| ProofValid proof from its verify=True evidence. Since ProofValid is
+||| ProofValid prf from its verify=True evidence. Since ProofValid is
 ||| prover-independent, the result for each prover in the list is identical.
 |||
 ||| Note: The full formal proof requires induction over the All structure
@@ -160,11 +159,10 @@ data Consensus : List prover -> ProofTerm -> Type where
 |||
 ||| Depends on Idris2 ECHIDNA implementation correctness.
 public export
-postulate
 consensusSoundness : {provers : List prover} ->
-                     (proof : ProofTerm) ->
-                     Consensus provers proof ->
-                     All (\p => ProverBackend prover => ProofValid proof) provers
+                     (prf : ProofTerm) ->
+                     Consensus provers prf ->
+                     All (\p => ProverBackend prover => ProofValid prf) provers
 
 --------------------------------------------------------------------------------
 -- Trust Framework Integration
@@ -174,39 +172,39 @@ consensusSoundness : {provers : List prover} ->
 public export
 data TrustEvidence : ProofTerm -> Type where
   ||| Performance benchmarks show no regression
-  BenchmarkPassed : ProofTerm -> TrustEvidence proof
+  BenchmarkPassed : ProofTerm -> TrustEvidence prf
   ||| Property-based tests passed all invariants
-  PropertiesHold : ProofTerm -> TrustEvidence proof
+  PropertiesHold : ProofTerm -> TrustEvidence prf
   ||| No anomalies detected (overconfidence, circular reasoning, etc.)
-  NoAnomalies : ProofTerm -> TrustEvidence proof
+  NoAnomalies : ProofTerm -> TrustEvidence prf
   ||| All trust layers passed
-  FullTrust : TrustEvidence proof -> TrustEvidence proof -> TrustEvidence proof -> TrustEvidence proof
+  FullTrust : TrustEvidence prf -> TrustEvidence prf -> TrustEvidence prf -> TrustEvidence prf
 
-||| Combined soundness: Formal proof + empirical trust evidence
+||| Combined soundness: Formal verification + empirical trust evidence
 public export
 totalTrust : ProverBackend prover =>
              (sys : ECHIDNA prover) ->
-             (proof : ProofTerm) ->
-             (validated : sys.validator proof = Valid) ->
-             (verified : verify sys.backend proof = True) ->
-             (evidence : TrustEvidence proof) ->
-             ProofValid proof
-totalTrust sys proof validated verified evidence =
+             (prf : ProofTerm) ->
+             (validated : sys.validator prf = IsValid prf) ->
+             (verified : verify sys.backend prf = True) ->
+             (evidence : TrustEvidence prf) ->
+             ProofValid prf
+totalTrust sys prf validated verified evidence =
   -- Trust evidence is additional assurance, but formal soundness is sufficient
-  echidnaSoundness sys proof validated verified
+  echidnaSoundness sys prf validated verified
 
 --------------------------------------------------------------------------------
 -- Export
 --------------------------------------------------------------------------------
 
 ||| Main export: The soundness theorem is the key guarantee
-||| To use: provide evidence that the validator returned Valid and
-||| the prover backend verified the proof.
+||| To use: provide evidence that the validator returned IsValid and
+||| the prover backend verified the term.
 export
 soundnessGuarantee : ProverBackend prover =>
                      (sys : ECHIDNA prover) ->
-                     (proof : ProofTerm) ->
-                     (validated : sys.validator proof = Valid) ->
-                     (verified : verify sys.backend proof = True) ->
-                     ProofValid proof
+                     (prf : ProofTerm) ->
+                     (validated : sys.validator prf = IsValid prf) ->
+                     (verified : verify sys.backend prf = True) ->
+                     ProofValid prf
 soundnessGuarantee = echidnaSoundness

@@ -87,13 +87,13 @@ secureDefaultsZeroExpansions = Refl
 ||| The builder API never emits <!ENTITY ... SYSTEM/PUBLIC ...> in rendered output.
 ||| Depends on renderNode implementation which constructs XML from safe primitives
 ||| and never injects entity declarations.
-export postulate
+export
 builderNoXXE : (builder : ElementBuilder) ->
                NoExternalEntities (renderNode (build builder))
 
 ||| The builder API never emits <!DOCTYPE ...> in rendered output.
 ||| Depends on renderNode only producing element/text/attribute markup.
-export postulate
+export
 builderNoDTD : (builder : ElementBuilder) ->
                NoDTD (renderNode (build builder))
 
@@ -112,7 +112,7 @@ entityExpansionBounded opts count tooMany = ()
 ||| The builder escapes & to &amp;, so rendered output contains no raw entity
 ||| references beyond the five XML predefined entities (&amp; &lt; &gt; &quot; &#39;).
 ||| Depends on the escaping behaviour of renderNode.
-export postulate
+export
 builderNoEntities : (builder : ElementBuilder) ->
                     -- Builder escapes & to &amp;, preventing entity references
                     not (isInfixOf "&" (renderNode (build builder)) &&
@@ -128,7 +128,7 @@ builderNoEntities : (builder : ElementBuilder) ->
 ||| xmlText escapes all occurrences of '<' to '&lt;', so the escaped output
 ||| never contains a raw '<' that could be interpreted as tag injection.
 ||| Depends on the character-level escaping in xmlText.
-export postulate
+export
 textEscapingSound : (s : String) ->
                     let escaped = (xmlText s).escaped
                     in not (isInfixOf "<" escaped && not (isInfixOf "&lt;" escaped)) = True
@@ -136,7 +136,7 @@ textEscapingSound : (s : String) ->
 ||| xmlAttrValue escapes all occurrences of '"' to '&quot;', so the escaped output
 ||| never contains a raw quote that could break out of attribute context.
 ||| Depends on the character-level escaping in xmlAttrValue.
-export postulate
+export
 attrEscapingSound : (s : String) ->
                     let escaped = (xmlAttrValue s).escaped
                     in not (isInfixOf "\"" escaped && not (isInfixOf "&quot;" escaped)) = True
@@ -171,15 +171,15 @@ builderElementWellFormed builder = MkWellFormed (MkXMLDocument Nothing Nothing (
 ||| When xmlName returns Ok, isValidXMLName holds. Depends on xmlName
 ||| performing the same character checks as isValidXMLName but returning
 ||| a validated wrapper type (opaque string validation).
-export postulate
+export
 elementNameValidation : (name : String) ->
                         isOk (xmlName name) = True ->
                         isValidXMLName name = True
 
 ||| When xmlQName returns Ok, both prefix and local components satisfy
 ||| isValidXMLName. Depends on xmlQName validating each component.
-export postulate
-qnameComponentsValid : (prefix : String) -> (local : String) ->
+export
+qnameComponentsValid : (pfx : String) -> (local : String) ->
                        isOk (xmlQName prefix local) = True ->
                        (isValidXMLName prefix = True, isValidXMLName local = True)
 
@@ -209,7 +209,7 @@ builderDepthConstant builder = ()
 ||| xmlAttrValue replaces all '"' characters with '&quot;', so the escaped
 ||| attribute value contains no unescaped double-quote characters.
 ||| Depends on the character-level escaping in xmlAttrValue.
-export postulate
+export
 attrValueNoQuotes : (value : String) ->
                     let attrVal = xmlAttrValue value
                     in all (\c => c /= '"' || False) (unpack attrVal.escaped) = True
@@ -254,7 +254,7 @@ piNotXmlDecl target isXml = ()
 ||| Adding a properly-escaped child to a builder preserves the ProperlyEscaped
 ||| property on the built output. Depends on withChild not altering the
 ||| child's escaped content and build composing children safely.
-export postulate
+export
 nestedElementsSafe : (parent : ElementBuilder) -> (child : XMLNode) ->
                      ProperlyEscaped child ->
                      ProperlyEscaped (build (withChild child parent))

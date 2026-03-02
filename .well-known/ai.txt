@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# ai.txt — AI agent guidance for proven repository
+# See also: 0-AI-MANIFEST.a2ml (canonical AI entry point)
+
+User-agent: *
+Allow: /
+
+# Repository: proven — Formally Verified Safety Library
+# License: PMPL-1.0-or-later
+# Author: Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+# AI agents MUST read 0-AI-MANIFEST.a2ml before modifying this repository.
+# All computation happens in Idris2 (src/Proven/). Bindings are thin FFI wrappers.
+# Machine-readable metadata lives in .machine_readable/ ONLY.
+# believe_me, assert_total, assert_smaller are BANNED.
+
+# Canonical entry point for AI agents:
+AI-Manifest: /0-AI-MANIFEST.a2ml
+
+# Machine-readable state files:
+State: /.machine_readable/STATE.scm
+Meta: /.machine_readable/META.scm
+Ecosystem: /.machine_readable/ECOSYSTEM.scm

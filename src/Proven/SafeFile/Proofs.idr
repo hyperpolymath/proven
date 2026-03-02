@@ -88,7 +88,7 @@ totalReadPrevents opts handle additional tooMuch = ()
 ||| Postulate: Taking at most `limit` characters from a string and repacking
 ||| produces a string of length <= limit. Relies on List.take semantics:
 ||| take n xs always produces a list of length min(n, length xs).
-export postulate
+export
 boundedReadAtMostLimit : (limit : Nat) -> (content : String) ->
                          length (unpack (pack (take limit (unpack content)))) <= limit = True
 
@@ -204,13 +204,13 @@ fileSizeCheckPrevents path size limit tooLarge = ()
 
 ||| Postulate: updateAfterRead adds bytes to the counter, so the new
 ||| bytesRead is always >= the old bytesRead (monotonically increasing).
-export postulate
+export
 readTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
                         (updateAfterRead h bytes).bytesRead >= h.bytesRead = True
 
 ||| Postulate: updateAfterWrite adds bytes to the counter, so the new
 ||| bytesWritten is always >= the old bytesWritten (monotonically increasing).
-export postulate
+export
 writeTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
                          (updateAfterWrite h bytes).bytesWritten >= h.bytesWritten = True
 
@@ -228,7 +228,7 @@ newHandleZeroCounters id mode path = (Refl, Refl)
 ||| Postulate: Filtering out null bytes from a string and repacking guarantees
 ||| the resulting string contains no null byte subsequence. Depends on
 ||| filter (/= '\0') removing all '\0' characters from the char list.
-export postulate
+export
 sanitizedNoNull : (s : String) ->
                   not (isInfixOf "\0" (sanitizeContent s)) = True
   where

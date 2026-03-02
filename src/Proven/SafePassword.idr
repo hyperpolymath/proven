@@ -35,7 +35,7 @@ data RawPassword : Type where
 public export
 data ValidPassword : (policy : PasswordPolicy) -> Type where
   MkValidPassword : (value : String) ->
-                    (proof : MeetsPolicy policy value) ->
+                    (prf : MeetsPolicy policy value) ->
                     ValidPassword policy
 
 ||| A hashed password (safe to store)
@@ -79,7 +79,7 @@ validatePassword policy (MkRawPassword value) =
     violations => Left violations
   where
     -- Awaiting formal proof: checkPolicy [] implies MeetsPolicy
-    postulate trustCheckPolicy : (p : PasswordPolicy) -> (v : String) -> MeetsPolicy p v
+    trustCheckPolicy : (p : PasswordPolicy) -> (v : String) -> MeetsPolicy p v
 
 ||| Check if password meets minimum requirements
 public export
@@ -98,21 +98,21 @@ revealForHashing (MkValidPassword value _) = value
 ||| Hash a validated password using Argon2id
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate hashPasswordArgon2id : ValidPassword policy ->
+hashPasswordArgon2id : ValidPassword policy ->
                                  Argon2Params ->
                                  IO HashedPassword
 
 ||| Hash a validated password using bcrypt
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate hashPasswordBcrypt : ValidPassword policy ->
+hashPasswordBcrypt : ValidPassword policy ->
                                BcryptParams ->
                                IO HashedPassword
 
 ||| Hash a validated password using scrypt
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate hashPasswordScrypt : ValidPassword policy ->
+hashPasswordScrypt : ValidPassword policy ->
                                ScryptParams ->
                                IO HashedPassword
 
@@ -128,7 +128,7 @@ hashPassword pwd = hashPasswordArgon2id pwd defaultArgon2Params
 ||| Verify a password against a hash (timing-safe)
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate verifyPassword : RawPassword -> HashedPassword -> IO VerifyResult
+verifyPassword : RawPassword -> HashedPassword -> IO VerifyResult
 
 ||| Verify and check if rehash needed
 public export
@@ -197,12 +197,12 @@ defaultGenerateOptions = MkGenerateOptions
 ||| Generate a random password
 ||| Awaiting FFI: will be replaced by extern call to CSPRNG via Idris2 RefC compiled code
 export
-postulate generatePassword : GenerateOptions -> IO String
+generatePassword : GenerateOptions -> IO String
 
 ||| Generate a passphrase (word-based)
 ||| Awaiting FFI: will be replaced by extern call to CSPRNG via Idris2 RefC compiled code
 export
-postulate generatePassphrase : (words : Nat) ->
+generatePassphrase : (words : Nat) ->
                                 (separator : Char) ->
                                 IO String
 
@@ -227,7 +227,7 @@ Show BreachStatus where
 ||| Uses first 5 chars of SHA-1 hash for privacy-preserving lookup
 ||| Awaiting FFI: will be replaced by extern call to HTTP client via Idris2 RefC compiled code
 export
-postulate checkBreach : RawPassword -> IO BreachStatus
+checkBreach : RawPassword -> IO BreachStatus
 
 --------------------------------------------------------------------------------
 -- Entropy Calculation

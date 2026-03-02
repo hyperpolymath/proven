@@ -36,7 +36,7 @@ public export
 record CIDRBlock where
   constructor MkCIDR
   network : (Nat, Nat, Nat, Nat)
-  prefix  : PrefixLength
+  pfxLen  : PrefixLength
 
 ||| Show instance for PrefixLength
 public export
@@ -49,7 +49,7 @@ Show CIDRBlock where
   show cidr =
     let (a, b, c, d) = network cidr
     in show a ++ "." ++ show b ++ "." ++ show c ++ "." ++ show d
-       ++ "/" ++ show (prefix cidr)
+       ++ "/" ++ show (pfxLen cidr)
 
 ||| Eq instance for PrefixLength
 public export
@@ -92,7 +92,7 @@ public export
 networkAddress : CIDRBlock -> (Nat, Nat, Nat, Nat)
 networkAddress cidr =
   let (a, b, c, d) = network cidr
-      (m1, m2, m3, m4) = subnetMask (prefix cidr)
+      (m1, m2, m3, m4) = subnetMask (pfxLen cidr)
   in (min a m1, min b m2, min c m3, min d m4)
 
 ||| Calculate broadcast address
@@ -100,7 +100,7 @@ public export
 broadcastAddress : CIDRBlock -> (Nat, Nat, Nat, Nat)
 broadcastAddress cidr =
   let (a, b, c, d) = networkAddress cidr
-      (m1, m2, m3, m4) = subnetMask (prefix cidr)
+      (m1, m2, m3, m4) = subnetMask (pfxLen cidr)
       inv1 = minus 255 m1
       inv2 = minus 255 m2
       inv3 = minus 255 m3
@@ -164,7 +164,7 @@ parseCIDR s =
 public export
 firstHost : CIDRBlock -> Maybe (Nat, Nat, Nat, Nat)
 firstHost cidr =
-  if prefixValue (prefix cidr) >= 31
+  if prefixValue (pfxLen cidr) >= 31
     then Nothing
     else let (a, b, c, d) = networkAddress cidr
          in Just (a, b, c, if d < 255 then S d else d)
@@ -173,7 +173,7 @@ firstHost cidr =
 public export
 lastHost : CIDRBlock -> Maybe (Nat, Nat, Nat, Nat)
 lastHost cidr =
-  if prefixValue (prefix cidr) >= 31
+  if prefixValue (pfxLen cidr) >= 31
     then Nothing
     else let (a, b, c, d) = broadcastAddress cidr
          in Just (a, b, c, minus d 1)

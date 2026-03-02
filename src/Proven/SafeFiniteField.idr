@@ -22,41 +22,32 @@ import Data.Bits
 -- ============================================================================
 
 ||| n mod p < p for any NonZero p
-postulate
 modLtPrime : (n, p : Nat) -> {auto 0 _ : NonZero p} -> So (n `mod` p < p)
 
 ||| 0 < p for any NonZero p
-postulate
 zeroLtNonZero : (p : Nat) -> {auto 0 _ : NonZero p} -> So (0 < p)
 
 ||| 1 < p when p > 1
-postulate
 oneLtGt1 : (p : Nat) -> {auto 0 _ : GT p 1} -> So (1 < p)
 
 ||| Bitwise AND with (2^n - 1) mask yields a value < 2^n
-postulate
 maskLtPow2 : (b : Bits64) -> (n : Nat) -> So (b .&. (cast (pow 2 n) - 1) < pow 2 n)
 
 ||| 0 < 2^n for any n
-postulate
 zeroLtPow2 : (n : Nat) -> So (0 < pow 2 n)
 
 ||| 1 < 2^n when n > 0
-postulate
 oneLtPow2 : (n : Nat) -> {auto 0 _ : GT n 0} -> So (1 < pow 2 n)
 
 ||| XOR of two values both < 2^n stays < 2^n
-postulate
 xorLtPow2 : (a, b : Bits64) -> (n : Nat) ->
              {auto 0 _ : So (a < pow 2 n)} -> {auto 0 _ : So (b < pow 2 n)} ->
              So (a `xor` b < pow 2 n)
 
 ||| Polynomial reduction modulo an irreducible of degree n yields result < 2^n
-postulate
 polyModLtPow2 : (result : Bits64) -> (n : Nat) -> So (result < pow 2 n)
 
 ||| A modular-inverse result in [0, p) satisfies So (v < p)
-postulate
 inverseInRange : (v, p : Nat) -> So (v < p)
 
 -- ============================================================================

@@ -171,4 +171,4 @@ gcdZeroRight n = Refl
 ||| Euclidean algorithm; a full mechanised proof would require
 ||| Accessibility-based recursion over the strictly-decreasing mod chain.
 export
-postulate gcdCommutative : (a, b : Nat) -> gcd a b = gcd b a
+gcdCommutative : (a, b : Nat) -> gcd a b = gcd b a

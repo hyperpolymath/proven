@@ -8,6 +8,7 @@ module Proven.SafeEmail.Parser
 
 import Proven.Core
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
@@ -54,12 +55,12 @@ Show EmailParseError where
 -- Character Validation
 --------------------------------------------------------------------------------
 
-||| Characters allowed in local part (atom characters)
+||| Characters allowed in local part (atom characters per RFC 5322)
 public export
 isAtomChar : Char -> Bool
 isAtomChar c =
   isAlphaNum c ||
-  c `elem` unpack "!#$%&'*+/=?^_`{|}~-"
+  any (\x => x == c) (unpack "!#$%&'*+/=?^_`{|}~-")
 
 ||| Characters allowed in quoted local part
 public export
@@ -102,7 +103,8 @@ parseLocalPart s =
   if length s > 64
     then Left LocalPartTooLong
     else if isPrefixOf "\"" s && isSuffixOf "\"" s
-      then parseQuoted (drop 1 (take (minus (length s) 1) s))
+      then let inner = substr 1 (minus (length s) 2) s
+           in parseQuoted inner
       else parseAtom s
   where
     parseAtom : String -> Either EmailParseError String
@@ -129,6 +131,15 @@ parseLocalPart s =
             then validateQuoted rest (c :: acc)
             else Left (InvalidLocalPart str)
 
+||| Check if a domain label is valid per RFC 5321
+isValidLabel : String -> Bool
+isValidLabel "" = False
+isValidLabel label =
+  length label <= 63 &&
+  all isDomainChar (unpack label) &&
+  not (isPrefixOf "-" label) &&
+  not (isSuffixOf "-" label)
+
 ||| Parse domain part
 parseDomain : String -> Either EmailParseError String
 parseDomain "" = Left EmptyDomain
@@ -144,30 +155,14 @@ parseDomain s =
 
     parseDomainName : String -> Either EmailParseError String
     parseDomainName str =
-      let labels = split '.' str
-      in if all isValidLabel labels && not (null labels)
+      let labels = forget (split (== '.') str)
+      in if all isValidLabel labels
            then Right str
            else Left (InvalidDomain str)
-
-    isValidLabel : String -> Bool
-    isValidLabel "" = False
-    isValidLabel label =
-      length label <= 63 &&
-      all isDomainChar (unpack label) &&
-      not (isPrefixOf "-" label) &&
-      not (isSuffixOf "-" label)
 
 --------------------------------------------------------------------------------
 -- Public API
 --------------------------------------------------------------------------------
-
-||| Parse email address string
-public export
-parseEmail : String -> Maybe ParsedEmail
-parseEmail "" = Nothing
-parseEmail s = case parseEmailEither s of
-  Right email => Just email
-  Left _ => Nothing
 
 ||| Parse email with detailed error
 public export
@@ -186,6 +181,14 @@ parseEmailEither s =
             validDomain <- parseDomain domain
             Right (MkParsedEmail validLocal validDomain)
 
+||| Parse email address string
+public export
+parseEmail : String -> Maybe ParsedEmail
+parseEmail "" = Nothing
+parseEmail s = case parseEmailEither s of
+  Right email => Just email
+  Left _ => Nothing
+
 ||| Parse email from "Name <email>" format
 public export
 parseNamedEmail : String -> Maybe (Maybe String, ParsedEmail)
@@ -198,27 +201,27 @@ parseNamedEmail s =
     trim : String -> String
     trim = pack . dropWhile isSpace . reverse . dropWhile isSpace . reverse . unpack
 
-    parseAngleBracket : String -> Maybe (Maybe String, ParsedEmail)
-    parseAngleBracket str =
-      case findIndex (== '<') (unpack str) of
-        Nothing => Nothing
-        Just idx =>
-          let namePart = trim (take idx str)
-              emailPart = take (minus (length str) 1) (drop (S idx) str)
-              name = if namePart == "" then Nothing
-                     else Just (unquote namePart)
-          in map (\email => (name, email)) (parseEmail emailPart)
-
-    findIndex : (a -> Bool) -> List a -> Maybe Nat
-    findIndex _ [] = Nothing
-    findIndex p (x :: xs) =
-      if p x then Just 0 else map S (findIndex p xs)
+    findCharIndex : (Char -> Bool) -> List Char -> Nat -> Maybe Nat
+    findCharIndex _ [] _ = Nothing
+    findCharIndex p (x :: xs) i =
+      if p x then Just i else findCharIndex p xs (S i)
 
     unquote : String -> String
     unquote str =
       if isPrefixOf "\"" str && isSuffixOf "\"" str
-        then drop 1 (take (minus (length str) 1) str)
+        then substr 1 (minus (length str) 2) str
         else str
+
+    parseAngleBracket : String -> Maybe (Maybe String, ParsedEmail)
+    parseAngleBracket str =
+      case findCharIndex (== '<') (unpack str) 0 of
+        Nothing => Nothing
+        Just idx =>
+          let namePart = trim (substr 0 idx str)
+              emailPart = substr (S idx) (minus (minus (length str) 1) (S idx)) str
+              name = if namePart == "" then Nothing
+                     else Just (unquote namePart)
+          in map (\email => (name, email)) (parseEmail emailPart)
 
 ||| Quick check if string looks like email
 public export
@@ -235,7 +238,7 @@ looksLikeEmail s =
 public export
 parseEmailList : String -> List ParsedEmail
 parseEmailList s =
-  let parts = concatMap (split ';') (split ',' s)
+  let parts = concatMap (forget . split (== ';')) (forget (split (== ',') s))
       trimmed = map trim parts
   in mapMaybe parseEmail trimmed
   where
@@ -246,7 +249,7 @@ parseEmailList s =
 public export
 parseEmailListWithErrors : String -> (List ParsedEmail, List (String, EmailParseError))
 parseEmailListWithErrors s =
-  let parts = concatMap (split ';') (split ',' s)
+  let parts = concatMap (forget . split (== ';')) (forget (split (== ',') s))
       trimmed = map trim parts
       results = map (\p => (p, parseEmailEither p)) trimmed
   in partitionResults results ([], [])

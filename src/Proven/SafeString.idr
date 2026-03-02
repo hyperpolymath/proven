@@ -62,11 +62,12 @@ tailStr s = case strM s of
 ||| Safe last character
 public export
 lastChar : String -> Maybe Char
-lastChar s =
-  let chars = unpack s
-  in case chars of
-       [] => Nothing
-       _ => Just (last chars)
+lastChar s = lastChar' (unpack s)
+  where
+    lastChar' : List Char -> Maybe Char
+    lastChar' [] = Nothing
+    lastChar' [c] = Just c
+    lastChar' (_ :: cs) = lastChar' cs
 
 --------------------------------------------------------------------------------
 -- String Predicates
@@ -87,20 +88,20 @@ public export
 isBlank : String -> Bool
 isBlank s = all isSpace (unpack s)
 
-||| Check if string isInfixOf a substring
+||| Check if string contains a substring
 public export
-isInfixOf : (needle : String) -> (haystack : String) -> Bool
-isInfixOf needle haystack = isInfixOf needle haystack
+containsSubstr : (needle : String) -> (haystack : String) -> Bool
+containsSubstr needle haystack = Data.String.isInfixOf needle haystack
 
-||| Check if string starts with prefix
+||| Check if string starts with a given prefix string
 public export
-startsWith : (prefix : String) -> String -> Bool
-startsWith prefix s = isPrefixOf prefix s
+startsWith : (pfx : String) -> String -> Bool
+startsWith pfx s = isPrefixOf pfx s
 
 ||| Check if string ends with suffix
 public export
-endsWith : (suffix : String) -> String -> Bool
-endsWith suffix s = isSuffixOf suffix s
+endsWith : (sfx : String) -> String -> Bool
+endsWith sfx s = isSuffixOf sfx s
 
 --------------------------------------------------------------------------------
 -- String Transformation

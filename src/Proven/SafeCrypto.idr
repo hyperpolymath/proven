@@ -295,12 +295,12 @@ AEADCipher ChaCha20Poly1305 where
 ||| Hash bytes using specified algorithm
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate hash : (alg : Type) -> HashAlgorithm alg => Bytes -> ByteArray (hashOutputSize {alg})
+hash : (alg : Type) -> HashAlgorithm alg => Bytes -> ByteArray (hashOutputSize {alg})
 
 ||| HMAC using specified hash algorithm
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate hmac : (alg : Type) -> HashAlgorithm alg =>
+hmac : (alg : Type) -> HashAlgorithm alg =>
                  HMACKey -> Bytes -> ByteArray (hashOutputSize {alg})
 
 ||| AEAD encrypt
@@ -330,7 +330,7 @@ aeadDecrypt cipher key nonce aad ct = Left (AlgorithmNotSupported "Stub")
 ||| HKDF-Extract
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate hkdfExtract : (alg : Type) -> HashAlgorithm alg =>
+hkdfExtract : (alg : Type) -> HashAlgorithm alg =>
                          Bytes -> -- Salt
                          Bytes -> -- Input key material
                          ByteArray (hashOutputSize {alg})
@@ -338,7 +338,7 @@ postulate hkdfExtract : (alg : Type) -> HashAlgorithm alg =>
 ||| HKDF-Expand
 ||| Awaiting FFI: will be replaced by extern call to Idris2 RefC compiled code
 export
-postulate hkdfExpand : (alg : Type) -> HashAlgorithm alg =>
+hkdfExpand : (alg : Type) -> HashAlgorithm alg =>
                         ByteArray (hashOutputSize {alg}) -> -- PRK
                         Bytes -> -- Info
                         (n : Nat) -> -- Output length

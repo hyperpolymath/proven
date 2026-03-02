@@ -32,7 +32,6 @@ parseDeterministic s = Refl
 --------------------------------------------------------------------------------
 
 ||| Percent-encoding leaves unreserved (alphanumeric) characters unchanged
-postulate
 unreservedNotEncoded : (c : Char) ->
                        isAlphaNum c = True ->
                        percentEncode c = singleton c
@@ -43,7 +42,6 @@ encodeEmptyEmpty : urlEncode "" = ""
 encodeEmptyEmpty = Refl
 
 ||| URL-encoding a fully alphanumeric string is the identity
-postulate
 encodePreservesAlphaNum : (s : String) ->
                           all isAlphaNum (unpack s) = True ->
                           urlEncode s = s
@@ -58,13 +56,11 @@ decodeEmptySucceeds : urlDecode "" = Just ""
 decodeEmptySucceeds = Refl
 
 ||| Decoding a string of unreserved characters is the identity
-postulate
 decodeUnreservedIdentity : (s : String) ->
                            all isAlphaNum (unpack s) = True ->
                            urlDecode s = Just s
 
 ||| URL-encode then decode round-trips to the original string
-postulate
 encodeDecodeIdentity : (s : String) ->
                        urlDecode (urlEncode s) = Just s
 
@@ -90,17 +86,14 @@ addParamIncreasesCount : (key, val : String) -> (qb : QueryBuilder) ->
 addParamIncreasesCount key val qb = Refl
 
 ||| Getting a parameter just set by key returns that value
-postulate
 setGetIdentity : (key, val : String) -> (qs : QueryString) ->
                  getParam key (setParam key val qs) = Just val
 
 ||| After removing all instances of a key, hasParam returns False
-postulate
 removeHasNot : (key : String) -> (qs : QueryString) ->
                hasParam key (removeAllParams key qs) = False
 
 ||| filterParams keeps only entries whose keys are in the given list
-postulate
 filterPreservesOnly : (keys : List String) -> (qs : QueryString) ->
                       all (\(k, _) => k `elem` keys) (filterParams keys qs) = True
 
@@ -109,17 +102,14 @@ filterPreservesOnly : (keys : List String) -> (qs : QueryString) ->
 --------------------------------------------------------------------------------
 
 ||| Parsing integer "42" from a matching key yields Just 42
-postulate
 parseIntValid : (key : String) ->
                 getIntParam key [(key, "42")] = Just 42
 
 ||| Parsing bool "true" from a matching key yields Just True
-postulate
 parseBoolTrue : (key : String) ->
                 getBoolParam key [(key, "true")] = Just True
 
 ||| Parsing bool "false" from a matching key yields Just False
-postulate
 parseBoolFalse : (key : String) ->
                  getBoolParam key [(key, "false")] = Just False
 
@@ -134,12 +124,10 @@ mergeEmptyRight : (qs : QueryString) ->
 mergeEmptyRight qs = Refl
 
 ||| Merging empty into a query string yields that query string
-postulate
 mergeEmptyLeft : (qs : QueryString) ->
                  mergeQueryStrings [] qs = qs
 
 ||| Query string append is associative (by list append associativity)
-postulate
 appendAssociative : (qs1, qs2, qs3 : QueryString) ->
                     appendQueryStrings (appendQueryStrings qs1 qs2) qs3 =
                     appendQueryStrings qs1 (appendQueryStrings qs2 qs3)
@@ -165,7 +153,6 @@ isSafeScheme url = case url.scheme of
   _ => True
 
 ||| If isSafeScheme holds, the scheme is not javascript (for MkSafeURL)
-postulate
 isSafeSchemeNotJavascript : (url : ParsedURL) -> isSafeScheme url = True ->
                             Not (url.scheme = Just (Custom "javascript"))
 
@@ -194,7 +181,6 @@ data ValidPort : Nat -> Type where
   MkValidPort : (p : Nat) -> LTE p 65535 -> ValidPort p
 
 ||| Runtime comparison p <= 65535 implies the LTE proof witness
-postulate
 lteFrom65535Check : (p : Nat) -> (p <= 65535 = True) -> LTE p 65535
 
 ||| Validate port is in range

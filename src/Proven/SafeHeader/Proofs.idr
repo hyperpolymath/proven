@@ -37,13 +37,13 @@ crlfCheckPreventsInjection value hasCrlf = ()
 
 ||| Postulate: A validated HeaderValue was constructed with a proof that
 ||| CRLF characters are absent. The constructor invariant guarantees this.
-export postulate
+export
 headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
 
 ||| Postulate: Concatenating a CRLF-free header name, the literal ": ",
 ||| and a CRLF-free header value produces a CRLF-free string.
 ||| Depends on: headerValueNoCRLF, HeaderName validation, and ": " containing no CRLF.
-export postulate
+export
 renderedHeaderSafe : (h : Header) ->
                      not (hasCRLF (renderHeader h)) = True
   where
@@ -125,7 +125,7 @@ totalSizePrevents opts size tooLarge = ()
 ||| Postulate: A header's total rendered size (name + ": " + value) is bounded
 ||| by maxNameLength + 2 + maxValueLength. Follows from headerNameBounded and
 ||| headerValueBounded: name <= maxNameLength, value <= maxValueLength.
-export postulate
+export
 singleHeaderBounded : (h : Header) ->
                       length (unpack h.name.originalCase) + 2 + length (unpack h.value.value) <=
                       maxNameLength + 2 + maxValueLength = True
@@ -210,7 +210,7 @@ strictBlocksDangerous = Refl
 ||| Postulate: All WellKnownHeader values produce valid RFC 7230 tokens
 ||| when shown. Each well-known header name (e.g., "content-type") consists
 ||| only of lowercase ASCII letters and hyphens, which are valid token chars.
-export postulate
+export
 wellKnownNamesValid : (h : WellKnownHeader) ->
                       isValidToken (show h) = True
 

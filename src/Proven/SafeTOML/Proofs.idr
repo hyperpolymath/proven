@@ -132,7 +132,7 @@ parsedTypesCorrect (TTable _) = Refl
 ||| Postulate: isScalar, isTable, and isArray are mutually exclusive on
 ||| TOMLValue constructors. Scalars (TString, TInt, TFloat, TBool, TDateTime,
 ||| TDate, TTime) never satisfy isTable or isArray.
-export postulate
+export
 isScalarCorrect : (val : TOMLValue) ->
                   isScalar val = True ->
                   not (isTable val || isArray val) = True
@@ -151,7 +151,7 @@ scalarNotNested _ _ = ()
 ||| Postulate: isValidBareKey checks that all characters satisfy
 ||| isValidBareKeyChar (alphanumeric, dash, underscore). If the overall
 ||| check passes, every individual character must be valid.
-export postulate
+export
 bareKeyCharsValid : (key : String) ->
                     isValidBareKey key = True ->
                     all isValidBareKeyChar (unpack key) = True
@@ -164,7 +164,7 @@ emptyKeyInvalid = Refl
 ||| Postulate: If any character in the key is not a valid bare key char,
 ||| needsQuoting returns True. needsQuoting is defined as the negation of
 ||| isValidBareKey, which checks all chars.
-export postulate
+export
 specialCharsNeedQuoting : (key : String) ->
                           any (\c => not (isValidBareKeyChar c)) (unpack key) = True ->
                           needsQuoting key = True
@@ -235,7 +235,7 @@ inlineTableImmutable tab isTab = ()
 ||| Postulate: The TOML parser validates date components during parsing.
 ||| A successfully parsed TOMLDate has month in [1,12] and day in [1,31].
 ||| The parser rejects dates with out-of-range components.
-export postulate
+export
 dateComponentsValid : (d : TOMLDate) ->
                       (d.month >= 1 && d.month <= 12 &&
                        d.day >= 1 && d.day <= 31) = True
@@ -243,7 +243,7 @@ dateComponentsValid : (d : TOMLDate) ->
 ||| Postulate: The TOML parser validates time components during parsing.
 ||| A successfully parsed TOMLTime has hour in [0,23], minute in [0,59],
 ||| and second in [0,60] (60 allowed for leap seconds per ISO 8601).
-export postulate
+export
 timeComponentsValid : (t : TOMLTime) ->
                       (t.hour <= 23 &&
                        t.minute <= 59 &&

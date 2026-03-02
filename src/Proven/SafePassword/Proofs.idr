@@ -19,7 +19,7 @@ import Data.List
 --------------------------------------------------------------------------------
 
 ||| Valid password meets length requirements
-export postulate
+export
 validPasswordLength : (policy : PasswordPolicy) ->
                       (pwd : String) ->
                       null (checkPolicy policy pwd) = True ->
@@ -34,13 +34,13 @@ policyCheckDeterministic : (policy : PasswordPolicy) ->
 policyCheckDeterministic policy pwd = Refl
 
 ||| Empty password always fails non-zero minLength policy
-export postulate
+export
 emptyPasswordFails : (policy : PasswordPolicy) ->
                      policy.minLength > 0 = True ->
                      null (checkPolicy policy "") = False
 
 ||| Longer password has more violations cleared
-export postulate
+export
 longerPasswordBetter : (policy : PasswordPolicy) ->
                        (short, long : String) ->
                        length long > length short = True ->
@@ -51,7 +51,7 @@ longerPasswordBetter : (policy : PasswordPolicy) ->
 --------------------------------------------------------------------------------
 
 ||| Argon2id parameters validation is sound
-export postulate
+export
 argon2ParamsValid : (params : Argon2Params) ->
                     isRight (validateArgon2Params params) = True ->
                     (params.timeCost >= 1,
@@ -59,21 +59,21 @@ argon2ParamsValid : (params : Argon2Params) ->
                      params.parallelism >= 1)
 
 ||| Bcrypt cost must be in valid range
-export postulate
+export
 bcryptCostBounded : (params : BcryptParams) ->
                     isRight (validateBcryptParams params) = True ->
                     (params.cost >= 10, params.cost <= 31)
 
 ||| Default Argon2 params are always valid
-export postulate
+export
 defaultArgon2Valid : isRight (validateArgon2Params defaultArgon2Params) = True
 
 ||| Default Bcrypt params are always valid
-export postulate
+export
 defaultBcryptValid : isRight (validateBcryptParams defaultBcryptParams) = True
 
 ||| Default Scrypt params are always valid
-export postulate
+export
 defaultScryptValid : isRight (validateScryptParams defaultScryptParams) = True
 
 --------------------------------------------------------------------------------
@@ -81,17 +81,17 @@ defaultScryptValid : isRight (validateScryptParams defaultScryptParams) = True
 --------------------------------------------------------------------------------
 
 ||| Constant-time comparison is reflexive
-export postulate
+export
 constantTimeRefl : (hash : List Bits8) ->
                    constantTimeHashCompare hash hash = True
 
 ||| Constant-time comparison is symmetric
-export postulate
+export
 constantTimeSym : (h1, h2 : List Bits8) ->
                   constantTimeHashCompare h1 h2 = constantTimeHashCompare h2 h1
 
 ||| Different length hashes never match
-export postulate
+export
 differentLengthNoMatch : (h1, h2 : List Bits8) ->
                          length h1 /= length h2 = True ->
                          constantTimeHashCompare h1 h2 = False
@@ -101,27 +101,27 @@ differentLengthNoMatch : (h1, h2 : List Bits8) ->
 --------------------------------------------------------------------------------
 
 ||| Strength score is bounded between 0 and 100
-export postulate
+export
 strengthScoreBounded : (pwd : String) ->
                        (analyzeStrength pwd).score <= 100
 
 ||| Entropy is non-negative for any password
-export postulate
+export
 entropyNonNegative : (pwd : String) ->
                      (analyzeStrength pwd).entropy >= 0.0
 
 ||| Longer passwords have higher or equal entropy
-export postulate
+export
 longerHigherEntropy : (short, long : String) ->
                       length long > length short = True ->
                       (analyzeStrength long).entropy >= (analyzeStrength short).entropy
 
 ||| VeryStrong is the maximum strength level
-export postulate
+export
 veryStrongMax : (level : StrengthLevel) -> level <= VeryStrong
 
 ||| Strength level ordering is transitive
-export postulate
+export
 strengthTransitive : (a, b, c : StrengthLevel) ->
                      a <= b = True ->
                      b <= c = True ->
@@ -132,13 +132,13 @@ strengthTransitive : (a, b, c : StrengthLevel) ->
 --------------------------------------------------------------------------------
 
 ||| Common password detection is accurate (requires detectPatterns impl analysis)
-export postulate
+export
 commonPasswordDetected : (pwd : String) ->
                          (toLower pwd `elem` ["password", "123456", "qwerty"]) = True ->
                          any (\p => case p of CommonPassword _ => True; _ => False) (detectPatterns pwd) = True
 
 ||| Pattern penalties are non-negative
-export postulate
+export
 patternPenaltyNonNeg : (p : Pattern) -> patternPenalty p >= 0
 
 --------------------------------------------------------------------------------
@@ -146,12 +146,12 @@ patternPenaltyNonNeg : (p : Pattern) -> patternPenalty p >= 0
 --------------------------------------------------------------------------------
 
 ||| paramsAtLeast is reflexive
-export postulate
+export
 paramsAtLeastRefl : (params : HashParams) ->
                     paramsAtLeast params params = True
 
 ||| Stronger params require rehash of weaker
-export postulate
+export
 strongerRequiresRehash : (weak, strong : HashParams) ->
                          paramsAtLeast weak strong = False ->
                          paramsAtLeast strong weak = True ->
@@ -183,7 +183,7 @@ chainedBuildersCompose n = Refl
 --------------------------------------------------------------------------------
 
 ||| Meeting higher requirement implies meeting lower
-export postulate
+export
 higherImpliesLower : (pwd : String) ->
                      (high, low : StrengthRequirement) ->
                      requiredLevel high >= requiredLevel low = True ->
@@ -191,7 +191,7 @@ higherImpliesLower : (pwd : String) ->
                      meetsRequirement pwd low = True
 
 ||| VeryStrong satisfies all requirements
-export postulate
+export
 veryStrongSatisfiesAll : (pwd : String) ->
                          quickStrengthCheck pwd = VeryStrong ->
                          (req : StrengthRequirement) ->

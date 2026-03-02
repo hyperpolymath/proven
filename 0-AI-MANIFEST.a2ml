@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 # STOP - CRITICAL READING REQUIRED
 
@@ -71,7 +71,7 @@ Policy enforcement contracts:
 
 5. **License consistency** — All code PMPL-1.0-or-later
 
-6. **Author attribution** — Always "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
+6. **Author attribution** — Always "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 
 ## REPOSITORY STRUCTURE
 

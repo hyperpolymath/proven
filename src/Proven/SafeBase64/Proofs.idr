@@ -66,19 +66,19 @@ data RoundtripSuccess : Base64Variant -> List Bits8 -> Type where
 ||| Characters in the standard Base64 alphabet (A-Za-z0-9+/) are recognised by
 ||| isValidBase64Char Standard. Depends on elem over unpack of the alphabet
 ||| string and isValidBase64Char agreeing (opaque string/char operations).
-export postulate
+export
 standardAlphabetValid : (c : Char) -> c `elem` unpack standardAlphabet = True ->
                         isValidBase64Char Standard c = True
 
 ||| Characters in the URL-safe Base64 alphabet (A-Za-z0-9-_) are recognised by
 ||| isValidBase64Char URLSafe. Same dependency on opaque string/char operations.
-export postulate
+export
 urlSafeAlphabetValid : (c : Char) -> c `elem` unpack urlSafeAlphabet = True ->
                        isValidBase64Char URLSafe c = True
 
 ||| The encoder only emits characters from the variant's alphabet plus padding.
 ||| Depends on encodeBytesToString using table lookup into the variant alphabet.
-export postulate
+export
 encodeOutputValid : (variant : Base64Variant) -> (bytes : List Bits8) ->
                     ValidBase64Output variant (encodeBytesToString variant bytes)
 
@@ -95,18 +95,18 @@ paddedLengthCorrect n = Refl
 ||| Padded Base64 output length is always a multiple of 4.
 ||| Follows from the formula ceil(n/3)*4 which always yields a multiple of 4.
 ||| Depends on encodedLength using integer division with ceiling.
-export postulate
+export
 paddedLengthMultipleOf4 : (variant : Base64Variant) -> usesPadding variant = True ->
                           (n : Nat) -> (encodedLength variant n) `mod` 4 = 0
 
 ||| Decoded length is at most 3/4 of encoded length plus 1.
 ||| Follows from the 4:3 ratio of Base64 encoding.
-export postulate
+export
 decodedLengthBound : (encodedLen : Nat) ->
                      decodedLength encodedLen <= (encodedLen * 3) `div` 4 + 1 = True
 
 ||| For non-empty input, encoding never decreases length (4/3 expansion ratio).
-export postulate
+export
 encodingIncreasesLength : (variant : Base64Variant) -> (n : Nat) -> n > 0 = True ->
                           encodedLength variant n >= n = True
 
@@ -118,25 +118,25 @@ encodingIncreasesLength : (variant : Base64Variant) -> (n : Nat) -> n > 0 = True
 ||| original byte sequence. Depends on encodeBytesToString and decode being
 ||| proper inverses, which requires reasoning about the 6-bit chunking,
 ||| alphabet lookup, and padding logic (complex algorithmic proof).
-export postulate
+export
 roundtripCorrect : (variant : Base64Variant) -> (bytes : List Bits8) ->
                    decode variant (encodeBytesToString variant bytes) = Ok bytes
 
 ||| Roundtrip holds for the empty byte list as a special case.
 ||| Depends on encodeBytesToString [] producing "" and decode "" producing Ok [].
-export postulate
+export
 roundtripEmpty : (variant : Base64Variant) ->
                  decode variant (encodeBytesToString variant []) = Ok []
 
 ||| Roundtrip holds for a single byte (tests the 1-byte padding case).
 ||| Depends on the encoder correctly padding a 1-byte input to 4 characters.
-export postulate
+export
 roundtripSingleByte : (variant : Base64Variant) -> (b : Bits8) ->
                       decode variant (encodeBytesToString variant [b]) = Ok [b]
 
 ||| String-level roundtrip: encoding a string then decoding returns the original.
 ||| Depends on UTF-8 encoding/decoding being lossless (pack/unpack round-trip).
-export postulate
+export
 roundtripString : (variant : Base64Variant) -> (s : String) ->
                   decodeToString variant (encodeStringToString variant s) = Ok s
 
@@ -147,13 +147,13 @@ roundtripString : (variant : Base64Variant) -> (s : String) ->
 ||| Standard and URL-safe encodings produce the same length output because
 ||| they differ only in alphabet characters (+/ vs -_), not in structure.
 ||| Depends on encodeBytesToString using the same chunking logic for both.
-export postulate
+export
 variantsEqualLength : (bytes : List Bits8) ->
                       length (unpack (encodeBytesToString Standard bytes)) =
                       length (unpack (encodeBytesToString URLSafe bytes))
 
 ||| URL-safe without padding is shorter or equal because it strips trailing '='.
-export postulate
+export
 noPadShorter : (bytes : List Bits8) ->
                let standardLen = length (unpack (encodeBytesToString Standard bytes))
                    noPadLen = length (unpack (encodeBytesToString URLSafeNoPad bytes))
@@ -176,7 +176,7 @@ decodeNeverCrashes variant input =
 ||| If the input contains a character that is neither a valid Base64 char nor
 ||| padding for the given variant, decoding fails. Depends on the decoder's
 ||| character validation pass rejecting unknown characters.
-export postulate
+export
 invalidCharDetected : (variant : Base64Variant) -> (input : String) ->
                       (c : Char) -> (pos : Nat) ->
                       c `elem` unpack input = True ->
@@ -186,7 +186,7 @@ invalidCharDetected : (variant : Base64Variant) -> (input : String) ->
 
 ||| Padding characters appearing before the final two positions cause a
 ||| decode error. Depends on the decoder's padding-position validation.
-export postulate
+export
 invalidPaddingDetected : (input : String) ->
                          -- Padding not at end
                          (pos : Nat) -> pos < length (unpack input) - 2 = True ->
@@ -205,7 +205,7 @@ invalidPaddingDetected : (input : String) ->
 ||| MIME encoding inserts line breaks every mimeLineLength (76) characters.
 ||| Each line in the output is at most mimeLineLength + 1 chars (accounting
 ||| for the trailing \r). Depends on the MIME line-wrapping logic in the encoder.
-export postulate
+export
 mimeLineBreaksCorrect : (bytes : List Bits8) ->
                         let encoded = encodeBytesToString MIME bytes
                             lines = split (== '\n') encoded
@@ -214,7 +214,7 @@ mimeLineBreaksCorrect : (bytes : List Bits8) ->
 ||| MIME decoding ignores whitespace: stripping whitespace before decoding
 ||| yields the same result. Depends on the MIME decoder's whitespace-filtering
 ||| pass being applied before character validation.
-export postulate
+export
 mimeIgnoresWhitespace : (encoded : String) -> (withWs : String) ->
                         stripWhitespace withWs = encoded ->
                         decode MIME withWs = decode MIME encoded
@@ -229,14 +229,14 @@ mimeIgnoresWhitespace : (encoded : String) -> (withWs : String) ->
 ||| URL-safe encoding replaces + with - and / with _, so the output never
 ||| contains the URL-unsafe characters + or /. Depends on the URL-safe
 ||| alphabet table containing only A-Za-z0-9 and - _.
-export postulate
+export
 urlSafeContainsNoUnsafe : (bytes : List Bits8) ->
                           let encoded = encodeBytesToString URLSafe bytes
                           in all (\c => c /= '+' && c /= '/') (unpack encoded) = True
 
 ||| Standard encoding may contain + or / (or may not, depending on input bytes).
 ||| This is a disjunctive witness: either + appears, / appears, or neither does.
-export postulate
+export
 standardMayContainUnsafe : (bytes : List Bits8) ->
                            ('+' `elem` unpack (encodeBytesToString Standard bytes) = True) `Either`
                            ('/' `elem` unpack (encodeBytesToString Standard bytes) = True) `Either`
@@ -248,14 +248,14 @@ standardMayContainUnsafe : (bytes : List Bits8) ->
 
 ||| When input length is a multiple of 3, encoded length is exactly (n/3)*4
 ||| with no padding needed. Depends on the division formula in encodedLength.
-export postulate
+export
 threeToFourRatio : (n : Nat) -> (n `mod` 3 = 0) = True ->
                    encodedLength Standard n = (n `div` 3) * 4
 
 ||| Padding count matches the input length modulo 3:
 ||| remainder 0 -> 0 padding, remainder 1 -> 2 padding, remainder 2 -> 1 padding.
 ||| Depends on the encoder's padding emission logic.
-export postulate
+export
 paddingMatchesRemainder : (variant : Base64Variant) -> usesPadding variant = True ->
                           (n : Nat) ->
                           let remainder = n `mod` 3
@@ -274,7 +274,7 @@ paddingMatchesRemainder : (variant : Base64Variant) -> usesPadding variant = Tru
 
 ||| Independently encoded segments can be decoded independently.
 ||| Follows directly from roundtripCorrect applied to each segment.
-export postulate
+export
 segmentedRoundtrip : (variant : Base64Variant) -> (bytes1 : List Bits8) -> (bytes2 : List Bits8) ->
                      let enc1 = encodeBytesToString variant bytes1
                          enc2 = encodeBytesToString variant bytes2

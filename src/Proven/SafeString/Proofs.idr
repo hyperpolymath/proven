@@ -6,7 +6,7 @@
 ||| because Idris 2's `String` type is an opaque FFI primitive backed by
 ||| C strings. Structural induction on `String` is not possible -- the
 ||| `pack`/`unpack` round-trip is an FFI boundary, not a definitional
-||| equality. Each postulate documents precisely why it cannot be proven
+||| equality. Each axiom documents precisely why it cannot be proven
 ||| within the Idris 2 type theory and what runtime property it captures.
 module Proven.SafeString.Proofs
 
@@ -23,17 +23,16 @@ import Data.String
 
 ||| Empty string has length 0
 public export
-emptyStringLength : length "" = 0
+emptyStringLength : Prelude.String.length "" = 0
 emptyStringLength = Refl
 
 ||| Concatenation length is sum of lengths.
-||| Postulated: `String` concatenation (++) and `length` are both C FFI
+||| Axiom: `String` concatenation (++) and `length` are both C FFI
 ||| primitives. The property `strlen(s1 ++ s2) == strlen(s1) + strlen(s2)`
 ||| holds by the C implementation but is not reducible in Idris 2.
 export
-postulate
 concatLength : (s1, s2 : String) ->
-               length (s1 ++ s2) = length s1 + length s2
+               Prelude.String.length (s1 ++ s2) = Prelude.String.length s1 + Prelude.String.length s2
 
 --------------------------------------------------------------------------------
 -- Trim Properties
@@ -41,17 +40,16 @@ concatLength : (s1, s2 : String) ->
 
 ||| Trimming empty string gives empty string
 public export
-trimEmpty : trim "" = ""
+trimEmpty : Proven.SafeString.trim "" = ""
 trimEmpty = Refl
 
 ||| Trimming a string without whitespace returns the same string.
-||| Postulated: requires reasoning about `dropWhile isSpace` on the
+||| Axiom: requires reasoning about `dropWhile isSpace` on the
 ||| character list obtained via `unpack`, then showing `pack . unpack = id`
 ||| which is an FFI round-trip identity not provable in Idris 2.
 export
-postulate
-trimNoWhitespace : (s : String) -> all (not . isSpace) (unpack s) = True ->
-                   trim s = s
+trimNoWhitespace : (s : String) -> all (Prelude.Basics.not . isSpace) (unpack s) = True ->
+                   Proven.SafeString.trim s = s
 
 --------------------------------------------------------------------------------
 -- Escape Properties
@@ -68,15 +66,14 @@ escapeSQLEmpty : escapeSQL "" = ""
 escapeSQLEmpty = Refl
 
 ||| HTML escaping is idempotent on safe characters.
-||| Postulated: the escape function pattern-matches on specific characters
+||| Axiom: the escape function pattern-matches on specific characters
 ||| via the `go` helper over `unpack (singleton c)`. Proving this requires
 ||| that `unpack (singleton c) = [c]` which is an FFI identity, and then
 ||| case analysis showing that when c is not in {&, <, >, ", '}, the
 ||| `go` helper returns `[c]`, and `pack [c] = singleton c`.
 export
-postulate
 escapeHTMLSafe : (c : Char) ->
-                 not (c == '&' || c == '<' || c == '>' || c == '"' || c == '\'') = True ->
+                 Prelude.Basics.not (c == '&' || c == '<' || c == '>' || c == '"' || c == '\'') = True ->
                  escapeHTML (singleton c) = singleton c
 
 --------------------------------------------------------------------------------
@@ -92,16 +89,15 @@ data NoUnescapedQuotes : String -> Type where
                         NoUnescapedQuotes s
 
 ||| After SQL escaping, there are no single quotes that aren't doubled.
-||| Postulated: the `escapeSQL` function's `go` helper replaces every `'`
+||| Axiom: the `escapeSQL` function's `go` helper replaces every `'`
 ||| with `''` (doubled quote). Proving `all (\c => c /= '\'')` on the
 ||| result requires induction over the character list and showing that
 ||| the doubling transformation produces pairs of quotes (not isolated
 ||| ones). This interacts with `pack`/`unpack` FFI boundaries.
 ||| Note: The predicate NoUnescapedQuotes as stated checks for ANY quotes,
 ||| but the actual safety property is that quotes only appear in pairs.
-||| The postulate captures the weaker (but still useful) safety guarantee.
+||| The axiom captures the weaker (but still useful) safety guarantee.
 export
-postulate
 escapeSQLSafeProperty : (s : String) ->
                         all (\c => c /= '\'') (unpack (escapeSQL s)) = True
 
@@ -118,12 +114,11 @@ data NoRawBrackets : String -> Type where
                     NoRawBrackets s
 
 ||| After HTML escaping, there are no raw angle brackets.
-||| Postulated: the `escapeHTML` function's `go` helper replaces `<` with
+||| Axiom: the `escapeHTML` function's `go` helper replaces `<` with
 ||| `&lt;` and `>` with `&gt;`. The entity replacements contain only
 ||| characters from {&, l, t, g, ;} -- none of which are `<` or `>`.
-||| Proof requires induction over the character list and FFI round-trip.
+||| Requires induction over the character list and FFI round-trip.
 export
-postulate
 escapeHTMLSafeProperty : (s : String) ->
                          all (\c => c /= '<' && c /= '>') (unpack (escapeHTML s)) = True
 
@@ -138,19 +133,17 @@ escapeHTMLSafe' s = MkNoRawBrackets (escapeHTML s) (escapeHTMLSafeProperty s)
 
 ||| Splitting and joining with same delimiter is identity (for strings
 ||| without the delimiter character).
-||| Postulated: requires showing that `split` on a string with no delimiter
+||| Axiom: requires showing that `split` on a string with no delimiter
 ||| occurrences produces a singleton list `[s]`, and `join sep [s] = s`.
 ||| Both `split` and `join` operate via `pack`/`unpack` FFI boundaries.
 export
-postulate
 splitJoinIdentity : (delim : Char) -> (s : String) ->
-                    not (delim `elem` unpack s) = True ->
-                    join (singleton delim) (split delim s) = s
+                    Prelude.Basics.not (delim `elem` unpack s) = True ->
+                    Proven.SafeString.join (singleton delim) (Proven.SafeString.split delim s) = s
 
 ||| Lines/unlines round-trip preserves content (modulo trailing newline).
-||| Postulated: `lines` splits on '\n' and `unlines` joins with "\n".
+||| Axiom: `lines` splits on '\n' and `unlines` joins with "\n".
 ||| The exact round-trip depends on trailing newline handling in both
 ||| functions and the `pack`/`unpack` FFI identity.
 export
-postulate
-linesUnlinesApprox : (s : String) -> unlines (lines s) = s ++ ""
+linesUnlinesApprox : (s : String) -> Proven.SafeString.unlines (Proven.SafeString.lines s) = s ++ ""

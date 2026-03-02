@@ -11,7 +11,7 @@ image:https://img.shields.io/badge/License-PMPL_1.0--or--later-blue.svg[PMPL-1.0
 image:https://img.shields.io/badge/modules-104-blue[104 Modules]
 image:https://img.shields.io/badge/bindings-120+_targets-orange[120+ Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
-image:https://img.shields.io/badge/believe__me-0-brightgreen[believe_me = 0]
+image:https://img.shields.io/badge/believe__me-4566_⚠-red[believe_me = 4566 (known technical debt)]
 image:https://img.shields.io/badge/overall-55%25-yellow[Overall 55%]
 
 == License

@@ -185,7 +185,7 @@ calcHistory = MkHistory [] 100 []
 ||| export a lemma for List.take boundedness. Postulated pending a
 ||| takeLengthBound lemma in a proof utilities module.
 export
-postulate pushBounded : (item : a) -> (h : BoundedHistory a)
+pushBounded : (item : a) -> (h : BoundedHistory a)
                      -> length (items (push item h)) `LTE` h.maxSize
 
 ||| Proof that empty history has zero items
@@ -205,7 +205,7 @@ clearIsEmpty h = Refl
 ||| through redo. Postulated because Idris2 let-bindings in return
 ||| types make this difficult to discharge without auxiliary lemmas.
 export
-postulate popRedoIdentity : (h : BoundedHistory a) -> (x : a) -> (xs : List a)
+popRedoIdentity : (h : BoundedHistory a) -> (x : a) -> (xs : List a)
                          -> h.items = x :: xs
                          -> let (_, h') = pop h
                                 (_, h'') = redo h'

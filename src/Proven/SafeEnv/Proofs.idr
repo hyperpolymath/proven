@@ -35,14 +35,14 @@ emptyNameInvalid = Refl
 
 ||| Depends on isValidEnvName + pack/unpack round-trip behaviour for digit-prefixed strings.
 ||| These are FFI string operations whose reduction is opaque to the type checker.
-export postulate
+export
 digitStartInvalid : (s : String) ->
                     (c : Char) -> isDigit c = True ->
                     pack (c :: unpack s) `isValidEnvName` = False
 
 ||| Depends on elem over the well-known variable list and isValidEnvName
 ||| agreeing that each listed name passes validation. Opaque due to string ops.
-export postulate
+export
 wellKnownValid : (name : String) ->
                  name `elem` wellKnownVars = True ->
                  isValidEnvName name = True
@@ -75,7 +75,7 @@ data BoundedValue : Nat -> String -> Type where
 
 ||| Empty string has zero length, so length (unpack "") <= maxLen holds for all maxLen.
 ||| Depends on unpack "" reducing to [] and length [] reducing to 0 (FFI string op).
-export postulate
+export
 emptyBounded : (maxLen : Nat) -> BoundedValue maxLen ""
 
 ||| Theorem: Bounded value check prevents overflow
@@ -124,14 +124,14 @@ keySensitive = Refl
 
 ||| When isSensitiveName returns False, classifyByName should return Public.
 ||| Depends on classifyByName branching on isSensitiveName (opaque string matching).
-export postulate
+export
 publicClassification : (name : String) ->
                        isSensitiveName name = False ->
                        classifyByName name = Public
 
 ||| When isSensitiveName returns True, classifyByName should return Sensitive.
 ||| Depends on classifyByName branching on isSensitiveName (opaque string matching).
-export postulate
+export
 sensitiveClassification : (name : String) ->
                           isSensitiveName name = True ->
                           classifyByName name = Sensitive
@@ -176,13 +176,13 @@ blockedPatternsPreventsAccess opts name blocked = ()
 ||| Valid boolean string literals ("true","false","yes","no","1","0","on","off")
 ||| are recognised by parseBool. Depends on toLower (FFI string primitive) agreeing
 ||| with elem membership over the recognised-boolean list.
-export postulate
+export
 validBoolParses : (s : String) ->
                   s `elem` ["true", "false", "yes", "no", "1", "0", "on", "off"] = True ->
                   isJust (parseBool s) = True
 
 ||| Depends on parseInteger implementation (FFI string-to-integer conversion).
-export postulate
+export
 validIntParses : (s : String) ->
                  all isDigit (unpack s) = True ->
                  isJust (parseInteger s) = True

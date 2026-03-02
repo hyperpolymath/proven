@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# humans.txt — https://humanstxt.org/
+
+/* TEAM */
+Author: Jonathan D.A. Jewell
+Contact: j.d.a.jewell [at] open.ac.uk
+GitHub: hyperpolymath
+Location: United Kingdom
+
+/* SITE */
+Last update: 2026-03-02
+Language: English
+Standards: Idris2, Zig, PMPL-1.0-or-later
+Software: proven — formally verified safety library

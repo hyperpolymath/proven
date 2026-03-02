@@ -186,19 +186,19 @@ validateRequiredClaims (name :: rest) claims =
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Computes HMAC and compares against expected signature in constant time
-postulate prim__verifyHMAC : JWTAlgorithm -> List Bits8 -> String -> List Bits8 -> Bool
+prim__verifyHMAC : JWTAlgorithm -> List Bits8 -> String -> List Bits8 -> Bool
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Verifies RSA signature using public key
-postulate prim__verifyRSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
+prim__verifyRSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Verifies ECDSA signature using public key on the specified curve
-postulate prim__verifyECDSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
+prim__verifyECDSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- Verifies EdDSA (Ed25519/Ed448) signature
-postulate prim__verifyEdDSA : SigningKey -> String -> List Bits8 -> Bool
+prim__verifyEdDSA : SigningKey -> String -> List Bits8 -> Bool
 
 --------------------------------------------------------------------------------
 -- Signature Verification Public API
