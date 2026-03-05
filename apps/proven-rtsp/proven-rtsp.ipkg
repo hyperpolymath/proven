@@ -1,0 +1,16 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+package proven-rtsp
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "Proven skeleton for RTSP (RFC 7826 - Real Time Streaming Protocol)"
+
+sourcedir = "src"
+main = Main
+executable = "proven-rtsp"
+
+modules = RTSP
+        , RTSP.Types
+        , Main

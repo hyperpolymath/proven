@@ -1,0 +1,15 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+package proven-amqp
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "AMQP 0-9-1 message queuing skeleton"
+
+sourcedir = "src"
+main = Main
+executable = "proven-amqp"
+
+modules = AMQP
+        , AMQP.Types

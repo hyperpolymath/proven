@@ -1,0 +1,15 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+package proven-snmp
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "SNMPv1/v2c/v3 agent with type-safe PDU handling (RFC 3411)"
+
+sourcedir = "src"
+main = Main
+executable = "proven-snmp"
+
+modules = SNMP
+        , SNMP.Types

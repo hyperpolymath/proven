@@ -1,0 +1,19 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+--
+-- proven-mcp: Model Context Protocol server skeleton.
+-- Implements the MCP specification for connecting AI models to
+-- tools and resources.
+
+package proven-mcp
+version = 0.1.0
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+
+sourcedir = "src"
+main = Main
+executable = "proven-mcp"
+
+modules = Main, Mcp, Mcp.Types
+
+depends = base, prelude

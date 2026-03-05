@@ -1,0 +1,15 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+package proven-ldap
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "LDAP client/server with type-safe ASN.1 encoding (RFC 4511)"
+
+sourcedir = "src"
+main = Main
+executable = "proven-ldap"
+
+modules = LDAP
+        , LDAP.Types

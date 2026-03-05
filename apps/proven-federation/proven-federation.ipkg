@@ -1,0 +1,19 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+--
+-- proven-federation: Federation / decentralised identity server skeleton.
+-- Implements ActivityPub, decentralised identity, and cross-domain
+-- trust protocols.
+
+package proven-federation
+version = 0.1.0
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+
+sourcedir = "src"
+main = Main
+executable = "proven-federation"
+
+modules = Main, Federation, Federation.Types
+
+depends = base, prelude

@@ -201,3 +201,8 @@ install prefix="/usr/local":
     install -d "{{prefix}}/lib"
     install -m 0755 "$LIB_DIR"/libproven.* "{{prefix}}/lib/" 2>/dev/null || true
     echo "[proven] Installed."
+
+# [AUTO-GENERATED] Multi-arch / RISC-V target
+build-riscv:
+	@echo "Building for RISC-V..."
+	cross build --target riscv64gc-unknown-linux-gnu

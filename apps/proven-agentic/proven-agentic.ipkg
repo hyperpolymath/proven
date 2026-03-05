@@ -1,0 +1,19 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+--
+-- proven-agentic: Agentic / multi-agent coordination server skeleton.
+-- Orchestrates autonomous agents with planning, tool use, delegation,
+-- and safety checks.
+
+package proven-agentic
+version = 0.1.0
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+
+sourcedir = "src"
+main = Main
+executable = "proven-agentic"
+
+modules = Main, Agentic, Agentic.Types
+
+depends = base, prelude

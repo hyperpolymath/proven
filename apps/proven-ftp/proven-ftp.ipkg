@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+package proven-ftp
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "FTP server that cannot crash on malformed commands"
+
+sourcedir = "src"
+main = Main
+executable = "proven-ftp"
+
+modules = FTP
+        , FTP.Command
+        , FTP.Reply
+        , FTP.Session
+        , FTP.Transfer
+        , FTP.Path
+
+-- depends = proven

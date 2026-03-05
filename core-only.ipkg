@@ -1,0 +1,32 @@
+-- Core modules only - quick compile check
+package coreonly
+sourcedir = "src"
+builddir = "build/coreonly"
+modules = Proven.Core
+        , Proven.SafeMath
+        , Proven.SafeMath.Nat
+        , Proven.SafeMath.Int
+        , Proven.SafeMath.Bounded
+        , Proven.SafeMath.Proofs
+        , Proven.SafeString
+        , Proven.SafeString.UTF8
+        , Proven.SafeString.Escape
+        , Proven.SafeString.Proofs
+        , Proven.SafePath
+        , Proven.SafePath.Types
+        , Proven.SafePath.Operations
+        , Proven.SafePath.Proofs
+        , Proven.SafeCrypto
+        , Proven.SafeCrypto.Hash
+        , Proven.SafeCrypto.Random
+        , Proven.SafeCrypto.Proofs
+        , Proven.SafeNetwork
+        , Proven.SafeNetwork.IPv4
+        , Proven.SafeNetwork.IPv6
+        , Proven.SafeNetwork.CIDR
+        , Proven.SafeNetwork.Port
+        , Proven.SafeNetwork.Proofs
+depends = base >= 0.6.0
+        , contrib
+        , network
+opts = "--total"

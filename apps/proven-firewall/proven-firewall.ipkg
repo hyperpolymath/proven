@@ -1,0 +1,16 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+package proven-firewall
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "Formally verified packet filtering types"
+
+sourcedir = "src"
+main = Main
+executable = "proven-firewall"
+
+modules = Firewall
+        , Firewall.Types
+        , Main

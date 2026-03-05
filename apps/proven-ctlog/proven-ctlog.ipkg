@@ -1,0 +1,16 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+package proven-ctlog
+version = "0.1.0"
+authors = "Jonathan D.A. Jewell"
+license = "PMPL-1.0-or-later"
+brief   = "Proven skeleton for Certificate Transparency Log (RFC 6962)"
+
+sourcedir = "src"
+main = Main
+executable = "proven-ctlog"
+
+modules = CTLog
+        , CTLog.Types
+        , Main
