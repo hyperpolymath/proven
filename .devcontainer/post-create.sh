@@ -22,8 +22,8 @@ echo 'export DENO_INSTALL="$HOME/.deno"' >> ~/.zshrc
 echo 'export PATH="$DENO_INSTALL/bin:$PATH"' >> ~/.zshrc
 
 echo "==> Installing Idris 2 via pack..."
-git clone https://github.com/stefan-hoeck/idris2-pack.git /tmp/pack
-cd /tmp/pack && make micropack
+git clone https://github.com/stefan-hoeck/idris2-pack.git "$HYPATIA_TMPDIR/pack"
+cd "$HYPATIA_TMPDIR/pack" && make micropack
 echo 'export PATH="$HOME/.pack/bin:$PATH"' >> ~/.zshrc
 export PATH="$HOME/.pack/bin:$PATH"
 pack install-deps
