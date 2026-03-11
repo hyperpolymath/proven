@@ -18,10 +18,6 @@ image:https://img.shields.io/badge/overall-55%25-yellow[Overall 55%]
 
 This project is licensed under **PMPL-1.0-or-later**. See link:LICENSE[LICENSE].
 
-WARNING: **proven** is an **Idris2 library with FFI bindings**, not a native implementation in your language. All computation happens in Idris2 with mathematical proofs. Language bindings call this verified code via FFI.
-
-IMPORTANT: **Unbreakable guarantee applies only to Idris2 code.** The Zig layer must be a *pure ABI bridge* with no safety logic. Any non‑Idris logic in bindings is considered non‑proven and must be removed.
-
 == What Makes proven Different?
 
 *Traditional Libraries:* Trust the author got it right +

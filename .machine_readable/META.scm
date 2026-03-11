@@ -22,7 +22,9 @@
     (adr "ADR-008" (status accepted) (title "FFI-only bindings")
       (decision "All 89 language bindings must call Idris via Zig FFI. Reimplementation is forbidden."))
     (adr "ADR-009" (status accepted) (title "ECHIDNA proof verification in CI")
-      (decision "Every PR runs ECHIDNA neurosymbolic proof verification before merge.")))
+      (decision "Every PR runs ECHIDNA neurosymbolic proof verification before merge."))
+    (adr "ADR-010" (status accepted) (title "Unbreakable guarantee scope")
+      (decision "Formal safety guarantees apply only to Idris2 code. The Zig FFI layer is a pure ABI bridge with no safety logic. Language bindings must only marshal data and call Idris via FFI. Any non-Idris logic in bindings is non-proven and must be removed.")))
 
   (development-practices
     (practice "totality-required" "All Idris2 functions must pass --total checking")
