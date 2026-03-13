@@ -1,0 +1,18 @@
+.{
+    .name = .proven_nif,
+    .version = "0.1.0",
+    .fingerprint = 0xf217eb2309d5e2bf,
+    .minimum_zig_version = "0.15.2",
+
+    .dependencies = .{
+        .proven_ffi = .{
+            .path = "../zig",
+        },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

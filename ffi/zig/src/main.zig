@@ -295,7 +295,7 @@ var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
 
 /// Free a string allocated by proven functions
-export fn proven_free_string(ptr: ?[*:0]u8) void {
+pub export fn proven_free_string(ptr: ?[*:0]u8) void {
     if (ptr) |p| {
         // Find length by scanning for null terminator
         var len: usize = 0;
@@ -387,7 +387,7 @@ var callback_mutex: std.Thread.Mutex = .{};
 
 /// Register a callback for a specific event type.
 /// Returns a non-zero handle on success, 0 on failure.
-export fn proven_callback_register(
+pub export fn proven_callback_register(
     event_type: ProvenEventType,
     callback: ProvenCallbackFn,
     context: ?*anyopaque,
@@ -418,7 +418,7 @@ export fn proven_callback_register(
 
 /// Unregister a callback by handle.
 /// Returns ok on success, err_not_found if handle invalid.
-export fn proven_callback_unregister(handle: CallbackHandle) ProvenStatus {
+pub export fn proven_callback_unregister(handle: CallbackHandle) ProvenStatus {
     if (handle == INVALID_HANDLE) return .err_invalid_argument;
 
     callback_mutex.lock();
@@ -437,7 +437,7 @@ export fn proven_callback_unregister(handle: CallbackHandle) ProvenStatus {
 
 /// Fire an event, invoking all registered callbacks for that event type.
 /// Returns the number of callbacks invoked.
-export fn proven_callback_fire(event_type: ProvenEventType, data_ptr: ?[*:0]const u8, data_len: usize, code: i32) i32 {
+pub export fn proven_callback_fire(event_type: ProvenEventType, data_ptr: ?[*:0]const u8, data_len: usize, code: i32) i32 {
     const event = ProvenEvent{
         .event_type = event_type,
         .data_ptr = data_ptr,
@@ -468,7 +468,7 @@ export fn proven_callback_fire(event_type: ProvenEventType, data_ptr: ?[*:0]cons
 }
 
 /// Query how many callbacks are registered for an event type.
-export fn proven_callback_count(event_type: ProvenEventType) u32 {
+pub export fn proven_callback_count(event_type: ProvenEventType) u32 {
     callback_mutex.lock();
     defer callback_mutex.unlock();
 
@@ -482,7 +482,7 @@ export fn proven_callback_count(event_type: ProvenEventType) u32 {
 }
 
 /// Unregister all callbacks. Returns count of callbacks removed.
-export fn proven_callback_clear_all() u32 {
+pub export fn proven_callback_clear_all() u32 {
     callback_mutex.lock();
     defer callback_mutex.unlock();
 
@@ -550,42 +550,42 @@ fn idrisCallStringSlice(func: *const fn (IdrisValue) callconv(.c) IdrisValue, pt
 
 /// Safe division: returns status and result
 /// Returns err_division_by_zero if denominator is 0
-export fn proven_math_div(numerator: i64, denominator: i64) IntResult {
+pub export fn proven_math_div(numerator: i64, denominator: i64) IntResult {
     return idris2_proven_math_div(numerator, denominator);
 }
 
 /// Safe modulo: returns status and result
-export fn proven_math_mod(numerator: i64, denominator: i64) IntResult {
+pub export fn proven_math_mod(numerator: i64, denominator: i64) IntResult {
     return idris2_proven_math_mod(numerator, denominator);
 }
 
 /// Checked addition: returns err_overflow if result would overflow
-export fn proven_math_add_checked(a: i64, b: i64) IntResult {
+pub export fn proven_math_add_checked(a: i64, b: i64) IntResult {
     return idris2_proven_math_add_checked(a, b);
 }
 
 /// Checked subtraction: returns err_underflow if result would underflow
-export fn proven_math_sub_checked(a: i64, b: i64) IntResult {
+pub export fn proven_math_sub_checked(a: i64, b: i64) IntResult {
     return idris2_proven_math_sub_checked(a, b);
 }
 
 /// Checked multiplication: returns err_overflow if result would overflow
-export fn proven_math_mul_checked(a: i64, b: i64) IntResult {
+pub export fn proven_math_mul_checked(a: i64, b: i64) IntResult {
     return idris2_proven_math_mul_checked(a, b);
 }
 
 /// Safe absolute value: handles MIN_INT correctly
-export fn proven_math_abs_safe(n: i64) IntResult {
+pub export fn proven_math_abs_safe(n: i64) IntResult {
     return idris2_proven_math_abs_safe(n);
 }
 
 /// Clamp value to range [lo, hi]
-export fn proven_math_clamp(lo: i64, hi: i64, value: i64) i64 {
+pub export fn proven_math_clamp(lo: i64, hi: i64, value: i64) i64 {
     return idris2_proven_math_clamp(lo, hi, value);
 }
 
 /// Integer power with overflow checking
-export fn proven_math_pow_checked(base: i64, exp: u32) IntResult {
+pub export fn proven_math_pow_checked(base: i64, exp: u32) IntResult {
     return idris2_proven_math_pow_checked(base, exp);
 }
 
@@ -594,22 +594,22 @@ export fn proven_math_pow_checked(base: i64, exp: u32) IntResult {
 // ============================================================================
 
 /// Check if a byte sequence is valid UTF-8
-export fn proven_string_is_valid_utf8(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_string_is_valid_utf8(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_string_is_valid_utf8(ptr, len);
 }
 
 /// Escape string for SQL (single quotes)
-export fn proven_string_escape_sql(ptr: ?[*]const u8, len: usize) StringResult {
+pub export fn proven_string_escape_sql(ptr: ?[*]const u8, len: usize) StringResult {
     return idris2_proven_string_escape_sql(ptr, len);
 }
 
 /// Escape string for HTML (< > & " ')
-export fn proven_string_escape_html(ptr: ?[*]const u8, len: usize) StringResult {
+pub export fn proven_string_escape_html(ptr: ?[*]const u8, len: usize) StringResult {
     return idris2_proven_string_escape_html(ptr, len);
 }
 
 /// Escape string for JavaScript (within quotes)
-export fn proven_string_escape_js(ptr: ?[*]const u8, len: usize) StringResult {
+pub export fn proven_string_escape_js(ptr: ?[*]const u8, len: usize) StringResult {
     return idris2_proven_string_escape_js(ptr, len);
 }
 
@@ -618,12 +618,12 @@ export fn proven_string_escape_js(ptr: ?[*]const u8, len: usize) StringResult {
 // ============================================================================
 
 /// Check if a path attempts directory traversal
-export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) BoolResult {
     return idrisCallBool(proven_idris_path_has_traversal, ptr, len);
 }
 
 /// Sanitize a filename (remove dangerous characters)
-export fn proven_path_sanitize_filename(ptr: ?[*]const u8, len: usize) StringResult {
+pub export fn proven_path_sanitize_filename(ptr: ?[*]const u8, len: usize) StringResult {
     if (ptr == null) {
         return .{ .status = .err_null_pointer, .value = null, .length = 0 };
     }
@@ -649,7 +649,7 @@ export fn proven_path_sanitize_filename(ptr: ?[*]const u8, len: usize) StringRes
 // ============================================================================
 
 /// Constant-time byte comparison (timing-safe)
-export fn proven_crypto_constant_time_eq(
+pub export fn proven_crypto_constant_time_eq(
     ptr1: ?[*]const u8,
     len1: usize,
     ptr2: ?[*]const u8,
@@ -659,7 +659,7 @@ export fn proven_crypto_constant_time_eq(
 }
 
 /// Fill buffer with cryptographically secure random bytes
-export fn proven_crypto_random_bytes(ptr: ?[*]u8, len: usize) ProvenStatus {
+pub export fn proven_crypto_random_bytes(ptr: ?[*]u8, len: usize) ProvenStatus {
     return idris2_proven_crypto_random_bytes(ptr, len);
 }
 
@@ -690,7 +690,7 @@ pub const UrlResult = extern struct {
 };
 
 /// Parse a URL into components
-export fn proven_url_parse(ptr: ?[*]const u8, len: usize) UrlResult {
+pub export fn proven_url_parse(ptr: ?[*]const u8, len: usize) UrlResult {
     const empty_components = UrlComponents{
         .scheme = null,
         .scheme_len = 0,
@@ -797,7 +797,7 @@ export fn proven_url_parse(ptr: ?[*]const u8, len: usize) UrlResult {
 }
 
 /// Free URL components
-export fn proven_url_free(components: *UrlComponents) void {
+pub export fn proven_url_free(components: *UrlComponents) void {
     if (components.scheme) |s| {
         allocator.free(s[0 .. components.scheme_len + 1]);
     }
@@ -834,7 +834,7 @@ export fn proven_url_free(components: *UrlComponents) void {
 // ============================================================================
 
 /// Validate email address (RFC 5321 simplified)
-export fn proven_email_is_valid(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_email_is_valid(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_email_is_valid(ptr, len);
 }
 
@@ -854,7 +854,7 @@ pub const IPv4Result = extern struct {
 };
 
 /// Parse IPv4 address
-export fn proven_network_parse_ipv4(ptr: ?[*]const u8, len: usize) IPv4Result {
+pub export fn proven_network_parse_ipv4(ptr: ?[*]const u8, len: usize) IPv4Result {
     const empty = IPv4Address{ .octets = .{ 0, 0, 0, 0 } };
 
     const idris_result = idrisCallInt(proven_idris_network_parse_ipv4, ptr, len);
@@ -877,7 +877,7 @@ export fn proven_network_parse_ipv4(ptr: ?[*]const u8, len: usize) IPv4Result {
 }
 
 /// Check if IPv4 is private (RFC 1918)
-export fn proven_network_ipv4_is_private(addr: IPv4Address) bool {
+pub export fn proven_network_ipv4_is_private(addr: IPv4Address) bool {
     const value: i64 = (@as(i64, addr.octets[0]) << 24) |
         (@as(i64, addr.octets[1]) << 16) |
         (@as(i64, addr.octets[2]) << 8) |
@@ -887,7 +887,7 @@ export fn proven_network_ipv4_is_private(addr: IPv4Address) bool {
 }
 
 /// Check if IPv4 is loopback (127.0.0.0/8)
-export fn proven_network_ipv4_is_loopback(addr: IPv4Address) bool {
+pub export fn proven_network_ipv4_is_loopback(addr: IPv4Address) bool {
     const value: i64 = (@as(i64, addr.octets[0]) << 24) |
         (@as(i64, addr.octets[1]) << 16) |
         (@as(i64, addr.octets[2]) << 8) |
@@ -903,7 +903,7 @@ export fn proven_network_ipv4_is_loopback(addr: IPv4Address) bool {
 var runtime_initialized: bool = false;
 
 /// Initialize the Proven runtime (includes Idris 2 runtime)
-export fn proven_init() i32 {
+pub export fn proven_init() i32 {
     if (runtime_initialized) {
         return @intFromEnum(ProvenStatus.ok);
     }
@@ -917,7 +917,7 @@ export fn proven_init() i32 {
 }
 
 /// Cleanup the Proven runtime
-export fn proven_deinit() void {
+pub export fn proven_deinit() void {
     if (runtime_initialized) {
         ffi.deinit();
         runtime_initialized = false;
@@ -925,12 +925,12 @@ export fn proven_deinit() void {
 }
 
 /// Check if runtime is initialized
-export fn proven_is_initialized() bool {
+pub export fn proven_is_initialized() bool {
     return runtime_initialized;
 }
 
 /// Get idris2-zig-ffi ABI version for compatibility checking
-export fn proven_ffi_abi_version() u32 {
+pub export fn proven_ffi_abi_version() u32 {
     return ffi.ABI_VERSION;
 }
 
@@ -946,22 +946,22 @@ pub const HeaderResult = extern struct {
 };
 
 /// Check for CRLF injection characters in header value
-export fn proven_header_has_crlf(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_header_has_crlf(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_header_has_crlf(ptr, len);
 }
 
 /// Check if header name is valid token per RFC 7230
-export fn proven_header_is_valid_name(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_header_is_valid_name(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_header_is_valid_name(ptr, len);
 }
 
 /// Check if header name is in dangerous headers list
-export fn proven_header_is_dangerous(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_header_is_dangerous(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_header_is_dangerous(ptr, len);
 }
 
 /// Create validated header string "Name: Value"
-export fn proven_header_render(
+pub export fn proven_header_render(
     name_ptr: ?[*]const u8,
     name_len: usize,
     value_ptr: ?[*]const u8,
@@ -971,12 +971,12 @@ export fn proven_header_render(
 }
 
 /// Build Content-Security-Policy header value from directives
-export fn proven_header_build_csp(directives_json: ?[*]const u8, json_len: usize) StringResult {
+pub export fn proven_header_build_csp(directives_json: ?[*]const u8, json_len: usize) StringResult {
     return idris2_proven_header_build_csp(directives_json, json_len);
 }
 
 /// Build HSTS header value
-export fn proven_header_build_hsts(max_age: i64, include_subdomains: bool, preload: bool) StringResult {
+pub export fn proven_header_build_hsts(max_age: i64, include_subdomains: bool, preload: bool) StringResult {
     return idris2_proven_header_build_hsts(max_age, include_subdomains, preload);
 }
 
@@ -1005,27 +1005,27 @@ pub const CookieAttributes = extern struct {
 };
 
 /// Check for cookie injection characters (semicolon, CR, LF)
-export fn proven_cookie_has_injection(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_cookie_has_injection(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_cookie_has_injection(ptr, len);
 }
 
 /// Validate cookie name
-export fn proven_cookie_validate_name(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_cookie_validate_name(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_cookie_validate_name(ptr, len);
 }
 
 /// Validate cookie value
-export fn proven_cookie_validate_value(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_cookie_validate_value(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_cookie_validate_value(ptr, len);
 }
 
 /// Get cookie prefix type (0=none, 1=__Secure-, 2=__Host-)
-export fn proven_cookie_get_prefix(ptr: ?[*]const u8, len: usize) IntResult {
+pub export fn proven_cookie_get_prefix(ptr: ?[*]const u8, len: usize) IntResult {
     return idris2_proven_cookie_get_prefix(ptr, len);
 }
 
 /// Build Set-Cookie header value
-export fn proven_cookie_build_set_cookie(
+pub export fn proven_cookie_build_set_cookie(
     name_ptr: ?[*]const u8,
     name_len: usize,
     value_ptr: ?[*]const u8,
@@ -1036,7 +1036,7 @@ export fn proven_cookie_build_set_cookie(
 }
 
 /// Build delete cookie header value
-export fn proven_cookie_build_delete(name_ptr: ?[*]const u8, name_len: usize) StringResult {
+pub export fn proven_cookie_build_delete(name_ptr: ?[*]const u8, name_len: usize) StringResult {
     return idris2_proven_cookie_build_delete(name_ptr, name_len);
 }
 
@@ -1084,12 +1084,12 @@ pub const ContentTypeResult = extern struct {
 };
 
 /// Parse Content-Type header
-export fn proven_content_type_parse(ptr: ?[*]const u8, len: usize) ContentTypeResult {
+pub export fn proven_content_type_parse(ptr: ?[*]const u8, len: usize) ContentTypeResult {
     return idris2_proven_content_type_parse(ptr, len);
 }
 
 /// Free content type result
-export fn proven_content_type_free(result: *ContentTypeResult) void {
+pub export fn proven_content_type_free(result: *ContentTypeResult) void {
     if (result.media_type) |m| {
         allocator.free(m[0 .. result.media_type_len + 1]);
     }
@@ -1114,12 +1114,12 @@ export fn proven_content_type_free(result: *ContentTypeResult) void {
 }
 
 /// Check if content type can be sniffed to something dangerous
-export fn proven_content_type_can_sniff_dangerous(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_content_type_can_sniff_dangerous(ptr: ?[*]const u8, len: usize) BoolResult {
     return idris2_proven_content_type_can_sniff_dangerous(ptr, len);
 }
 
 /// Render content type to string
-export fn proven_content_type_render(
+pub export fn proven_content_type_render(
     type_ptr: ?[*]const u8,
     type_len: usize,
     subtype_ptr: ?[*]const u8,
@@ -1133,12 +1133,12 @@ export fn proven_content_type_render(
 }
 
 /// Check if content type is JSON
-export fn proven_content_type_is_json(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) BoolResult {
+pub export fn proven_content_type_is_json(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) BoolResult {
     return idris2_proven_content_type_is_json(subtype_ptr, subtype_len, suffix_ptr, suffix_len);
 }
 
 /// Check if content type is XML
-export fn proven_content_type_is_xml(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) BoolResult {
+pub export fn proven_content_type_is_xml(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) BoolResult {
     return idris2_proven_content_type_is_xml(subtype_ptr, subtype_len, suffix_ptr, suffix_len);
 }
 
@@ -1146,20 +1146,20 @@ export fn proven_content_type_is_xml(subtype_ptr: ?[*]const u8, subtype_len: usi
 // Version info
 // ============================================================================
 
-export fn proven_version_major() u32 {
+pub export fn proven_version_major() u32 {
     return 0;
 }
 
-export fn proven_version_minor() u32 {
+pub export fn proven_version_minor() u32 {
     return 9;
 }
 
-export fn proven_version_patch() u32 {
+pub export fn proven_version_patch() u32 {
     return 0;
 }
 
 /// Get module count (41 modules total - added SafeRegistry, SafeDigest, SafeHTTP)
-export fn proven_module_count() u32 {
+pub export fn proven_module_count() u32 {
     return 41;
 }
 
@@ -1189,17 +1189,17 @@ pub const ImageRefResult = extern struct {
 ///
 /// Format: [registry/]repository[:tag][@digest]
 /// Handles Docker Hub conventions (library/ prefix, docker.io default)
-export fn proven_registry_parse(ptr: ?[*]const u8, len: usize) ImageRefResult {
+pub export fn proven_registry_parse(ptr: ?[*]const u8, len: usize) ImageRefResult {
     return idris2_proven_registry_parse(ptr, len);
 }
 
 /// Convert image reference to string
-export fn proven_registry_to_string(ref: *const ImageReference) StringResult {
+pub export fn proven_registry_to_string(ref: *const ImageReference) StringResult {
     return idris2_proven_registry_to_string(ref);
 }
 
 /// Check if image reference looks like it has a registry hostname
-export fn proven_registry_has_registry(ref: *const ImageReference) BoolResult {
+pub export fn proven_registry_has_registry(ref: *const ImageReference) BoolResult {
     return idris2_proven_registry_has_registry(ref);
 }
 
@@ -1231,14 +1231,14 @@ pub const DigestResult = extern struct {
 /// Parse digest string (e.g., "sha256:abc123...")
 ///
 /// Validates algorithm and hex encoding
-export fn proven_digest_parse(ptr: ?[*]const u8, len: usize) DigestResult {
+pub export fn proven_digest_parse(ptr: ?[*]const u8, len: usize) DigestResult {
     return idris2_proven_digest_parse(ptr, len);
 }
 
 /// Constant-time digest comparison (timing-attack resistant)
 ///
 /// Verifies two digests match using constant-time comparison
-export fn proven_digest_verify(
+pub export fn proven_digest_verify(
     expected: *const Digest,
     actual: *const Digest,
 ) BoolResult {
@@ -1246,7 +1246,7 @@ export fn proven_digest_verify(
 }
 
 /// Convert digest to string (algorithm:hex)
-export fn proven_digest_to_string(digest: *const Digest) StringResult {
+pub export fn proven_digest_to_string(digest: *const Digest) StringResult {
     return idris2_proven_digest_to_string(digest);
 }
 
@@ -1257,12 +1257,12 @@ export fn proven_digest_to_string(digest: *const Digest) StringResult {
 /// URL-encode a string (RFC 3986 percent encoding)
 ///
 /// Unreserved chars (A-Za-z0-9-._~) pass through, others become %XX
-export fn proven_http_url_encode(ptr: ?[*]const u8, len: usize) StringResult {
+pub export fn proven_http_url_encode(ptr: ?[*]const u8, len: usize) StringResult {
     return idris2_proven_http_url_encode(ptr, len);
 }
 
 /// URL-decode a percent-encoded string
-export fn proven_http_url_decode(ptr: ?[*]const u8, len: usize) StringResult {
+pub export fn proven_http_url_decode(ptr: ?[*]const u8, len: usize) StringResult {
     return idris2_proven_http_url_decode(ptr, len);
 }
 
@@ -1287,7 +1287,7 @@ pub const AuthChallengeResult = extern struct {
 /// Parse WWW-Authenticate header (for Docker Registry v2 OAuth2)
 ///
 /// Format: Bearer realm="...",service="...",scope="..."
-export fn proven_http_parse_www_authenticate(ptr: ?[*]const u8, len: usize) AuthChallengeResult {
+pub export fn proven_http_parse_www_authenticate(ptr: ?[*]const u8, len: usize) AuthChallengeResult {
     return idris2_proven_http_parse_www_authenticate(ptr, len);
 }
 
@@ -1303,17 +1303,17 @@ pub const HexDecodeResult = extern struct {
 };
 
 /// Hex encode bytes to string
-export fn proven_hex_encode(ptr: ?[*]const u8, len: usize, uppercase: bool) StringResult {
+pub export fn proven_hex_encode(ptr: ?[*]const u8, len: usize, uppercase: bool) StringResult {
     return idris2_proven_hex_encode(ptr, len, uppercase);
 }
 
 /// Hex decode string to bytes
-export fn proven_hex_decode(ptr: ?[*]const u8, len: usize) HexDecodeResult {
+pub export fn proven_hex_decode(ptr: ?[*]const u8, len: usize) HexDecodeResult {
     return idris2_proven_hex_decode(ptr, len);
 }
 
 /// Free hex decode result
-export fn proven_hex_free(result: *HexDecodeResult) void {
+pub export fn proven_hex_free(result: *HexDecodeResult) void {
     if (result.data) |d| {
         allocator.free(d[0..result.length]);
     }
@@ -1336,27 +1336,27 @@ pub const UUIDResult = extern struct {
 };
 
 /// Generate UUID v4 (random)
-export fn proven_uuid_v4() UUIDResult {
+pub export fn proven_uuid_v4() UUIDResult {
     return idris2_proven_uuid_v4();
 }
 
 /// Format UUID as string (36 chars with hyphens)
-export fn proven_uuid_to_string(uuid: UUID) StringResult {
+pub export fn proven_uuid_to_string(uuid: UUID) StringResult {
     return idris2_proven_uuid_to_string(uuid);
 }
 
 /// Parse UUID from string
-export fn proven_uuid_parse(ptr: ?[*]const u8, len: usize) UUIDResult {
+pub export fn proven_uuid_parse(ptr: ?[*]const u8, len: usize) UUIDResult {
     return idris2_proven_uuid_parse(ptr, len);
 }
 
 /// Check if UUID is nil (all zeros)
-export fn proven_uuid_is_nil(uuid: UUID) bool {
+pub export fn proven_uuid_is_nil(uuid: UUID) bool {
     return idris2_proven_uuid_is_nil(uuid);
 }
 
 /// Get UUID version
-export fn proven_uuid_version(uuid: UUID) u8 {
+pub export fn proven_uuid_version(uuid: UUID) u8 {
     return idris2_proven_uuid_version(uuid);
 }
 
@@ -1373,12 +1373,12 @@ pub const CurrencyResult = extern struct {
 };
 
 /// Parse currency amount (e.g., "USD 123.45" or "123.45 EUR")
-export fn proven_currency_parse(ptr: ?[*]const u8, len: usize) CurrencyResult {
+pub export fn proven_currency_parse(ptr: ?[*]const u8, len: usize) CurrencyResult {
     return idris2_proven_currency_parse(ptr, len);
 }
 
 /// Format currency amount
-export fn proven_currency_format(amount_minor: i64, code: *const [3]u8, decimal_places: u8) StringResult {
+pub export fn proven_currency_format(amount_minor: i64, code: *const [3]u8, decimal_places: u8) StringResult {
     return idris2_proven_currency_format(amount_minor, code, decimal_places);
 }
 
@@ -1395,12 +1395,12 @@ pub const PhoneResult = extern struct {
 };
 
 /// Parse phone number to E.164 format
-export fn proven_phone_parse(ptr: ?[*]const u8, len: usize) PhoneResult {
+pub export fn proven_phone_parse(ptr: ?[*]const u8, len: usize) PhoneResult {
     return idris2_proven_phone_parse(ptr, len);
 }
 
 /// Format phone number as E.164
-export fn proven_phone_format_e164(country_code: u16, national_number: u64) StringResult {
+pub export fn proven_phone_format_e164(country_code: u16, national_number: u64) StringResult {
     return idris2_proven_phone_format_e164(country_code, national_number);
 }
 
@@ -1420,12 +1420,12 @@ pub const JsonType = enum(i32) {
 };
 
 /// Check if string is valid JSON
-export fn proven_json_is_valid(ptr: ?[*]const u8, len: usize) BoolResult {
+pub export fn proven_json_is_valid(ptr: ?[*]const u8, len: usize) BoolResult {
     return idrisCallBool(proven_idris_json_is_valid, ptr, len);
 }
 
 /// Get JSON value type at root level
-export fn proven_json_get_type(ptr: ?[*]const u8, len: usize) JsonType {
+pub export fn proven_json_get_type(ptr: ?[*]const u8, len: usize) JsonType {
     const result = idrisCallInt(proven_idris_json_get_type, ptr, len);
     if (result.status != .ok) return .invalid;
     return switch (result.value) {
@@ -1462,22 +1462,22 @@ pub const DateTimeResult = extern struct {
 };
 
 /// Parse ISO 8601 date string
-export fn proven_datetime_parse(ptr: ?[*]const u8, len: usize) DateTimeResult {
+pub export fn proven_datetime_parse(ptr: ?[*]const u8, len: usize) DateTimeResult {
     return idris2_proven_datetime_parse(ptr, len);
 }
 
 /// Format DateTime as ISO 8601
-export fn proven_datetime_format_iso8601(dt: DateTime) StringResult {
+pub export fn proven_datetime_format_iso8601(dt: DateTime) StringResult {
     return idris2_proven_datetime_format_iso8601(dt);
 }
 
 /// Check if year is leap year
-export fn proven_datetime_is_leap_year(year: i32) bool {
+pub export fn proven_datetime_is_leap_year(year: i32) bool {
     return idris2_proven_datetime_is_leap_year(year);
 }
 
 /// Get days in month
-export fn proven_datetime_days_in_month(year: i32, month: u8) u8 {
+pub export fn proven_datetime_days_in_month(year: i32, month: u8) u8 {
     return idris2_proven_datetime_days_in_month(year, month);
 }
 
@@ -1492,27 +1492,27 @@ pub const FloatResult = extern struct {
 };
 
 /// Safe floating-point division
-export fn proven_float_div(a: f64, b: f64) FloatResult {
+pub export fn proven_float_div(a: f64, b: f64) FloatResult {
     return idris2_proven_float_div(a, b);
 }
 
 /// Check if float is finite (not NaN or Inf)
-export fn proven_float_is_finite(x: f64) bool {
+pub export fn proven_float_is_finite(x: f64) bool {
     return idris2_proven_float_is_finite(x);
 }
 
 /// Check if float is NaN
-export fn proven_float_is_nan(x: f64) bool {
+pub export fn proven_float_is_nan(x: f64) bool {
     return idris2_proven_float_is_nan(x);
 }
 
 /// Safe square root (returns error for negative)
-export fn proven_float_sqrt(x: f64) FloatResult {
+pub export fn proven_float_sqrt(x: f64) FloatResult {
     return idris2_proven_float_sqrt(x);
 }
 
 /// Safe natural logarithm
-export fn proven_float_ln(x: f64) FloatResult {
+pub export fn proven_float_ln(x: f64) FloatResult {
     return idris2_proven_float_ln(x);
 }
 
@@ -1536,17 +1536,17 @@ pub const VersionResult = extern struct {
 };
 
 /// Parse semantic version string
-export fn proven_version_parse(ptr: ?[*]const u8, len: usize) VersionResult {
+pub export fn proven_version_parse(ptr: ?[*]const u8, len: usize) VersionResult {
     return idris2_proven_version_parse(ptr, len);
 }
 
 /// Compare two semantic versions
-export fn proven_version_compare(a: SemanticVersion, b: SemanticVersion) i32 {
+pub export fn proven_version_compare(a: SemanticVersion, b: SemanticVersion) i32 {
     return idris2_proven_version_compare(a, b);
 }
 
 /// Free version result
-export fn proven_version_free(version: *SemanticVersion) void {
+pub export fn proven_version_free(version: *SemanticVersion) void {
     if (version.prerelease) |p| {
         allocator.free(p[0 .. version.prerelease_len + 1]);
     }
@@ -1570,17 +1570,17 @@ pub const GeoResult = extern struct {
 };
 
 /// Validate and normalize geographic coordinate
-export fn proven_geo_validate(lat: f64, lon: f64) GeoResult {
+pub export fn proven_geo_validate(lat: f64, lon: f64) GeoResult {
     return idris2_proven_geo_validate(lat, lon);
 }
 
 /// Calculate distance between two points (Haversine formula, returns meters)
-export fn proven_geo_distance(a: GeoCoordinate, b: GeoCoordinate) FloatResult {
+pub export fn proven_geo_distance(a: GeoCoordinate, b: GeoCoordinate) FloatResult {
     return idris2_proven_geo_distance(a, b);
 }
 
 /// Check if coordinate is in bounding box
-export fn proven_geo_in_bounds(coord: GeoCoordinate, min_lat: f64, max_lat: f64, min_lon: f64, max_lon: f64) bool {
+pub export fn proven_geo_in_bounds(coord: GeoCoordinate, min_lat: f64, max_lat: f64, min_lon: f64, max_lon: f64) bool {
     return idris2_proven_geo_in_bounds(coord, min_lat, max_lat, min_lon, max_lon);
 }
 
@@ -1589,12 +1589,12 @@ export fn proven_geo_in_bounds(coord: GeoCoordinate, min_lat: f64, max_lat: f64,
 // ============================================================================
 
 /// Calculate CRC32
-export fn proven_checksum_crc32(ptr: ?[*]const u8, len: usize) IntResult {
+pub export fn proven_checksum_crc32(ptr: ?[*]const u8, len: usize) IntResult {
     return idris2_proven_checksum_crc32(ptr, len);
 }
 
 /// Verify CRC32 matches expected
-export fn proven_checksum_verify_crc32(ptr: ?[*]const u8, len: usize, expected: u32) BoolResult {
+pub export fn proven_checksum_verify_crc32(ptr: ?[*]const u8, len: usize, expected: u32) BoolResult {
     return idris2_proven_checksum_verify_crc32(ptr, len, expected);
 }
 
@@ -1603,22 +1603,22 @@ export fn proven_checksum_verify_crc32(ptr: ?[*]const u8, len: usize, expected: 
 // ============================================================================
 
 /// Create probability (clamped to 0-1)
-export fn proven_probability_create(value: f64) f64 {
+pub export fn proven_probability_create(value: f64) f64 {
     return idris2_proven_probability_create(value);
 }
 
 /// Multiply probabilities (independent events)
-export fn proven_probability_and(a: f64, b: f64) f64 {
+pub export fn proven_probability_and(a: f64, b: f64) f64 {
     return idris2_proven_probability_and(a, b);
 }
 
 /// Add probabilities (mutually exclusive events)
-export fn proven_probability_or_exclusive(a: f64, b: f64) f64 {
+pub export fn proven_probability_or_exclusive(a: f64, b: f64) f64 {
     return idris2_proven_probability_or_exclusive(a, b);
 }
 
 /// Complement (not event)
-export fn proven_probability_not(p: f64) f64 {
+pub export fn proven_probability_not(p: f64) f64 {
     return idris2_proven_probability_not(p);
 }
 
@@ -1627,7 +1627,7 @@ export fn proven_probability_not(p: f64) f64 {
 // ============================================================================
 
 /// Calculate expression result
-export fn proven_calculator_eval(ptr: ?[*]const u8, len: usize) FloatResult {
+pub export fn proven_calculator_eval(ptr: ?[*]const u8, len: usize) FloatResult {
     return idris2_proven_calculator_eval(ptr, len);
 }
 
@@ -1649,22 +1649,22 @@ pub const BufferResult = extern struct {
 };
 
 /// Create bounded buffer
-export fn proven_buffer_create(capacity: usize) BufferResult {
+pub export fn proven_buffer_create(capacity: usize) BufferResult {
     return idris2_proven_buffer_create(capacity);
 }
 
 /// Append to buffer (with bounds checking)
-export fn proven_buffer_append(buffer: ?*BoundedBuffer, ptr: ?[*]const u8, len: usize) ProvenStatus {
+pub export fn proven_buffer_append(buffer: ?*BoundedBuffer, ptr: ?[*]const u8, len: usize) ProvenStatus {
     return idris2_proven_buffer_append(buffer, ptr, len);
 }
 
 /// Get buffer contents
-export fn proven_buffer_get(buffer: ?*BoundedBuffer, out_ptr: ?*[*]const u8, out_len: ?*usize) ProvenStatus {
+pub export fn proven_buffer_get(buffer: ?*BoundedBuffer, out_ptr: ?*[*]const u8, out_len: ?*usize) ProvenStatus {
     return idris2_proven_buffer_get(buffer, out_ptr, out_len);
 }
 
 /// Free buffer
-export fn proven_buffer_free(buffer: ?*BoundedBuffer) void {
+pub export fn proven_buffer_free(buffer: ?*BoundedBuffer) void {
     if (buffer) |buf| {
         allocator.free(buf.data[0..buf.capacity]);
         allocator.destroy(buf);
@@ -1684,17 +1684,17 @@ pub const RateLimiter = extern struct {
 };
 
 /// Create rate limiter
-export fn proven_rate_limiter_create(capacity: f64, refill_rate: f64) ?*RateLimiter {
+pub export fn proven_rate_limiter_create(capacity: f64, refill_rate: f64) ?*RateLimiter {
     return idris2_proven_rate_limiter_create(capacity, refill_rate);
 }
 
 /// Try to consume tokens
-export fn proven_rate_limiter_try_acquire(limiter: ?*RateLimiter, tokens: f64) bool {
+pub export fn proven_rate_limiter_try_acquire(limiter: ?*RateLimiter, tokens: f64) bool {
     return idris2_proven_rate_limiter_try_acquire(limiter, tokens);
 }
 
 /// Free rate limiter
-export fn proven_rate_limiter_free(limiter: ?*RateLimiter) void {
+pub export fn proven_rate_limiter_free(limiter: ?*RateLimiter) void {
     if (limiter) |rl| {
         allocator.destroy(rl);
     }
@@ -1723,32 +1723,32 @@ pub const CircuitBreaker = extern struct {
 };
 
 /// Create circuit breaker
-export fn proven_circuit_breaker_create(failure_threshold: u32, success_threshold: u32, timeout_ms: i64) ?*CircuitBreaker {
+pub export fn proven_circuit_breaker_create(failure_threshold: u32, success_threshold: u32, timeout_ms: i64) ?*CircuitBreaker {
     return idris2_proven_circuit_breaker_create(failure_threshold, success_threshold, timeout_ms);
 }
 
 /// Check if request should be allowed
-export fn proven_circuit_breaker_allow(cb: ?*CircuitBreaker) bool {
+pub export fn proven_circuit_breaker_allow(cb: ?*CircuitBreaker) bool {
     return idris2_proven_circuit_breaker_allow(cb);
 }
 
 /// Record success
-export fn proven_circuit_breaker_success(cb: ?*CircuitBreaker) void {
+pub export fn proven_circuit_breaker_success(cb: ?*CircuitBreaker) void {
     return idris2_proven_circuit_breaker_success(cb);
 }
 
 /// Record failure
-export fn proven_circuit_breaker_failure(cb: ?*CircuitBreaker) void {
+pub export fn proven_circuit_breaker_failure(cb: ?*CircuitBreaker) void {
     return idris2_proven_circuit_breaker_failure(cb);
 }
 
 /// Get circuit state
-export fn proven_circuit_breaker_state(cb: ?*CircuitBreaker) CircuitState {
+pub export fn proven_circuit_breaker_state(cb: ?*CircuitBreaker) CircuitState {
     return idris2_proven_circuit_breaker_state(cb);
 }
 
 /// Free circuit breaker
-export fn proven_circuit_breaker_free(cb: ?*CircuitBreaker) void {
+pub export fn proven_circuit_breaker_free(cb: ?*CircuitBreaker) void {
     if (cb) |breaker| {
         allocator.destroy(breaker);
     }
@@ -1778,12 +1778,12 @@ pub const PasswordResult = extern struct {
 };
 
 /// Validate password strength
-export fn proven_password_validate(ptr: ?[*]const u8, len: usize) PasswordResult {
+pub export fn proven_password_validate(ptr: ?[*]const u8, len: usize) PasswordResult {
     return idris2_proven_password_validate(ptr, len);
 }
 
 /// Check if password is in common passwords list
-export fn proven_password_is_common(ptr: ?[*]const u8, len: usize) bool {
+pub export fn proven_password_is_common(ptr: ?[*]const u8, len: usize) bool {
     return idris2_proven_password_is_common(ptr, len);
 }
 
@@ -1812,17 +1812,17 @@ pub const ColorParseResult = extern struct {
 };
 
 /// Parse hex color string (#RRGGBB or #RGB)
-export fn proven_color_parse_hex(ptr: ?[*]const u8, len: usize) ColorParseResult {
+pub export fn proven_color_parse_hex(ptr: ?[*]const u8, len: usize) ColorParseResult {
     return idris2_proven_color_parse_hex(ptr, len);
 }
 
 /// Convert RGB to HSL
-export fn proven_color_rgb_to_hsl(rgb: RGBColor) HSLColor {
+pub export fn proven_color_rgb_to_hsl(rgb: RGBColor) HSLColor {
     return idris2_proven_color_rgb_to_hsl(rgb);
 }
 
 /// Format RGB as hex string
-export fn proven_color_to_hex(rgb: RGBColor) StringResult {
+pub export fn proven_color_to_hex(rgb: RGBColor) StringResult {
     return idris2_proven_color_to_hex(rgb);
 }
 
@@ -1831,22 +1831,22 @@ export fn proven_color_to_hex(rgb: RGBColor) StringResult {
 // ============================================================================
 
 /// Convert degrees to radians
-export fn proven_angle_deg_to_rad(degrees: f64) f64 {
+pub export fn proven_angle_deg_to_rad(degrees: f64) f64 {
     return idris2_proven_angle_deg_to_rad(degrees);
 }
 
 /// Convert radians to degrees
-export fn proven_angle_rad_to_deg(radians: f64) f64 {
+pub export fn proven_angle_rad_to_deg(radians: f64) f64 {
     return idris2_proven_angle_rad_to_deg(radians);
 }
 
 /// Normalize angle to 0-360 degrees
-export fn proven_angle_normalize_degrees(degrees: f64) f64 {
+pub export fn proven_angle_normalize_degrees(degrees: f64) f64 {
     return idris2_proven_angle_normalize_degrees(degrees);
 }
 
 /// Normalize angle to 0-2pi radians
-export fn proven_angle_normalize_radians(radians: f64) f64 {
+pub export fn proven_angle_normalize_radians(radians: f64) f64 {
     return idris2_proven_angle_normalize_radians(radians);
 }
 
@@ -1867,7 +1867,7 @@ pub const LengthUnit = enum(i32) {
 };
 
 /// Convert length between units
-export fn proven_unit_convert_length(value: f64, from: LengthUnit, to: LengthUnit) FloatResult {
+pub export fn proven_unit_convert_length(value: f64, from: LengthUnit, to: LengthUnit) FloatResult {
     return idris2_proven_unit_convert_length(value, from, to);
 }
 
@@ -1879,7 +1879,7 @@ pub const TempUnit = enum(i32) {
 };
 
 /// Convert temperature between units
-export fn proven_unit_convert_temp(value: f64, from: TempUnit, to: TempUnit) FloatResult {
+pub export fn proven_unit_convert_temp(value: f64, from: TempUnit, to: TempUnit) FloatResult {
     return idris2_proven_unit_convert_temp(value, from, to);
 }
 
@@ -1897,27 +1897,27 @@ pub const BoundedQueue = extern struct {
 };
 
 /// Create bounded queue
-export fn proven_queue_create(capacity: usize) ?*BoundedQueue {
+pub export fn proven_queue_create(capacity: usize) ?*BoundedQueue {
     return idris2_proven_queue_create(capacity);
 }
 
 /// Push to queue (returns false if full)
-export fn proven_queue_push(queue: ?*BoundedQueue, value: i64) bool {
+pub export fn proven_queue_push(queue: ?*BoundedQueue, value: i64) bool {
     return idris2_proven_queue_push(queue, value);
 }
 
 /// Pop from queue
-export fn proven_queue_pop(queue: ?*BoundedQueue) IntResult {
+pub export fn proven_queue_pop(queue: ?*BoundedQueue) IntResult {
     return idris2_proven_queue_pop(queue);
 }
 
 /// Get queue size
-export fn proven_queue_size(queue: ?*BoundedQueue) usize {
+pub export fn proven_queue_size(queue: ?*BoundedQueue) usize {
     return idris2_proven_queue_size(queue);
 }
 
 /// Free queue
-export fn proven_queue_free(queue: ?*BoundedQueue) void {
+pub export fn proven_queue_free(queue: ?*BoundedQueue) void {
     if (queue) |q| {
         allocator.free(q.data[0..q.capacity]);
         allocator.destroy(q);
@@ -1936,22 +1936,22 @@ pub const BloomFilter = extern struct {
 };
 
 /// Create bloom filter
-export fn proven_bloom_create(expected_elements: usize, false_positive_rate: f64) ?*BloomFilter {
+pub export fn proven_bloom_create(expected_elements: usize, false_positive_rate: f64) ?*BloomFilter {
     return idris2_proven_bloom_create(expected_elements, false_positive_rate);
 }
 
 /// Add element to bloom filter
-export fn proven_bloom_add(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) void {
+pub export fn proven_bloom_add(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) void {
     return idris2_proven_bloom_add(filter, ptr, len);
 }
 
 /// Check if element might be in filter
-export fn proven_bloom_contains(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) bool {
+pub export fn proven_bloom_contains(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) bool {
     return idris2_proven_bloom_contains(filter, ptr, len);
 }
 
 /// Free bloom filter
-export fn proven_bloom_free(filter: ?*BloomFilter) void {
+pub export fn proven_bloom_free(filter: ?*BloomFilter) void {
     if (filter) |f| {
         allocator.free(f.bits[0..(f.bit_count + 7) / 8]);
         allocator.destroy(f);
@@ -1971,12 +1971,12 @@ pub const RetryConfig = extern struct {
 };
 
 /// Calculate delay for attempt (with jitter)
-export fn proven_retry_delay(config: RetryConfig, attempt: u32) u64 {
+pub export fn proven_retry_delay(config: RetryConfig, attempt: u32) u64 {
     return idris2_proven_retry_delay(config, attempt);
 }
 
 /// Check if should retry
-export fn proven_retry_should_retry(config: RetryConfig, attempt: u32) bool {
+pub export fn proven_retry_should_retry(config: RetryConfig, attempt: u32) bool {
     return idris2_proven_retry_should_retry(config, attempt);
 }
 
@@ -1991,17 +1991,17 @@ pub const MonotonicCounter = extern struct {
 };
 
 /// Create monotonic counter
-export fn proven_monotonic_create(initial: u64, max_value: u64) ?*MonotonicCounter {
+pub export fn proven_monotonic_create(initial: u64, max_value: u64) ?*MonotonicCounter {
     return idris2_proven_monotonic_create(initial, max_value);
 }
 
 /// Get next value (atomic-like increment)
-export fn proven_monotonic_next(counter: ?*MonotonicCounter) IntResult {
+pub export fn proven_monotonic_next(counter: ?*MonotonicCounter) IntResult {
     return idris2_proven_monotonic_next(counter);
 }
 
 /// Free counter
-export fn proven_monotonic_free(counter: ?*MonotonicCounter) void {
+pub export fn proven_monotonic_free(counter: ?*MonotonicCounter) void {
     if (counter) |c| {
         allocator.destroy(c);
     }
@@ -2019,27 +2019,27 @@ pub const StateMachine = extern struct {
 };
 
 /// Create state machine
-export fn proven_state_machine_create(state_count: u32, initial_state: u32) ?*StateMachine {
+pub export fn proven_state_machine_create(state_count: u32, initial_state: u32) ?*StateMachine {
     return idris2_proven_state_machine_create(state_count, initial_state);
 }
 
 /// Allow transition from state A to state B
-export fn proven_state_machine_allow(sm: ?*StateMachine, from: u32, to: u32) bool {
+pub export fn proven_state_machine_allow(sm: ?*StateMachine, from: u32, to: u32) bool {
     return idris2_proven_state_machine_allow(sm, from, to);
 }
 
 /// Try to transition to new state
-export fn proven_state_machine_transition(sm: ?*StateMachine, to: u32) bool {
+pub export fn proven_state_machine_transition(sm: ?*StateMachine, to: u32) bool {
     return idris2_proven_state_machine_transition(sm, to);
 }
 
 /// Get current state
-export fn proven_state_machine_state(sm: ?*StateMachine) u32 {
+pub export fn proven_state_machine_state(sm: ?*StateMachine) u32 {
     return idris2_proven_state_machine_state(sm);
 }
 
 /// Free state machine
-export fn proven_state_machine_free(sm: ?*StateMachine) void {
+pub export fn proven_state_machine_free(sm: ?*StateMachine) void {
     if (sm) |machine| {
         allocator.free(machine.transitions[0 .. machine.state_count * machine.state_count]);
         allocator.destroy(machine);
@@ -2058,27 +2058,27 @@ pub const Tensor2D = extern struct {
 };
 
 /// Create 2D tensor
-export fn proven_tensor_create(rows: usize, cols: usize) ?*Tensor2D {
+pub export fn proven_tensor_create(rows: usize, cols: usize) ?*Tensor2D {
     return idris2_proven_tensor_create(rows, cols);
 }
 
 /// Set tensor value
-export fn proven_tensor_set(tensor: ?*Tensor2D, row: usize, col: usize, value: f64) ProvenStatus {
+pub export fn proven_tensor_set(tensor: ?*Tensor2D, row: usize, col: usize, value: f64) ProvenStatus {
     return idris2_proven_tensor_set(tensor, row, col, value);
 }
 
 /// Get tensor value
-export fn proven_tensor_get(tensor: ?*Tensor2D, row: usize, col: usize) FloatResult {
+pub export fn proven_tensor_get(tensor: ?*Tensor2D, row: usize, col: usize) FloatResult {
     return idris2_proven_tensor_get(tensor, row, col);
 }
 
 /// Matrix multiplication
-export fn proven_tensor_matmul(a: ?*Tensor2D, b: ?*Tensor2D) ?*Tensor2D {
+pub export fn proven_tensor_matmul(a: ?*Tensor2D, b: ?*Tensor2D) ?*Tensor2D {
     return idris2_proven_tensor_matmul(a, b);
 }
 
 /// Free tensor
-export fn proven_tensor_free(tensor: ?*Tensor2D) void {
+pub export fn proven_tensor_free(tensor: ?*Tensor2D) void {
     if (tensor) |t| {
         allocator.free(t.data[0 .. t.rows * t.cols]);
         allocator.destroy(t);
@@ -2090,27 +2090,27 @@ export fn proven_tensor_free(tensor: ?*Tensor2D) void {
 // ============================================================================
 
 /// Softmax normalization
-export fn proven_ml_softmax(input: ?[*]const f64, output: ?[*]f64, len: usize) ProvenStatus {
+pub export fn proven_ml_softmax(input: ?[*]const f64, output: ?[*]f64, len: usize) ProvenStatus {
     return idris2_proven_ml_softmax(input, output, len);
 }
 
 /// Sigmoid function
-export fn proven_ml_sigmoid(x: f64) f64 {
+pub export fn proven_ml_sigmoid(x: f64) f64 {
     return idris2_proven_ml_sigmoid(x);
 }
 
 /// ReLU function
-export fn proven_ml_relu(x: f64) f64 {
+pub export fn proven_ml_relu(x: f64) f64 {
     return idris2_proven_ml_relu(x);
 }
 
 /// Leaky ReLU
-export fn proven_ml_leaky_relu(x: f64, alpha: f64) f64 {
+pub export fn proven_ml_leaky_relu(x: f64, alpha: f64) f64 {
     return idris2_proven_ml_leaky_relu(x, alpha);
 }
 
 /// Clamp value to range
-export fn proven_ml_clamp(x: f64, min_val: f64, max_val: f64) f64 {
+pub export fn proven_ml_clamp(x: f64, min_val: f64, max_val: f64) f64 {
     return idris2_proven_ml_clamp(x, min_val, max_val);
 }
 
@@ -2137,22 +2137,22 @@ pub const LRUCache = extern struct {
 };
 
 /// Create LRU cache
-export fn proven_lru_create(capacity: usize) ?*LRUCache {
+pub export fn proven_lru_create(capacity: usize) ?*LRUCache {
     return idris2_proven_lru_create(capacity);
 }
 
 /// Get from LRU cache
-export fn proven_lru_get(cache: ?*LRUCache, key: u64) IntResult {
+pub export fn proven_lru_get(cache: ?*LRUCache, key: u64) IntResult {
     return idris2_proven_lru_get(cache, key);
 }
 
 /// Put in LRU cache
-export fn proven_lru_put(cache: ?*LRUCache, key: u64, value: i64) ProvenStatus {
+pub export fn proven_lru_put(cache: ?*LRUCache, key: u64, value: i64) ProvenStatus {
     return idris2_proven_lru_put(cache, key, value);
 }
 
 /// Free LRU cache
-export fn proven_lru_free(cache: ?*LRUCache) void {
+pub export fn proven_lru_free(cache: ?*LRUCache) void {
     if (cache) |c| {
         allocator.free(c.entries[0..c.capacity]);
         allocator.destroy(c);
@@ -2170,22 +2170,22 @@ pub const Graph = extern struct {
 };
 
 /// Create graph
-export fn proven_graph_create(node_count: usize) ?*Graph {
+pub export fn proven_graph_create(node_count: usize) ?*Graph {
     return idris2_proven_graph_create(node_count);
 }
 
 /// Add edge
-export fn proven_graph_add_edge(graph: ?*Graph, from: usize, to: usize) ProvenStatus {
+pub export fn proven_graph_add_edge(graph: ?*Graph, from: usize, to: usize) ProvenStatus {
     return idris2_proven_graph_add_edge(graph, from, to);
 }
 
 /// Check if edge exists
-export fn proven_graph_has_edge(graph: ?*Graph, from: usize, to: usize) bool {
+pub export fn proven_graph_has_edge(graph: ?*Graph, from: usize, to: usize) bool {
     return idris2_proven_graph_has_edge(graph, from, to);
 }
 
 /// Free graph
-export fn proven_graph_free(graph: ?*Graph) void {
+pub export fn proven_graph_free(graph: ?*Graph) void {
     if (graph) |g| {
         const edge_bytes = (g.node_count * g.node_count + 7) / 8;
         allocator.free(g.edges[0..edge_bytes]);
