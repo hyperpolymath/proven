@@ -7,7 +7,6 @@
 module Proven.SafeUrl.Parser
 
 import Proven.Core
-import Data.Char
 import Data.List
 import Data.Maybe
 import Data.String

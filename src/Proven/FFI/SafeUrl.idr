@@ -19,8 +19,24 @@ import Proven.SafeUrl
 import Proven.SafeUrl.Parser
 import Proven.SafeUrl.Query
 import Proven.Core
+import Data.List
+import Data.Maybe
+import Data.String
 
 %default total
+
+--------------------------------------------------------------------------------
+-- Helpers
+--------------------------------------------------------------------------------
+
+||| Join a list of strings with a separator
+joinWith : String -> List String -> String
+joinWith _ [] = ""
+joinWith sep (x :: xs) = foldl (\acc, y => acc ++ sep ++ y) x xs
+
+||| Format a key-value pair for query strings
+formatPair : (String, String) -> String
+formatPair (k, v) = k ++ "=" ++ v
 
 --------------------------------------------------------------------------------
 -- FFI Result Encoding
@@ -31,27 +47,21 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
+||| Render a ParsedURL back to a string
+renderURL : ParsedURL -> String
+renderURL u =
+  let scheme = maybe "" (\s => show s ++ "://") u.scheme
+      host = maybe "" show u.host
+      port = maybe "" (\p => ":" ++ show p) u.port
+      path = if null u.path then "" else "/" ++ joinWith "/" u.path
+      query = if null u.query then "" else "?" ++ joinWith "&" (map formatPair u.query)
+      fragment = maybe "" (\f => "#" ++ f) u.fragment
+  in scheme ++ host ++ port ++ path ++ query ++ fragment
+
 ||| Encode URL parse result as (status, result/error)
 encodeURLResult : Either URLParseError ParsedURL -> (Int, String)
 encodeURLResult (Left err) = (1, show err)
 encodeURLResult (Right url) = (0, renderURL url)
-  where
-    renderURL : ParsedURL -> String
-    renderURL u =
-      let scheme = maybe "" (\s => show s ++ "://") u.scheme
-          host = maybe "" show u.host
-          port = maybe "" (\p => ":" ++ show p) u.port
-          path = if null u.path then "" else "/" ++ joinWith "/" u.path
-          query = if null u.query then "" else "?" ++ joinWith "&" (map formatPair u.query)
-          fragment = maybe "" (\f => "#" ++ f) u.fragment
-      in scheme ++ host ++ port ++ path ++ query ++ fragment
-
-    joinWith : String -> List String -> String
-    joinWith _ [] = ""
-    joinWith sep (x :: xs) = foldl (\acc, y => acc ++ sep ++ y) x xs
-
-    formatPair : (String, String) -> String
-    formatPair (k, v) = k ++ "=" ++ v
 
 ||| Encode Maybe String as (status, value)
 encodeMaybeString : Maybe String -> (Int, String)
@@ -107,10 +117,6 @@ proven_idris_url_get_path s =
   case parseURLMaybe s of
     Nothing => (1, "")
     Just url => (0, if null url.path then "/" else "/" ++ joinWith "/" url.path)
-  where
-    joinWith : String -> List String -> String
-    joinWith _ [] = ""
-    joinWith sep (x :: xs) = foldl (\acc, y => acc ++ sep ++ y) x xs
 
 export
 proven_idris_url_get_query : String -> (Int, String)
@@ -122,13 +128,6 @@ proven_idris_url_get_query s =
     renderQuery : List (String, String) -> String
     renderQuery [] = ""
     renderQuery pairs = joinWith "&" (map formatPair pairs)
-
-    joinWith : String -> List String -> String
-    joinWith _ [] = ""
-    joinWith sep (x :: xs) = foldl (\acc, y => acc ++ sep ++ y) x xs
-
-    formatPair : (String, String) -> String
-    formatPair (k, v) = k ++ "=" ++ v
 
 export
 proven_idris_url_get_fragment : String -> (Int, String)
@@ -191,11 +190,12 @@ proven_idris_url_is_file s =
 
 --------------------------------------------------------------------------------
 -- URL Normalization
+-- Normalize by parsing and re-rendering (canonical form)
 --------------------------------------------------------------------------------
 
 export
 proven_idris_url_normalize : String -> (Int, String)
-proven_idris_url_normalize s = encodeURLResult (normalizeURL s)
+proven_idris_url_normalize s = encodeURLResult (parseURL s)
 
 --------------------------------------------------------------------------------
 -- Query String Operations
@@ -221,10 +221,6 @@ proven_idris_url_query_keys url =
   case parseURLMaybe url of
     Nothing => ""
     Just parsed => joinWith "," (map fst parsed.query)
-  where
-    joinWith : String -> List String -> String
-    joinWith _ [] = ""
-    joinWith sep (x :: xs) = foldl (\acc, y => acc ++ sep ++ y) x xs
 
 --------------------------------------------------------------------------------
 -- Default Ports

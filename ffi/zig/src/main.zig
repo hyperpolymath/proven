@@ -29,224 +29,224 @@ pub const memory = ffi.memory;
 // RefC output from Idris 2.
 
 // --- SafePath ---
-extern fn proven_idris_path_has_traversal(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_path_sanitize_filename(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_path_has_traversal(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_path_sanitize_filename(arg: IdrisValue) callconv(.c) IdrisValue;
 
 // --- SafeJson ---
-extern fn proven_idris_json_is_valid(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_json_get_type(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_json_is_valid(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_json_get_type(arg: IdrisValue) callconv(.c) IdrisValue;
 
 // --- SafeNetwork ---
-extern fn proven_idris_network_parse_ipv4(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_network_ipv4_is_private(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_network_ipv4_is_loopback(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_network_parse_ipv4(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_network_ipv4_is_private(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_network_ipv4_is_loopback(arg: IdrisValue) callconv(.c) IdrisValue;
 
 // --- SafeUrl ---
-extern fn proven_idris_url_is_valid(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_url_scheme(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_url_host(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_url_port(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_url_path(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_url_query(arg: IdrisValue) callconv(.C) IdrisValue;
-extern fn proven_idris_url_fragment(arg: IdrisValue) callconv(.C) IdrisValue;
+extern fn proven_idris_url_is_valid(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_url_scheme(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_url_host(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_url_port(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_url_path(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_url_query(arg: IdrisValue) callconv(.c) IdrisValue;
+extern fn proven_idris_url_fragment(arg: IdrisValue) callconv(.c) IdrisValue;
 
 // --- SafeMath ---
-extern fn idris2_proven_math_div(numerator: i64, denominator: i64) callconv(.C) IntResult;
-extern fn idris2_proven_math_mod(numerator: i64, denominator: i64) callconv(.C) IntResult;
-extern fn idris2_proven_math_add_checked(a: i64, b: i64) callconv(.C) IntResult;
-extern fn idris2_proven_math_sub_checked(a: i64, b: i64) callconv(.C) IntResult;
-extern fn idris2_proven_math_mul_checked(a: i64, b: i64) callconv(.C) IntResult;
-extern fn idris2_proven_math_abs_safe(n: i64) callconv(.C) IntResult;
-extern fn idris2_proven_math_clamp(lo: i64, hi: i64, value: i64) callconv(.C) i64;
-extern fn idris2_proven_math_pow_checked(base: i64, exp: u32) callconv(.C) IntResult;
+extern fn idris2_proven_math_div(numerator: i64, denominator: i64) callconv(.c) IntResult;
+extern fn idris2_proven_math_mod(numerator: i64, denominator: i64) callconv(.c) IntResult;
+extern fn idris2_proven_math_add_checked(a: i64, b: i64) callconv(.c) IntResult;
+extern fn idris2_proven_math_sub_checked(a: i64, b: i64) callconv(.c) IntResult;
+extern fn idris2_proven_math_mul_checked(a: i64, b: i64) callconv(.c) IntResult;
+extern fn idris2_proven_math_abs_safe(n: i64) callconv(.c) IntResult;
+extern fn idris2_proven_math_clamp(lo: i64, hi: i64, value: i64) callconv(.c) i64;
+extern fn idris2_proven_math_pow_checked(base: i64, exp: u32) callconv(.c) IntResult;
 
 // --- SafeString ---
-extern fn idris2_proven_string_is_valid_utf8(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_string_escape_sql(ptr: ?[*]const u8, len: usize) callconv(.C) StringResult;
-extern fn idris2_proven_string_escape_html(ptr: ?[*]const u8, len: usize) callconv(.C) StringResult;
-extern fn idris2_proven_string_escape_js(ptr: ?[*]const u8, len: usize) callconv(.C) StringResult;
+extern fn idris2_proven_string_is_valid_utf8(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_string_escape_sql(ptr: ?[*]const u8, len: usize) callconv(.c) StringResult;
+extern fn idris2_proven_string_escape_html(ptr: ?[*]const u8, len: usize) callconv(.c) StringResult;
+extern fn idris2_proven_string_escape_js(ptr: ?[*]const u8, len: usize) callconv(.c) StringResult;
 
 // --- SafeCrypto ---
-extern fn idris2_proven_crypto_constant_time_eq(ptr1: ?[*]const u8, len1: usize, ptr2: ?[*]const u8, len2: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_crypto_random_bytes(ptr: ?[*]u8, len: usize) callconv(.C) ProvenStatus;
+extern fn idris2_proven_crypto_constant_time_eq(ptr1: ?[*]const u8, len1: usize, ptr2: ?[*]const u8, len2: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_crypto_random_bytes(ptr: ?[*]u8, len: usize) callconv(.c) ProvenStatus;
 
 // --- SafeEmail ---
-extern fn idris2_proven_email_is_valid(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
+extern fn idris2_proven_email_is_valid(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
 
 // --- SafeHeader ---
-extern fn idris2_proven_header_has_crlf(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_header_is_valid_name(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_header_is_dangerous(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_header_render(name_ptr: ?[*]const u8, name_len: usize, value_ptr: ?[*]const u8, value_len: usize) callconv(.C) StringResult;
-extern fn idris2_proven_header_build_csp(directives_json: ?[*]const u8, json_len: usize) callconv(.C) StringResult;
-extern fn idris2_proven_header_build_hsts(max_age: i64, include_subdomains: bool, preload: bool) callconv(.C) StringResult;
+extern fn idris2_proven_header_has_crlf(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_header_is_valid_name(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_header_is_dangerous(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_header_render(name_ptr: ?[*]const u8, name_len: usize, value_ptr: ?[*]const u8, value_len: usize) callconv(.c) StringResult;
+extern fn idris2_proven_header_build_csp(directives_json: ?[*]const u8, json_len: usize) callconv(.c) StringResult;
+extern fn idris2_proven_header_build_hsts(max_age: i64, include_subdomains: bool, preload: bool) callconv(.c) StringResult;
 
 // --- SafeCookie ---
-extern fn idris2_proven_cookie_has_injection(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_cookie_validate_name(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_cookie_validate_value(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_cookie_get_prefix(ptr: ?[*]const u8, len: usize) callconv(.C) IntResult;
-extern fn idris2_proven_cookie_build_set_cookie(name_ptr: ?[*]const u8, name_len: usize, value_ptr: ?[*]const u8, value_len: usize, attrs: CookieAttributes) callconv(.C) StringResult;
-extern fn idris2_proven_cookie_build_delete(name_ptr: ?[*]const u8, name_len: usize) callconv(.C) StringResult;
+extern fn idris2_proven_cookie_has_injection(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_cookie_validate_name(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_cookie_validate_value(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_cookie_get_prefix(ptr: ?[*]const u8, len: usize) callconv(.c) IntResult;
+extern fn idris2_proven_cookie_build_set_cookie(name_ptr: ?[*]const u8, name_len: usize, value_ptr: ?[*]const u8, value_len: usize, attrs: CookieAttributes) callconv(.c) StringResult;
+extern fn idris2_proven_cookie_build_delete(name_ptr: ?[*]const u8, name_len: usize) callconv(.c) StringResult;
 
 // --- SafeContentType ---
-extern fn idris2_proven_content_type_parse(ptr: ?[*]const u8, len: usize) callconv(.C) ContentTypeResult;
-extern fn idris2_proven_content_type_can_sniff_dangerous(ptr: ?[*]const u8, len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_content_type_render(type_ptr: ?[*]const u8, type_len: usize, subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize, charset: Charset, has_charset: bool) callconv(.C) StringResult;
-extern fn idris2_proven_content_type_is_json(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) callconv(.C) BoolResult;
-extern fn idris2_proven_content_type_is_xml(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) callconv(.C) BoolResult;
+extern fn idris2_proven_content_type_parse(ptr: ?[*]const u8, len: usize) callconv(.c) ContentTypeResult;
+extern fn idris2_proven_content_type_can_sniff_dangerous(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_content_type_render(type_ptr: ?[*]const u8, type_len: usize, subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize, charset: Charset, has_charset: bool) callconv(.c) StringResult;
+extern fn idris2_proven_content_type_is_json(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) callconv(.c) BoolResult;
+extern fn idris2_proven_content_type_is_xml(subtype_ptr: ?[*]const u8, subtype_len: usize, suffix_ptr: ?[*]const u8, suffix_len: usize) callconv(.c) BoolResult;
 
 // --- SafeRegistry ---
-extern fn idris2_proven_registry_parse(ptr: ?[*]const u8, len: usize) callconv(.C) ImageRefResult;
-extern fn idris2_proven_registry_to_string(ref: *const ImageReference) callconv(.C) StringResult;
-extern fn idris2_proven_registry_has_registry(ref: *const ImageReference) callconv(.C) BoolResult;
+extern fn idris2_proven_registry_parse(ptr: ?[*]const u8, len: usize) callconv(.c) ImageRefResult;
+extern fn idris2_proven_registry_to_string(ref: *const ImageReference) callconv(.c) StringResult;
+extern fn idris2_proven_registry_has_registry(ref: *const ImageReference) callconv(.c) BoolResult;
 
 // --- SafeDigest ---
-extern fn idris2_proven_digest_parse(ptr: ?[*]const u8, len: usize) callconv(.C) DigestResult;
-extern fn idris2_proven_digest_verify(expected: *const Digest, actual: *const Digest) callconv(.C) BoolResult;
-extern fn idris2_proven_digest_to_string(digest: *const Digest) callconv(.C) StringResult;
+extern fn idris2_proven_digest_parse(ptr: ?[*]const u8, len: usize) callconv(.c) DigestResult;
+extern fn idris2_proven_digest_verify(expected: *const Digest, actual: *const Digest) callconv(.c) BoolResult;
+extern fn idris2_proven_digest_to_string(digest: *const Digest) callconv(.c) StringResult;
 
 // --- SafeHTTP ---
-extern fn idris2_proven_http_url_encode(ptr: ?[*]const u8, len: usize) callconv(.C) StringResult;
-extern fn idris2_proven_http_url_decode(ptr: ?[*]const u8, len: usize) callconv(.C) StringResult;
-extern fn idris2_proven_http_parse_www_authenticate(ptr: ?[*]const u8, len: usize) callconv(.C) AuthChallengeResult;
+extern fn idris2_proven_http_url_encode(ptr: ?[*]const u8, len: usize) callconv(.c) StringResult;
+extern fn idris2_proven_http_url_decode(ptr: ?[*]const u8, len: usize) callconv(.c) StringResult;
+extern fn idris2_proven_http_parse_www_authenticate(ptr: ?[*]const u8, len: usize) callconv(.c) AuthChallengeResult;
 
 // --- SafeHex ---
-extern fn idris2_proven_hex_encode(ptr: ?[*]const u8, len: usize, uppercase: bool) callconv(.C) StringResult;
-extern fn idris2_proven_hex_decode(ptr: ?[*]const u8, len: usize) callconv(.C) HexDecodeResult;
+extern fn idris2_proven_hex_encode(ptr: ?[*]const u8, len: usize, uppercase: bool) callconv(.c) StringResult;
+extern fn idris2_proven_hex_decode(ptr: ?[*]const u8, len: usize) callconv(.c) HexDecodeResult;
 
 // --- SafeUUID ---
-extern fn idris2_proven_uuid_v4() callconv(.C) UUIDResult;
-extern fn idris2_proven_uuid_to_string(uuid: UUID) callconv(.C) StringResult;
-extern fn idris2_proven_uuid_parse(ptr: ?[*]const u8, len: usize) callconv(.C) UUIDResult;
-extern fn idris2_proven_uuid_is_nil(uuid: UUID) callconv(.C) bool;
-extern fn idris2_proven_uuid_version(uuid: UUID) callconv(.C) u8;
+extern fn idris2_proven_uuid_v4() callconv(.c) UUIDResult;
+extern fn idris2_proven_uuid_to_string(uuid: UUID) callconv(.c) StringResult;
+extern fn idris2_proven_uuid_parse(ptr: ?[*]const u8, len: usize) callconv(.c) UUIDResult;
+extern fn idris2_proven_uuid_is_nil(uuid: UUID) callconv(.c) bool;
+extern fn idris2_proven_uuid_version(uuid: UUID) callconv(.c) u8;
 
 // --- SafeCurrency ---
-extern fn idris2_proven_currency_parse(ptr: ?[*]const u8, len: usize) callconv(.C) CurrencyResult;
-extern fn idris2_proven_currency_format(amount_minor: i64, code: [3]u8, decimal_places: u8) callconv(.C) StringResult;
+extern fn idris2_proven_currency_parse(ptr: ?[*]const u8, len: usize) callconv(.c) CurrencyResult;
+extern fn idris2_proven_currency_format(amount_minor: i64, code: *const [3]u8, decimal_places: u8) callconv(.c) StringResult;
 
 // --- SafePhone ---
-extern fn idris2_proven_phone_parse(ptr: ?[*]const u8, len: usize) callconv(.C) PhoneResult;
-extern fn idris2_proven_phone_format_e164(country_code: u16, national_number: u64) callconv(.C) StringResult;
+extern fn idris2_proven_phone_parse(ptr: ?[*]const u8, len: usize) callconv(.c) PhoneResult;
+extern fn idris2_proven_phone_format_e164(country_code: u16, national_number: u64) callconv(.c) StringResult;
 
 // --- SafeDateTime ---
-extern fn idris2_proven_datetime_parse(ptr: ?[*]const u8, len: usize) callconv(.C) DateTimeResult;
-extern fn idris2_proven_datetime_format_iso8601(dt: DateTime) callconv(.C) StringResult;
-extern fn idris2_proven_datetime_is_leap_year(year: i32) callconv(.C) bool;
-extern fn idris2_proven_datetime_days_in_month(year: i32, month: u8) callconv(.C) u8;
+extern fn idris2_proven_datetime_parse(ptr: ?[*]const u8, len: usize) callconv(.c) DateTimeResult;
+extern fn idris2_proven_datetime_format_iso8601(dt: DateTime) callconv(.c) StringResult;
+extern fn idris2_proven_datetime_is_leap_year(year: i32) callconv(.c) bool;
+extern fn idris2_proven_datetime_days_in_month(year: i32, month: u8) callconv(.c) u8;
 
 // --- SafeFloat ---
-extern fn idris2_proven_float_div(a: f64, b: f64) callconv(.C) FloatResult;
-extern fn idris2_proven_float_is_finite(x: f64) callconv(.C) bool;
-extern fn idris2_proven_float_is_nan(x: f64) callconv(.C) bool;
-extern fn idris2_proven_float_sqrt(x: f64) callconv(.C) FloatResult;
-extern fn idris2_proven_float_ln(x: f64) callconv(.C) FloatResult;
+extern fn idris2_proven_float_div(a: f64, b: f64) callconv(.c) FloatResult;
+extern fn idris2_proven_float_is_finite(x: f64) callconv(.c) bool;
+extern fn idris2_proven_float_is_nan(x: f64) callconv(.c) bool;
+extern fn idris2_proven_float_sqrt(x: f64) callconv(.c) FloatResult;
+extern fn idris2_proven_float_ln(x: f64) callconv(.c) FloatResult;
 
 // --- SafeVersion ---
-extern fn idris2_proven_version_parse(ptr: ?[*]const u8, len: usize) callconv(.C) VersionResult;
-extern fn idris2_proven_version_compare(a: SemanticVersion, b: SemanticVersion) callconv(.C) i32;
+extern fn idris2_proven_version_parse(ptr: ?[*]const u8, len: usize) callconv(.c) VersionResult;
+extern fn idris2_proven_version_compare(a: SemanticVersion, b: SemanticVersion) callconv(.c) i32;
 
 // --- SafeGeo ---
-extern fn idris2_proven_geo_validate(lat: f64, lon: f64) callconv(.C) GeoResult;
-extern fn idris2_proven_geo_distance(a: GeoCoordinate, b: GeoCoordinate) callconv(.C) FloatResult;
-extern fn idris2_proven_geo_in_bounds(coord: GeoCoordinate, min_lat: f64, max_lat: f64, min_lon: f64, max_lon: f64) callconv(.C) bool;
+extern fn idris2_proven_geo_validate(lat: f64, lon: f64) callconv(.c) GeoResult;
+extern fn idris2_proven_geo_distance(a: GeoCoordinate, b: GeoCoordinate) callconv(.c) FloatResult;
+extern fn idris2_proven_geo_in_bounds(coord: GeoCoordinate, min_lat: f64, max_lat: f64, min_lon: f64, max_lon: f64) callconv(.c) bool;
 
 // --- SafeChecksum ---
-extern fn idris2_proven_checksum_crc32(ptr: ?[*]const u8, len: usize) callconv(.C) IntResult;
-extern fn idris2_proven_checksum_verify_crc32(ptr: ?[*]const u8, len: usize, expected: u32) callconv(.C) BoolResult;
+extern fn idris2_proven_checksum_crc32(ptr: ?[*]const u8, len: usize) callconv(.c) IntResult;
+extern fn idris2_proven_checksum_verify_crc32(ptr: ?[*]const u8, len: usize, expected: u32) callconv(.c) BoolResult;
 
 // --- SafeProbability ---
-extern fn idris2_proven_probability_create(value: f64) callconv(.C) f64;
-extern fn idris2_proven_probability_and(a: f64, b: f64) callconv(.C) f64;
-extern fn idris2_proven_probability_or_exclusive(a: f64, b: f64) callconv(.C) f64;
-extern fn idris2_proven_probability_not(p: f64) callconv(.C) f64;
+extern fn idris2_proven_probability_create(value: f64) callconv(.c) f64;
+extern fn idris2_proven_probability_and(a: f64, b: f64) callconv(.c) f64;
+extern fn idris2_proven_probability_or_exclusive(a: f64, b: f64) callconv(.c) f64;
+extern fn idris2_proven_probability_not(p: f64) callconv(.c) f64;
 
 // --- SafeCalculator ---
-extern fn idris2_proven_calculator_eval(ptr: ?[*]const u8, len: usize) callconv(.C) FloatResult;
+extern fn idris2_proven_calculator_eval(ptr: ?[*]const u8, len: usize) callconv(.c) FloatResult;
 
 // --- SafeBuffer ---
-extern fn idris2_proven_buffer_create(capacity: usize) callconv(.C) BufferResult;
-extern fn idris2_proven_buffer_append(buffer: ?*BoundedBuffer, ptr: ?[*]const u8, len: usize) callconv(.C) ProvenStatus;
-extern fn idris2_proven_buffer_get(buffer: ?*BoundedBuffer, out_ptr: ?*[*]const u8, out_len: ?*usize) callconv(.C) ProvenStatus;
+extern fn idris2_proven_buffer_create(capacity: usize) callconv(.c) BufferResult;
+extern fn idris2_proven_buffer_append(buffer: ?*BoundedBuffer, ptr: ?[*]const u8, len: usize) callconv(.c) ProvenStatus;
+extern fn idris2_proven_buffer_get(buffer: ?*BoundedBuffer, out_ptr: ?*[*]const u8, out_len: ?*usize) callconv(.c) ProvenStatus;
 
 // --- SafeRateLimiter ---
-extern fn idris2_proven_rate_limiter_create(capacity: f64, refill_rate: f64) callconv(.C) ?*RateLimiter;
-extern fn idris2_proven_rate_limiter_try_acquire(limiter: ?*RateLimiter, tokens: f64) callconv(.C) bool;
+extern fn idris2_proven_rate_limiter_create(capacity: f64, refill_rate: f64) callconv(.c) ?*RateLimiter;
+extern fn idris2_proven_rate_limiter_try_acquire(limiter: ?*RateLimiter, tokens: f64) callconv(.c) bool;
 
 // --- SafeCircuitBreaker ---
-extern fn idris2_proven_circuit_breaker_create(failure_threshold: u32, success_threshold: u32, timeout_ms: i64) callconv(.C) ?*CircuitBreaker;
-extern fn idris2_proven_circuit_breaker_allow(cb: ?*CircuitBreaker) callconv(.C) bool;
-extern fn idris2_proven_circuit_breaker_success(cb: ?*CircuitBreaker) callconv(.C) void;
-extern fn idris2_proven_circuit_breaker_failure(cb: ?*CircuitBreaker) callconv(.C) void;
-extern fn idris2_proven_circuit_breaker_state(cb: ?*CircuitBreaker) callconv(.C) CircuitState;
+extern fn idris2_proven_circuit_breaker_create(failure_threshold: u32, success_threshold: u32, timeout_ms: i64) callconv(.c) ?*CircuitBreaker;
+extern fn idris2_proven_circuit_breaker_allow(cb: ?*CircuitBreaker) callconv(.c) bool;
+extern fn idris2_proven_circuit_breaker_success(cb: ?*CircuitBreaker) callconv(.c) void;
+extern fn idris2_proven_circuit_breaker_failure(cb: ?*CircuitBreaker) callconv(.c) void;
+extern fn idris2_proven_circuit_breaker_state(cb: ?*CircuitBreaker) callconv(.c) CircuitState;
 
 // --- SafePassword ---
-extern fn idris2_proven_password_validate(ptr: ?[*]const u8, len: usize) callconv(.C) PasswordResult;
-extern fn idris2_proven_password_is_common(ptr: ?[*]const u8, len: usize) callconv(.C) bool;
+extern fn idris2_proven_password_validate(ptr: ?[*]const u8, len: usize) callconv(.c) PasswordResult;
+extern fn idris2_proven_password_is_common(ptr: ?[*]const u8, len: usize) callconv(.c) bool;
 
 // --- SafeColor ---
-extern fn idris2_proven_color_parse_hex(ptr: ?[*]const u8, len: usize) callconv(.C) ColorParseResult;
-extern fn idris2_proven_color_rgb_to_hsl(rgb: RGBColor) callconv(.C) HSLColor;
-extern fn idris2_proven_color_to_hex(rgb: RGBColor) callconv(.C) StringResult;
+extern fn idris2_proven_color_parse_hex(ptr: ?[*]const u8, len: usize) callconv(.c) ColorParseResult;
+extern fn idris2_proven_color_rgb_to_hsl(rgb: RGBColor) callconv(.c) HSLColor;
+extern fn idris2_proven_color_to_hex(rgb: RGBColor) callconv(.c) StringResult;
 
 // --- SafeAngle ---
-extern fn idris2_proven_angle_deg_to_rad(degrees: f64) callconv(.C) f64;
-extern fn idris2_proven_angle_rad_to_deg(radians: f64) callconv(.C) f64;
-extern fn idris2_proven_angle_normalize_degrees(degrees: f64) callconv(.C) f64;
-extern fn idris2_proven_angle_normalize_radians(radians: f64) callconv(.C) f64;
+extern fn idris2_proven_angle_deg_to_rad(degrees: f64) callconv(.c) f64;
+extern fn idris2_proven_angle_rad_to_deg(radians: f64) callconv(.c) f64;
+extern fn idris2_proven_angle_normalize_degrees(degrees: f64) callconv(.c) f64;
+extern fn idris2_proven_angle_normalize_radians(radians: f64) callconv(.c) f64;
 
 // --- SafeUnit ---
-extern fn idris2_proven_unit_convert_length(value: f64, from: LengthUnit, to: LengthUnit) callconv(.C) FloatResult;
-extern fn idris2_proven_unit_convert_temp(value: f64, from: TempUnit, to: TempUnit) callconv(.C) FloatResult;
+extern fn idris2_proven_unit_convert_length(value: f64, from: LengthUnit, to: LengthUnit) callconv(.c) FloatResult;
+extern fn idris2_proven_unit_convert_temp(value: f64, from: TempUnit, to: TempUnit) callconv(.c) FloatResult;
 
 // --- SafeQueue ---
-extern fn idris2_proven_queue_create(capacity: usize) callconv(.C) ?*BoundedQueue;
-extern fn idris2_proven_queue_push(queue: ?*BoundedQueue, value: i64) callconv(.C) bool;
-extern fn idris2_proven_queue_pop(queue: ?*BoundedQueue) callconv(.C) IntResult;
-extern fn idris2_proven_queue_size(queue: ?*BoundedQueue) callconv(.C) usize;
+extern fn idris2_proven_queue_create(capacity: usize) callconv(.c) ?*BoundedQueue;
+extern fn idris2_proven_queue_push(queue: ?*BoundedQueue, value: i64) callconv(.c) bool;
+extern fn idris2_proven_queue_pop(queue: ?*BoundedQueue) callconv(.c) IntResult;
+extern fn idris2_proven_queue_size(queue: ?*BoundedQueue) callconv(.c) usize;
 
 // --- SafeBloom ---
-extern fn idris2_proven_bloom_create(expected_elements: usize, false_positive_rate: f64) callconv(.C) ?*BloomFilter;
-extern fn idris2_proven_bloom_add(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) callconv(.C) void;
-extern fn idris2_proven_bloom_contains(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) callconv(.C) bool;
+extern fn idris2_proven_bloom_create(expected_elements: usize, false_positive_rate: f64) callconv(.c) ?*BloomFilter;
+extern fn idris2_proven_bloom_add(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) callconv(.c) void;
+extern fn idris2_proven_bloom_contains(filter: ?*BloomFilter, ptr: ?[*]const u8, len: usize) callconv(.c) bool;
 
 // --- SafeRetry ---
-extern fn idris2_proven_retry_delay(config: RetryConfig, attempt: u32) callconv(.C) u64;
-extern fn idris2_proven_retry_should_retry(config: RetryConfig, attempt: u32) callconv(.C) bool;
+extern fn idris2_proven_retry_delay(config: RetryConfig, attempt: u32) callconv(.c) u64;
+extern fn idris2_proven_retry_should_retry(config: RetryConfig, attempt: u32) callconv(.c) bool;
 
 // --- SafeMonotonic ---
-extern fn idris2_proven_monotonic_create(initial: u64, max_value: u64) callconv(.C) ?*MonotonicCounter;
-extern fn idris2_proven_monotonic_next(counter: ?*MonotonicCounter) callconv(.C) IntResult;
+extern fn idris2_proven_monotonic_create(initial: u64, max_value: u64) callconv(.c) ?*MonotonicCounter;
+extern fn idris2_proven_monotonic_next(counter: ?*MonotonicCounter) callconv(.c) IntResult;
 
 // --- SafeStateMachine ---
-extern fn idris2_proven_state_machine_create(state_count: u32, initial_state: u32) callconv(.C) ?*StateMachine;
-extern fn idris2_proven_state_machine_allow(sm: ?*StateMachine, from: u32, to: u32) callconv(.C) bool;
-extern fn idris2_proven_state_machine_transition(sm: ?*StateMachine, to: u32) callconv(.C) bool;
-extern fn idris2_proven_state_machine_state(sm: ?*StateMachine) callconv(.C) u32;
+extern fn idris2_proven_state_machine_create(state_count: u32, initial_state: u32) callconv(.c) ?*StateMachine;
+extern fn idris2_proven_state_machine_allow(sm: ?*StateMachine, from: u32, to: u32) callconv(.c) bool;
+extern fn idris2_proven_state_machine_transition(sm: ?*StateMachine, to: u32) callconv(.c) bool;
+extern fn idris2_proven_state_machine_state(sm: ?*StateMachine) callconv(.c) u32;
 
 // --- SafeTensor ---
-extern fn idris2_proven_tensor_create(rows: usize, cols: usize) callconv(.C) ?*Tensor2D;
-extern fn idris2_proven_tensor_set(tensor: ?*Tensor2D, row: usize, col: usize, value: f64) callconv(.C) ProvenStatus;
-extern fn idris2_proven_tensor_get(tensor: ?*Tensor2D, row: usize, col: usize) callconv(.C) FloatResult;
-extern fn idris2_proven_tensor_matmul(a: ?*Tensor2D, b: ?*Tensor2D) callconv(.C) ?*Tensor2D;
+extern fn idris2_proven_tensor_create(rows: usize, cols: usize) callconv(.c) ?*Tensor2D;
+extern fn idris2_proven_tensor_set(tensor: ?*Tensor2D, row: usize, col: usize, value: f64) callconv(.c) ProvenStatus;
+extern fn idris2_proven_tensor_get(tensor: ?*Tensor2D, row: usize, col: usize) callconv(.c) FloatResult;
+extern fn idris2_proven_tensor_matmul(a: ?*Tensor2D, b: ?*Tensor2D) callconv(.c) ?*Tensor2D;
 
 // --- SafeML ---
-extern fn idris2_proven_ml_softmax(input: ?[*]const f64, output: ?[*]f64, len: usize) callconv(.C) ProvenStatus;
-extern fn idris2_proven_ml_sigmoid(x: f64) callconv(.C) f64;
-extern fn idris2_proven_ml_relu(x: f64) callconv(.C) f64;
-extern fn idris2_proven_ml_leaky_relu(x: f64, alpha: f64) callconv(.C) f64;
-extern fn idris2_proven_ml_clamp(x: f64, min_val: f64, max_val: f64) callconv(.C) f64;
+extern fn idris2_proven_ml_softmax(input: ?[*]const f64, output: ?[*]f64, len: usize) callconv(.c) ProvenStatus;
+extern fn idris2_proven_ml_sigmoid(x: f64) callconv(.c) f64;
+extern fn idris2_proven_ml_relu(x: f64) callconv(.c) f64;
+extern fn idris2_proven_ml_leaky_relu(x: f64, alpha: f64) callconv(.c) f64;
+extern fn idris2_proven_ml_clamp(x: f64, min_val: f64, max_val: f64) callconv(.c) f64;
 
 // --- SafeLRU ---
-extern fn idris2_proven_lru_create(capacity: usize) callconv(.C) ?*LRUCache;
-extern fn idris2_proven_lru_get(cache: ?*LRUCache, key: u64) callconv(.C) IntResult;
-extern fn idris2_proven_lru_put(cache: ?*LRUCache, key: u64, value: i64) callconv(.C) ProvenStatus;
+extern fn idris2_proven_lru_create(capacity: usize) callconv(.c) ?*LRUCache;
+extern fn idris2_proven_lru_get(cache: ?*LRUCache, key: u64) callconv(.c) IntResult;
+extern fn idris2_proven_lru_put(cache: ?*LRUCache, key: u64, value: i64) callconv(.c) ProvenStatus;
 
 // --- SafeGraph ---
-extern fn idris2_proven_graph_create(node_count: usize) callconv(.C) ?*Graph;
-extern fn idris2_proven_graph_add_edge(graph: ?*Graph, from: usize, to: usize) callconv(.C) ProvenStatus;
-extern fn idris2_proven_graph_has_edge(graph: ?*Graph, from: usize, to: usize) callconv(.C) bool;
+extern fn idris2_proven_graph_create(node_count: usize) callconv(.c) ?*Graph;
+extern fn idris2_proven_graph_add_edge(graph: ?*Graph, from: usize, to: usize) callconv(.c) ProvenStatus;
+extern fn idris2_proven_graph_has_edge(graph: ?*Graph, from: usize, to: usize) callconv(.c) bool;
 
 // ============================================================================
 // Result Types
@@ -353,13 +353,13 @@ pub const ProvenEvent = extern struct {
 
 /// Callback function signature: fn(context, event) -> status
 /// Returns 0 on success, non-zero to request deregistration
-pub const ProvenCallbackFn = ?*const fn (?*anyopaque, *const ProvenEvent) callconv(.C) i32;
+pub const ProvenCallbackFn = ?*const fn (?*anyopaque, *const ProvenEvent) callconv(.c) i32;
 
 /// Predicate callback: fn(context, data, len) -> bool
-pub const ProvenPredicateFn = ?*const fn (?*anyopaque, ?[*]const u8, usize) callconv(.C) bool;
+pub const ProvenPredicateFn = ?*const fn (?*anyopaque, ?[*]const u8, usize) callconv(.c) bool;
 
 /// Transform callback: fn(context, input, input_len, output_buf, output_buf_len) -> actual_len
-pub const ProvenTransformFn = ?*const fn (?*anyopaque, ?[*]const u8, usize, ?[*]u8, usize) callconv(.C) usize;
+pub const ProvenTransformFn = ?*const fn (?*anyopaque, ?[*]const u8, usize, ?[*]u8, usize) callconv(.c) usize;
 
 /// Opaque handle for a registered callback
 pub const CallbackHandle = u32;
@@ -510,7 +510,7 @@ fn idrisStringArg(ptr: ?[*]const u8, len: usize) ?IdrisString {
     return idris_str;
 }
 
-fn idrisCallBool(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]const u8, len: usize) BoolResult {
+fn idrisCallBool(func: *const fn (IdrisValue) callconv(.c) IdrisValue, ptr: ?[*]const u8, len: usize) BoolResult {
     if (ptr == null) {
         return .{ .status = .err_null_pointer, .value = false };
     }
@@ -523,7 +523,7 @@ fn idrisCallBool(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]
     return .{ .status = .ok, .value = raw.int != 0 };
 }
 
-fn idrisCallInt(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]const u8, len: usize) IntResult {
+fn idrisCallInt(func: *const fn (IdrisValue) callconv(.c) IdrisValue, ptr: ?[*]const u8, len: usize) IntResult {
     if (ptr == null) {
         return .{ .status = .err_null_pointer, .value = 0 };
     }
@@ -536,7 +536,7 @@ fn idrisCallInt(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]c
     return .{ .status = .ok, .value = raw.int };
 }
 
-fn idrisCallStringSlice(func: *const fn (IdrisValue) callconv(.C) IdrisValue, ptr: ?[*]const u8, len: usize) ?[]const u8 {
+fn idrisCallStringSlice(func: *const fn (IdrisValue) callconv(.c) IdrisValue, ptr: ?[*]const u8, len: usize) ?[]const u8 {
     const idris_str = idrisStringArg(ptr, len) orelse return null;
     defer ffi.freeIdrisString(idris_str);
 
@@ -1378,7 +1378,7 @@ export fn proven_currency_parse(ptr: ?[*]const u8, len: usize) CurrencyResult {
 }
 
 /// Format currency amount
-export fn proven_currency_format(amount_minor: i64, code: [3]u8, decimal_places: u8) StringResult {
+export fn proven_currency_format(amount_minor: i64, code: *const [3]u8, decimal_places: u8) StringResult {
     return idris2_proven_currency_format(amount_minor, code, decimal_places);
 }
 
@@ -2532,13 +2532,13 @@ test "ml_sigmoid" {
 var test_callback_invoked: bool = false;
 var test_callback_event_code: i32 = -1;
 
-fn testCallback(_: ?*anyopaque, event: *const ProvenEvent) callconv(.C) i32 {
+fn testCallback(_: ?*anyopaque, event: *const ProvenEvent) callconv(.c) i32 {
     test_callback_invoked = true;
     test_callback_event_code = event.code;
     return 0; // Keep registered
 }
 
-fn testCallbackOnce(_: ?*anyopaque, _: *const ProvenEvent) callconv(.C) i32 {
+fn testCallbackOnce(_: ?*anyopaque, _: *const ProvenEvent) callconv(.c) i32 {
     return 1; // Request deregistration after first call
 }
 

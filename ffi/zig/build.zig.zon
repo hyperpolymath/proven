@@ -1,11 +1,12 @@
 .{
-    .name = "proven_ffi",
+    .name = .proven_ffi,
     .version = "0.3.0",
-    .minimum_zig_version = "0.13.0",
+    .fingerprint = 0xeb23bbc5c6685c93,
+    .minimum_zig_version = "0.15.2",
 
     .dependencies = .{
         .idris2_zig_ffi = .{
-            .path = "../../../idris2-zig-ffi",
+            .path = "../../../nextgen-languages/language-bridges/bridges/idris2",
         },
     },
 
