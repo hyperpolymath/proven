@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
 = proven: Formally Verified Safety via Idris2
 :toc: macro
 :toclevels: 2

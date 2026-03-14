@@ -24,21 +24,21 @@ record IPv6 where
   segments : Vect 8 Bits16
 
 public export
-partial
 Show IPv6 where
   show (MkIPv6 segs) =
     joinBy ":" (map showHex (toList segs))
     where
-      partial toHexString : Nat -> String
+      toHexString : Nat -> String
       toHexString 0 = "0"
-      toHexString n = go n ""
+      toHexString n = go 32 n ""
         where
           hexChar : Nat -> Char
           hexChar x = if x < 10 then chr (ord '0' + cast x)
                                 else chr (ord 'a' + cast x - 10)
-          go : Nat -> String -> String
-          go 0 acc = acc
-          go k acc = go (k `div` 16) (singleton (hexChar (k `mod` 16)) ++ acc)
+          go : Nat -> Nat -> String -> String
+          go Z _ acc = if acc == "" then "0" else acc
+          go _ Z acc = if acc == "" then "0" else acc
+          go (S j) k acc = go j (k `div` 16) (singleton (hexChar (k `mod` 16)) ++ acc)
 
       showHex : Bits16 -> String
       showHex n = toHexString (cast {to=Nat} n)
@@ -59,11 +59,10 @@ Eq IPv6 where
 ||| Parse IPv6 address from string
 ||| Supports full form, compressed (::), and mixed notation
 public export
-partial
 parseIPv6 : String -> Maybe IPv6
 parseIPv6 s =
   -- Handle :: compression
-  case findDoubleColon s of
+  case findDoubleColon (length s) s of
     Just (left, right) => parseCompressed left right
     Nothing => parseFull s
   where
@@ -72,14 +71,15 @@ parseIPv6 s =
     break p (c :: cs) =
       if p c then ([], c :: cs) else let (ys, zs) = break p cs in (c :: ys, zs)
 
-    findDoubleColon : String -> Maybe (String, String)
-    findDoubleColon str =
+    findDoubleColon : Nat -> String -> Maybe (String, String)
+    findDoubleColon Z _ = Nothing
+    findDoubleColon (S k) str =
       case break (== ':') (unpack str) of
         (before, ':' :: ':' :: after) =>
           Just (pack before, pack after)
         (before, ':' :: rest) =>
           -- Continue searching
-          case findDoubleColon (pack rest) of
+          case findDoubleColon k (pack rest) of
             Just (l, r) => Just (pack before ++ ":" ++ l, r)
             Nothing => Nothing
         _ => Nothing
@@ -350,7 +350,6 @@ networkPrefix (MkIPv6 segs) =
 
 ||| Show IPv6 in compressed format (with ::)
 public export
-partial
 showCompressed : IPv6 -> String
 showCompressed (MkIPv6 segs) =
   let segList = toList segs
@@ -361,14 +360,15 @@ showCompressed (MkIPv6 segs) =
   where
     showHex : Bits16 -> String
     showHex 0 = "0"
-    showHex n = toHexString (cast {to=Nat} n)
+    showHex n = toHexString 32 (cast {to=Nat} n)
       where
         hexChar : Nat -> Char
         hexChar x = if x < 10 then chr (ord '0' + cast x)
                               else chr (ord 'a' + cast x - 10)
-        partial toHexString : Nat -> String
-        toHexString 0 = ""
-        toHexString k = toHexString (k `div` 16) ++ singleton (hexChar (k `mod` 16))
+        toHexString : Nat -> Nat -> String
+        toHexString Z _ = ""
+        toHexString _ Z = ""
+        toHexString (S j) k = toHexString j (k `div` 16) ++ singleton (hexChar (k `mod` 16))
 
     joinBy : String -> List String -> String
     joinBy sep [] = ""

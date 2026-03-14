@@ -138,7 +138,6 @@ toNumericEntity c = "&#" ++ show (ord c) ++ ";"
 
 ||| Convert character to hex entity
 public export
-partial
 toHexEntity : Char -> String
 toHexEntity c = "&#x" ++ toHex (ord c) ++ ";"
   where
@@ -147,11 +146,12 @@ toHexEntity c = "&#x" ++ toHex (ord c) ++ ";"
 
     toHex : Int -> String
     toHex 0 = "0"
-    toHex n = pack (toHexHelper n [])
+    toHex n = pack (toHexHelper 32 n [])
       where
-        toHexHelper : Int -> List Char -> List Char
-        toHexHelper 0 acc = acc
-        toHexHelper m acc = toHexHelper (m `div` 16) (hexDigit (m `mod` 16) :: acc)
+        toHexHelper : Nat -> Int -> List Char -> List Char
+        toHexHelper Z _ acc = if null acc then ['0'] else acc
+        toHexHelper _ 0 acc = acc
+        toHexHelper (S k) m acc = toHexHelper k (m `div` 16) (hexDigit (m `mod` 16) :: acc)
 
 ||| Escape all non-ASCII characters as numeric entities
 ||| Useful for ensuring ASCII-only output

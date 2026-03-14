@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: PMPL-1.0-or-later
 # RSR-compliant .gitattributes
 
 * text=auto eol=lf
@@ -18,6 +18,28 @@
 *.scm   text eol=lf
 *.ncl   text eol=lf
 *.nix   text eol=lf
+*.idr   text eol=lf
+*.ipkg  text eol=lf
+*.zig   text eol=lf
+*.ts    text eol=lf
+*.js    text eol=lf
+*.mjs   text eol=lf
+*.go    text eol=lf
+*.py    text eol=lf
+*.swift text eol=lf
+*.rb    text eol=lf
+*.php   text eol=lf
+*.fs    text eol=lf
+*.nim   text eol=lf
+*.purs  text eol=lf
+*.pl    text eol=lf
+*.java  text eol=lf
+*.d     text eol=lf
+*.kt    text eol=lf
+*.cs    text eol=lf
+*.cpp   text eol=lf
+*.c     text eol=lf
+*.h     text eol=lf
 
 # Docs
 *.md    text eol=lf diff=markdown

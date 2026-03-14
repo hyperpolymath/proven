@@ -342,29 +342,25 @@ Parser : Type -> Type
 Parser a = List Token -> Maybe (a, List Token)
 
 ||| Parse a primary expression (number, variable, or parenthesized expr)
-partial
-parsePrimary : Parser Expr
+parsePrimary : Nat -> Parser Expr
 
 ||| Parse unary operations
-partial
-parseUnary : Parser Expr
+parseUnary : Nat -> Parser Expr
 
 ||| Parse multiplicative expressions (* / %)
-partial
-parseMul : Parser Expr
+parseMul : Nat -> Parser Expr
 
 ||| Parse additive expressions (+ -)
-partial
-parseAdd : Parser Expr
+parseAdd : Nat -> Parser Expr
 
 ||| Parse power expressions (^)
-partial
-parsePow : Parser Expr
+parsePow : Nat -> Parser Expr
 
-parsePrimary (TNum n :: rest) = Just (Lit n, rest)
-parsePrimary (TVar name :: TLParen :: rest) =
+parsePrimary Z _ = Nothing
+parsePrimary (S k) (TNum n :: rest) = Just (Lit n, rest)
+parsePrimary (S k) (TVar name :: TLParen :: rest) =
   -- Function call
-  case parseAdd rest of
+  case parseAdd k rest of
     Nothing => Nothing
     Just (arg, TRParen :: rest2) =>
       let func = case name of
@@ -381,76 +377,83 @@ parsePrimary (TVar name :: TLParen :: rest) =
                    _ => Var name  -- Unknown function becomes variable
       in Just (func, rest2)
     _ => Nothing
-parsePrimary (TVar name :: rest) = Just (Var name, rest)
-parsePrimary (TLParen :: rest) =
-  case parseAdd rest of
+parsePrimary (S k) (TVar name :: rest) = Just (Var name, rest)
+parsePrimary (S k) (TLParen :: rest) =
+  case parseAdd k rest of
     Nothing => Nothing
     Just (e, TRParen :: rest2) => Just (e, rest2)
     _ => Nothing
-parsePrimary _ = Nothing
+parsePrimary (S k) _ = Nothing
 
-parseUnary (TMinus :: rest) =
-  case parseUnary rest of
+parseUnary Z _ = Nothing
+parseUnary (S k) (TMinus :: rest) =
+  case parseUnary k rest of
     Nothing => Nothing
     Just (e, rest2) => Just (UnaryOp Neg e, rest2)
-parseUnary toks = parsePrimary toks
+parseUnary (S k) toks = parsePrimary (S k) toks
 
-parsePow toks =
-  case parseUnary toks of
+parsePow Z _ = Nothing
+parsePow (S k) toks =
+  case parseUnary (S k) toks of
     Nothing => Nothing
     Just (left, TCaret :: rest) =>
-      case parsePow rest of
+      case parsePow k rest of
         Nothing => Nothing
         Just (right, rest2) => Just (BinOp Pow left right, rest2)
     Just result => Just result
 
-parseMul toks =
-  case parsePow toks of
+parseMul Z _ = Nothing
+parseMul (S k) toks =
+  case parsePow (S k) toks of
     Nothing => Nothing
-    Just (left, rest) => parseMulRest left rest
+    Just (left, rest) => parseMulRest k left rest
   where
-    partial
-    parseMulRest : Expr -> List Token -> Maybe (Expr, List Token)
-    parseMulRest left (TStar :: rest) =
-      case parsePow rest of
+    parseMulRest : Nat -> Expr -> List Token -> Maybe (Expr, List Token)
+    parseMulRest Z left rest = Just (left, rest)
+    parseMulRest (S j) left (TStar :: rest) =
+      case parsePow (S j) rest of
         Nothing => Nothing
-        Just (right, rest2) => parseMulRest (BinOp Mul left right) rest2
-    parseMulRest left (TSlash :: rest) =
-      case parsePow rest of
+        Just (right, rest2) => parseMulRest j (BinOp Mul left right) rest2
+    parseMulRest (S j) left (TSlash :: rest) =
+      case parsePow (S j) rest of
         Nothing => Nothing
-        Just (right, rest2) => parseMulRest (BinOp Div left right) rest2
-    parseMulRest left (TPercent :: rest) =
-      case parsePow rest of
+        Just (right, rest2) => parseMulRest j (BinOp Div left right) rest2
+    parseMulRest (S j) left (TPercent :: rest) =
+      case parsePow (S j) rest of
         Nothing => Nothing
-        Just (right, rest2) => parseMulRest (BinOp Mod left right) rest2
-    parseMulRest left rest = Just (left, rest)
+        Just (right, rest2) => parseMulRest j (BinOp Mod left right) rest2
+    parseMulRest (S j) left rest = Just (left, rest)
 
-parseAdd toks =
-  case parseMul toks of
+parseAdd Z _ = Nothing
+parseAdd (S k) toks =
+  case parseMul (S k) toks of
     Nothing => Nothing
-    Just (left, rest) => parseAddRest left rest
+    Just (left, rest) => parseAddRest k left rest
   where
-    partial
-    parseAddRest : Expr -> List Token -> Maybe (Expr, List Token)
-    parseAddRest left (TPlus :: rest) =
-      case parseMul rest of
+    parseAddRest : Nat -> Expr -> List Token -> Maybe (Expr, List Token)
+    parseAddRest Z left rest = Just (left, rest)
+    parseAddRest (S j) left (TPlus :: rest) =
+      case parseMul (S j) rest of
         Nothing => Nothing
-        Just (right, rest2) => parseAddRest (BinOp Add left right) rest2
-    parseAddRest left (TMinus :: rest) =
-      case parseMul rest of
+        Just (right, rest2) => parseAddRest j (BinOp Add left right) rest2
+    parseAddRest (S j) left (TMinus :: rest) =
+      case parseMul (S j) rest of
         Nothing => Nothing
-        Just (right, rest2) => parseAddRest (BinOp Sub left right) rest2
-    parseAddRest left rest = Just (left, rest)
+        Just (right, rest2) => parseAddRest j (BinOp Sub left right) rest2
+    parseAddRest (S j) left rest = Just (left, rest)
+
+||| Default parser fuel (sufficient for any reasonable expression)
+parserFuel : Nat
+parserFuel = 1000
 
 ||| Parse a string expression
 ||| @ input The expression string
 ||| @ returns Just the parsed expression, or Nothing on parse error
 public export
-partial
 parse : String -> Maybe Expr
 parse input =
   let tokens = tokenize (unpack input)
-  in case parseAdd tokens of
+  in case parseAdd parserFuel tokens of
        Just (expr, [TEnd]) => Just expr
        Just (expr, []) => Just expr
        _ => Nothing
@@ -459,7 +462,6 @@ parse input =
 ||| @ input The expression string
 ||| @ returns Either an error or the computed value
 public export
-partial
 calculate : String -> Either CalcError Double
 calculate input =
   case parse input of
@@ -468,7 +470,6 @@ calculate input =
 
 ||| Parse and evaluate with custom environment
 public export
-partial
 calculateWith : Env -> String -> Either CalcError Double
 calculateWith env input =
   case parse input of

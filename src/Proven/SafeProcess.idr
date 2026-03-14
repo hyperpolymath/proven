@@ -94,7 +94,6 @@ ProcessResult = Result ProcessError
 
 ||| Validate executable path (must exist, be executable)
 public export
-partial
 validateExecutable : String -> ProcessResult String
 validateExecutable path = do
   -- Check path is safe
@@ -115,7 +114,6 @@ validateArgs args =
 ||| Spawn new process (fork + exec)
 ||| FFI stub - actual implementation via Zig
 public export
-partial
 spawnProcess : String -> List String -> ProcessResult ProcessId
 spawnProcess prog args = do
   validProg <- validateExecutable prog
@@ -126,7 +124,6 @@ spawnProcess prog args = do
 
 ||| Spawn process with custom environment
 public export
-partial
 spawnProcessEnv : String -> List String -> List (String, String) -> ProcessResult ProcessId
 spawnProcessEnv prog args env = do
   validProg <- validateExecutable prog
@@ -142,7 +139,6 @@ spawnProcessEnv prog args env = do
 ||| Wait for process to terminate (blocking)
 ||| FFI stub - actual implementation via Zig
 public export
-partial
 waitForProcess : ProcessId -> ProcessResult ExitStatus
 waitForProcess (MkPid pid) =
   if pid <= 0
@@ -152,7 +148,6 @@ waitForProcess (MkPid pid) =
 ||| Wait for any child process (non-blocking)
 ||| Returns Nothing if no child has exited
 public export
-partial
 waitAnyProcess : ProcessResult (Maybe (ProcessId, ExitStatus))
 waitAnyProcess =
   -- FFI call to waitpid(-1, &status, WNOHANG)
@@ -160,7 +155,6 @@ waitAnyProcess =
 
 ||| Check if process has terminated (non-blocking)
 public export
-partial
 pollProcess : ProcessId -> ProcessResult (Maybe ExitStatus)
 pollProcess (MkPid pid) =
   -- FFI call to waitpid(pid, &status, WNOHANG)
@@ -173,7 +167,6 @@ pollProcess (MkPid pid) =
 ||| Send signal to process
 ||| FFI stub - actual implementation via Zig
 public export
-partial
 sendSignal : ProcessId -> Int -> ProcessResult ()
 sendSignal (MkPid pid) sig =
   if pid <= 0
@@ -182,19 +175,16 @@ sendSignal (MkPid pid) sig =
 
 ||| Terminate process gracefully (SIGTERM)
 public export
-partial
 terminateProcess : ProcessId -> ProcessResult ()
 terminateProcess pid = sendSignal pid 15  -- SIGTERM
 
 ||| Kill process forcefully (SIGKILL)
 public export
-partial
 killProcess : ProcessId -> ProcessResult ()
 killProcess pid = sendSignal pid 9  -- SIGKILL
 
 ||| Get process state
 public export
-partial
 getProcessState : ProcessId -> ProcessResult ProcessState
 getProcessState pid =
   -- Check if process exists, is zombie, etc.
@@ -254,7 +244,6 @@ getRuntime tracked =
 
 ||| Reap all zombie children (non-blocking)
 public export
-partial
 reapZombies : ProcessResult (List (ProcessId, ExitStatus))
 reapZombies =
   -- Loop calling waitpid(-1, &status, WNOHANG) until no more zombies
@@ -262,7 +251,6 @@ reapZombies =
 
 ||| Reap specific process if it's a zombie
 public export
-partial
 reapProcess : ProcessId -> ProcessResult (Maybe ExitStatus)
 reapProcess pid = pollProcess pid
 

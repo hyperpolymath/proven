@@ -176,7 +176,6 @@ validateSignal sig =
 
 ||| Install signal handler (FFI stub)
 public export
-partial
 installHandler : Signal -> SignalAction -> SignalResult ()
 installHandler sig action = do
   _ <- validateSignal sig
@@ -185,7 +184,6 @@ installHandler sig action = do
 
 ||| Get current handler for signal
 public export
-partial
 getHandler : Signal -> SignalResult SignalAction
 getHandler sig =
   -- FFI call to sigaction(2) with NULL handler
@@ -193,13 +191,11 @@ getHandler sig =
 
 ||| Reset signal to default handler
 public export
-partial
 resetHandler : Signal -> SignalResult ()
 resetHandler sig = installHandler sig Default
 
 ||| Ignore signal
 public export
-partial
 ignoreSignal : Signal -> SignalResult ()
 ignoreSignal sig = installHandler sig Ignore
 
@@ -233,7 +229,6 @@ inMask sig (MkMask blocked) = sig `elem` blocked
 
 ||| Block signals (add to process signal mask)
 public export
-partial
 blockSignals : List Signal -> SignalResult SignalMask
 blockSignals sigs =
   -- FFI call to sigprocmask(SIG_BLOCK, &set, &oldset)
@@ -241,7 +236,6 @@ blockSignals sigs =
 
 ||| Unblock signals (remove from process signal mask)
 public export
-partial
 unblockSignals : List Signal -> SignalResult ()
 unblockSignals sigs =
   -- FFI call to sigprocmask(SIG_UNBLOCK, &set, NULL)
@@ -249,7 +243,6 @@ unblockSignals sigs =
 
 ||| Set signal mask (replace current mask)
 public export
-partial
 setSignalMask : SignalMask -> SignalResult SignalMask
 setSignalMask mask =
   -- FFI call to sigprocmask(SIG_SETMASK, &set, &oldset)
@@ -257,7 +250,6 @@ setSignalMask mask =
 
 ||| Get current signal mask
 public export
-partial
 getSignalMask : SignalResult SignalMask
 getSignalMask =
   -- FFI call to sigprocmask(SIG_SETMASK, NULL, &set)
@@ -265,7 +257,6 @@ getSignalMask =
 
 ||| Restore previous signal mask
 public export
-partial
 restoreSignals : SignalMask -> SignalResult ()
 restoreSignals mask = do
   _ <- setSignalMask mask
@@ -277,7 +268,6 @@ restoreSignals mask = do
 
 ||| Send signal to current process
 public export
-partial
 raiseSignal : Signal -> SignalResult ()
 raiseSignal sig =
   -- FFI call to raise(3)
@@ -285,7 +275,6 @@ raiseSignal sig =
 
 ||| Wait for signal (blocks until signal received)
 public export
-partial
 waitForSignal : SignalMask -> SignalResult Signal
 waitForSignal mask =
   -- FFI call to sigsuspend(2)
@@ -293,7 +282,6 @@ waitForSignal mask =
 
 ||| Wait for specific signals (with timeout)
 public export
-partial
 waitForSignals : List Signal -> Int -> SignalResult (Maybe Signal)
 waitForSignals sigs timeout =
   -- FFI call to sigtimedwait(2)

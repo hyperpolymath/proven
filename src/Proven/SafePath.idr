@@ -93,7 +93,6 @@ fromSegments isAbs segs = MkPath isAbs (filter (not . (== "")) segs)
 
 ||| Convert path to string
 public export
-partial
 toString : Path -> String
 toString (MkPath abs segs) =
   (if abs then "/" else "") ++ fastConcat (intersperse (singleton pathSeparator) segs)
@@ -152,15 +151,15 @@ stem path = do
 
 ||| Get all ancestors of a path
 public export
-partial
 ancestors : Path -> List Path
-ancestors path = go (segments path) []
+ancestors path = go (length (segments path)) (segments path) []
   where
-    go : List Segment -> List Path -> List Path
-    go [] acc = reverse acc
-    go (s :: ss) acc = case ss of
+    go : Nat -> List Segment -> List Path -> List Path
+    go Z _ acc = reverse acc
+    go _ [] acc = reverse acc
+    go (S k) (s :: ss) acc = case ss of
                          [] => reverse acc
-                         _ => go (init (s :: ss)) (MkPath (isAbsolute path) (init (s :: ss)) :: acc)
+                         _ => go k (init (s :: ss)) (MkPath (isAbsolute path) (init (s :: ss)) :: acc)
 
 --------------------------------------------------------------------------------
 -- Path Manipulation

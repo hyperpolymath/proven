@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
 = Proven HTTP - Formally Verified HTTP Utilities
 :toc: macro
 :icons: font

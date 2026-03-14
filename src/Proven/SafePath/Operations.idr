@@ -107,7 +107,6 @@ resolveDotsInSegments segs isAbs = reverse (go segs [])
 
 ||| Full path normalization
 public export
-partial
 normalizePath : String -> String
 normalizePath s =
   prefixFor s ++ joinSegments (resolveDotsInSegments (splitPath s) (isAbs s))
@@ -125,19 +124,16 @@ where
 
 ||| Compare paths case-sensitively (Unix)
 public export
-partial
 pathEqSensitive : String -> String -> Bool
 pathEqSensitive p1 p2 = normalizePath p1 == normalizePath p2
 
 ||| Compare paths case-insensitively (Windows)
 public export
-partial
 pathEqInsensitive : String -> String -> Bool
 pathEqInsensitive p1 p2 = toLower (normalizePath p1) == toLower (normalizePath p2)
 
 ||| Check if path1 is parent of path2
 public export
-partial
 isParentOf : String -> String -> Bool
 isParentOf parent child =
   let normParent = splitPath (normalizePath parent)
@@ -146,7 +142,6 @@ isParentOf parent child =
 
 ||| Check if path1 is ancestor of path2
 public export
-partial
 isAncestorOf : String -> String -> Bool
 isAncestorOf ancestor descendant =
   let normAncestor = splitPath (normalizePath ancestor)
@@ -248,7 +243,6 @@ stripExtension path =
 
 ||| Safely join two paths, preventing traversal
 public export
-partial
 safeJoinPaths : String -> String -> Maybe String
 safeJoinPaths base rel =
   let normBase = normalizePath base
@@ -262,7 +256,6 @@ safeJoinPaths base rel =
 
 ||| Create a contained path
 public export
-partial
 makeContainedPath : (base : String) -> (rel : String) -> Maybe (ContainedPath base)
 makeContainedPath base rel =
   case safeJoinPaths base rel of
@@ -271,7 +264,6 @@ makeContainedPath base rel =
 
 ||| Validate path string
 public export
-partial
 validatePath : String -> Either String ValidatedPath
 validatePath "" = Left "Empty path"
 validatePath s =

@@ -105,24 +105,23 @@ padLeft n pad s =
     then s
     else pack (unpack (replicate (minus n len) pad) ++ unpack s)
 
-partial
 unicodeEscape : Char -> String
 unicodeEscape c = "\\u" ++ Proven.SafeString.Escape.padLeft 4 '0' (toHex (cast (ord c)))
   where
-    partial toHex : Nat -> String
-    toHex n = pack (toHexHelper n [])
+    toHex : Nat -> String
+    toHex n = pack (toHexHelper 32 n [])
       where
         hexDigit : Nat -> Char
         hexDigit d = if d < 10 then chr (ord '0' + cast d) else chr (ord 'a' + cast d - 10)
 
-        toHexHelper : Nat -> List Char -> List Char
-        toHexHelper 0 [] = ['0']
-        toHexHelper 0 acc = acc
-        toHexHelper m acc = toHexHelper (m `div` 16) (hexDigit (m `mod` 16) :: acc)
+        toHexHelper : Nat -> Nat -> List Char -> List Char
+        toHexHelper Z _ acc = if null acc then ['0'] else acc
+        toHexHelper _ Z [] = ['0']
+        toHexHelper _ Z acc = acc
+        toHexHelper (S k) m acc = toHexHelper k (m `div` 16) (hexDigit (m `mod` 16) :: acc)
 
 ||| Escape for JSON string values
 public export
-partial
 escapeJSON : String -> String
 escapeJSON s = pack (go (unpack s))
   where

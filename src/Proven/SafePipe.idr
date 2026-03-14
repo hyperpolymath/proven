@@ -87,7 +87,6 @@ PipeResult = Result PipeError
 
 ||| Validate FIFO path (must be absolute, no traversal)
 public export
-partial
 validateFifoPath : String -> PipeResult String
 validateFifoPath path =
   case validate (parsePath path) of
@@ -104,7 +103,6 @@ validatePermissions perms =
 
 ||| Create FIFO at given path (FFI stub - actual implementation via Zig)
 public export
-partial
 createFifo : String -> Bits32 -> PipeResult FifoId
 createFifo path perms = do
   validPath <- validateFifoPath path
@@ -115,7 +113,6 @@ createFifo path perms = do
 
 ||| Remove FIFO (FFI stub)
 public export
-partial
 removeFifo : FifoId -> PipeResult ()
 removeFifo fifo = do
   -- FFI call to unlink(2)
@@ -123,7 +120,6 @@ removeFifo fifo = do
 
 ||| Check if FIFO exists
 public export
-partial
 fifoExists : String -> PipeResult Bool
 fifoExists path = do
   validPath <- validateFifoPath path
@@ -136,7 +132,6 @@ fifoExists path = do
 
 ||| Create anonymous pipe (FFI stub - actual implementation via Zig)
 public export
-partial
 createPipe : PipeResult PipePair
 createPipe =
   -- FFI call to pipe(2)
@@ -145,7 +140,6 @@ createPipe =
 
 ||| Close pipe (both ends)
 public export
-partial
 closePipe : FileDescriptor -> FileDescriptor -> PipeResult ()
 closePipe readFd writeFd = do
   -- FFI call to close(2) for both FDs
@@ -153,7 +147,6 @@ closePipe readFd writeFd = do
 
 ||| Close single file descriptor
 public export
-partial
 closeFd : FileDescriptor -> PipeResult ()
 closeFd (MkFd fd) =
   if fd < 0
@@ -171,7 +164,6 @@ maxPipeReadSize = 65536  -- 64 KB
 
 ||| Read from pipe with size limit (FFI stub)
 public export
-partial
 readPipe : FileDescriptor -> Nat -> PipeResult String
 readPipe (MkFd fd) size =
   if size > maxPipeReadSize
@@ -180,7 +172,6 @@ readPipe (MkFd fd) size =
 
 ||| Write to pipe (FFI stub)
 public export
-partial
 writePipe : FileDescriptor -> String -> PipeResult Nat
 writePipe fd_arg str_arg =
   case fd_arg of
@@ -253,7 +244,6 @@ mightDeadlock tracked =
 
 ||| Safe pipe closure (drains pending data first)
 public export
-partial
 safeClosePipe : TrackedPipe -> PipeResult ()
 safeClosePipe tracked =
   if mightDeadlock tracked

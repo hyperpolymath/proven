@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-= Contributing to bulletproof-core
+= Contributing to proven
 
 Thank you for your interest in contributing!
 
@@ -27,7 +27,7 @@ This project follows the https://www.contributor-covenant.org/version/2/1/code_o
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests (`zig build test`)
+4. Run tests (`idris2 --build proven.ipkg`)
 5. Commit with conventional commits (`feat:`, `fix:`, `docs:`, etc.)
 6. Push and open a PR
 
@@ -36,8 +36,8 @@ This project follows the https://www.contributor-covenant.org/version/2/1/code_o
 [source,bash]
 ----
 # Clone
-git clone https://github.com/hyperpolymath/bulletproof-core
-cd bulletproof-core
+git clone https://github.com/hyperpolymath/proven
+cd proven
 
 # Install Idris 2 (via pack)
 pack install-deps
@@ -57,10 +57,10 @@ nix-shell nix/shard.nix
 ./scripts/update-env-pins.sh
 
 # Build
-zig build
+idris2 --build proven.ipkg
 
 # Test
-zig build test
+idris2 --build proven.ipkg
 ----
 
 == Code Style
@@ -97,6 +97,10 @@ Follow https://www.conventionalcommits.org/[Conventional Commits]:
 - `test:` Adding tests
 - `chore:` Maintenance
 
+== Contact
+
+Questions? Reach out at j.d.a.jewell@open.ac.uk or open a GitHub issue.
+
 == License
 
-By contributing, you agree that your contributions will be licensed under AGPL-3.0-or-later.
+By contributing, you agree that your contributions will be licensed under PMPL-1.0-or-later.
