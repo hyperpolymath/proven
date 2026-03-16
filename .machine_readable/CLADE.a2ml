@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Clade declaration — part of the gv-clade-index registry
+# See: https://github.com/hyperpolymath/gv-clade-index
+
+[identity]
+uuid = "ffa8e1f5-5c79-5515-8043-e10eb21d5f4f"
+primary-forge = "github"
+primary-owner = "hyperpolymath"
+canonical-name = "proven"
+prefixed-name = "fv-proven"
+
+[clade]
+primary = "fv"
+secondary = []
+assigned = "2026-03-16"
+rationale = ""
+
+[forges]
+github = "hyperpolymath/proven"
+gitlab = "hyperpolymath/proven"
+bitbucket = "hyperpolymath/proven"
+
+[lineage]
+type = "standalone"
+parent = "Formally verified safety library — Idris2 dependent types + Zig FFI + 120+ bindings"
+born = "2026-03-16"
