@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: PMPL-1.0-or-later
--- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| SafeLRU - Safe Least Recently Used cache
 |||
 ||| This module provides a bounded LRU cache with safe operations

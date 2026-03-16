@@ -1,5 +1,5 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ;;
 ;; proven-safe-url.el - Safe URL operation wrappers for libproven.
 ;; All computation delegates to the Idris 2 verified core via FFI.

@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: PMPL-1.0-or-later
--- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
 -- BGP Routing Table and Best Path Selection (RFC 4271 Section 9.1)
 --

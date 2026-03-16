@@ -1,7 +1,7 @@
 (lang dune 3.0)
 
 ; SPDX-License-Identifier: PMPL-1.0-or-later
-; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 (name proven)
 (version 1.0.0)
@@ -10,8 +10,8 @@
 
 (source (github hyperpolymath/proven))
 (license PMPL-1.0-or-later)
-(authors "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>")
-(maintainers "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>")
+(authors "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>")
+(maintainers "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>")
 
 (package
  (name proven)

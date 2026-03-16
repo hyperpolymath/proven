@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 # frozen_string_literal: true
 
 Gem::Specification.new do |spec|
   spec.name = "proven"
   spec.version = "1.0.0"
   spec.authors = ["Jonathan D.A. Jewell"]
-  spec.email = ["jonathan.jewell@open.ac.uk"]
+  spec.email = ["j.d.a.jewell@open.ac.uk"]
 
   spec.summary = "FFI bindings to libproven - formally verified safety functions (Idris 2)"
   spec.description = <<~DESC

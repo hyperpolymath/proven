@@ -2,14 +2,14 @@ Red [
     Title:       "Proven SafeJson"
     Description: "Safe JSON validation via libproven FFI"
     Author:      "Jonathan D.A. Jewell (hyperpolymath)"
-    Email:       "jonathan.jewell@open.ac.uk"
+    Email:       "j.d.a.jewell@open.ac.uk"
     License:     "PMPL-1.0-or-later"
     Version:     0.5.0
     File:        %safe-json.red
     Needs:       'proven
     Notes: {
         SPDX-License-Identifier: PMPL-1.0-or-later
-        Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+        Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
         Safe JSON validation and type detection without full parsing.
         ALL computation is performed in Idris 2 via the Zig FFI bridge.

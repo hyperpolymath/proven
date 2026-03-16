@@ -2,8 +2,8 @@
 # proven - Formally Verified Safety Library
 # Build system using just (https://just.systems)
 #
-# Author: Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # Pipeline: Idris2 --codegen refc--> C --zig build--> libproven.{so,dylib,dll}
 #

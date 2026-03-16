@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 //
 // Proven.pmod/module.pmod - Main module for the Pike Proven binding.
 //
@@ -25,7 +25,7 @@
 //! any logic.
 
 constant __version = "0.9.0";
-constant __author  = "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>";
+constant __author  = "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>";
 
 //! @decl string version()
 //! Get the library version string.

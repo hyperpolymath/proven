@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: PMPL-1.0-or-later
--- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| FFI exports for SafeCommand operations
 |||
 ||| This module exports command injection prevention to the C ABI via Idris2's RefC backend.

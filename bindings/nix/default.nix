@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 # default.nix -- Nix derivation that builds and wraps libproven.
 #
@@ -80,7 +80,7 @@ let
       description = "Formally verified safety library -- CLI interface";
       homepage = "https://github.com/hyperpolymath/proven";
       license = { spdxId = "PMPL-1.0-or-later"; free = true; };
-      maintainers = [ "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>" ];
+      maintainers = [ "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>" ];
       platforms = platforms.unix;
     };
   };

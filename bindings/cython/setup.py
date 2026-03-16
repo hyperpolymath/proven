@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 """
 Build configuration for the proven Cython extension modules.
@@ -82,7 +82,7 @@ setup(
     long_description=open("README.md").read() if os.path.exists("README.md") else "",
     long_description_content_type="text/markdown",
     author="Jonathan D.A. Jewell",
-    author_email="jonathan.jewell@open.ac.uk",
+    author_email="j.d.a.jewell@open.ac.uk",
     url="https://github.com/hyperpolymath/proven",
     license="PMPL-1.0-or-later",
     ext_modules=extensions,

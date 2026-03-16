@@ -1,6 +1,6 @@
       *> SPDX-License-Identifier: PMPL-1.0-or-later
       *> Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)
-      *> <jonathan.jewell@open.ac.uk>
+      *> <j.d.a.jewell@open.ac.uk>
       *>
       *> Proven SafeMath - FFI bindings to libproven math operations.
       *> All arithmetic is performed in verified Idris 2 code via

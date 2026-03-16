@@ -1,5 +1,5 @@
 ! SPDX-License-Identifier: PMPL-1.0-or-later
-! Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+! Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 !
 ! proven.ffi - Low-level alien (FFI) declarations for libproven.
 ! All computation is performed in verified Idris 2 code via the Zig FFI

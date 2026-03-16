@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 ThisBuild / version := "0.9.0"
 ThisBuild / scalaVersion := "3.3.1"
@@ -26,7 +26,7 @@ lazy val root = (project in file("."))
         <developer>
           <id>hyperpolymath</id>
           <name>Jonathan D.A. Jewell</name>
-          <email>jonathan.jewell@open.ac.uk</email>
+          <email>j.d.a.jewell@open.ac.uk</email>
         </developer>
       </developers>
     }

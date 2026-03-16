@@ -1,6 +1,6 @@
       *> SPDX-License-Identifier: PMPL-1.0-or-later
       *> Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)
-      *> <jonathan.jewell@open.ac.uk>
+      *> <j.d.a.jewell@open.ac.uk>
       *>
       *> Proven SafeNetwork - FFI bindings to libproven network ops.
       *> All IP parsing and classification is performed in verified

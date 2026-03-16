@@ -1,6 +1,6 @@
 --  SPDX-License-Identifier: MPL-2.0
 --  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
---  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 --  Safe floating-point operations -- thin FFI wrapper over libproven.
 --  NaN/infinity handling performed by the formally verified Idris2/Zig core.

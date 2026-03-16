@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 plugins {
     kotlin("jvm") version "1.9.22"
@@ -49,7 +49,7 @@ publishing {
                     developer {
                         id.set("hyperpolymath")
                         name.set("Jonathan D.A. Jewell")
-                        email.set("jonathan.jewell@open.ac.uk")
+                        email.set("j.d.a.jewell@open.ac.uk")
                     }
                 }
             }

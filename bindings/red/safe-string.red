@@ -2,14 +2,14 @@ Red [
     Title:       "Proven SafeString"
     Description: "Safe string operations via libproven FFI"
     Author:      "Jonathan D.A. Jewell (hyperpolymath)"
-    Email:       "jonathan.jewell@open.ac.uk"
+    Email:       "j.d.a.jewell@open.ac.uk"
     License:     "PMPL-1.0-or-later"
     Version:     0.5.0
     File:        %safe-string.red
     Needs:       'proven
     Notes: {
         SPDX-License-Identifier: PMPL-1.0-or-later
-        Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+        Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
         Safe string operations that prevent injection attacks.
         Provides UTF-8 validation and injection-safe escaping for SQL, HTML,

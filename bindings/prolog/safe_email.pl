@@ -1,5 +1,5 @@
 %% SPDX-License-Identifier: PMPL-1.0-or-later
-%% Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+%% Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 %%
 %% Proven SafeEmail - Extended FFI bindings to libproven email validation.
 %% All validation is performed in verified Idris 2 code via libproven.

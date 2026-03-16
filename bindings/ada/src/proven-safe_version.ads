@@ -1,6 +1,6 @@
 --  SPDX-License-Identifier: MPL-2.0
 --  (PMPL-1.0-or-later preferred; MPL-2.0 required for GNAT ecosystem)
---  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+--  Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 --  Safe semantic versioning -- thin FFI wrapper over libproven.
 --  SemVer parsing and comparison done by the Idris2/Zig core.

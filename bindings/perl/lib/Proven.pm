@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # Proven - FFI binding to libproven (formally verified safety library).
 # All computation is performed in Idris 2 via the Zig FFI layer.
@@ -563,7 +563,7 @@ All operations return C<undef> on error instead of dying.
 
 =head1 AUTHOR
 
-Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
 =head1 LICENSE
 

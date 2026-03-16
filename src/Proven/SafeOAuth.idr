@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: PMPL-1.0-or-later
--- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| SafeOAuth - OAuth 2.0/OIDC with CSRF prevention
 |||
 ||| Provides type-safe OAuth 2.0 authorization code flow and OIDC validation.

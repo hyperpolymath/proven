@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 use strict;
 use warnings;
@@ -9,7 +9,7 @@ WriteMakefile(
     NAME             => 'Proven',
     VERSION_FROM     => 'lib/Proven.pm',
     ABSTRACT         => 'FFI binding to libproven - formally verified safety library',
-    AUTHOR           => 'Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>',
+    AUTHOR           => 'Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>',
     LICENSE          => 'open_source',
     MIN_PERL_VERSION => '5.020',
     PREREQ_PM        => {
