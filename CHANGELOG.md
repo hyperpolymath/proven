@@ -34,7 +34,7 @@ This release addresses findings from an honest audit of the codebase.
 - `.github/CODEOWNERS` — Code ownership for PR review routing
 - `MAINTAINERS.adoc` — Project maintainer documentation
 - `.well-known/security.txt` — RFC 9116 security contact (securitytxt.org)
-- `.editorconfig` SPDX header fixed from AGPL-3.0-or-later to PMPL-1.0-or-later
+- `.editorconfig` SPDX header fixed from PMPL-1.0-or-later to PMPL-1.0-or-later
 
 ### Changed — Honest Documentation
 - `STATE.scm` updated with accurate completion percentages (55%, not 100%)

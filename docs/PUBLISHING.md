@@ -65,7 +65,7 @@ Location: `bindings/rust/Cargo.toml`
 name = "proven"
 version = "0.9.0"
 edition = "2021"
-license = "AGPL-3.0-or-later"
+license = "PMPL-1.0-or-later"
 repository = "https://github.com/hyperpolymath/proven"
 description = "Formally verified safety library - code that cannot crash"
 keywords = ["safety", "verification", "idris", "dependent-types"]
@@ -81,7 +81,7 @@ Location: `bindings/python/pyproject.toml`
 name = "proven"
 version = "0.9.0"
 description = "Formally verified safety library"
-license = {text = "AGPL-3.0-or-later"}
+license = {text = "PMPL-1.0-or-later"}
 ```
 
 ### npm (JavaScript/TypeScript)
@@ -92,7 +92,7 @@ Location: `bindings/javascript/package.json` and `bindings/typescript/package.js
 {
   "name": "@proven/javascript",
   "version": "0.9.0",
-  "license": "AGPL-3.0-or-later"
+  "license": "PMPL-1.0-or-later"
 }
 ```
 
