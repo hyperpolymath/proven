@@ -20,12 +20,12 @@ It declares:
 ### Machine-Readable Metadata: `.machine_readable/` ONLY
 
 These files MUST exist in `.machine_readable/` directory ONLY:
-1. **STATE.scm** - Project state, progress, blockers
-2. **META.scm** - Architecture decisions, governance
-3. **ECOSYSTEM.scm** - Position in ecosystem, relationships
-4. **AGENTIC.scm** - AI agent interaction patterns
-5. **NEUROSYM.scm** - Neurosymbolic integration config
-6. **PLAYBOOK.scm** - Operational runbook
+1. **.machine_readable/6a2/STATE.a2ml** - Project state, progress, blockers
+2. **.machine_readable/6a2/META.a2ml** - Architecture decisions, governance
+3. **.machine_readable/6a2/ECOSYSTEM.a2ml** - Position in ecosystem, relationships
+4. **.machine_readable/6a2/AGENTIC.a2ml** - AI agent interaction patterns
+5. **.machine_readable/6a2/NEUROSYM.a2ml** - Neurosymbolic integration config
+6. **.machine_readable/6a2/PLAYBOOK.a2ml** - Operational runbook
 
 **CRITICAL:** If ANY of these files exist in the root directory, this is an ERROR.
 
@@ -63,7 +63,7 @@ Policy enforcement contracts:
    - Language bindings (`bindings/`) are thin wrappers — CALL Idris via FFI only
    - NEVER reimplement algorithms in bindings
 
-2. **No state file duplication** — Root must NOT contain STATE.scm, META.scm, etc.
+2. **No state file duplication** — Root must NOT contain .machine_readable/6a2/STATE.a2ml, .machine_readable/6a2/META.a2ml, etc.
 
 3. **Single source of truth** — `.machine_readable/` is authoritative
 
@@ -100,12 +100,12 @@ proven/
 ├── contractiles/               # Security specification contracts
 ├── .bot_directives/            # Bot orchestration directives
 ├── .machine_readable/          # ALL machine-readable content
-│   ├── STATE.scm               # Project state, progress, blockers
-│   ├── META.scm                # Architecture decisions, governance
-│   ├── ECOSYSTEM.scm           # Ecosystem position, relationships
-│   ├── AGENTIC.scm             # AI agent interaction patterns
-│   ├── NEUROSYM.scm            # Neurosymbolic integration config
-│   └── PLAYBOOK.scm            # Operational runbook
+│   ├── .machine_readable/6a2/STATE.a2ml               # Project state, progress, blockers
+│   ├── .machine_readable/6a2/META.a2ml                # Architecture decisions, governance
+│   ├── .machine_readable/6a2/ECOSYSTEM.a2ml           # Ecosystem position, relationships
+│   ├── .machine_readable/6a2/AGENTIC.a2ml             # AI agent interaction patterns
+│   ├── .machine_readable/6a2/NEUROSYM.a2ml            # Neurosymbolic integration config
+│   └── .machine_readable/6a2/PLAYBOOK.a2ml            # Operational runbook
 ├── tests/                      # Test suite
 ├── benchmarks/                 # Performance benchmarks
 ├── scripts/                    # Build and utility scripts
@@ -117,7 +117,7 @@ proven/
 1. Read THIS file (0-AI-MANIFEST.a2ml) first
 2. Understand canonical location: `.machine_readable/` (state files)
 3. Know the invariants (architecture, no believe_me, etc.)
-4. Read `.machine_readable/STATE.scm` for current status
+4. Read `.machine_readable/6a2/STATE.a2ml` for current status
 5. Read `.claude/CLAUDE.md` for detailed development constraints
 6. Check `.echidnabot.toml` for proof verification configuration
 
@@ -126,13 +126,13 @@ proven/
 ### on-enter (Session Start)
 
 1. Read and acknowledge this manifest
-2. Read `.machine_readable/STATE.scm`
+2. Read `.machine_readable/6a2/STATE.a2ml`
 3. Check for blockers
 4. State understanding of architecture: Idris2 → Zig FFI → Bindings
 
 ### on-exit (Session End)
 
-1. Update `.machine_readable/STATE.scm` if changes made
+1. Update `.machine_readable/6a2/STATE.a2ml` if changes made
 2. Document new blockers
 3. Summarize outcomes
 4. Mention whether STATE, contractiles/, .bot_directives/, or Trustfile changed

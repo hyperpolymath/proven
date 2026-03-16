@@ -33,8 +33,8 @@
 - MUST show 0 findings before external publication
 - Run: `./pre-submit.sh` before submitting to opam, crates.io, npm, etc.
 
-✅ **Keep META.scm ADRs updated**
-- Architecture decisions go in `META.scm`
+✅ **Keep .machine_readable/6a2/META.a2ml ADRs updated**
+- Architecture decisions go in `.machine_readable/6a2/META.a2ml`
 - Reference ADR-008 (FFI-only bindings) when writing binding code
 
 ## Author Attribution
@@ -153,8 +153,8 @@ If uncertain whether binding code should be written:
 
 ## References
 
-- Architecture: `META.scm` ADR-008, ADR-009
-- Ecosystem context: `ECOSYSTEM.scm`
-- Current state: `STATE.scm`
+- Architecture: `.machine_readable/6a2/META.a2ml` ADR-008, ADR-009
+- Ecosystem context: `.machine_readable/6a2/ECOSYSTEM.a2ml`
+- Current state: `.machine_readable/6a2/STATE.a2ml`
 - Idris 2 docs: https://idris2.readthedocs.io/
 - hypatia scanner: `../hypatia/`
