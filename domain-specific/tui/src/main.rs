@@ -6,6 +6,7 @@
 //! This TUI demonstrates and uses Proven's verified safety operations,
 //! proving our commitment by eating our own dog food.
 
+#![forbid(unsafe_code)]
 mod app;
 mod event;
 mod safety;
