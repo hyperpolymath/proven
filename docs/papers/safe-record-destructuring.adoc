@@ -1,0 +1,256 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= Verified Record Subset Destructuring via Dependent and Linear Types
+Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+v0.1, 2026-03-16
+:toc: left
+:toclevels: 3
+:sectnums:
+
+== Abstract
+
+We present a formally verified approach to record subset destructuring — the
+pattern `let { a, b, ...rest } = record` — that provides compile-time guarantees
+no existing mainstream language can express. Using Idris2's dependent type system,
+we prove three properties of any record partition: exhaustiveness (no fields lost),
+disjointness (no fields duplicated), and completeness (field counts are preserved).
+We then show how Ephapax's linear types enforce single-use field consumption at the
+value level, preventing a class of bugs impossible to catch with structural type
+systems alone. Finally, we describe a practical ReScript PPX that implements the
+verified algorithm as a compile-time code generator, making the benefits available
+to the JavaScript ecosystem today.
+
+== 1. Introduction
+
+=== 1.1 The Problem
+
+Modern UI frameworks (React, Solid, Svelte) rely heavily on "props spreading" —
+extracting known fields from a record and forwarding the rest to a child component:
+
+[source,javascript]
+----
+const { className, children, ...otherProps } = props;
+return <div className={className} {...otherProps}>{children}</div>;
+----
+
+TypeScript and Flow support this via structural subtyping, but provide no proof
+that the partition is correct. ReScript, despite its stronger type system, cannot
+express rest patterns on records at all — a limitation that forces verbose
+workarounds and brittle code.
+
+=== 1.2 Why Current Type Systems Fall Short
+
+[cols="1,1,1,1"]
+|===
+| Property | TypeScript | ReScript/OCaml | Idris2 + Ephapax
+
+| Rest pattern syntax
+| Yes (runtime)
+| No
+| Yes (verified)
+
+| Partition exhaustiveness
+| No proof
+| N/A
+| Proven (dependent types)
+
+| Partition disjointness
+| No proof
+| N/A
+| Proven (dependent types)
+
+| Single-use enforcement
+| No
+| No
+| Yes (linear types)
+
+| Compile-time guarantee
+| Partial (structural)
+| No
+| Total (dependent + linear)
+|===
+
+=== 1.3 Contributions
+
+1. **Formal model** of record schemas as named field sets (§2)
+2. **Three proofs** of partition correctness in Idris2 (§3)
+3. **Linear rest-pattern semantics** for Ephapax (§4)
+4. **Practical PPX** for ReScript that implements the verified algorithm (§5)
+5. **Empirical evaluation** of the approach on real React component codebases (§6)
+
+== 2. Formal Model
+
+=== 2.1 Record Schemas
+
+A record schema is a list of named fields:
+
+[source,idris]
+----
+Schema : Type
+Schema = List Field
+
+record Field where
+  constructor MkField
+  name : FieldName
+----
+
+=== 2.2 Subset and Complement
+
+Given a schema `full` and a requested subset `sub`, the complement `rest`
+contains every field in `full` that is not in `sub`:
+
+[source,idris]
+----
+data Complement : (sub : Schema) -> (full : Schema) -> (rest : Schema) -> Type where
+  CompNil  : Complement sub [] []
+  CompKeep : NotElem f sub -> Complement sub fs rest
+           -> Complement sub (f :: fs) (f :: rest)
+  CompDrop : Elem f sub -> Complement sub fs rest
+           -> Complement sub (f :: fs) rest
+----
+
+=== 2.3 Verified Partition
+
+[source,idris]
+----
+record Partition where
+  constructor MkPartition
+  full           : Schema
+  extracted      : Schema
+  remainder      : Schema
+  extractedValid : Subset extracted full
+  remainderValid : Complement extracted full remainder
+----
+
+== 3. Proofs
+
+=== 3.1 Exhaustiveness + Disjointness (ExactlyOne)
+
+Every field in `full` lands in exactly one of `extracted` or `rest`:
+
+[source,idris]
+----
+data ExactlyOne : Field -> Schema -> Schema -> Type where
+  InExtracted : Elem f sub -> NotElem f rest -> ExactlyOne f sub rest
+  InRemainder : NotElem f sub -> Elem f rest -> ExactlyOne f sub rest
+
+fieldInExactlyOne : Complement sub full rest
+                  -> Elem f full
+                  -> ExactlyOne f sub rest
+----
+
+=== 3.2 Completeness
+
+The extracted count plus the remainder count equals the full schema length:
+
+[source,idris]
+----
+completenessProof : (comp : Complement sub full rest)
+                  -> countExtracted comp + countRemainder comp = length full
+----
+
+=== 3.3 Construction
+
+The complement is decidably computable:
+
+[source,idris]
+----
+computeComplement : (sub : Schema) -> (full : Schema)
+                  -> (rest : Schema ** Complement sub full rest)
+----
+
+== 4. Linear Rest-Patterns in Ephapax
+
+=== 4.1 Syntax
+
+[source]
+----
+let { className ⊸ c, children ⊸ ch, ...rest } = props
+----
+
+The `⊸` (lollipop) operator consumes the field linearly. `rest` is the
+linear remainder — the type system guarantees it contains exactly the
+unconsumed fields.
+
+=== 4.2 Typing Rule
+
+----
+Γ ⊢ e : { f₁ : τ₁, ..., fₙ : τₙ }
+S = { fᵢ₁, ..., fᵢₖ } ⊆ { f₁, ..., fₙ }
+R = { f₁, ..., fₙ } \ S
+────────────────────────────────────────────────
+Γ ⊢ let { fᵢ₁ ⊸ x₁, ..., fᵢₖ ⊸ xₖ, ...rest } = e
+    : Γ, x₁ :¹ τᵢ₁, ..., xₖ :¹ τᵢₖ, rest :¹ { R }
+----
+
+The superscript ¹ denotes linear multiplicity (exactly one use).
+
+=== 4.3 Relationship to Idris2 Proofs
+
+The typing rule above is sound because `computeComplement` constructs a
+valid `Complement`, and `fieldInExactlyOne` proves the partition is
+exhaustive and disjoint. The linear multiplicity annotation adds
+value-level enforcement that the proof operates at the type level.
+
+== 5. ReScript PPX (Practical Implementation)
+
+=== 5.1 Usage
+
+[source,rescript]
+----
+@rest let { className, ?children, ...otherProps } = props
+----
+
+=== 5.2 Expansion
+
+The PPX expands to explicit field extraction at compile time:
+
+[source,rescript]
+----
+let className = props.className
+let children = props.children
+let otherProps = {
+  onClick: props.onClick,
+  style: props.style,
+  // ... (all fields not named above, derived from the record type)
+}
+----
+
+=== 5.3 Correctness Argument
+
+The PPX implements the same algorithm as `computeComplement`. Since
+`computeComplement` is total and proven correct in Idris2, and the PPX
+is a direct transliteration, the generated code is correct by construction.
+
+== 6. Evaluation
+
+_TODO: Apply to fogbinder, voyant-export, and a sample React component
+library to measure reduction in boilerplate and bug prevention._
+
+== 7. Related Work
+
+- Row polymorphism (PureScript, OCaml with extensible records)
+- TypeScript mapped types and `Omit<T, K>`
+- Granule (linear/graded types for Haskell)
+- Linear Haskell (GHC multiplicity annotations)
+
+== 8. Conclusion
+
+Record subset destructuring is a common pattern that no mainstream language
+handles with full compile-time safety. By combining dependent types (for
+partition proofs) with linear types (for consumption guarantees), we achieve
+a level of assurance that structural type systems fundamentally cannot match.
+The ReScript PPX makes this practically useful today; the Ephapax language
+will make it native.
+
+== Appendix A: Full Idris2 Source
+
+See `proven/src/Proven/SafeRecord/` for the complete source:
+
+- `Types.idr` — Schema, Field, Subset, Complement, Partition
+- `Proofs.idr` — Exhaustiveness, disjointness, completeness theorems
+
+== Appendix B: PPX Source
+
+See `developer-ecosystem/rescript-ecosystem/ppx-proven-record/` for the
+ReScript PPX implementation.
