@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # Ballerina package configuration for proven FFI bindings.
 # All computation is performed in Idris 2 via the Zig FFI bridge.
@@ -10,7 +10,7 @@ org = "hyperpolymath"
 name = "proven"
 version = "0.5.0"
 license = ["PMPL-1.0-or-later"]
-authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
 keywords = ["safety", "verified", "ffi", "math", "validation"]
 repository = "https://github.com/hyperpolymath/proven"
 distribution = "local"

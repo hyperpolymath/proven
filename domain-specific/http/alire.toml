@@ -2,8 +2,8 @@
 name = "proven_http"
 description = "Formally verified HTTP utilities with Ada/SPARK bindings"
 version = "0.1.0"
-authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
-maintainers = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
+maintainers = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
 maintainers-logins = ["hyperpolymath"]
 licenses = "PMPL-1.0-or-later"
 website = "https://github.com/hyperpolymath/proven-http"

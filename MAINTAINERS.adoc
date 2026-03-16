@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 = Maintainers
 :toc: macro
@@ -12,7 +12,7 @@
 | Name | Email | GitHub | Role
 
 | Jonathan D.A. Jewell
-| jonathan.jewell@open.ac.uk
+| j.d.a.jewell@open.ac.uk
 | https://github.com/hyperpolymath[@hyperpolymath]
 | Creator & Lead Maintainer
 |===
@@ -70,7 +70,7 @@ The following bots operate on this repository under human oversight:
 
 * **Security issues:** security@hyperpolymath.org (see `SECURITY.md`)
 * **General questions:** Open a GitHub issue or discussion
-* **License inquiries:** jonathan.jewell@open.ac.uk
+* **License inquiries:** j.d.a.jewell@open.ac.uk
 
 == License
 

@@ -620,5 +620,5 @@ See link:ECOSYSTEM.scm[] for detailed project relationships.
 ---
 
 _Last updated: 2026-01-30_ +
-_Maintained by: Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>_ +
+_Maintained by: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>_ +
 _License: MPL-2.0-or-later (with Palimpsest philosophy)_

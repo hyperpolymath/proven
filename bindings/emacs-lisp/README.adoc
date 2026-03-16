@@ -92,7 +92,7 @@ proven-safe-*.el  -->  proven-ffi.el  -->  proven-module.so  -->  libproven.so
 
 == Author
 
-Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 == License
 

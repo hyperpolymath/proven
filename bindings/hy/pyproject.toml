@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 [build-system]
 requires = ["setuptools>=61.0", "hy>=1.0"]
@@ -13,7 +13,7 @@ readme = "README.md"
 license = {text = "PMPL-1.0-or-later"}
 requires-python = ">=3.9"
 authors = [
-    {name = "Jonathan D.A. Jewell", email = "jonathan.jewell@open.ac.uk"}
+    {name = "Jonathan D.A. Jewell", email = "j.d.a.jewell@open.ac.uk"}
 ]
 keywords = ["safety", "verified", "idris", "ffi", "hy", "lisp", "crash-free"]
 classifiers = [

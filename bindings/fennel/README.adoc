@@ -92,7 +92,7 @@ proven/safe-*.fnl  -->  proven/ffi.fnl  -->  LuaJIT FFI  -->  libproven.so
 
 == Author
 
-Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 == License
 

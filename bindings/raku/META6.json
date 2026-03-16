@@ -6,7 +6,7 @@
     "api":         "1",
     "license":     "PMPL-1.0-or-later",
     "description":  "Raku NativeCall binding to libproven -- formally verified safety library",
-    "authors":     ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"],
+    "authors":     ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"],
     "source-url":  "https://github.com/hyperpolymath/proven",
     "provides": {
         "Proven":                "lib/Proven.rakumod",
