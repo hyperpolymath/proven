@@ -117,7 +117,7 @@ Add explicit relationships:
   ((project . "a2ml")
    (type . "documentation-tool")
    (relationship . "a2ml provides attested markup for proven specifications")
-   (url . "https://github.com/hyperpolymath/a2ml")))
+   (url . "https://github.com/hyperpolymath/standards/tree/main/a2ml")))
 ```
 
 ### Task 3.2: Create aLib Conformance Matrix
