@@ -23,7 +23,8 @@ on:
           - javascript
           - typescript
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   publish-javascript:

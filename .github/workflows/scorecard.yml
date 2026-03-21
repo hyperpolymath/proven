@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
 name: OpenSSF Scorecard
 
-permissions: read-all
+permissions:
+  contents: read
 
 on:
   branch_protection_rule:
