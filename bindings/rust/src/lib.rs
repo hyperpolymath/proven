@@ -22,7 +22,7 @@
 //! use proven::{SafeMath, SafeString, lifecycle};
 //!
 //! // Initialize the runtime
-//! lifecycle::init().unwrap();
+//! lifecycle::init()?;
 //!
 //! // Safe addition with overflow detection
 //! let result = SafeMath::add(i64::MAX, 1);

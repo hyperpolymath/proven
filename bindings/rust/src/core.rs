@@ -255,12 +255,12 @@ mod tests {
     }
 
     #[test]
-    fn test_non_empty_from_vec() {
-        let ne = NonEmpty::from_vec(vec![1, 2, 3]);
-        assert!(ne.is_some());
-        let ne = ne.unwrap();
+    fn test_non_empty_from_vec() -> std::result::Result<(), String> {
+        let ne = NonEmpty::from_vec(vec![1, 2, 3])
+            .ok_or_else(|| "NonEmpty::from_vec returned None for non-empty input".to_string())?;
         assert_eq!(ne.len(), 3);
         assert_eq!(*ne.head(), 1);
+        Ok(())
     }
 
     #[test]
@@ -270,10 +270,11 @@ mod tests {
     }
 
     #[test]
-    fn test_bounded_valid() {
+    fn test_bounded_valid() -> std::result::Result<(), String> {
         let pct: Result<Percentage> = Bounded::new(50);
-        assert!(pct.is_ok());
-        assert_eq!(pct.unwrap().get(), 50);
+        let pct = pct.map_err(|e| format!("Bounded::new(50) failed: {}", e))?;
+        assert_eq!(pct.get(), 50);
+        Ok(())
     }
 
     #[test]
