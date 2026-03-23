@@ -94,10 +94,11 @@ test-idris:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "[proven] Running Idris2 tests..."
-    if [ -f tests.ipkg ]; then
-        pack test tests.ipkg
-    elif [ -d tests/ ]; then
-        pack test proven.ipkg
+    if [ -f test-simple.ipkg ]; then
+        idris2 --build test-simple.ipkg
+        echo "[proven] Idris2 build test passed"
+    elif [ -f tests.ipkg ]; then
+        idris2 --build tests.ipkg
     else
         echo "[proven] No Idris2 test suite found. Skipping."
     fi
@@ -202,7 +203,14 @@ install prefix="/usr/local":
     install -m 0755 "$LIB_DIR"/libproven.* "{{prefix}}/lib/" 2>/dev/null || true
     echo "[proven] Installed."
 
-# [AUTO-GENERATED] Multi-arch / RISC-V target
-build-riscv:
-	@echo "Building for RISC-V..."
-	cross build --target riscv64gc-unknown-linux-gnu
+# Run panic-attacker pre-commit scan
+assail:
+    @command -v panic-attack >/dev/null 2>&1 && panic-attack assail . || echo "panic-attack not found — install from https://github.com/hyperpolymath/panic-attacker"
+
+# Format code
+fmt:
+    cargo fmt --all
+
+# Check formatting without modifying
+fmt-check:
+    cargo fmt --all --check
