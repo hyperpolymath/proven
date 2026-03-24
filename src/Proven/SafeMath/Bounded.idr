@@ -30,18 +30,21 @@ fromBoundedNat : Fin n -> Nat
 fromBoundedNat = finToNat
 
 ||| Safe increment that wraps at boundary
+||| Uses strengthen to detect whether we are at the maximum value.
+||| If strengthen succeeds, the value fits in a smaller Fin and we can
+||| safely take the successor. If it fails, we are at the top and wrap to FZ.
 public export
-incWrap : Fin (S n) -> Fin (S n)
-incWrap {n = Z} FZ = FZ
-incWrap {n = S _} FZ = FS FZ
-incWrap {n = S n} (FS k) with (strengthen (FS k))
-  incWrap {n = S n} (FS k) | Just stronger = FS (incWrap stronger)
-  incWrap {n = S n} (FS k) | Nothing = FZ
+incWrap : {n : Nat} -> Fin (S n) -> Fin (S n)
+incWrap x with (strengthen x)
+  incWrap x | Nothing = FZ          -- at maximum, wrap to zero
+  incWrap x | Just y  = FS y        -- safe to increment (value + 1)
 
 ||| Safe decrement that wraps at zero
+||| When at FZ, wraps to the maximum value (last).
+||| n must be runtime-accessible because we need to construct `last`.
 public export
-decWrap : Fin (S n) -> Fin (S n)
-decWrap {n} FZ = last
+decWrap : {n : Nat} -> Fin (S n) -> Fin (S n)
+decWrap FZ = last
 decWrap (FS k) = weaken k
 
 --------------------------------------------------------------------------------
@@ -72,10 +75,17 @@ public export
 applyPercentage : Percentage -> Nat -> Nat
 applyPercentage p n = div (value p * n) 100
 
+||| Proof that (n - m) <= n for all natural numbers
+||| Subtraction on Nat is floored at zero, so the result never exceeds n.
+minusLte : (n, m : Nat) -> LTE (minus n m) n
+minusLte Z     _     = LTEZero
+minusLte (S _) Z     = reflexive
+minusLte (S n) (S m) = lteSuccRight (minusLte n m)
+
 ||| Complement of a percentage (100 - p)
 public export
 complement : Percentage -> Percentage
-complement p = MkPercentage (minus 100 (value p))
+complement p = MkPercentage (minus 100 (value p)) {inBounds = minusLte 100 (value p)}
 
 --------------------------------------------------------------------------------
 -- Unit Interval (0.0 to 1.0 represented as fraction)

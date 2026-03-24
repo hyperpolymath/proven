@@ -14,6 +14,7 @@ import public Proven.SafeEmail.Parser
 import public Proven.SafeEmail.Validation
 
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
@@ -35,6 +36,50 @@ record NamedEmail where
   constructor MkNamedEmail
   displayName : Maybe String
   address : EmailAddress
+
+--------------------------------------------------------------------------------
+-- Email Validation (defined before mkEmail to avoid forward references)
+--------------------------------------------------------------------------------
+
+||| Characters valid in local part (simplified)
+||| Uses `any` with equality predicate instead of `elem` to avoid
+||| type ambiguity between Char and Bool.
+isValidLocalChar : Char -> Bool
+isValidLocalChar c =
+  isAlphaNum c || any (\x => x == c) (unpack ".!#$%&'*+/=?^_`{|}~-")
+
+||| Check if local part is valid according to RFC 5321
+public export
+isValidLocalPart : String -> Bool
+isValidLocalPart "" = False
+isValidLocalPart s =
+  let chars = unpack s
+  in length chars <= 64 &&
+     not (isPrefixOf "." s) &&
+     not (isSuffixOf "." s) &&
+     not (isInfixOf ".." s) &&
+     all isValidLocalChar chars
+
+||| Check if domain is valid
+public export
+isValidDomain : String -> Bool
+isValidDomain "" = False
+isValidDomain s =
+  let labels = forget (split (== '.') s)
+  in not (null labels) &&
+     all isValidLabel labels &&
+     length s <= 253
+  where
+    isValidLabelChar : Char -> Bool
+    isValidLabelChar c = isAlphaNum c || c == '-'
+
+    isValidLabel : String -> Bool
+    isValidLabel "" = False
+    isValidLabel label =
+      length label <= 63 &&
+      not (isPrefixOf "-" label) &&
+      not (isSuffixOf "-" label) &&
+      all isValidLabelChar (unpack label)
 
 --------------------------------------------------------------------------------
 -- Email Construction
@@ -120,46 +165,12 @@ getAddress : NamedEmail -> EmailAddress
 getAddress = address
 
 --------------------------------------------------------------------------------
--- Email Validation
+-- Email Validation (continued)
 --------------------------------------------------------------------------------
 
-||| Check if local part is valid according to RFC 5321
-public export
-isValidLocalPart : String -> Bool
-isValidLocalPart "" = False
-isValidLocalPart s =
-  let chars = unpack s
-  in length chars <= 64 &&
-     not (isPrefixOf "." s) &&
-     not (isSuffixOf "." s) &&
-     not (isInfixOf ".." s) &&
-     all isValidLocalChar chars
-
-||| Characters valid in local part (simplified)
-isValidLocalChar : Char -> Bool
-isValidLocalChar c =
-  isAlphaNum c || c `elem` unpack ".!#$%&'*+/=?^_`{|}~-"
-
-||| Check if domain is valid
-public export
-isValidDomain : String -> Bool
-isValidDomain "" = False
-isValidDomain s =
-  let labels = split '.' s
-  in not (null labels) &&
-     all isValidLabel labels &&
-     length s <= 253
-  where
-    isValidLabel : String -> Bool
-    isValidLabel "" = False
-    isValidLabel label =
-      length label <= 63 &&
-      not (isPrefixOf "-" label) &&
-      not (isSuffixOf "-" label) &&
-      all isValidLabelChar (unpack label)
-
-    isValidLabelChar : Char -> Bool
-    isValidLabelChar c = isAlphaNum c || c == '-'
+||| Convert ParsedEmail (from Parser module) to EmailAddress (this module)
+parsedToEmailAddress : ParsedEmail -> EmailAddress
+parsedToEmailAddress pe = MkEmailAddress pe.localPart pe.domain
 
 ||| Full email validation
 public export
@@ -174,7 +185,7 @@ validateEmail : String -> Maybe EmailAddress
 validateEmail s = do
   email <- parseEmail s
   if isValidLocalPart email.localPart && isValidDomain email.domain
-    then Just email
+    then Just (parsedToEmailAddress email)
     else Nothing
 
 --------------------------------------------------------------------------------
@@ -255,20 +266,34 @@ isDisposableEmail email = isDisposableDomain email.domain
 public export
 getTLD : EmailAddress -> Maybe String
 getTLD email =
-  let parts = split '.' email.domain
+  let parts = forget (split (== '.') email.domain)
   in case parts of
        [] => Nothing
        _ => Just (last parts)
+  where
+    ||| Get the last element of a non-empty list safely
+    last : List String -> String
+    last [] = ""  -- unreachable given the guard above, but total
+    last [x] = x
+    last (_ :: xs) = last xs
 
 ||| Get second-level domain (e.g., "example" from "mail.example.com")
 public export
 getSecondLevelDomain : EmailAddress -> Maybe String
 getSecondLevelDomain email =
-  let parts = split '.' email.domain
+  let parts = forget (split (== '.') email.domain)
   in case parts of
        [] => Nothing
        [x] => Just x
-       _ => Just (last (init parts))
+       _ => Just (secondToLast parts)
+  where
+    ||| Get the second-to-last element of a list
+    ||| Returns "" for lists with fewer than 2 elements (unreachable in context)
+    secondToLast : List String -> String
+    secondToLast [] = ""
+    secondToLast [_] = ""
+    secondToLast [x, _] = x
+    secondToLast (_ :: xs) = secondToLast xs
 
 ||| Check if email domain matches a pattern
 public export
@@ -285,7 +310,7 @@ domainMatches pattern email =
 public export
 parseEmailList : String -> List EmailAddress
 parseEmailList s =
-  let parts = concatMap (split ';') (split ',' s)
+  let parts = concatMap (forget . split (== ';')) (forget (split (== ',') s))
       trimmed = map trim parts
   in mapMaybe validateEmail trimmed
   where
@@ -296,7 +321,13 @@ parseEmailList s =
 public export
 formatEmailList : List EmailAddress -> String
 formatEmailList [] = ""
-formatEmailList emails = join ", " (map toString emails)
+formatEmailList emails = joinBy ", " (map toString emails)
+  where
+    ||| Join a list of strings with a separator
+    joinBy : String -> List String -> String
+    joinBy _ [] = ""
+    joinBy _ [x] = x
+    joinBy sep (x :: xs) = x ++ sep ++ joinBy sep xs
 
 ||| Remove duplicates from email list (case-insensitive)
 public export
