@@ -1,0 +1,107 @@
+WIP SafeAngle 225L
+SECOND SafeArchive 174L 20exp 0prf (safe-wrappers-only)
+WIP SafeArgs 387L
+FIRST SafeAttestation 405L 23exp 6prf
+WIP SafeBase64 398L
+SECOND SafeBibTeX 203L 21exp 0prf (safe-wrappers-only)
+WIP SafeBitset 342L
+WIP SafeBloom 162L
+WIP SafeBuffer 141L
+WIP SafeCalculator 511L
+WIP SafeCapability 382L
+WIP SafeCert 229L
+WIP SafeChecksum 170L
+WIP SafeCircuitBreaker 203L
+WIP SafeColor 232L
+SECOND SafeCommand 366L 50exp 0prf (safe-wrappers-only)
+WIP SafeComplex 331L
+SECOND SafeConsensus 320L 36exp 2prf
+WIP SafeContentType 376L
+WIP SafeCookie 368L
+SECOND SafeCron 232L 22exp 0prf (safe-wrappers-only)
+SECOND SafeCryptoAccel 166L 13exp 0prf (safe-wrappers-only)
+WIP SafeCrypto 390L
+WIP SafeCSV 331L
+WIP SafeCurrency 322L
+SECOND SafeCycleDetect 446L 19exp 0prf (safe-wrappers-only)
+WIP SafeDateTime 551L
+WIP SafeDecimal 351L
+WIP SafeDigest 304L
+WIP SafeDNS 251L
+SECOND SafeDocker 253L 26exp 0prf (safe-wrappers-only)
+WIP SafeDSP 170L
+SECOND SafeEmail 335L 31exp 2prf
+WIP SafeEnv 332L
+WIP SafeFile 437L
+WIP SafeFiniteField 351L
+SECOND SafeFloat 205L 29exp 0prf (safe-wrappers-only)
+SECOND SafeFPGA 160L 15exp 0prf (safe-wrappers-only)
+WIP SafeGeo 198L
+WIP SafeGit 191L
+WIP SafeGPU 187L
+WIP SafeGraph 294L
+WIP SafeHeader 355L
+WIP SafeHeap 311L
+WIP SafeHex 131L
+WIP SafeHtml 332L
+WIP SafeI18n 201L
+WIP SafeInterval 280L
+SECOND SafeISA 192L 18exp 0prf (safe-wrappers-only)
+WIP SafeJson 354L
+WIP SafeJWT 411L
+WIP SafeLog 290L
+SECOND SafeLRU 166L 19exp 0prf (safe-wrappers-only)
+WIP SafeMarkdown 314L
+WIP SafeMath 203L
+WIP SafeMatrix 251L
+SECOND SafeMCP 240L 29exp 0prf (safe-wrappers-only)
+WIP SafeML 218L
+SECOND SafeMonotonic 234L 32exp 0prf (safe-wrappers-only)
+WIP SafeNetwork 382L
+WIP SafeNPU 159L
+SECOND SafeOAuth 208L 26exp 0prf (safe-wrappers-only)
+FIRST SafeOrdering 314L 39exp 14prf
+WIP SafePassword 345L
+SECOND SafePath 397L 41exp 0prf (safe-wrappers-only)
+WIP SafePhone 167L
+SECOND SafePipe 292L 29exp 0prf (safe-wrappers-only)
+SECOND SafePolicy 407L 46exp 0prf (safe-wrappers-only)
+WIP SafeProbability 191L
+SECOND SafeProcess 330L 31exp 2prf
+SECOND SafeProvenance 403L 48exp 0prf (safe-wrappers-only)
+SECOND SafeQueue 171L 23exp 0prf (safe-wrappers-only)
+WIP SafeRateLimiter 173L
+WIP SafeRational 300L
+WIP SafeRecord 29L
+WIP SafeRegex 306L
+WIP SafeRegistry 297L
+SECOND SafeResource 254L 35exp 0prf (safe-wrappers-only)
+WIP SafeRetry 199L
+SECOND SafeSchema 367L 34exp 3prf
+SECOND SafeSemaphore 255L 31exp 0prf (safe-wrappers-only)
+WIP SafeSet 324L
+SECOND SafeShell 223L 19exp 0prf (safe-wrappers-only)
+FIRST SafeSignal 375L 37exp 5prf
+WIP SafeSQL 427L
+SECOND SafeSSH 207L 21exp 0prf (safe-wrappers-only)
+SECOND SafeStateMachine 191L 20exp 0prf (safe-wrappers-only)
+SECOND SafeString 299L 33exp 0prf (safe-wrappers-only)
+WIP SafeTemplate 192L
+SECOND SafeTensor 311L 34exp 0prf (safe-wrappers-only)
+SECOND SafeTerminal 370L 36exp 0prf (safe-wrappers-only)
+WIP SafeTOML 431L
+WIP SafeTPU 169L
+SECOND SafeTransaction 242L 25exp 0prf (safe-wrappers-only)
+WIP SafeTree 257L
+FIRST SafeTrust 506L 24exp 48prf
+SECOND Safety 36L 0
+0exp 0prf (safe-wrappers-only)
+WIP SafeUnionFind 253L
+SECOND SafeUnit 241L 33exp 0prf (safe-wrappers-only)
+SECOND SafeUrl 480L 53exp 0prf (safe-wrappers-only)
+WIP SafeUUID 172L
+WIP SafeVersion 218L
+SECOND SafeVPU 162L 16exp 0prf (safe-wrappers-only)
+WIP SafeWebhook 180L
+WIP SafeXML 407L
+WIP SafeYAML 478L
