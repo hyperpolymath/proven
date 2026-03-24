@@ -12,6 +12,7 @@ module Proven.SafeContentType.Parser
 import Proven.Core
 import Proven.SafeContentType.Types
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
@@ -103,7 +104,7 @@ parseContentType opts raw =
          then Err (TooLong (length (unpack trimmed)))
          else do
            -- Split on semicolons
-           let parts = split (== ';') trimmed
+           let parts = forget (split (== ';') trimmed)
            case parts of
              [] => Err EmptyContentType
              (mediaStr :: paramStrs) => do
@@ -301,7 +302,7 @@ export
 matches : ContentType -> String -> Bool
 matches ct pattern =
   let (patType, patSubtype) = case break (== '/') pattern of
-                                (t, rest) => (toLower t, toLower (drop 1 rest))
+                                (t, rest) => (toLower t, toLower (substr 1 (length rest) rest))
   in (patType == "*" || patType == ct.media.mediaType) &&
      (patSubtype == "*" || patSubtype == ct.media.subtype)
 
@@ -412,7 +413,7 @@ contentTypeToExtension ct =
 export
 parseAcceptMediaRange : String -> ContentTypeResult (ContentType, Double)
 parseAcceptMediaRange range =
-  let parts = split (== ';') (trim range)
+  let parts = forget (split (== ';') (trim range))
   in case parts of
        [] => Err EmptyContentType
        (mediaStr :: params) => do
@@ -429,7 +430,7 @@ parseAcceptMediaRange range =
 export
 parseAcceptHeader : String -> List (ContentType, Double)
 parseAcceptHeader header =
-  let ranges = split (== ',') header
+  let ranges = forget (split (== ',') header)
   in sortBy (\(_, q1), (_, q2) => compare q2 q1) $
      mapMaybe (\r => case parseAcceptMediaRange r of
                        Ok pair => Just pair

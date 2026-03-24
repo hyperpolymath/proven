@@ -19,6 +19,33 @@ import Data.String
 %default total
 
 --------------------------------------------------------------------------------
+-- Command Name Validation (must precede CommandName type)
+--------------------------------------------------------------------------------
+
+||| Characters forbidden in command names
+public export
+forbiddenCommandChars : List Char
+forbiddenCommandChars = [';', '|', '&', '$', '`', '(', ')', '{', '}',
+                         '<', '>', '\n', '\r', '\x00', '\'', '"', '\\', ' ']
+
+||| Check if character is valid in command name
+public export
+isValidCommandChar : Char -> Bool
+isValidCommandChar c = not (c `elem` forbiddenCommandChars)
+
+||| Check if string is valid command name
+||| Must not be empty, must not contain forbidden chars, must not start with -
+public export
+isValidCommandName : String -> Bool
+isValidCommandName s = case strM s of
+  StrNil => False
+  StrCons '-' _ => False  -- Prevent flag injection
+  StrCons '.' rest => case strM rest of
+    StrCons '.' _ => False  -- Prevent .. path traversal
+    _ => all isValidCommandChar (unpack s)
+  StrCons _ _ => all isValidCommandChar (unpack s)
+
+--------------------------------------------------------------------------------
 -- Core Command Types
 --------------------------------------------------------------------------------
 
@@ -53,33 +80,6 @@ public export
 data CommandResult : Type where
   ValidCommand : SafeCommand -> CommandResult
   InvalidCommand : (reason : String) -> CommandResult
-
---------------------------------------------------------------------------------
--- Command Name Validation
---------------------------------------------------------------------------------
-
-||| Characters forbidden in command names
-public export
-forbiddenCommandChars : List Char
-forbiddenCommandChars = [';', '|', '&', '$', '`', '(', ')', '{', '}',
-                         '<', '>', '\n', '\r', '\x00', '\'', '"', '\\', ' ']
-
-||| Check if character is valid in command name
-public export
-isValidCommandChar : Char -> Bool
-isValidCommandChar c = not (c `elem` forbiddenCommandChars)
-
-||| Check if string is valid command name
-||| Must not be empty, must not contain forbidden chars, must not start with -
-public export
-isValidCommandName : String -> Bool
-isValidCommandName s = case strM s of
-  StrNil => False
-  StrCons '-' _ => False  -- Prevent flag injection
-  StrCons '.' rest => case strM rest of
-    StrCons '.' _ => False  -- Prevent .. path traversal
-    _ => all isValidCommandChar (unpack s)
-  StrCons _ _ => all isValidCommandChar (unpack s)
 
 ||| Check if string is a safe path (no traversal)
 public export

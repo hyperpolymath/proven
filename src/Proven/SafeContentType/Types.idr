@@ -12,6 +12,7 @@ module Proven.SafeContentType.Types
 import Proven.Core
 import Data.List
 import Data.String
+import Decidable.Equality
 
 %default total
 
