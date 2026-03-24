@@ -1,69 +1,116 @@
-WIP SafeAngle 225L
-SECOND SafeArchive 174L 20exp 0prf (safe-wrappers-only)
-WIP SafeArgs 387L
-FIRST SafeAttestation 405L 23exp 6prf
-WIP SafeBase64 398L
-SECOND SafeBibTeX 203L 21exp 0prf (safe-wrappers-only)
-WIP SafeBitset 342L
-WIP SafeBloom 162L
-WIP SafeBuffer 141L
-WIP SafeCalculator 511L
-WIP SafeCapability 382L
-WIP SafeCert 229L
-WIP SafeChecksum 170L
-WIP SafeCircuitBreaker 203L
-WIP SafeColor 232L
-SECOND SafeCommand 366L 50exp 0prf (safe-wrappers-only)
-WIP SafeComplex 331L
-SECOND SafeConsensus 320L 36exp 2prf
-WIP SafeContentType 376L
-WIP SafeCookie 368L
-SECOND SafeCron 232L 22exp 0prf (safe-wrappers-only)
-SECOND SafeCryptoAccel 166L 13exp 0prf (safe-wrappers-only)
-WIP SafeCrypto 390L
-WIP SafeCSV 331L
-WIP SafeCurrency 322L
-SECOND SafeCycleDetect 446L 19exp 0prf (safe-wrappers-only)
-WIP SafeDateTime 551L
-WIP SafeDecimal 351L
-WIP SafeDigest 304L
-WIP SafeDNS 251L
-SECOND SafeDocker 253L 26exp 0prf (safe-wrappers-only)
-WIP SafeDSP 170L
-SECOND SafeEmail 335L 31exp 2prf
-WIP SafeEnv 332L
-WIP SafeFile 437L
-WIP SafeFiniteField 351L
-SECOND SafeFloat 205L 29exp 0prf (safe-wrappers-only)
-SECOND SafeFPGA 160L 15exp 0prf (safe-wrappers-only)
-WIP SafeGeo 198L
-WIP SafeGit 191L
-WIP SafeGPU 187L
-WIP SafeGraph 294L
-WIP SafeHeader 355L
-WIP SafeHeap 311L
-WIP SafeHex 131L
-WIP SafeHtml 332L
-WIP SafeI18n 201L
-WIP SafeInterval 280L
-SECOND SafeISA 192L 18exp 0prf (safe-wrappers-only)
-WIP SafeJson 354L
-WIP SafeJWT 411L
-WIP SafeLog 290L
-SECOND SafeLRU 166L 19exp 0prf (safe-wrappers-only)
-WIP SafeMarkdown 314L
-WIP SafeMath 203L
-WIP SafeMatrix 251L
-SECOND SafeMCP 240L 29exp 0prf (safe-wrappers-only)
-WIP SafeML 218L
-SECOND SafeMonotonic 234L 32exp 0prf (safe-wrappers-only)
-WIP SafeNetwork 382L
-WIP SafeNPU 159L
-SECOND SafeOAuth 208L 26exp 0prf (safe-wrappers-only)
-FIRST SafeOrdering 314L 39exp 14prf
-WIP SafePassword 345L
-SECOND SafePath 397L 41exp 0prf (safe-wrappers-only)
-WIP SafePhone 167L
-SECOND SafePipe 292L 29exp 0prf (safe-wrappers-only)
-SECOND SafePolicy 407L 46exp 0prf (safe-wrappers-only)
-WIP SafeProbability 191L
+# proven MODULE STATUS — audited 2026-03-24
+#
+# FIRST-CLASS: Compiles with --total, contains dependent-type proofs
+# SECOND-CLASS: Compiles with --total, safe wrappers (Maybe/Either) but no deep proofs
+# WIP: Does not compile — errors identified, contributions welcome
+#
+# This file is the honest truth. If it says WIP, the module does not work yet.
+
+## FIRST-CLASS (4 modules — verified with proofs)
+
+FIRST Core              217L  28exp  3prf   — Foundation types, error handling
+FIRST SafeAttestation   405L  23exp  6prf   — Cryptographic attestation with proofs
+FIRST SafeOrdering      314L  39exp  14prf  — Total ordering with decidable equality proofs
+FIRST SafeTrust         506L  24exp  42prf  — Trust graph with formal safety guarantees
+
+## SECOND-CLASS (37 modules — compile clean, safe wrappers)
+
+These modules compile and provide safe APIs (returning Maybe/Either instead
+of crashing) but do NOT contain formal dependent-type proofs. They are
+useful and correct, but "safe" not "proven" in the mathematical sense.
+
+SECOND SafeArchive       174L  20exp  — Archive handling
+SECOND SafeBibTeX        203L  21exp  — BibTeX parsing
+SECOND SafeCommand       366L  50exp  — Command execution
+SECOND SafeConsensus     320L  36exp  — Consensus protocols
+SECOND SafeCron          232L  22exp  — Cron expression handling
+SECOND SafeCryptoAccel   166L  13exp  — Hardware crypto acceleration
+SECOND SafeCycleDetect   446L  19exp  — Graph cycle detection
+SECOND SafeDocker        253L  26exp  — Container operations
+SECOND SafeEmail         335L  31exp  — Email parsing (fixed 2026-03-24)
+SECOND SafeFloat         205L  29exp  — Floating point operations
+SECOND SafeFPGA          160L  15exp  — FPGA configuration
+SECOND SafeISA           192L  18exp  — Instruction set abstraction
+SECOND SafeLRU           166L  19exp  — LRU cache
+SECOND SafeMCP           240L  29exp  — Model Context Protocol
+SECOND SafeMonotonic     234L  32exp  — Monotonic timestamps
+SECOND SafeOAuth         208L  26exp  — OAuth flows
+SECOND SafePath          397L  41exp  — File path operations
+SECOND SafePipe          292L  29exp  — Unix pipe operations
+SECOND SafePolicy        407L  46exp  — Policy enforcement
+SECOND SafeProcess       330L  31exp  — Process management
+SECOND SafeProvenance    403L  48exp  — Data provenance tracking
+SECOND SafeQueue         171L  23exp  — Queue operations
+SECOND SafeResource      254L  35exp  — Resource management
+SECOND SafeSchema        367L  34exp  — Schema validation
+SECOND SafeSemaphore     255L  31exp  — Semaphore operations
+SECOND SafeShell         223L  19exp  — Shell command safety
+SECOND SafeSignal        375L  37exp  — Signal handling
+SECOND SafeSSH           207L  21exp  — SSH operations
+SECOND SafeStateMachine  191L  20exp  — Finite state machines
+SECOND SafeString        299L  33exp  — String operations
+SECOND SafeTensor        311L  34exp  — Tensor operations
+SECOND SafeTerminal      370L  36exp  — Terminal I/O
+SECOND SafeTransaction   242L  25exp  — Transaction handling
+SECOND SafeUnit          241L  33exp  — Unit conversion
+SECOND SafeUrl           480L  53exp  — URL parsing
+SECOND SafeVPU           162L  16exp  — Vector processing unit
+SECOND Safety             36L         — Safety type aliases
+
+## WIP (47 modules — DO NOT COMPILE)
+
+These modules were batch-generated and never individually compiled.
+Each has specific errors listed. If you can fix one, we welcome PRs
+with full acknowledgement.
+
+WIP SafeAngle        225L  — Undefined: atan2 (not in Idris stdlib)
+WIP SafeArgs         387L  — Type mismatch in classifyArg
+WIP SafeBase64       398L  — Neg Nat instance doesn't exist
+WIP SafeBitset       342L  — Ambiguous elaboration
+WIP SafeBloom        162L  — Bool vs Lazy Bool constraint
+WIP SafeBuffer       141L  — Erased variable access (size)
+WIP SafeCalculator   511L  — Broken rewrite rule proof
+WIP SafeCapability   382L  — Unsolvable constraint (attenuationSound)
+WIP SafeCert         229L  — Elaboration failure in matchesHostname
+WIP SafeChecksum     170L  — Bits Nat instance doesn't exist
+WIP SafeCircuitBreaker 203L — Syntax error (missing 'where')
+WIP SafeColor        232L  — Type mismatch in nibbleToHex
+WIP SafeComplex      331L  — Parse error
+WIP SafeContentType  376L  — Undefined: decEq (missing import)
+WIP SafeCookie       368L  — Unknown error (needs investigation)
+WIP SafeCrypto       390L  — Multiple errors
+WIP SafeCSV          331L  — Unknown error
+WIP SafeCurrency     322L  — Unknown error
+WIP SafeDateTime     551L  — Unknown error
+WIP SafeDecimal      351L  — Unknown error
+WIP SafeDigest       304L  — Unknown error
+WIP SafeDNS          ???L  — Unknown error
+WIP SafeDSP          ???L  — Unknown error
+WIP SafeEnv          ???L  — Unknown error
+WIP SafeFile         ???L  — Unknown error
+WIP SafeFiniteField  ???L  — Unknown error
+WIP SafeGeo          ???L  — Unknown error
+WIP SafeGit          ???L  — Unknown error
+WIP SafeGPU          ???L  — Unknown error
+WIP SafeGraph        ???L  — Unknown error
+WIP SafeHeader       ???L  — Unknown error
+WIP SafeHeap         ???L  — Unknown error
+WIP SafeHex          ???L  — Unknown error
+WIP SafeHtml         ???L  — Unknown error
+WIP SafeI18n         ???L  — Unknown error
+WIP SafeInterval     ???L  — Unknown error
+WIP SafeJson         ???L  — Parser totality (fixed individually, may fail in batch)
+WIP SafeJWT          ???L  — Unknown error
+WIP SafeLog          ???L  — Unknown error
+WIP SafeMarkdown     ???L  — Unknown error
+WIP SafeMath         ???L  — Submodule errors propagate
+WIP SafeMatrix       ???L  — Unknown error
+WIP SafeML           ???L  — Unknown error
+WIP SafeNetwork      ???L  — Unknown error
+WIP SafeNPU          ???L  — Unknown error
+WIP SafePassword     ???L  — Unknown error
+WIP SafePhone        ???L  — Unknown error
+
+# To check a specific module's error:
+# cd /var/mnt/eclipse/repos/proven
+# idris2 --find-ipkg --check src/Proven/<Module>.idr
