@@ -12,6 +12,7 @@ import Data.String
 import Data.List
 import Data.Nat
 import Data.Maybe
+import Decidable.Equality
 
 %default total
 

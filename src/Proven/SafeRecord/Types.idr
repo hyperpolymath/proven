@@ -18,6 +18,8 @@
 |||
 module Proven.SafeRecord.Types
 
+import Decidable.Equality
+
 %default total
 
 ||| A field name, represented as a string for generality.

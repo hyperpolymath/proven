@@ -432,8 +432,13 @@ mkReadBuffer max content =
        Yes prf => Just (MkReadBuffer content sz max prf)
        No _    => Nothing
 
+||| Zero is always <= any Nat (Idris 2 0.8.0 compatibility)
+zeroLteAny : (n : Nat) -> (0 <= n) = True
+zeroLteAny Z = Refl
+zeroLteAny (S _) = Refl
+
 ||| Empty read buffer
 public export
 emptyBuffer : (max : Nat) -> ReadBuffer
-emptyBuffer max = MkReadBuffer "" 0 max Refl
+emptyBuffer max = MkReadBuffer "" 0 max (zeroLteAny max)
 

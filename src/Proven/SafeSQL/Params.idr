@@ -160,7 +160,10 @@ renderValue dialect (SQLBlob bytes) =
   where
     toHex : Bits8 -> String
     toHex b =
-      let hexDigit = \x => if x < 10 then chr (cast (ord '0' + cast x)) else chr (cast (ord 'A' + cast x - 10))
+      let hexDigit : Bits8 -> Char
+          hexDigit x = if x < 10
+            then chr (cast (the Int (cast (ord '0')) + cast x))
+            else chr (cast (the Int (cast (ord 'A')) + cast x - 10))
       in pack [hexDigit (b `div` 16), hexDigit (b `mod` 16)]
 renderValue dialect (SQLDate year month day) =
   case dialect of

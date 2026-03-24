@@ -8,6 +8,7 @@ module Proven.SafeRegex.Types
 
 import Proven.Core
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -20,7 +21,7 @@ import Data.String
 public export
 data CharClass : Type where
   ||| Single character
-  Char : Char -> CharClass
+  SingleChar : Char -> CharClass
   ||| Character range (inclusive)
   Range : (from : Char) -> (to : Char) -> CharClass
   ||| Any digit [0-9]
@@ -39,7 +40,7 @@ data CharClass : Type where
 ||| Check if a character matches a character class
 public export
 matchesClass : Char -> CharClass -> Bool
-matchesClass c (Char x) = c == x
+matchesClass c (SingleChar x) = c == x
 matchesClass c (Range from to) = c >= from && c <= to
 matchesClass c Digit = c >= '0' && c <= '9'
 matchesClass c Word = isAlphaNum c || c == '_'
@@ -140,6 +141,13 @@ data ComplexityLevel : Type where
   Exponential : ComplexityLevel
   ||| Unknown/unbounded complexity
   Unbounded : ComplexityLevel
+
+public export
+Show ComplexityLevel where
+  show Linear = "O(n)"
+  show Quadratic = "O(n^2)"
+  show Exponential = "O(2^n)"
+  show Unbounded = "unbounded"
 
 public export
 Eq ComplexityLevel where

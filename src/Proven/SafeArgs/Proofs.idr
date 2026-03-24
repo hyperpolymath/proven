@@ -68,14 +68,16 @@ data AllowedValue : List String -> String -> Type where
                    {auto prf : value `elem` allowed = True} ->
                    AllowedValue allowed value
 
+||| Helper: validate value against allowed list
+public export
+validateAllowed' : List String -> String -> Bool
+validateAllowed' [] _ = True
+validateAllowed' xs v = v `elem` xs
+
 ||| Theorem: Empty allowed list permits any value
 export
 emptyAllowedPermitsAll : (value : String) ->
                          validateAllowed' [] value = True
-  where
-    validateAllowed' : List String -> String -> Bool
-    validateAllowed' [] _ = True
-    validateAllowed' xs v = v `elem` xs
 emptyAllowedPermitsAll value = Refl
 
 ||| Theorem: Non-empty allowed list restricts values
@@ -128,20 +130,22 @@ defaultSatisfiesRequired spec required hasDefault = ()
 ||| will match one of the two branches and return `Just`. This depends
 ||| on `toLower` (an FFI primitive) and `elem` over `String` equality,
 ||| neither of which reduces in Idris 2's evaluator.
+||| Helper: parse boolean string
+public export
+parseBool' : String -> Maybe Bool
+parseBool' str =
+  let lower = toLower str
+  in if lower `elem` ["true", "yes", "1", "on"]
+       then Just True
+       else if lower `elem` ["false", "no", "0", "off"]
+         then Just False
+         else Nothing
+
 export
 boolParsingComplete : (s : String) ->
                       toLower s `elem` ["true", "yes", "1", "on",
                                         "false", "no", "0", "off"] = True ->
                       isJust (parseBool' s) = True
-  where
-    parseBool' : String -> Maybe Bool
-    parseBool' str =
-      let lower = toLower str
-      in if lower `elem` ["true", "yes", "1", "on"]
-           then Just True
-           else if lower `elem` ["false", "no", "0", "off"]
-             then Just False
-             else Nothing
 
 ||| Integer parsing handles negative numbers correctly.
 ||| Postulated: requires showing that `parseInteger` (an FFI call to
@@ -161,15 +165,17 @@ intParsingHandlesNegative : (s : String) ->
 ||| `if i >= 0` guard to fail and return `Nothing`. This depends on
 ||| the behaviour of the C `parseInteger` FFI function for strings
 ||| beginning with '-'.
+||| Helper: parse natural number string
+public export
+parseNat' : String -> Maybe Nat
+parseNat' str = do
+  i <- parseInteger str
+  if i >= 0 then Just (cast i) else Nothing
+
 export
 natRejectsNegative : (s : String) ->
                      isPrefixOf "-" s = True ->
                      parseNat' s = Nothing
-  where
-    parseNat' : String -> Maybe Nat
-    parseNat' str = do
-      i <- parseInteger str
-      if i >= 0 then Just (cast i) else Nothing
 
 --------------------------------------------------------------------------------
 -- Parser Options Proofs
@@ -200,14 +206,19 @@ permissiveAllowsUnknown = Refl
 --------------------------------------------------------------------------------
 
 ||| Theorem: -- is always end of options
+||| Helper: argument classification
+public export
+data ArgClass' = EndOfOpts' | Other'
+
+||| Helper: classify an argument
+public export
+classifyArg' : ParserOptions -> String -> ArgClass'
+classifyArg' _ "--" = EndOfOpts'
+classifyArg' _ _ = Other'
+
 export
 doubleDashIsEnd : (opts : ParserOptions) ->
                   classifyArg' opts "--" = EndOfOpts'
-  where
-    data ArgClass' = EndOfOpts' | Other'
-    classifyArg' : ParserOptions -> String -> ArgClass'
-    classifyArg' _ "--" = EndOfOpts'
-    classifyArg' _ _ = Other'
 doubleDashIsEnd opts = Refl
 
 ||| Theorem: Long options start with --

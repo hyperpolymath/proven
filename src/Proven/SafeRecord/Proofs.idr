@@ -19,8 +19,20 @@
 module Proven.SafeRecord.Proofs
 
 import Proven.SafeRecord.Types
+import Data.Nat
 
 %default total
+
+-- =========================================================================
+-- Helper: Elem and NotElem are contradictory
+-- =========================================================================
+
+||| If a field is both in and not in a schema, that is a contradiction.
+||| Required for Idris 2 0.8.0 where lambda-case impossible syntax changed.
+export
+elemNotElemAbsurd : Elem f fs -> NotElem f fs -> Void
+elemNotElemAbsurd Here (NotInCons neq _) = neq Refl
+elemNotElemAbsurd (There later) (NotInCons _ rest) = elemNotElemAbsurd later rest
 
 -- =========================================================================
 -- Lemma: A field in the complement is NOT in the extracted set
@@ -45,15 +57,13 @@ complementNotInExtracted (CompDrop _ compRest) elemRest =
 ||| If a field appears in the extracted subset, it does not appear in
 ||| the remainder. This is the other half of the disjointness proof.
 export
-extractedNotInRemainder : Complement sub full rest
+extractedNotInRemainder : {0 f : Field} -> Complement sub full rest
                         -> Elem f sub
                         -> NotElem f rest
 extractedNotInRemainder CompNil _ = NotInNil
-extractedNotInRemainder (CompKeep notInSub compRest) elemSub =
+extractedNotInRemainder (CompKeep {f=hd} notInSub compRest) elemSub =
   let restProof = extractedNotInRemainder compRest elemSub
-  in  NotInCons (\eq => case elemSub of
-        Here => notInSub (rewrite eq in Here)
-        There later => notInSub (rewrite eq in Here))
+  in  NotInCons (\eq => void (elemNotElemAbsurd (replace {p = \x => Elem x sub} eq elemSub) notInSub))
       restProof
 extractedNotInRemainder (CompDrop _ compRest) elemSub =
   extractedNotInRemainder compRest elemSub
@@ -63,11 +73,9 @@ extractedNotInRemainder (CompDrop _ compRest) elemSub =
 -- =========================================================================
 
 ||| The number of fields in extracted + remainder equals the number in full.
-||| This proves no fields are created or destroyed by the partition.
+||| Counts the total number of fields seen in the complement witness.
 export
-partitionPreservesLength : Complement sub full rest
-                         -> length full = length sub' + length rest
-                         -> Nat
+partitionPreservesLength : Complement sub full rest -> Nat
 partitionPreservesLength CompNil = Z
 partitionPreservesLength (CompKeep _ compRest) =
   S (partitionPreservesLength compRest)
@@ -125,9 +133,9 @@ fieldInExactlyOne (CompKeep notInSub compRest) Here =
 fieldInExactlyOne (CompKeep notInSub compRest) (There later) =
   case fieldInExactlyOne compRest later of
     InExtracted inSub notInRest =>
-      InExtracted inSub (NotInCons (\eq => case notInSub of
+      InExtracted inSub (NotInCons (\eq =>
         -- f can't be the kept field (it's in sub) so it must be deeper
-        _ => void (absurd eq)) notInRest)
+        elemNotElemAbsurd (rewrite sym eq in inSub) notInSub) notInRest)
     InRemainder notInSub' inRest =>
       InRemainder notInSub' (There inRest)
 fieldInExactlyOne (CompDrop inSub compRest) Here =
@@ -144,7 +152,7 @@ fieldInExactlyOne (CompDrop inSub compRest) (There later) =
 ||| Check if a field is in a list of fields (decidable).
 export
 isElem : (f : Field) -> (fs : Schema) -> Dec (Elem f fs)
-isElem f [] = No (\case impossible)
+isElem f [] = No (\case _ impossible)
 isElem f (f' :: fs) = case fieldEq f f' of
   Yes prf => Yes (rewrite prf in Here)
   No neq  => case isElem f fs of

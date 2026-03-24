@@ -314,8 +314,8 @@ Show CookieError where
     "Invalid domain '" ++ domain ++ "': " ++ reason
   show (InvalidPath path reason) =
     "Invalid path '" ++ path ++ "': " ++ reason
-  show (PrefixViolation name prefix reason) =
-    "Cookie prefix " ++ show prefix ++ " violation for " ++ name ++ ": " ++ reason
+  show (PrefixViolation name pfx reason) =
+    "Cookie prefix " ++ show pfx ++ " violation for " ++ name ++ ": " ++ reason
   show SameSiteNoneRequiresSecure =
     "SameSite=None requires Secure attribute"
   show (CookieTooLarge size) =

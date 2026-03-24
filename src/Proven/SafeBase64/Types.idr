@@ -238,7 +238,7 @@ decodedLength n = (n * 3) `div` 4
 ||| Calculate exact decoded length accounting for padding
 public export
 exactDecodedLength : (encodedLength : Nat) -> (paddingCount : Nat) -> Nat
-exactDecodedLength n padding = (n * 3) `div` 4 - padding
+exactDecodedLength n padding = minus ((n * 3) `div` 4) padding
 
 --------------------------------------------------------------------------------
 -- Encoding Options

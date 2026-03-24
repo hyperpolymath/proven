@@ -26,14 +26,14 @@ import public Proven.SafeMath.Proofs
 ||| @ denominator The divisor
 ||| @ returns     Just (numerator / denominator) if denominator /= 0, Nothing otherwise
 public export
-div : (numerator : Integer) -> (denominator : Integer) -> Maybe Integer
-div _ 0 = Nothing
-div n d = Just (n `div` d)
+safeDiv : (numerator : Integer) -> (denominator : Integer) -> Maybe Integer
+safeDiv _ 0 = Nothing
+safeDiv n d = Just (Prelude.div n d)
 
 ||| Safe division with a default value for division by zero
 public export
-divOr : (default : Integer) -> (numerator : Integer) -> (denominator : Integer) -> Integer
-divOr def n d = withDefault def (div n d)
+divOr : (defVal : Integer) -> (numerator : Integer) -> (denominator : Integer) -> Integer
+divOr defVal n d = withDefault defVal (safeDiv n d)
 
 ||| Safe division for natural numbers
 public export
@@ -47,9 +47,9 @@ divNat n d = Just (n `div` d)
 
 ||| Safe modulo that returns Nothing on division by zero
 public export
-mod : (numerator : Integer) -> (denominator : Integer) -> Maybe Integer
-mod _ 0 = Nothing
-mod n d = Just (n `mod` d)
+safeMod : (numerator : Integer) -> (denominator : Integer) -> Maybe Integer
+safeMod _ 0 = Nothing
+safeMod n d = Just (Prelude.mod n d)
 
 ||| Safe modulo for natural numbers
 public export
@@ -59,44 +59,25 @@ modNat n d = Just (n `mod` d)
 
 --------------------------------------------------------------------------------
 -- Checked Arithmetic (Overflow Detection)
+-- Note: maxInt64, minInt64, fitsInt64, addInt64, subInt64, mulInt64
+-- are provided by Proven.SafeMath.Int (re-exported via import public).
 --------------------------------------------------------------------------------
-
-||| Maximum value for signed 64-bit integer
-public export
-maxInt64 : Integer
-maxInt64 = 9223372036854775807
-
-||| Minimum value for signed 64-bit integer
-public export
-minInt64 : Integer
-minInt64 = -9223372036854775808
-
-||| Check if an integer fits in 64 bits
-public export
-fitsInt64 : Integer -> Bool
-fitsInt64 n = n >= minInt64 && n <= maxInt64
 
 ||| Safe addition with overflow detection for 64-bit integers
 ||| Returns Nothing if the result would overflow
 public export
 addChecked : Integer -> Integer -> Maybe Integer
-addChecked a b =
-  let result = a + b
-  in if fitsInt64 result then Just result else Nothing
+addChecked = addInt64
 
 ||| Safe subtraction with underflow detection for 64-bit integers
 public export
 subChecked : Integer -> Integer -> Maybe Integer
-subChecked a b =
-  let result = a - b
-  in if fitsInt64 result then Just result else Nothing
+subChecked = subInt64
 
 ||| Safe multiplication with overflow detection for 64-bit integers
 public export
 mulChecked : Integer -> Integer -> Maybe Integer
-mulChecked a b =
-  let result = a * b
-  in if fitsInt64 result then Just result else Nothing
+mulChecked = mulInt64
 
 --------------------------------------------------------------------------------
 -- Safe Absolute Value
@@ -189,10 +170,10 @@ maxInt a b = if a >= b then a else b
 ||| Calculate percentage safely (returns Nothing on division by zero)
 ||| percentOf 50 200 = Just 100 (50% of 200)
 public export
-percentOf : (percent : Integer) -> (total : Integer) -> Maybe Integer
-percentOf percent total = do
-  result <- mulChecked percent total
-  div result 100
+percentOf : (percent : Integer) -> (whole : Integer) -> Maybe Integer
+percentOf percent whole = do
+  result <- mulChecked percent whole
+  safeDiv result 100
 
 ||| Calculate what percentage a is of b
 ||| asPercent 50 200 = Just 25 (50 is 25% of 200)
@@ -200,4 +181,4 @@ public export
 asPercent : (part : Integer) -> (whole : Integer) -> Maybe Integer
 asPercent part whole = do
   scaled <- mulChecked part 100
-  div scaled whole
+  safeDiv scaled whole

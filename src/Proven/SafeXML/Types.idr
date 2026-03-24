@@ -53,25 +53,25 @@ public export
 record XMLName where
   constructor MkXMLName
   localName : String
-  prefix : Maybe String
+  nsPrefix : Maybe String
   namespaceURI : Maybe String
 
 public export
 Show XMLName where
-  show n = case n.prefix of
+  show n = case n.nsPrefix of
              Just p => p ++ ":" ++ n.localName
              Nothing => n.localName
 
 public export
 Eq XMLName where
   n1 == n2 = n1.localName == n2.localName &&
-             n1.prefix == n2.prefix &&
+             n1.nsPrefix == n2.nsPrefix &&
              n1.namespaceURI == n2.namespaceURI
 
 ||| Qualified name string
 public export
 qualifiedName : XMLName -> String
-qualifiedName n = case n.prefix of
+qualifiedName n = case n.nsPrefix of
                     Just p => p ++ ":" ++ n.localName
                     Nothing => n.localName
 
@@ -114,7 +114,7 @@ data XMLNode : Type where
   Comment : (content : String) -> XMLNode
 
   ||| Processing instruction
-  ProcessingInstruction : (target : String) -> (data : String) -> XMLNode
+  ProcessingInstruction : (target : String) -> (piData : String) -> XMLNode
 
 public export
 Show XMLNode where
@@ -125,7 +125,7 @@ Show XMLNode where
   show (Text content) = content.escaped
   show (CDATA content) = "<![CDATA[" ++ content ++ "]]>"
   show (Comment content) = "<!--" ++ content ++ "-->"
-  show (ProcessingInstruction target dat) = "<?" ++ target ++ " " ++ dat ++ "?>"
+  show (ProcessingInstruction target piDat) = "<?" ++ target ++ " " ++ piDat ++ "?>"
 
 --------------------------------------------------------------------------------
 -- XML Document

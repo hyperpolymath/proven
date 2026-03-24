@@ -4,6 +4,10 @@
 |||
 ||| Type-safe interfaces for cryptographically secure random number generation.
 ||| Actual implementations require FFI to system entropy sources.
+|||
+||| Note: Byte (= Bits8) and Bytes (= List Bits8) are defined in
+||| Proven.SafeCrypto to avoid ambiguity when modules are re-exported
+||| together. This module uses Bits8 / List Bits8 directly.
 module Proven.SafeCrypto.Random
 
 import Proven.Core
@@ -17,20 +21,10 @@ import Data.Vect
 -- Basic Types
 --------------------------------------------------------------------------------
 
-||| Byte type
-public export
-Byte : Type
-Byte = Bits8
-
-||| Byte sequence
-public export
-Bytes : Type
-Bytes = List Byte
-
 ||| Fixed-size byte vector
 public export
 data ByteVec : (n : Nat) -> Type where
-  MkByteVec : Vect n Byte -> ByteVec n
+  MkByteVec : Vect n Bits8 -> ByteVec n
 
 --------------------------------------------------------------------------------
 -- Random Generation Result Types
@@ -116,7 +110,7 @@ randomBytes n =
 
 ||| Generate random bytes as list
 public export
-randomByteList : (n : Nat) -> RandomResult Bytes
+randomByteList : (n : Nat) -> RandomResult (List Bits8)
 randomByteList n = map (\(MkByteVec v) => toList v) (randomBytes n)
 
 ||| Generate a random natural number in range [0, max)
@@ -163,15 +157,21 @@ randomToken n = map toBase64 (randomByteList n)
   where
     -- URL-safe base64 alphabet
     alphabet : Vect 64 Char
-    alphabet = fromList $ unpack "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    alphabet = the (Vect 64 Char)
+      [ 'A','B','C','D','E','F','G','H','I','J','K','L','M'
+      , 'N','O','P','Q','R','S','T','U','V','W','X','Y','Z'
+      , 'a','b','c','d','e','f','g','h','i','j','k','l','m'
+      , 'n','o','p','q','r','s','t','u','v','w','x','y','z'
+      , '0','1','2','3','4','5','6','7','8','9','-','_'
+      ]
 
-    toBase64 : Bytes -> String
+    toBase64 : List Bits8 -> String
     toBase64 bytes = pack (go bytes [])
       where
         getChar : Nat -> Char
         getChar n = index (restrict 63 (cast n)) alphabet
 
-        go : Bytes -> List Char -> List Char
+        go : List Bits8 -> List Char -> List Char
         go [] acc = reverse acc
         go [b1] acc =
           let c1 = getChar (cast (shiftR b1 2))
@@ -194,13 +194,13 @@ public export
 randomHex : (bytes : Nat) -> RandomResult String
 randomHex n = map bytesToHex (randomByteList n)
   where
-    bytesToHex : Bytes -> String
+    bytesToHex : List Bits8 -> String
     bytesToHex bs = concat (map byteToHex bs)
       where
         hexDigit : Nat -> Char
         hexDigit d = if d < 10 then chr (ord '0' + cast d) else chr (ord 'a' + cast d - 10)
 
-        byteToHex : Byte -> String
+        byteToHex : Bits8 -> String
         byteToHex b =
           let n = cast {to=Nat} b
           in pack [hexDigit (n `div` 16), hexDigit (n `mod` 16)]
@@ -219,7 +219,7 @@ randomUUID = do
       in Right (formatUUID bytes')
     _ => Left (SystemError "Failed to generate 16 bytes")
   where
-    formatUUID : Bytes -> String
+    formatUUID : List Bits8 -> String
     formatUUID bs = case bs of
       [b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13,b14,b15] =>
         hexByte b0 ++ hexByte b1 ++ hexByte b2 ++ hexByte b3 ++ "-" ++
@@ -232,7 +232,7 @@ randomUUID = do
         hexDigit : Nat -> Char
         hexDigit d = if d < 10 then chr (ord '0' + cast d) else chr (ord 'a' + cast d - 10)
 
-        hexByte : Byte -> String
+        hexByte : Bits8 -> String
         hexByte b =
           let n = cast {to=Nat} b
           in pack [hexDigit (n `div` 16), hexDigit (n `mod` 16)]
@@ -288,10 +288,10 @@ freshNonce = randomBytes
 public export
 counterNonce : (pfx : ByteVec 8) -> (counter : Bits64) -> ByteVec 12
 counterNonce (MkByteVec pfxBytes) counter =
-  let b3 : Byte = cast (shiftR counter 24)
-      b2 : Byte = cast (shiftR counter 16)
-      b1 : Byte = cast (shiftR counter 8)
-      b0 : Byte = cast counter
+  let b3 : Bits8 = cast (shiftR counter 24)
+      b2 : Bits8 = cast (shiftR counter 16)
+      b1 : Bits8 = cast (shiftR counter 8)
+      b0 : Bits8 = cast counter
   in MkByteVec (pfxBytes ++ [b3, b2, b1, b0])
 
 --------------------------------------------------------------------------------
@@ -305,12 +305,12 @@ generateSeed = randomBytes
 
 ||| Mix additional entropy into seed
 public export
-mixEntropy : ByteVec n -> Bytes -> ByteVec n
+mixEntropy : ByteVec n -> List Bits8 -> ByteVec n
 mixEntropy (MkByteVec seed) extra =
   MkByteVec (mixVect seed extra)
   where
     ||| XOR each seed byte with the corresponding extra byte (0-padded)
-    mixVect : Vect m Byte -> List Byte -> Vect m Byte
+    mixVect : Vect m Bits8 -> List Bits8 -> Vect m Bits8
     mixVect []        _         = []
     mixVect (s :: ss) []        = s :: mixVect ss []
     mixVect (s :: ss) (e :: es) = (s `xor` e) :: mixVect ss es

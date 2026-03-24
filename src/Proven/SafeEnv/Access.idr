@@ -11,6 +11,7 @@ module Proven.SafeEnv.Access
 import Proven.Core
 import Proven.SafeEnv.Types
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -276,8 +277,8 @@ requireAnyPure lookup opts (name :: names) =
 ||| Get all variables matching a prefix
 export
 getWithPrefixPure : EnvLookup -> EnvOptions -> List String -> String -> EnvResult (List (String, String))
-getWithPrefixPure lookup opts allNames prefix =
-  let matching = filter (isPrefixOf prefix) allNames
+getWithPrefixPure lookup opts allNames pfx =
+  let matching = filter (isPrefixOf pfx) allNames
   in traverse getIfAllowed matching
   where
     getIfAllowed : String -> EnvResult (String, String)

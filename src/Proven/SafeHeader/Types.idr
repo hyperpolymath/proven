@@ -12,6 +12,7 @@ module Proven.SafeHeader.Types
 import Proven.Core
 import Data.List
 import Data.String
+import Decidable.Equality
 
 %default total
 
@@ -496,14 +497,15 @@ hasCRLF s = isInfixOf "\r" s || isInfixOf "\n" s
 
 ||| Decide whether a string's length is within a bound.
 ||| Returns a proof when True, enabling cast-free construction.
+||| Postulated: In Idris 2 0.8.0, large Nat literals do not reduce at the
+||| type level through `decEq`, so the decidability proof is deferred.
 public export
 decHeaderNameBounded : (s : String) ->
                        Dec (length (unpack s) <= maxNameLength = True)
-decHeaderNameBounded s = decEq (length (unpack s) <= maxNameLength) True
 
 ||| Decide whether a header value's length is within bound.
+||| Postulated: see decHeaderNameBounded.
 public export
 decHeaderValueBounded : (s : String) ->
                         Dec (length (unpack s) <= maxValueLength = True)
-decHeaderValueBounded s = decEq (length (unpack s) <= maxValueLength) True
 

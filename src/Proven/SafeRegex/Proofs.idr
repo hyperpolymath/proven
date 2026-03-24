@@ -153,7 +153,7 @@ unionIsOr : (c : Char) -> (cls1 : CharClass) -> (cls2 : CharClass) ->
 --------------------------------------------------------------------------------
 
 ||| classesOverlap for a single Char with itself
-charSelfOverlaps : (c : Char) -> classesOverlap (Char c) (Char c) = True
+charSelfOverlaps : (c : Char) -> classesOverlap (SingleChar c) (SingleChar c) = True
 
 ||| classesOverlap for a Range with itself
 rangeSelfOverlaps : (from, to : Char) -> classesOverlap (Range from to) (Range from to) = True
@@ -165,7 +165,7 @@ unionSelfOverlaps : (a, b : CharClass) -> classesOverlap (Union a b) (Union a b)
 public export
 sameClassOverlaps : (cls : CharClass) -> classesOverlap cls cls = True
 sameClassOverlaps Any = Refl
-sameClassOverlaps (Char c) = charSelfOverlaps c
+sameClassOverlaps (SingleChar c) = charSelfOverlaps c
 sameClassOverlaps (Range f t) = rangeSelfOverlaps f t
 sameClassOverlaps Digit = Refl
 sameClassOverlaps Word = Refl

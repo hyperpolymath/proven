@@ -228,12 +228,16 @@ newHandleZeroCounters id mode path = (Refl, Refl)
 ||| Postulate: Filtering out null bytes from a string and repacking guarantees
 ||| the resulting string contains no null byte subsequence. Depends on
 ||| filter (/= '\0') removing all '\0' characters from the char list.
+||| Helper: sanitize file content by removing null bytes
+public export
+sanitizeContent : String -> String
+sanitizeContent = pack . filter (/= '\0') . unpack
+
+||| Postulated: After sanitization, the result contains no null bytes.
+||| Depends on `isInfixOf` and `filter` which are FFI primitives.
 export
 sanitizedNoNull : (s : String) ->
                   not (isInfixOf "\0" (sanitizeContent s)) = True
-  where
-    sanitizeContent : String -> String
-    sanitizeContent = pack . filter (/= '\0') . unpack
 
 --------------------------------------------------------------------------------
 -- Options Proofs

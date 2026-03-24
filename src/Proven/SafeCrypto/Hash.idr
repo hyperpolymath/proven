@@ -4,6 +4,10 @@
 |||
 ||| Type-safe interfaces for cryptographic hash functions.
 ||| Actual implementations require FFI to native crypto libraries.
+|||
+||| Note: Byte (= Bits8) and Bytes (= List Bits8) are defined in
+||| Proven.SafeCrypto to avoid ambiguity when modules are re-exported
+||| together. This module uses Bits8 / List Bits8 directly.
 module Proven.SafeCrypto.Hash
 
 import Proven.Core
@@ -17,20 +21,10 @@ import Data.Vect
 -- Basic Types
 --------------------------------------------------------------------------------
 
-||| Byte type
-public export
-Byte : Type
-Byte = Bits8
-
-||| Byte sequence
-public export
-Bytes : Type
-Bytes = List Byte
-
 ||| Fixed-size byte vector
 public export
 data ByteVector : (n : Nat) -> Type where
-  MkByteVector : Vect n Byte -> ByteVector n
+  MkByteVector : Vect n Bits8 -> ByteVector n
 
 --------------------------------------------------------------------------------
 -- Hash Output Types
@@ -209,10 +203,8 @@ data HashContext : HashAlg -> Type where
 -- HMAC Types (defined before postulates that reference them)
 --------------------------------------------------------------------------------
 
-||| HMAC key
-public export
-HMACKey : Type
-HMACKey = Bytes
+-- Note: HMACKey is defined in Proven.SafeCrypto (with Sensitive wrapper).
+-- FFI stubs here use List Bits8 directly for the raw key bytes.
 
 --------------------------------------------------------------------------------
 -- FFI Postulates for Hash Functions
@@ -232,23 +224,23 @@ HMACKey = Bytes
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_sha256,libproven"
-prim__sha256 : Bytes -> SHA256Digest
+prim__sha256 : List Bits8 -> SHA256Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_sha512,libproven"
-prim__sha512 : Bytes -> SHA512Digest
+prim__sha512 : List Bits8 -> SHA512Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_sha3_256,libproven"
-prim__sha3_256 : Bytes -> SHA3_256Digest
+prim__sha3_256 : List Bits8 -> SHA3_256Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_blake2b,libproven"
-prim__blake2b : Bytes -> BLAKE2bDigest
+prim__blake2b : List Bits8 -> BLAKE2bDigest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_blake3,libproven"
-prim__blake3 : Bytes -> BLAKE3Digest
+prim__blake3 : List Bits8 -> BLAKE3Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_hash_finalize,libproven"
@@ -256,11 +248,11 @@ prim__hashFinalize : {alg : HashAlg} -> HashContext alg -> ByteVector (hashOutpu
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_hmac_sha256,libproven"
-prim__hmacSha256 : HMACKey -> Bytes -> SHA256Digest
+prim__hmacSha256 : List Bits8 -> List Bits8 -> SHA256Digest
 
 -- FFI: Actual implementation via Idris2 RefC compiled code
 -- %foreign "C:proven_zig_hmac_sha512,libproven"
-prim__hmacSha512 : HMACKey -> Bytes -> SHA512Digest
+prim__hmacSha512 : List Bits8 -> List Bits8 -> SHA512Digest
 
 --------------------------------------------------------------------------------
 -- Hash Function Public API
@@ -270,27 +262,27 @@ prim__hmacSha512 : HMACKey -> Bytes -> SHA512Digest
 ||| @param input The data to hash
 ||| @return 32-byte SHA-256 digest (via FFI in production)
 public export
-sha256 : Bytes -> SHA256Digest
+sha256 : List Bits8 -> SHA256Digest
 sha256 = prim__sha256
 
 ||| Hash bytes to SHA-512 digest
 public export
-sha512 : Bytes -> SHA512Digest
+sha512 : List Bits8 -> SHA512Digest
 sha512 = prim__sha512
 
 ||| Hash bytes to SHA3-256 digest
 public export
-sha3_256 : Bytes -> SHA3_256Digest
+sha3_256 : List Bits8 -> SHA3_256Digest
 sha3_256 = prim__sha3_256
 
 ||| Hash bytes to BLAKE2b digest
 public export
-blake2b : Bytes -> BLAKE2bDigest
+blake2b : List Bits8 -> BLAKE2bDigest
 blake2b = prim__blake2b
 
 ||| Hash bytes to BLAKE3 digest
 public export
-blake3 : Bytes -> BLAKE3Digest
+blake3 : List Bits8 -> BLAKE3Digest
 blake3 = prim__blake3
 
 --------------------------------------------------------------------------------
@@ -305,7 +297,7 @@ hashInit alg = MkHashContext alg
 ||| Update hash with more data
 -- %foreign "C:proven_zig_hash_update,libproven"
 public export
-hashUpdate : HashContext alg -> Bytes -> HashContext alg
+hashUpdate : HashContext alg -> List Bits8 -> HashContext alg
 hashUpdate ctx input = ctx  -- FFI stub: actual state update via Zig
 
 ||| Finalize hash and get digest
@@ -319,12 +311,12 @@ hashFinalize = prim__hashFinalize
 
 ||| Compute HMAC-SHA256
 public export
-hmacSha256 : HMACKey -> Bytes -> SHA256Digest
+hmacSha256 : List Bits8 -> List Bits8 -> SHA256Digest
 hmacSha256 = prim__hmacSha256
 
 ||| Compute HMAC-SHA512
 public export
-hmacSha512 : HMACKey -> Bytes -> SHA512Digest
+hmacSha512 : List Bits8 -> List Bits8 -> SHA512Digest
 hmacSha512 = prim__hmacSha512
 
 --------------------------------------------------------------------------------
@@ -336,7 +328,7 @@ public export
 digestEq : ByteVector n -> ByteVector n -> Bool
 digestEq (MkByteVector xs) (MkByteVector ys) = go xs ys 0
   where
-    go : Vect m Byte -> Vect m Byte -> Byte -> Bool
+    go : Vect m Bits8 -> Vect m Bits8 -> Bits8 -> Bool
     go [] [] acc = acc == 0
     go (x :: xs') (y :: ys') acc = go xs' ys' (acc .|. (x `xor` y))
 
@@ -356,13 +348,13 @@ hashStringHex s =
   let (MkByteVector bytes) = hashString s
   in bytesToHex (toList bytes)
   where
-    bytesToHex : List Byte -> String
+    bytesToHex : List Bits8 -> String
     bytesToHex bs = concat (map byteToHex bs)
       where
         hexDigit : Nat -> Char
         hexDigit n = if n < 10 then chr (ord '0' + cast n) else chr (ord 'a' + cast n - 10)
 
-        byteToHex : Byte -> String
+        byteToHex : Bits8 -> String
         byteToHex b =
           let n = cast {to=Nat} b
           in pack [hexDigit (n `div` 16), hexDigit (n `mod` 16)]

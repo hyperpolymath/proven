@@ -43,12 +43,14 @@ headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
 ||| Postulate: Concatenating a CRLF-free header name, the literal ": ",
 ||| and a CRLF-free header value produces a CRLF-free string.
 ||| Depends on: headerValueNoCRLF, HeaderName validation, and ": " containing no CRLF.
+||| Helper: render a header to its wire format
+public export
+renderHeader : Header -> String
+renderHeader h = h.name.originalCase ++ ": " ++ h.value.value
+
 export
 renderedHeaderSafe : (h : Header) ->
                      not (hasCRLF (renderHeader h)) = True
-  where
-    renderHeader : Header -> String
-    renderHeader h = h.name.originalCase ++ ": " ++ h.value.value
 
 --------------------------------------------------------------------------------
 -- Name Validation Proofs

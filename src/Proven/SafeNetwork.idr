@@ -109,7 +109,7 @@ parseMAC s =
   in if length parts == 6
        then do
          octets <- traverse parseHexByte (take 6 parts)
-         Just (MkMAC (fromList octets))
+         toMACVect octets
        else Nothing
   where
     split : (Char -> Bool) -> String -> List String
@@ -122,6 +122,13 @@ parseMAC s =
             then go cs [] (pack (reverse current) :: acc)
             else go cs (c :: current) acc
 
+    hexDigitValue : Char -> Maybe Nat
+    hexDigitValue c =
+      if c >= '0' && c <= '9' then Just (cast (ord c - ord '0'))
+      else if c >= 'a' && c <= 'f' then Just (cast (ord c - ord 'a' + 10))
+      else if c >= 'A' && c <= 'F' then Just (cast (ord c - ord 'A' + 10))
+      else Nothing
+
     parseHexByte : String -> Maybe Bits8
     parseHexByte str =
       case unpack str of
@@ -131,12 +138,10 @@ parseMAC s =
           Just (cast (n1 * 16 + n2))
         _ => Nothing
 
-    hexDigitValue : Char -> Maybe Nat
-    hexDigitValue c =
-      if c >= '0' && c <= '9' then Just (cast (ord c - ord '0'))
-      else if c >= 'a' && c <= 'f' then Just (cast (ord c - ord 'a' + 10))
-      else if c >= 'A' && c <= 'F' then Just (cast (ord c - ord 'A' + 10))
-      else Nothing
+    ||| Convert a list of exactly 6 bytes to a MACAddress, or Nothing
+    toMACVect : List Bits8 -> Maybe MACAddress
+    toMACVect [a, b, c, d, e, f] = Just (MkMAC [a, b, c, d, e, f])
+    toMACVect _ = Nothing
 
 ||| Check if MAC is broadcast address
 public export
@@ -148,7 +153,7 @@ public export
 isMulticast : MACAddress -> Bool
 isMulticast (MkMAC octets) =
   case toList octets of
-    (first :: _) => (first `and` 0x01) /= 0
+    (first :: _) => (first `mod` 2) /= 0
     _ => False
 
 ||| Check if MAC is locally administered
@@ -156,22 +161,22 @@ public export
 isLocallyAdministered : MACAddress -> Bool
 isLocallyAdministered (MkMAC octets) =
   case toList octets of
-    (first :: _) => (first `and` 0x02) /= 0
+    (first :: _) => ((first `div` 2) `mod` 2) /= 0
     _ => False
 
 --------------------------------------------------------------------------------
 -- Hostname Type
 --------------------------------------------------------------------------------
 
-||| A validated hostname (RFC 1123)
-public export
-data Hostname : Type where
-  MkHostname : (name : String) -> {auto valid : ValidHostname name} -> Hostname
-
 ||| Proof that a string is a valid hostname
 public export
 data ValidHostname : String -> Type where
   IsValidHostname : ValidHostname name
+
+||| A validated hostname (RFC 1123)
+public export
+data Hostname : Type where
+  MkHostname : (name : String) -> {auto valid : ValidHostname name} -> Hostname
 
 ||| Parse and validate hostname
 public export
@@ -181,16 +186,6 @@ parseHostname s =
     then Just (MkHostname s)
     else Nothing
   where
-    isValidHostnameString : String -> Bool
-    isValidHostnameString str =
-      let chars = unpack str
-          len = length chars
-      in len >= 1 && len <= 253 &&
-         all isValidChar chars &&
-         not (isPrefixOf "-" str) &&
-         not (isSuffixOf "-" str) &&
-         all validLabel (split (== '.') str)
-
     isValidChar : Char -> Bool
     isValidChar c = isAlphaNum c || c == '-' || c == '.'
 
@@ -211,13 +206,23 @@ parseHostname s =
             then go cs [] (pack (reverse current) :: acc)
             else go cs (c :: current) acc
 
+    isValidHostnameString : String -> Bool
+    isValidHostnameString str =
+      let chars = unpack str
+          len = length chars
+      in len >= 1 && len <= 253 &&
+         all isValidChar chars &&
+         not (isPrefixOf "-" str) &&
+         not (isSuffixOf "-" str) &&
+         all validLabel (split (== '.') str)
+
 public export
 Show Hostname where
-  show (MkHostname name) = name
+  show (MkHostname name @{_}) = name
 
 public export
 Eq Hostname where
-  (MkHostname a) == (MkHostname b) = toLower a == toLower b
+  (MkHostname a @{_}) == (MkHostname b @{_}) = toLower a == toLower b
 
 --------------------------------------------------------------------------------
 -- Socket Address Type
@@ -248,7 +253,7 @@ parseSocketAddress s =
   where
     parseIPv4WithPort : String -> Maybe SocketAddress
     parseIPv4WithPort str =
-      case break (== ':') (unpack str) of
+      case Data.List.break (== ':') (unpack str) of
         (ipChars, ':' :: portChars) => do
           ip <- parseIPv4 (pack ipChars)
           port <- parsePort (pack portChars)

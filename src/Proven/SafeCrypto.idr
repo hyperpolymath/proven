@@ -15,10 +15,13 @@ import Data.String
 import Data.List
 
 import public Proven.Core
-import public Proven.SafeCrypto.Hash
-import public Proven.SafeCrypto.Random
+-- Note: Proven.SafeCrypto.Hash and Proven.SafeCrypto.Random are sibling
+-- modules imported directly by consumers. They are not imported here to
+-- avoid name clashes (hashOutputSize, hashBlockSize, Byte, Bytes, HMACKey)
+-- with the interfaces and type aliases defined in this parent module.
 
 import Data.List
+import Data.Vect
 import Data.Bits
 
 %default total
@@ -93,13 +96,13 @@ combineSensitive f (MkSensitive a) (MkSensitive b) = MkSensitive (f a b)
 public export
 constantTimeEq : Bytes -> Bytes -> Bool
 constantTimeEq xs ys =
-  if length xs /= length ys
+  if length {a=Byte} xs /= length {a=Byte} ys
     then False
     else go xs ys 0
   where
     go : Bytes -> Bytes -> Byte -> Bool
     go [] [] acc = acc == 0
-    go (x :: xs') (y :: ys') acc = go xs' ys' (acc `or` (x `xor` y))
+    go (x :: xs') (y :: ys') acc = go xs' ys' (acc .|. (x `xor` y))
     go _ _ _ = False  -- Different lengths (shouldn't reach here)
 
 ||| Constant-time comparison for ByteArray
@@ -109,7 +112,7 @@ constantTimeEqArray (MkByteArray xs) (MkByteArray ys) = go xs ys 0
   where
     go : Vect m Byte -> Vect m Byte -> Byte -> Bool
     go [] [] acc = acc == 0
-    go (x :: xs') (y :: ys') acc = go xs' ys' (acc `or` (x `xor` y))
+    go (x :: xs') (y :: ys') acc = go xs' ys' (acc .|. (x `xor` y))
 
 ||| Constant-time select: returns a if cond is 0, b if cond is non-zero
 public export
@@ -288,6 +291,16 @@ AEADCipher ChaCha20Poly1305 where
   aeadTagSize = 16
   aeadName = "ChaCha20-Poly1305"
 
+||| AES-256 block cipher marker (for SymmetricCipher interface)
+public export
+data AES256 = MkAES256
+
+public export
+SymmetricCipher AES256 where
+  cipherKeySize = 32
+  cipherBlockSize = 16
+  cipherName = "AES-256"
+
 --------------------------------------------------------------------------------
 -- Stub Interfaces (Implemented via FFI)
 --------------------------------------------------------------------------------
@@ -385,6 +398,6 @@ bytesToHex bytes = concat (map byteToHex bytes)
 public export
 xorBytes : Bytes -> Bytes -> Maybe Bytes
 xorBytes xs ys =
-  if length xs /= length ys
+  if length {a=Byte} xs /= length {a=Byte} ys
     then Nothing
     else Just (zipWith xor xs ys)

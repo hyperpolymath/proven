@@ -9,6 +9,7 @@ import Proven.Core
 import Proven.SafeUrl.Parser
 import Proven.SafeUrl.Query
 import Data.List
+import Decidable.Equality
 
 %default total
 

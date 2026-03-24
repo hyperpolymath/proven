@@ -7,7 +7,6 @@
 module Proven.SafeJWT.Validate
 
 import Proven.Core
-import Proven.SafeJWT.Types
 import Proven.SafeJWT.Decode
 import Data.List
 import Data.String

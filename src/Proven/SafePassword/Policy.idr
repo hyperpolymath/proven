@@ -284,11 +284,8 @@ public export
 build : PolicyBuilder -> PasswordPolicy
 build (MkPolicyBuilder p) = p
 
-||| Apply function (flip ($))
-infixl 1 |>
-public export
-(|>) : a -> (a -> b) -> b
-x |> f = f x
+-- Note: |> is now in Prelude as of Idris 2 0.8.0
+-- Using Prelude.(|>) directly
 
 --------------------------------------------------------------------------------
 -- Policy Presets

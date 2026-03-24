@@ -52,18 +52,20 @@ data IsSafeIdentifier : String -> Type where
                 (notTooLong : length s <= 128 = True) ->
                 IsSafeIdentifier s
 
+||| Helper: Check if a query fragment is parameterized or literal
+public export
+isParamOrLiteral : QueryFragment -> Bool
+isParamOrLiteral (Literal _) = True
+isParamOrLiteral (Param _) = True
+isParamOrLiteral (NamedParam _) = True
+isParamOrLiteral (Identifier _) = True
+
 ||| Predicate: A query uses only parameterized values (no string interpolation)
 public export
 data IsParameterized : ParameterizedQuery -> Type where
   MkParameterized : (q : ParameterizedQuery) ->
                     (noRawStrings : all isParamOrLiteral q.fragments = True) ->
                     IsParameterized q
-  where
-    isParamOrLiteral : QueryFragment -> Bool
-    isParamOrLiteral (Literal _) = True
-    isParamOrLiteral (Param _) = True
-    isParamOrLiteral (NamedParam _) = True
-    isParamOrLiteral (Identifier _) = True
 
 ||| Predicate: A SQL value is properly escaped
 public export

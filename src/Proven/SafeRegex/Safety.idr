@@ -55,13 +55,13 @@ public export
 classesOverlap : CharClass -> CharClass -> Bool
 classesOverlap Any _ = True
 classesOverlap _ Any = True
-classesOverlap (Char c1) (Char c2) = c1 == c2
-classesOverlap (Char c) (Range from to) = c >= from && c <= to
-classesOverlap (Range from to) (Char c) = c >= from && c <= to
+classesOverlap (SingleChar c1) (SingleChar c2) = c1 == c2
+classesOverlap (SingleChar c) (Range from to) = c >= from && c <= to
+classesOverlap (Range from to) (SingleChar c) = c >= from && c <= to
 classesOverlap (Range f1 t1) (Range f2 t2) = not (t1 < f2 || t2 < f1)
 classesOverlap Digit Digit = True
-classesOverlap Digit (Char c) = c >= '0' && c <= '9'
-classesOverlap (Char c) Digit = c >= '0' && c <= '9'
+classesOverlap Digit (SingleChar c) = c >= '0' && c <= '9'
+classesOverlap (SingleChar c) Digit = c >= '0' && c <= '9'
 classesOverlap Digit (Range from to) = not (to < '0' || from > '9')
 classesOverlap (Range from to) Digit = not (to < '0' || from > '9')
 classesOverlap Word Word = True
@@ -266,7 +266,7 @@ generateWarnings r =
                    then "Backreferences present - NP-hard matching" :: warnings
                    else warnings
       warnings = if nestingDepth r > 5
-                   then "Deep nesting (" ++ show (nestingDepth r) ++ " levels) - performance concern" :: warnings
+                   then ("Deep nesting (" ++ show (nestingDepth r) ++ " levels) - performance concern") :: warnings
                    else warnings
   in warnings
 

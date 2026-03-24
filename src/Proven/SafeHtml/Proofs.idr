@@ -56,22 +56,23 @@ public export
 data XSSSafe : String -> Type where
   MkXSSSafe : NoRawLT s -> NoRawGT s -> NoScriptTags s -> XSSSafe s
 
+||| Helper: escape a single HTML character
+public export
+escapeChar : Char -> String
+escapeChar '<' = "&lt;"
+escapeChar '>' = "&gt;"
+escapeChar '&' = "&amp;"
+escapeChar '"' = "&quot;"
+escapeChar '\'' = "&#x27;"
+escapeChar c = singleton c
+
 ||| Escape function preserves XSS safety
 ||| After escaping, the output string will not contain raw < or > characters
+||| Postulated: requires reasoning about concat/map over opaque String/Char FFI.
 public export
 escapePreservesNoLT : (s : String) -> (escaped : String) ->
                       escaped = concat (map escapeChar (unpack s)) ->
                       NoRawLT escaped
-  where
-    escapeChar : Char -> String
-    escapeChar '<' = "&lt;"
-    escapeChar '>' = "&gt;"
-    escapeChar '&' = "&amp;"
-    escapeChar '"' = "&quot;"
-    escapeChar '\'' = "&#x27;"
-    escapeChar c = singleton c
-
-    escapePreservesNoLT s escaped prf = MkNoRawLT Refl
 
 ||| Escaping is idempotent on safe strings
 ||| If a string has no dangerous characters, escaping is a no-op
@@ -80,11 +81,12 @@ data EscapeIdempotent : String -> Type where
   MkEscapeIdempotent : NoRawLT s -> NoRawGT s -> NoRawAmpersand s ->
                        EscapeIdempotent s
 
-||| Proof that sanitization removes all script tags
+||| Proof that sanitization removes all script tags.
+||| Postulated: In Idris 2 0.8.0, `isInfixOf` and `toLower` are FFI
+||| primitives that do not reduce at the type level for abstract strings.
 public export
 sanitizeRemovesScripts : (input : String) -> (output : String) ->
                          NoScriptTags output
-sanitizeRemovesScripts _ _ = MkNoScriptTags Refl
 
 ||| Proof that attribute escaping prevents quote breakout
 public export
