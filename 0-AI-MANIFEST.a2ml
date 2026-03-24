@@ -1,154 +1,119 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+; SPDX-License-Identifier: PMPL-1.0-or-later
+; SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath)
+;
+; 0-AI-MANIFEST.a2ml — Universal AI entry point for proven
+; Media-Type: application/a2ml
 
-# STOP - CRITICAL READING REQUIRED
+; THIS FILE MUST BE READ FIRST BY ALL AI AGENTS
 
-**THIS FILE MUST BE READ FIRST BY ALL AI AGENTS**
+(manifest
+  (identity
+    (name "proven")
+    (full-name "proven — Formally Verified Safety Library")
+    (version "0.9.x")
+    (repo "https://github.com/hyperpolymath/proven")
+    (license "PMPL-1.0-or-later")
+    (author "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"))
 
-## WHAT IS THIS?
+  (purpose
+    "Formally verified safety library: 258 Idris2 modules with dependent types,
+     Zig FFI bridge (pure ABI layer), and 120+ language binding targets.
+     ALL computation happens in Idris2. Bindings are thin FFI wrappers ONLY.")
 
-This is the AI manifest for **proven** — a formally verified safety library
-with 258 Idris2 modules, Zig FFI bridge, and 120+ language binding targets.
+  ;; ===================================================================
+  ;; CONTEXT TIERS
+  ;; ===================================================================
 
-It declares:
-- Canonical file locations (where things MUST be, and nowhere else)
-- Critical invariants (rules that must NEVER be violated)
-- Repository architecture and organization
+  (context-tiers
+    ; Tier 0 (always load): This file + .claude/CLAUDE.md — orientation only
+    ; Tier 1 (load if working on code): README.adoc, EXPLAINME.adoc, proven.ipkg
+    ; Tier 2 (load on demand): .machine_readable/6a2/*.a2ml, docs/
+    ; Tier 3 (never load unless asked): tests/, benchmarks/, generated/
+    ;
+    ; DO NOT READ unless specifically asked:
+    ;   tests/          — test files (run them, don't read them)
+    ;   benchmarks/     — performance benchmarks
+    ;   generated/      — auto-generated code
+    ;   build/          — Idris2 build output
+    ;   *.lock          — lock files
+    ;   bindings/*/target/ — binding build artifacts
+    )
 
-## CANONICAL LOCATIONS (UNIVERSAL RULE)
+  ;; ===================================================================
+  ;; CANONICAL LOCATIONS
+  ;; ===================================================================
 
-### Machine-Readable Metadata: `.machine_readable/` ONLY
+  (canonical-locations
+    (ai-manifest     "0-AI-MANIFEST.a2ml"           "THIS FILE")
+    (ai-instructions ".claude/CLAUDE.md"             "Claude-specific patterns")
+    (state           ".machine_readable/6a2/STATE.a2ml")
+    (meta            ".machine_readable/6a2/META.a2ml")
+    (ecosystem       ".machine_readable/6a2/ECOSYSTEM.a2ml")
+    (bot-directives  ".bot_directives/")
+    (contractiles    "contractiles/"))
 
-These files MUST exist in `.machine_readable/` directory ONLY:
-1. **.machine_readable/6a2/STATE.a2ml** - Project state, progress, blockers
-2. **.machine_readable/6a2/META.a2ml** - Architecture decisions, governance
-3. **.machine_readable/6a2/ECOSYSTEM.a2ml** - Position in ecosystem, relationships
-4. **.machine_readable/6a2/AGENTIC.a2ml** - AI agent interaction patterns
-5. **.machine_readable/6a2/NEUROSYM.a2ml** - Neurosymbolic integration config
-6. **.machine_readable/6a2/PLAYBOOK.a2ml** - Operational runbook
+  ;; ===================================================================
+  ;; ARCHITECTURE (CRITICAL — read this)
+  ;; ===================================================================
 
-**CRITICAL:** If ANY of these files exist in the root directory, this is an ERROR.
+  (architecture
+    (principle "Idris2 is the SOLE computation layer — ALL safety logic lives in src/Proven/")
+    (layers
+      (idris2  "src/Proven/"    "258 modules — the source of truth")
+      (zig-ffi "ffi/zig/"       "PURE ABI layer — no safety logic here")
+      (bindings "bindings/"     "120+ thin FFI wrappers — CALL Idris, NEVER reimplement"))
+    (banned "believe_me is BANNED — --total flag enforced")
+    (banned "NEVER reimplement algorithms in bindings"))
 
-### Bot Directives: `.bot_directives/` ONLY
+  ;; ===================================================================
+  ;; STRUCTURE OVERVIEW
+  ;; ===================================================================
 
-Bot-specific instructions for automated agents:
-- echidnabot - Proof verification automation
-- rhodibot - Rhodium standard enforcement
-- finishbot - Finishing/polishing automation
-- glambot - Code beautification
-- seambot - Seamless integration
-- sustainabot - Sustainability checks
-- robot-repo-automaton - Automated fixes with confidence thresholds
+  (structure
+    "proven/
+     ├── 0-AI-MANIFEST.a2ml         # THIS FILE
+     ├── proven.ipkg                 # Main Idris2 package (258 modules)
+     ├── proven-ffi.ipkg             # FFI-only package
+     ├── src/Proven/                 # 104 Safe* modules + FFI + ECHIDNA
+     ├── ffi/zig/                    # Zig FFI bridge (pure ABI layer)
+     ├── bindings/                   # 120+ language binding targets
+     ├── apps/proven-bgp/            # BGP implementation (DONE)
+     ├── contractiles/               # Security contracts
+     ├── .bot_directives/            # Bot orchestration
+     └── .machine_readable/          # State, meta, ecosystem")
 
-### Contractiles: `contractiles/` ONLY
+  ;; ===================================================================
+  ;; CRITICAL INVARIANTS
+  ;; ===================================================================
 
-Policy enforcement contracts:
-- k9 - Operational constraints
-- dust - Rollback and recovery semantics
-- lust - Future intent and roadmap direction
-- must - Required invariants and validations
-- trust - Cryptographic verification
+  (critical-invariants
+    (rule "Idris2 is the sole computation layer — Zig is pure ABI, bindings are thin wrappers")
+    (rule "believe_me is BANNED — --total flag enforced on all modules")
+    (rule "NEVER reimplement algorithms in bindings — CALL Idris via FFI only")
+    (rule "SCM files ONLY in .machine_readable/ — never in root")
+    (rule "PMPL-1.0-or-later on all source files")
+    (rule "Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"))
 
-### Agent Instructions
+  ;; ===================================================================
+  ;; SESSION LIFECYCLE
+  ;; ===================================================================
 
-- `.claude/CLAUDE.md` - Claude-specific patterns and constraints
-- `AI.a2ml` - General AI instructions (supplements this file)
-- `0-AI-MANIFEST.a2ml` - THIS FILE (universal entry point)
+  (lifecycle
+    (on-enter
+      (step "Read THIS file first")
+      (step "Read .claude/CLAUDE.md for detailed constraints")
+      (step "Read .machine_readable/6a2/STATE.a2ml for current status")
+      (step "Understand: Idris2 -> Zig FFI -> Bindings"))
 
-## CORE INVARIANTS
+    (on-exit
+      (step "Update .machine_readable/6a2/STATE.a2ml if changes made")
+      (step "Verify no reimplemented logic in bindings")
+      (step "Summarise outcomes")))
 
-1. **Architecture: Idris2 is the sole computation layer**
-   - ALL safety logic lives in `src/Proven/` (Idris2 with dependent types)
-   - Zig FFI bridge (`ffi/zig/`) is a PURE ABI layer — no safety logic
-   - Language bindings (`bindings/`) are thin wrappers — CALL Idris via FFI only
-   - NEVER reimplement algorithms in bindings
-
-2. **No state file duplication** — Root must NOT contain .machine_readable/6a2/STATE.a2ml, .machine_readable/6a2/META.a2ml, etc.
-
-3. **Single source of truth** — `.machine_readable/` is authoritative
-
-4. **Formal verification** — `--total` flag enforced, `believe_me` is BANNED
-
-5. **License consistency** — All code PMPL-1.0-or-later
-
-6. **Author attribution** — Always "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
-
-## REPOSITORY STRUCTURE
-
-```
-proven/
-├── 0-AI-MANIFEST.a2ml         # THIS FILE (start here)
-├── AI.a2ml                     # General AI instructions
-├── README.adoc                 # Project overview
-├── proven.ipkg                 # Main Idris2 package (258 modules)
-├── proven-ffi.ipkg             # FFI-only package
-├── justfile                    # Build automation
-├── Containerfile               # OCI container definition
-├── src/                        # Idris2 source (THE TRUTH)
-│   ├── Proven.idr              # Main module re-export
-│   └── Proven/                 # 104 Safe* modules + FFI + ECHIDNA
-│       ├── Core.idr            # Core types and proofs
-│       ├── Safe*.idr           # 104 verified safety modules
-│       ├── FFI/                # 65 FFI wrapper modules
-│       └── ECHIDNA/            # Neurosymbolic proof validation
-├── ffi/zig/                    # Zig FFI bridge (pure ABI layer)
-│   ├── build.zig               # Zig build configuration
-│   └── src/main.zig            # C ABI exports
-├── bindings/                   # 120+ language binding targets
-├── apps/                       # Proven-based applications
-│   └── proven-bgp/             # BGP implementation (DONE)
-├── contractiles/               # Security specification contracts
-├── .bot_directives/            # Bot orchestration directives
-├── .machine_readable/          # ALL machine-readable content
-│   ├── .machine_readable/6a2/STATE.a2ml               # Project state, progress, blockers
-│   ├── .machine_readable/6a2/META.a2ml                # Architecture decisions, governance
-│   ├── .machine_readable/6a2/ECOSYSTEM.a2ml           # Ecosystem position, relationships
-│   ├── .machine_readable/6a2/AGENTIC.a2ml             # AI agent interaction patterns
-│   ├── .machine_readable/6a2/NEUROSYM.a2ml            # Neurosymbolic integration config
-│   └── .machine_readable/6a2/PLAYBOOK.a2ml            # Operational runbook
-├── tests/                      # Test suite
-├── benchmarks/                 # Performance benchmarks
-├── scripts/                    # Build and utility scripts
-└── docs/                       # Documentation
-```
-
-## SESSION STARTUP CHECKLIST
-
-1. Read THIS file (0-AI-MANIFEST.a2ml) first
-2. Understand canonical location: `.machine_readable/` (state files)
-3. Know the invariants (architecture, no believe_me, etc.)
-4. Read `.machine_readable/6a2/STATE.a2ml` for current status
-5. Read `.claude/CLAUDE.md` for detailed development constraints
-6. Check `.echidnabot.toml` for proof verification configuration
-
-## LIFECYCLE HOOKS
-
-### on-enter (Session Start)
-
-1. Read and acknowledge this manifest
-2. Read `.machine_readable/6a2/STATE.a2ml`
-3. Check for blockers
-4. State understanding of architecture: Idris2 → Zig FFI → Bindings
-
-### on-exit (Session End)
-
-1. Update `.machine_readable/6a2/STATE.a2ml` if changes made
-2. Document new blockers
-3. Summarize outcomes
-4. Mention whether STATE, contractiles/, .bot_directives/, or Trustfile changed
-
-## ATTESTATION PROOF
-
-After reading this file, demonstrate understanding by stating:
-
-**"I have read the AI manifest for proven. All computation happens in Idris2.
-Zig is a pure ABI layer. Bindings are thin wrappers only. Machine-readable
-content is in `.machine_readable/` ONLY."**
-
-## META
-
-- **Format Version:** 1.0.0
-- **Created:** 2026-02-22
-- **Maintained By:** Jonathan D.A. Jewell (hyperpolymath)
-- **License:** PMPL-1.0-or-later
-- **Protocol:** https://github.com/hyperpolymath/0-ai-gatekeeper-protocol
+  (format-meta
+    (version "2.1.0")
+    (media-type "application/a2ml")
+    (created "2026-02-22")
+    (last-updated "2026-03-24")
+    (maintained-by "Jonathan D.A. Jewell / hyperpolymath")
+    (protocol "https://github.com/hyperpolymath/0-ai-gatekeeper-protocol")))

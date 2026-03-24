@@ -70,7 +70,19 @@ build-ffi:
 # Type checking and verification
 # ---------------------------------------------------------------------------
 
-# Typecheck the main proven.ipkg (full library, all modules)
+# Fast single-file typecheck (2-3 seconds). Usage: just check src/Proven/SafeMath.idr
+check file:
+    idris2 -p base -p contrib -p network --source-dir src --check {{file}}
+
+# Quick build: core modules only (~24 modules, no totality)
+check-core:
+    idris2 --build core-only.ipkg
+
+# Dev build: all modules without totality checking (faster iteration)
+check-dev:
+    idris2 --build proven-dev.ipkg
+
+# Typecheck the main proven.ipkg (full library, all modules, WITH --total)
 typecheck:
     pack typecheck proven.ipkg
 
@@ -81,6 +93,10 @@ typecheck-ffi:
 # Run Idris2 totality checker on the full library
 verify-totality:
     idris2 --check --total proven.ipkg
+
+# Full verified build (CI/release only — slow, uses --total)
+check-full:
+    idris2 --build proven.ipkg
 
 # ---------------------------------------------------------------------------
 # Testing
@@ -214,3 +230,211 @@ fmt:
 # Check formatting without modifying
 fmt-check:
     cargo fmt --all --check
+
+# ---------------------------------------------------------------------------
+# Onboarding recipes
+# ---------------------------------------------------------------------------
+
+# Check that all required tools are installed and working
+doctor:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    PASS=0; FAIL=0; WARN=0
+    check() {
+        local name="$1" cmd="$2" min_ver="${3:-}"
+        if command -v "$cmd" >/dev/null 2>&1; then
+            ver=$("$cmd" --version 2>/dev/null | head -1 || echo "unknown")
+            echo "  [OK] $name: $ver"
+            PASS=$((PASS + 1))
+        else
+            echo "  [FAIL] $name: '$cmd' not found"
+            FAIL=$((FAIL + 1))
+        fi
+    }
+    check_optional() {
+        local name="$1" cmd="$2"
+        if command -v "$cmd" >/dev/null 2>&1; then
+            ver=$("$cmd" --version 2>/dev/null | head -1 || echo "unknown")
+            echo "  [OK] $name: $ver"
+            PASS=$((PASS + 1))
+        else
+            echo "  [WARN] $name: '$cmd' not found (optional)"
+            WARN=$((WARN + 1))
+        fi
+    }
+    echo "=== proven: Doctor ==="
+    echo ""
+    echo "Required tools:"
+    check "Idris2" "idris2"
+    check "Zig" "zig"
+    check "just" "just"
+    # Check pack specifically (no --version flag)
+    if command -v pack >/dev/null 2>&1; then
+        echo "  [OK] pack: $(pack help 2>/dev/null | head -1 || echo 'installed')"
+        PASS=$((PASS + 1))
+    else
+        echo "  [FAIL] pack: not found (install from https://github.com/stefan-hoeck/idris2-pack)"
+        FAIL=$((FAIL + 1))
+    fi
+    echo ""
+    echo "Optional tools:"
+    check_optional "Rust/cargo" "cargo"
+    check_optional "Deno" "deno"
+    check_optional "Guile" "guile"
+    check_optional "panic-attack" "panic-attack"
+    echo ""
+    echo "Idris2 environment:"
+    if command -v idris2 >/dev/null 2>&1; then
+        PREFIX="$(idris2 --prefix 2>/dev/null || echo 'unknown')"
+        echo "  Prefix: $PREFIX"
+        REFC="$(find "$PREFIX" -path "*/support/refc" -type d 2>/dev/null | head -1)"
+        if [ -n "$REFC" ]; then
+            echo "  [OK] RefC runtime: $REFC"
+            PASS=$((PASS + 1))
+        else
+            echo "  [FAIL] RefC runtime: not found under $PREFIX"
+            FAIL=$((FAIL + 1))
+        fi
+    fi
+    echo ""
+    echo "Build artefacts:"
+    if [ -d "build/refc" ]; then
+        echo "  [OK] build/refc/ exists (Idris2 RefC output)"
+    else
+        echo "  [INFO] build/refc/ not found — run 'just build-refc' first"
+    fi
+    if [ -f "ffi/zig/zig-out/lib/libproven.so" ] || [ -f "ffi/zig/zig-out/lib/libproven.dylib" ]; then
+        echo "  [OK] libproven shared library built"
+    else
+        echo "  [INFO] libproven not built — run 'just build' for full pipeline"
+    fi
+    echo ""
+    echo "=== Results: $PASS passed, $FAIL failed, $WARN warnings ==="
+    if [ "$FAIL" -gt 0 ]; then
+        echo "Run 'just heal' for install instructions."
+        exit 1
+    fi
+
+# Show install instructions for missing tools
+heal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== proven: Heal ==="
+    echo ""
+    echo "Install missing tools:"
+    echo ""
+    if ! command -v idris2 >/dev/null 2>&1 || ! command -v pack >/dev/null 2>&1; then
+        echo "  Idris2 + pack:"
+        echo "    git clone https://github.com/stefan-hoeck/idris2-pack.git"
+        echo "    cd idris2-pack && make micropack"
+        echo "    # Then: pack install idris2"
+        echo ""
+    fi
+    if ! command -v zig >/dev/null 2>&1; then
+        echo "  Zig:"
+        echo "    asdf plugin add zig"
+        echo "    asdf install zig 0.13.0"
+        echo "    asdf global zig 0.13.0"
+        echo "    # Or download from https://ziglang.org/download/"
+        echo ""
+    fi
+    if ! command -v just >/dev/null 2>&1; then
+        echo "  just:"
+        echo "    cargo install just"
+        echo "    # Or: https://just.systems/man/en/installation.html"
+        echo ""
+    fi
+    if ! command -v cargo >/dev/null 2>&1; then
+        echo "  Rust (optional, for bindings):"
+        echo "    asdf install rust nightly"
+        echo ""
+    fi
+    if ! command -v panic-attack >/dev/null 2>&1; then
+        echo "  panic-attack (optional, for pre-commit scans):"
+        echo "    cargo install --git https://github.com/hyperpolymath/panic-attacker"
+        echo ""
+    fi
+    echo "After installing, run 'just doctor' to verify."
+
+# Guided tour of the repository structure
+tour:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== proven: Guided Tour ==="
+    echo ""
+    echo "proven is a formally verified safety library."
+    echo "ALL computation happens in Idris2. Everything else is a thin wrapper."
+    echo ""
+    echo "Architecture: Idris2 --> Zig FFI --> Language Bindings"
+    echo ""
+    echo "1. THE TRUTH: src/Proven/"
+    echo "   258 Idris2 modules with dependent types and totality proofs."
+    echo "   Key files:"
+    echo "     src/Proven.idr          - Main re-export module"
+    echo "     src/Proven/Core.idr     - Core types and proofs"
+    echo "     src/Proven/Safe*.idr    - 104 verified safety modules"
+    echo "     src/Proven/FFI/         - 65 FFI wrapper modules"
+    echo ""
+    echo "2. ABI BRIDGE: ffi/zig/"
+    echo "   Zig compiles Idris2's RefC output into libproven.so."
+    echo "   Pure data marshaling — NO safety logic here."
+    echo "     ffi/zig/build.zig       - Build config"
+    echo "     ffi/zig/src/main.zig    - C ABI exports"
+    echo ""
+    echo "3. BINDINGS: bindings/"
+    echo "   120+ language targets. Each is a thin wrapper that calls"
+    echo "   libproven via FFI. Bindings NEVER reimplement algorithms."
+    echo "     bindings/rust/          - Rust crate"
+    echo "     bindings/rescript/      - ReScript package"
+    echo "     bindings/ocaml/         - OCaml opam package"
+    echo ""
+    echo "4. BUILD SYSTEM:"
+    echo "   proven.ipkg              - Main Idris2 package (258 modules)"
+    echo "   proven-ffi.ipkg          - FFI-only package"
+    echo "   Justfile                 - Build automation"
+    echo ""
+    echo "5. METADATA: .machine_readable/6a2/"
+    echo "   STATE.a2ml, META.a2ml, ECOSYSTEM.a2ml — project state"
+    echo ""
+    echo "Try: just build        (full pipeline)"
+    echo "     just typecheck    (verify all 258 modules)"
+    echo "     just test         (run test suite)"
+
+# Show available recipes with descriptions
+help-me:
+    #!/usr/bin/env bash
+    echo "=== proven: Help ==="
+    echo ""
+    echo "Onboarding:"
+    echo "  just doctor     - Check required tools are installed"
+    echo "  just heal       - Show install instructions for missing tools"
+    echo "  just tour       - Guided walkthrough of repo structure"
+    echo "  just help-me    - This help message"
+    echo ""
+    echo "Build pipeline (Idris2 -> RefC -> Zig FFI -> libproven.so):"
+    echo "  just build      - Full build pipeline"
+    echo "  just build-refc - Step 1: Idris2 to C via RefC"
+    echo "  just build-ffi  - Step 2: Zig FFI with linked RefC output"
+    echo ""
+    echo "Verification:"
+    echo "  just typecheck       - Typecheck all 258 modules"
+    echo "  just typecheck-ffi   - Typecheck FFI-only package"
+    echo "  just verify-totality - Run totality checker"
+    echo ""
+    echo "Testing:"
+    echo "  just test       - Run all tests (Idris2 + Zig FFI)"
+    echo "  just test-idris - Run Idris2 tests only"
+    echo "  just test-ffi   - Run Zig FFI integration tests only"
+    echo ""
+    echo "Quality:"
+    echo "  just scan       - Run hypatia security scan"
+    echo "  just assail     - Run panic-attacker pre-commit scan"
+    echo "  just fmt        - Format Rust code"
+    echo "  just fmt-check  - Check formatting"
+    echo ""
+    echo "Housekeeping:"
+    echo "  just clean      - Remove all build artefacts"
+    echo "  just clean-refc - Remove RefC output only"
+    echo "  just clean-ffi  - Remove Zig output only"
+    echo "  just env-info   - Show tool versions and paths"
+    echo "  just install    - Install libproven to /usr/local"
