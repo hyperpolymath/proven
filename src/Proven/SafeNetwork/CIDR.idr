@@ -8,6 +8,7 @@ module Proven.SafeNetwork.CIDR
 
 import Data.Nat
 import Data.List
+import Data.List1
 import Data.String
 import Data.Maybe
 import Proven.SafeNetwork.IPv4
@@ -59,7 +60,7 @@ Eq PrefixLength where
 ||| Eq instance for CIDRBlock
 public export
 Eq CIDRBlock where
-  c1 == c2 = network c1 == network c2 && prefix c1 == prefix c2
+  c1 == c2 = network c1 == network c2 && pfxLen c1 == pfxLen c2
 
 ||| Calculate the subnet mask from prefix length
 public export
@@ -147,7 +148,7 @@ parseCIDR s =
   where
     parseIPv4 : String -> Maybe (Nat, Nat, Nat, Nat)
     parseIPv4 s =
-      case split (== '.') s of
+      case forget (split (== '.') s) of
         [a, b, c, d] =>
           case (parsePositive a, parsePositive b, parsePositive c, parsePositive d) of
             (Just a', Just b', Just c', Just d') =>

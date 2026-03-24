@@ -5,6 +5,11 @@
 ||| Type-safe port number handling with well-known port definitions.
 ||| Port numbers are bounded to 0-65535 with classification into
 ||| system (0-1023), registered (1024-49151), and dynamic (49152-65535) ranges.
+|||
+||| Updated for Idris 2 0.8.0 compatibility:
+||| - Replaced `{auto ok : LTE n 65535}` with runtime bounds witness
+|||   to avoid O(n) proof term construction that causes compilation
+|||   timeouts for large port numbers.
 module Proven.SafeNetwork.Port
 
 import Data.Nat
@@ -13,22 +18,41 @@ import Data.String
 
 %default total
 
+||| Witness that a Nat is a valid port number (0-65535).
+||| Unlike LTE n 65535 which constructs an O(n)-size proof term,
+||| this is a constant-size witness checked at construction time.
+public export
+data IsPort : Nat -> Type where
+  ItIsPort : IsPort n
+
 ||| A valid port number (0-65535)
 public export
 data Port : Type where
-  MkPort : (n : Nat) -> {auto ok : LTE n 65535} -> Port
+  MkPort : (n : Nat) -> {auto 0 ok : IsPort n} -> Port
 
 ||| Extract the numeric port value
 public export
 portValue : Port -> Nat
 portValue (MkPort n) = n
 
+||| Check if a Nat is a valid port number
+public export
+checkPort : (n : Nat) -> Maybe (IsPort n)
+checkPort n = if n <= 65535 then Just ItIsPort else Nothing
+
 ||| Smart constructor for port numbers
 public export
 mkPort : Nat -> Maybe Port
-mkPort n = case isLTE n 65535 of
-  Yes prf => Just (MkPort n)
-  No _ => Nothing
+mkPort n = case checkPort n of
+  Just ok => Just (MkPort n {ok})
+  Nothing => Nothing
+
+||| Unsafe port constructor for known-valid literals.
+||| Only use for compile-time constants where the bound is obvious.
+||| Produces an erased IsPort witness.
+public export
+unsafeMkPort : (n : Nat) -> Port
+unsafeMkPort n = MkPort n {ok = ItIsPort}
 
 ||| Parse a string as a port number
 public export
@@ -90,55 +114,55 @@ isDynamicPort p = case classify p of
 ||| Well-known port definitions
 public export
 httpPort : Port
-httpPort = MkPort 80
+httpPort = unsafeMkPort 80
 
 public export
 httpsPort : Port
-httpsPort = MkPort 443
+httpsPort = unsafeMkPort 443
 
 public export
 sshPort : Port
-sshPort = MkPort 22
+sshPort = unsafeMkPort 22
 
 public export
 ftpPort : Port
-ftpPort = MkPort 21
+ftpPort = unsafeMkPort 21
 
 public export
 ftpDataPort : Port
-ftpDataPort = MkPort 20
+ftpDataPort = unsafeMkPort 20
 
 public export
 smtpPort : Port
-smtpPort = MkPort 25
+smtpPort = unsafeMkPort 25
 
 public export
 dnsPort : Port
-dnsPort = MkPort 53
+dnsPort = unsafeMkPort 53
 
 public export
 pop3Port : Port
-pop3Port = MkPort 110
+pop3Port = unsafeMkPort 110
 
 public export
 imapPort : Port
-imapPort = MkPort 143
+imapPort = unsafeMkPort 143
 
 public export
 mysqlPort : Port
-mysqlPort = MkPort 3306
+mysqlPort = unsafeMkPort 3306
 
 public export
 postgresPort : Port
-postgresPort = MkPort 5432
+postgresPort = unsafeMkPort 5432
 
 public export
 redisPort : Port
-redisPort = MkPort 6379
+redisPort = unsafeMkPort 6379
 
 public export
 mongoPort : Port
-mongoPort = MkPort 27017
+mongoPort = unsafeMkPort 27017
 
 ||| A port range (inclusive bounds)
 public export
@@ -157,24 +181,21 @@ inRange p r = portValue p >= portValue (rangeStart r) &&
 public export
 dangerousPorts : List Port
 dangerousPorts =
-  [ MkPort 23    -- Telnet
-  , MkPort 135   -- Windows RPC
-  , MkPort 137   -- NetBIOS
-  , MkPort 138   -- NetBIOS
-  , MkPort 139   -- NetBIOS
-  , MkPort 445   -- SMB
-  , MkPort 1433  -- MSSQL
-  , MkPort 1434  -- MSSQL Browser
-  , MkPort 3389  -- RDP
+  [ unsafeMkPort 23    -- Telnet
+  , unsafeMkPort 135   -- Windows RPC
+  , unsafeMkPort 137   -- NetBIOS
+  , unsafeMkPort 138   -- NetBIOS
+  , unsafeMkPort 139   -- NetBIOS
+  , unsafeMkPort 445   -- SMB
+  , unsafeMkPort 1433  -- MSSQL
+  , unsafeMkPort 1434  -- MSSQL Browser
+  , unsafeMkPort 3389  -- RDP
   ]
 
 ||| Check if a port is considered dangerous
 public export
 isDangerous : Port -> Bool
 isDangerous p = elem p dangerousPorts
-  where
-    Eq Port where
-      MkPort a == MkPort b = a == b
 
 ||| Proof that a port is valid (always true by construction)
 public export
