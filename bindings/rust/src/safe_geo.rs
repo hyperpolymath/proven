@@ -66,18 +66,16 @@ pub fn haversine_distance(a: &Coordinate, b: &Coordinate) -> Result<f64> {
 
 /// Calculate bearing from point a to point b.
 ///
-/// This is a convenience function; the actual FFI function name uses
-/// `proven_geo_distance`. Bearing is computed by the verified Idris 2 code.
-pub fn bearing(a: &Coordinate, b: &Coordinate) -> Result<f64> {
-    // Bearing is exposed through the same geo module
-    haversine_distance(a, b)
+/// Not yet available via FFI; returns `Error::NotImplemented`.
+pub fn bearing(_a: &Coordinate, _b: &Coordinate) -> Result<f64> {
+    Err(core::Error::NotImplemented)
 }
 
 /// Calculate destination point given start, bearing, and distance.
 ///
-/// Stub for forward compatibility.
-pub fn destination(start: &Coordinate, _bearing_deg: f64, _distance_m: f64) -> Result<Coordinate> {
-    Ok(*start)
+/// Not yet available via FFI; returns `Error::NotImplemented`.
+pub fn destination(_start: &Coordinate, _bearing_deg: f64, _distance_m: f64) -> Result<Coordinate> {
+    Err(core::Error::NotImplemented)
 }
 
 /// Check if a coordinate is within a bounding box.

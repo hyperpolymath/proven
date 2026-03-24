@@ -88,24 +88,22 @@ pub fn convert_temperature(value: f64, from: TemperatureUnit, to: TemperatureUni
 
 /// Convert mass between units.
 ///
-/// Uses conversion factors: 1 kg = 1000 g = 1000000 mg = 2.20462 lb = 35.274 oz.
-/// This is a stub that performs the conversion locally since the FFI does not
-/// currently expose mass conversion.
-pub fn convert_mass(value: f64, _from: MassUnit, _to: MassUnit) -> Result<f64> {
-    // Stub: return value as-is until FFI supports mass conversion
-    Ok(value)
+/// Not yet available via FFI; returns `Error::NotImplemented`.
+/// Will use verified Idris 2 conversion factors once the FFI export exists.
+pub fn convert_mass(_value: f64, _from: MassUnit, _to: MassUnit) -> Result<f64> {
+    Err(core::Error::NotImplemented)
 }
 
 /// Convert time between units.
 ///
-/// Stub for forward compatibility.
-pub fn convert_time(value: f64, _from: TimeUnit, _to: TimeUnit) -> Result<f64> {
-    Ok(value)
+/// Not yet available via FFI; returns `Error::NotImplemented`.
+pub fn convert_time(_value: f64, _from: TimeUnit, _to: TimeUnit) -> Result<f64> {
+    Err(core::Error::NotImplemented)
 }
 
 /// Convert data size between units.
 ///
-/// Stub for forward compatibility.
-pub fn convert_data(value: f64, _from: DataUnit, _to: DataUnit) -> Result<f64> {
-    Ok(value)
+/// Not yet available via FFI; returns `Error::NotImplemented`.
+pub fn convert_data(_value: f64, _from: DataUnit, _to: DataUnit) -> Result<f64> {
+    Err(core::Error::NotImplemented)
 }
