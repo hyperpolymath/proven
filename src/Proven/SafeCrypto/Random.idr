@@ -175,18 +175,18 @@ randomToken n = map toBase64 (randomByteList n)
         go [] acc = reverse acc
         go [b1] acc =
           let c1 = getChar (cast (shiftR b1 2))
-              c2 = getChar (cast ((shiftL b1 4) `and` 0x3F))
+              c2 = getChar (cast ((shiftL b1 4) .&. 0x3F))
           in reverse (c2 :: c1 :: acc)
         go [b1, b2] acc =
           let c1 = getChar (cast (shiftR b1 2))
-              c2 = getChar (cast (((shiftL b1 4) `or` (shiftR b2 4)) `and` 0x3F))
-              c3 = getChar (cast ((shiftL b2 2) `and` 0x3F))
+              c2 = getChar (cast (((shiftL b1 4) .|. (shiftR b2 4)) .&. 0x3F))
+              c3 = getChar (cast ((shiftL b2 2) .&. 0x3F))
           in reverse (c3 :: c2 :: c1 :: acc)
         go (b1 :: b2 :: b3 :: rest) acc =
           let c1 = getChar (cast (shiftR b1 2))
-              c2 = getChar (cast (((shiftL b1 4) `or` (shiftR b2 4)) `and` 0x3F))
-              c3 = getChar (cast (((shiftL b2 2) `or` (shiftR b3 6)) `and` 0x3F))
-              c4 = getChar (cast (b3 `and` 0x3F))
+              c2 = getChar (cast (((shiftL b1 4) .|. (shiftR b2 4)) .&. 0x3F))
+              c3 = getChar (cast (((shiftL b2 2) .|. (shiftR b3 6)) .&. 0x3F))
+              c4 = getChar (cast (b3 .&. 0x3F))
           in go rest (c4 :: c3 :: c2 :: c1 :: acc)
 
 ||| Generate a random hex string
@@ -213,8 +213,8 @@ randomUUID = do
   case bytes of
     [b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13,b14,b15] =>
       let -- Set version (4) and variant (10xx)
-          b6' = (b6 `and` 0x0F) `or` 0x40  -- Version 4
-          b8' = (b8 `and` 0x3F) `or` 0x80  -- Variant 10xx
+          b6' = (b6 .&. 0x0F) .|. 0x40  -- Version 4
+          b8' = (b8 .&. 0x3F) .|. 0x80  -- Variant 10xx
           bytes' = [b0,b1,b2,b3,b4,b5,b6',b7,b8',b9,b10,b11,b12,b13,b14,b15]
       in Right (formatUUID bytes')
     _ => Left (SystemError "Failed to generate 16 bytes")
@@ -287,13 +287,12 @@ freshNonce = randomBytes
 ||| For single-use nonces, prefer freshNonce
 public export
 counterNonce : (pfx : ByteVec 8) -> (counter : Bits64) -> ByteVec 12
-counterNonce (MkByteVec prefix) counter =
-  let counterBytes = [ cast (shiftR counter 24)
-                     , cast (shiftR counter 16)
-                     , cast (shiftR counter 8)
-                     , cast counter
-                     ]
-  in MkByteVec (prefix ++ fromList counterBytes)
+counterNonce (MkByteVec pfxBytes) counter =
+  let b3 : Byte = cast (shiftR counter 24)
+      b2 : Byte = cast (shiftR counter 16)
+      b1 : Byte = cast (shiftR counter 8)
+      b0 : Byte = cast counter
+  in MkByteVec (pfxBytes ++ [b3, b2, b1, b0])
 
 --------------------------------------------------------------------------------
 -- Seed Generation
@@ -308,7 +307,10 @@ generateSeed = randomBytes
 public export
 mixEntropy : ByteVec n -> Bytes -> ByteVec n
 mixEntropy (MkByteVec seed) extra =
-  MkByteVec (zipWith xor seed (take n (extra ++ replicate n 0)))
+  MkByteVec (mixVect seed extra)
   where
-    n : Nat
-    n = length seed
+    ||| XOR each seed byte with the corresponding extra byte (0-padded)
+    mixVect : Vect m Byte -> List Byte -> Vect m Byte
+    mixVect []        _         = []
+    mixVect (s :: ss) []        = s :: mixVect ss []
+    mixVect (s :: ss) (e :: es) = (s `xor` e) :: mixVect ss es

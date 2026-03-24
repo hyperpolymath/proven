@@ -338,7 +338,7 @@ digestEq (MkByteVector xs) (MkByteVector ys) = go xs ys 0
   where
     go : Vect m Byte -> Vect m Byte -> Byte -> Bool
     go [] [] acc = acc == 0
-    go (x :: xs') (y :: ys') acc = go xs' ys' (acc `or` (x `xor` y))
+    go (x :: xs') (y :: ys') acc = go xs' ys' (acc .|. (x `xor` y))
 
 --------------------------------------------------------------------------------
 -- String Hashing Convenience

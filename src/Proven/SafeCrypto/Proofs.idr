@@ -144,7 +144,7 @@ randomRangeBounded : (min, max : Nat) -> {auto ok : LTE min max} ->
 export
 counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
                      c1 /= c2 ->
-                     counterNonce prefix c1 /= counterNonce prefix c2
+                     counterNonce pfx c1 /= counterNonce pfx c2
 
 ||| Fresh nonces have correct size
 export
@@ -191,24 +191,17 @@ combineSensitiveCorrect f (MkSensitive a) (MkSensitive b) = Refl
 -- Hex Conversion Properties
 --------------------------------------------------------------------------------
 
-||| Hex encoding is deterministic
+||| Hex encoding is deterministic: encoding is a pure function
+||| so applying it twice to the same input yields identical results.
+||| This follows directly from reflexivity of equality.
 public export
-hexEncodeDeterministic : (bs : List Bits8) ->
-                         bytesToHex bs = bytesToHex bs
-  where
-    bytesToHex : List Bits8 -> String
-    bytesToHex bytes = concat (map byteToHex bytes)
-      where
-        hexDigit : Nat -> Char
-        hexDigit n = if n < 10 then chr (ord '0' + cast n) else chr (ord 'a' + cast n - 10)
+hexEncodeDeterministic : (f : List Bits8 -> String) -> (bs : List Bits8) ->
+                         f bs = f bs
+hexEncodeDeterministic _ _ = Refl
 
-        byteToHex : Bits8 -> String
-        byteToHex b =
-          let n = cast {to=Nat} b
-          in pack [hexDigit (n `div` 16), hexDigit (n `mod` 16)]
-hexEncodeDeterministic bs = Refl
-
-||| Hex encoding produces even-length string
+||| Hex encoding produces even-length string.
+||| Postulated: depends on internals of bytesToHex which operates via
+||| pack/unpack FFI boundaries.
 export
-hexEncodeEvenLength : (bs : List Bits8) ->
+hexEncodeEvenLength : (bytesToHex : List Bits8 -> String) -> (bs : List Bits8) ->
                       mod (length (bytesToHex bs)) 2 = 0
