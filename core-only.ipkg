@@ -29,4 +29,4 @@ modules = Proven.Core
 depends = base >= 0.6.0
         , contrib
         , network
-opts = "--total"
+-- opts = "--total"  -- Use proven.ipkg for totality-checked builds

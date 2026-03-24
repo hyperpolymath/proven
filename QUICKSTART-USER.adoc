@@ -1,0 +1,174 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= proven: Quickstart Guide
+:toc: macro
+:icons: font
+:source-highlighter: rouge
+
+Formally verified safety library. All computation happens in Idris2 with
+dependent types. Zig bridges to C ABI. Language bindings call through FFI only.
+
+toc::[]
+
+== Prerequisites
+
+[cols="1,1,2"]
+|===
+| Tool | Version | Install
+
+| Idris2
+| >= 0.7.0
+| `pack install idris2` (via https://github.com/stefan-hoeck/idris2-pack[pack])
+
+| Zig
+| >= 0.13.0
+| `asdf install zig latest` or https://ziglang.org/download/
+
+| just
+| >= 1.0
+| `cargo install just` or https://just.systems
+
+| pack
+| latest
+| https://github.com/stefan-hoeck/idris2-pack#installation
+
+| Guile Scheme
+| >= 3.0
+| `dnf install guile30` / `apt install guile-3.0`
+|===
+
+Optional (for bindings work):
+
+* Rust >= 1.75 (`asdf install rust nightly`)
+* Deno >= 2.0 (for ReScript bindings)
+
+== Verify environment
+
+[source,bash]
+----
+just env-info
+----
+
+Expected output:
+
+----
+=== Idris2 ===
+Idris 2, version 0.7.0-...
+Prefix: /home/you/.pack/...
+Libdir: ...
+
+=== Zig ===
+0.13.0
+
+=== Pack ===
+pack - An Idris2 Package Manager
+----
+
+== Clone and build
+
+[source,bash]
+----
+cd ~/Documents/hyperpolymath-repos
+git clone https://github.com/hyperpolymath/proven.git
+cd proven
+
+# Full build: Idris2 -> RefC -> Zig FFI -> libproven.so
+just build
+----
+
+Build takes 2-5 minutes. On success:
+
+----
+[proven] Step 1: Compiling Idris2 to C via RefC backend...
+[proven] Step 2: Building Zig FFI library...
+[proven] Zig FFI build complete.
+[proven] Output:
+-rwxr-xr-x 1 you you 245760 ... libproven.so
+[proven] Full build complete.
+----
+
+== Run tests
+
+[source,bash]
+----
+just test
+----
+
+Expected:
+
+----
+[proven] Running Idris2 tests...
+[proven] Idris2 build test passed
+[proven] Running Zig FFI integration tests...
+[proven] FFI tests passed.
+----
+
+== Typecheck the full library (258 modules)
+
+[source,bash]
+----
+just typecheck
+----
+
+This verifies all 258 modules compile and pass totality checking.
+
+== Use a binding
+
+The shared library at `ffi/zig/zig-out/lib/libproven.so` can be loaded from
+any language with C FFI support. See `bindings/` for 120+ language targets.
+
+Example (Rust, from `bindings/rust/`):
+
+[source,bash]
+----
+cd bindings/rust
+cargo test
+----
+
+== Quick reference
+
+[cols="1,2"]
+|===
+| Command | Purpose
+
+| `just build`
+| Full pipeline: Idris2 -> RefC -> Zig FFI
+
+| `just typecheck`
+| Typecheck all 258 Idris2 modules
+
+| `just test`
+| Run Idris2 + FFI tests
+
+| `just clean`
+| Remove all build artifacts
+
+| `just scan`
+| Run hypatia security scan on bindings
+
+| `just env-info`
+| Show tool versions and paths
+
+| `just assail`
+| Run panic-attacker pre-commit scan
+
+| `just doctor`
+| Check all required tools are installed
+
+| `just tour`
+| Guided walkthrough of the repo
+|===
+
+== Troubleshooting
+
+`idris2 not found`::
+  Install via pack: https://github.com/stefan-hoeck/idris2-pack
+
+`build/refc/ not found`::
+  Run `just build-refc` before `just build-ffi`. Or run `just build` which does both.
+
+`zig: error: ... asdf shim`::
+  Ensure `.tool-versions` has `zig 0.13.0` and run `asdf reshim zig`.
+
+`libidris2_support not found`::
+  Run `idris2 --prefix` and verify the support libraries exist at that path.

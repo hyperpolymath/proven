@@ -1,0 +1,51 @@
+; SPDX-License-Identifier: PMPL-1.0-or-later
+; INTENT.contractile — Purpose and scope for proven
+; Helps LLM/SLM agents understand what this repo IS and IS NOT.
+
+(intent-contractile
+  (version "1.0.0")
+  (repo "proven")
+
+  ; === Purpose (what this repo IS) ===
+  (purpose
+    "proven is a formally verified safety library where all computation happens in
+     Idris2 with dependent types and totality checking. It provides thin language
+     bindings (Rust, ReScript, OCaml, Python, and 89 total targets) that call
+     Idris2 via a Zig FFI bridge. The library guarantees mathematical correctness
+     at the type level — if it compiles, the safety properties hold."
+  )
+
+  ; === Anti-Purpose (what this repo is NOT — prevents scope creep) ===
+  (anti-purpose
+    "proven is NOT a general-purpose utility library. Bindings must NEVER reimplement
+     algorithms that exist in Idris2 — they only marshal data across the FFI boundary.
+     It is NOT a testing framework, NOT a benchmarking suite, and NOT a place for
+     unverified convenience functions. If code cannot be proven correct, it does not
+     belong here."
+  )
+
+  ; === Key Architectural Decisions That Must Not Be Reversed ===
+  (architectural-invariants
+    "Idris2 for all computation — dependent types prove correctness at compile time"
+    "Zig for FFI bridge — zero-cost C ABI compatibility without runtime overhead"
+    "bindings are thin wrappers only — no logic reimplementation allowed"
+    "totality checking enforced on all Idris2 modules — partial functions rejected"
+    "hypatia scanner must show 0 HIGH/CRITICAL findings before external publication"
+  )
+
+  ; === Sensitive Areas (if in doubt, ask) ===
+  (ask-before-touching
+    "src/*.idr — Idris2 proofs; changes require re-verification of totality"
+    "ffi/zig/ — C ABI boundary; changes affect all 89 language bindings"
+    "bindings/ — must remain thin wrappers; no logic allowed"
+    ".machine_readable/ — checkpoint files, format is specified"
+    "pre-submit.sh — publication gate, must not be weakened"
+  )
+
+  ; === Ecosystem Position ===
+  (ecosystem
+    (belongs-to "standalone")
+    (depends-on ("idris2" "zig"))
+    (depended-on-by ("hypatia" "echidna" "panll" "ambientops" "verisimdb" "gossamer" "idaptik"))
+  )
+)
