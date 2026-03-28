@@ -18,6 +18,7 @@ module Proven.SafeMath.Proofs
 import Proven.Core
 import Proven.SafeMath.Nat
 import Data.Nat
+import Data.Nat.Division
 import Syntax.PreorderReasoning
 
 %default total
@@ -142,40 +143,41 @@ lteAntisym (LTESucc ab) (LTESucc ba) = cong S (lteAntisym ab ba)
 -- Division Properties
 --------------------------------------------------------------------------------
 
--- | Division by 1 returns the original number.
--- | Postulated: In Idris 2 0.8.0, `div` for Nat uses fuel-based recursion
--- | (`div'`). The reduction of `div n 1` no longer normalises to `n` at the
--- | type level for abstract `n`. The property holds computationally for all
--- | concrete values.
--- TODO: Update for Idris2 0.8.0 -- prove via Data.Nat.Division or
--- fuel-based induction once upstream provides the necessary lemmas.
-export
-divByOne : (n : Nat) -> div n 1 = n
+||| Division by 1 returns the original number.
+||| Proved via Data.Nat.Division.DivisionTheoremUniqueness:
+||| n = n * 1 + 0 is the unique decomposition, so divNatNZ n 1 = n.
+public export
+divByOne : (n : Nat) -> divNatNZ n 1 ItIsSucc = n
+divByOne n = fst $ DivisionTheoremUniqueness n 1 ItIsSucc n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
+  where
+    nTimesOnePlusZero : (k : Nat) -> k = k * 1 + 0
+    nTimesOnePlusZero k = sym $ Calc $
+      |~ k * 1 + 0
+      ~~ k * 1     ...(plusZeroRightNeutral (k * 1))
+      ~~ k         ...(multOneRightNeutral k)
 
--- | Remainder is always less than divisor (for non-zero divisor).
--- | Postulated: In Idris 2 0.8.0, `modNatNZ` returns `Nat` (not a proof).
--- | The bound `mod n d < d` holds by the fuel-based `mod'` implementation
--- | but proving it requires induction over the fuel parameter.
--- TODO: Update for Idris2 0.8.0 -- use Data.Nat.Division.bound_mod'' or
--- prove via fuel induction.
-export
-modLtDivisor : (n, d : Nat) -> {auto ok : IsSucc d} -> LT (mod n d) d
+||| Remainder is always less than divisor (for non-zero divisor).
+||| Delegates to Data.Nat.Division.boundModNatNZ which proves this via
+||| fuel-based induction over mod''.
+public export
+modLtDivisor : (n, d : Nat) -> {auto 0 ok : NonZero d} -> LT (modNatNZ n d ok) d
+modLtDivisor n (S d) = boundModNatNZ n (S d) ItIsSucc
 
 --------------------------------------------------------------------------------
 -- GCD Properties
 --------------------------------------------------------------------------------
 
 -- | GCD of n and 0 is n.
--- | Postulated: In Idris 2 0.8.0, `gcd` uses fuel-based recursion through
--- | `gcdFuel`. The constraint `n = gcdFuel ...` cannot be resolved for
--- | abstract `n`.
--- TODO: Update for Idris2 0.8.0 -- prove once gcd internals are accessible
--- or via Data.Nat.Factor lemmas.
+-- | Postulated: `gcd` in Data.Nat has an erased `NotBothZero` constraint
+-- | that prevents type-level reduction even though `gcd a Z = a` is a
+-- | direct pattern match. Consider using Data.Nat.Factor.gcdUnproven for
+-- | provable GCD properties (it uses well-founded recursion with proofs).
 export
-gcdZeroRight : (n : Nat) -> gcd n 0 = n
+gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
 
 -- | GCD is commutative: gcd a b = gcd b a
--- | Postulated because proof requires well-founded induction on (mod a b)
--- | and reasoning about the Euclidean algorithm's termination measure.
+-- | Postulated: requires well-founded induction on (mod a b) and reasoning
+-- | about the Euclidean algorithm's termination. Data.Nat.Factor provides
+-- | GCD symmetry via `Symmetric Nat (GCD p)` for the evidence-carrying type.
 export
-gcdCommutative : (a, b : Nat) -> gcd a b = gcd b a
+gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}
