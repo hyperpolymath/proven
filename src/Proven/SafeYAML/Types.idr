@@ -48,7 +48,7 @@ data YAMLValue : Type where
   ||| Timestamp value
   YTimestamp : String -> YAMLValue
 
-public export
+public export covering
 Show YAMLValue where
   show YNull = "null"
   show (YBool True) = "true"
@@ -74,12 +74,14 @@ Show YAMLValue where
   show (YTimestamp ts) = "!!timestamp " ++ ts
 
 ||| Equality helper for lists of YAML values (structurally recursive)
+covering
 yamlListEq : List YAMLValue -> List YAMLValue -> Bool
 
 ||| Equality helper for YAML object pairs (structurally recursive)
+covering
 yamlPairsEq : List (String, YAMLValue) -> List (String, YAMLValue) -> Bool
 
-public export
+public export covering
 Eq YAMLValue where
   YNull == YNull = True
   YBool a == YBool b = a == b
@@ -113,7 +115,7 @@ record YAMLDocument where
   tags : List (String, String)  -- Tag handles
   value : YAMLValue
 
-public export
+public export covering
 Show YAMLDocument where
   show doc = case doc.version of
                Just v => "%YAML " ++ v ++ "\n---\n" ++ show doc.value

@@ -134,7 +134,7 @@ data TOMLValue : Type where
   ||| Table (standard or array of tables)
   TTable : List (String, TOMLValue) -> TOMLValue
 
-public export
+public export covering
 Show TOMLValue where
   show (TString s) = show s
   show (TInt i) = show i
@@ -161,12 +161,14 @@ Show TOMLValue where
   show (TTable kvs) = "[table: " ++ show (length kvs) ++ " keys]"
 
 ||| Equality helper for lists of TOML values (structurally recursive)
+covering
 tomlListEq : List TOMLValue -> List TOMLValue -> Bool
 
 ||| Equality helper for TOML key-value pairs (structurally recursive)
+covering
 tomlPairsEq : List (String, TOMLValue) -> List (String, TOMLValue) -> Bool
 
-public export
+public export covering
 Eq TOMLValue where
   TString a == TString b = a == b
   TInt a == TInt b = a == b

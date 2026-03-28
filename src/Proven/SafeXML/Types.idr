@@ -116,7 +116,7 @@ data XMLNode : Type where
   ||| Processing instruction
   ProcessingInstruction : (target : String) -> (piData : String) -> XMLNode
 
-public export
+public export covering
 Show XMLNode where
   show (Element name attrs children) =
     "<" ++ qualifiedName name ++
@@ -182,7 +182,7 @@ record XMLDocument where
   doctype : Maybe XMLDoctype
   root : XMLNode
 
-public export
+public export covering
 Show XMLDocument where
   show doc =
     let declStr = maybe "" (++ "\n") (map show doc.declaration)

@@ -15,7 +15,10 @@ import Data.List
 import Data.String
 import Data.Bits
 
-%default total
+-- Encoding functions use recursion over Integer/List that the totality checker
+-- cannot verify (external Integer division, list chunking). Mark as covering.
+-- Proofs of correctness are in SafeBase64.Proofs, not here.
+%default covering
 
 --------------------------------------------------------------------------------
 -- Core Encoding

@@ -30,12 +30,12 @@ xmlName s =
 ||| Create a qualified name with namespace prefix
 public export
 xmlQName : String -> String -> XMLResult XMLName
-xmlQName prefix local =
-  if null (unpack prefix) || null (unpack local)
-    then Err (InvalidName (prefix ++ ":" ++ local) "Prefix and local name cannot be empty")
-    else if not (isValidXMLName prefix) || not (isValidXMLName local)
-      then Err (InvalidName (prefix ++ ":" ++ local) "Invalid XML name characters")
-      else Ok (MkXMLName local (Just prefix) Nothing)
+xmlQName pfx local =
+  if null (unpack pfx) || null (unpack local)
+    then Err (InvalidName (pfx ++ ":" ++ local) "Prefix and local name cannot be empty")
+    else if not (isValidXMLName pfx) || not (isValidXMLName local)
+      then Err (InvalidName (pfx ++ ":" ++ local) "Invalid XML name characters")
+      else Ok (MkXMLName local (Just pfx) Nothing)
 
 ||| Create a name with namespace URI
 public export
@@ -97,8 +97,8 @@ attr name value = do
 ||| Create a qualified attribute
 public export
 qattr : String -> String -> String -> XMLResult XMLAttr
-qattr prefix local value = do
-  n <- xmlQName prefix local
+qattr pfx local value = do
+  n <- xmlQName pfx local
   Ok (MkXMLAttr n (xmlAttrValue value))
 
 ||| Create xmlns attribute
@@ -111,8 +111,8 @@ xmlns uri = do
 ||| Create xmlns:prefix attribute
 public export
 xmlnsPrefix : String -> String -> XMLResult XMLAttr
-xmlnsPrefix prefix uri = do
-  n <- xmlQName "xmlns" prefix
+xmlnsPrefix pfx uri = do
+  n <- xmlQName "xmlns" pfx
   Ok (MkXMLAttr n (xmlAttrValue uri))
 
 --------------------------------------------------------------------------------
@@ -137,8 +137,8 @@ element name = do
 ||| Start building a qualified element
 public export
 qelement : String -> String -> XMLResult ElementBuilder
-qelement prefix local = do
-  n <- xmlQName prefix local
+qelement pfx local = do
+  n <- xmlQName pfx local
   Ok (MkElementBuilder n [] [])
 
 ||| Add an attribute to element
@@ -151,8 +151,8 @@ withAttr name value builder = do
 ||| Add a qualified attribute
 public export
 withQAttr : String -> String -> String -> ElementBuilder -> XMLResult ElementBuilder
-withQAttr prefix local value builder = do
-  a <- qattr prefix local value
+withQAttr pfx local value builder = do
+  a <- qattr pfx local value
   Ok ({ elemAttrs := builder.elemAttrs ++ [a] } builder)
 
 ||| Add multiple attributes
