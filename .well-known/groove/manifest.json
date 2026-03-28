@@ -1,0 +1,30 @@
+{
+  "groove_version": "1",
+  "service_id": "proven",
+  "service_version": "0.1.0",
+  "capabilities": {
+    "theorem-proving": {
+      "type": "theorem-proving",
+      "description": "Formally verified safe alternatives library (Idris2)",
+      "protocol": "http",
+      "endpoint": "/api/verify",
+      "requires_auth": false,
+      "panel_compatible": true
+    },
+    "static-analysis": {
+      "type": "static-analysis",
+      "description": "Proven correctness checking via dependent types",
+      "protocol": "http",
+      "endpoint": "/api/check",
+      "requires_auth": false,
+      "panel_compatible": true
+    }
+  },
+  "consumes": ["octad-storage"],
+  "endpoints": {
+    "health": "/health",
+    "groove": "/.well-known/groove"
+  },
+  "health": "/health",
+  "applicability": ["individual", "team"]
+}
