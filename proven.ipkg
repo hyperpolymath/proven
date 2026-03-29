@@ -241,6 +241,25 @@ modules = Proven
         , Proven.SafeRedirect
         , Proven.SafeSRI
         , Proven.SafeOTP
+        -- Security & identity (v1.3.0)
+        , Proven.SafeSSRF
+        , Proven.SafeRBAC
+        , Proven.SafeRateWindow
+        , Proven.SafeJWK
+        , Proven.SafeHSTS
+        , Proven.SafeSameSite
+        , Proven.SafeWebAuthn
+        , Proven.SafeHomoglyph
+        , Proven.SafeSupplyChain
+        -- Data integrity (v1.3.0)
+        , Proven.SafeSemVer
+        , Proven.SafeULID
+        , Proven.SafeMediaType
+        , Proven.SafeCBOR
+        -- Crypto parameter validation (v1.3.0)
+        , Proven.SafeHKDF
+        , Proven.SafePBKDF2
+        , Proven.SafeSecretShare
         -- Framework convenience re-export modules
         , Proven.Network
         , Proven.Crypto
