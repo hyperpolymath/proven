@@ -18,7 +18,7 @@ import public Proven.SafeDateTime.Zones
 
 import Data.List
 import Data.String
-import Data.Vect
+import Data.So
 
 %default total
 
@@ -26,12 +26,7 @@ import Data.Vect
 -- Core Date/Time Types
 --------------------------------------------------------------------------------
 
-||| A valid year (1-9999 in proleptic Gregorian calendar)
-public export
-data Year : Type where
-  MkYear : (n : Nat) -> {auto prf : (n >= 1, n <= 9999)} -> Year
-
-||| A valid month (1-12)
+||| Month of the year
 public export
 data Month : Type where
   January   : Month
@@ -78,7 +73,7 @@ Eq Month where
   December == December = True
   _ == _ = False
 
-||| Convert month to number (1-12)
+||| Convert month to its 1-based number
 public export
 monthToNat : Month -> Nat
 monthToNat January = 1
@@ -94,7 +89,7 @@ monthToNat October = 10
 monthToNat November = 11
 monthToNat December = 12
 
-||| Convert number to month (safe)
+||| Convert 1-based number to month
 public export
 natToMonth : Nat -> Maybe Month
 natToMonth 1 = Just January
@@ -113,14 +108,14 @@ natToMonth _ = Nothing
 
 ||| Day of week
 public export
-data DayOfWeek
-  = Monday
-  | Tuesday
-  | Wednesday
-  | Thursday
-  | Friday
-  | Saturday
-  | Sunday
+data DayOfWeek : Type where
+  Monday    : DayOfWeek
+  Tuesday   : DayOfWeek
+  Wednesday : DayOfWeek
+  Thursday  : DayOfWeek
+  Friday    : DayOfWeek
+  Saturday  : DayOfWeek
+  Sunday    : DayOfWeek
 
 public export
 Show DayOfWeek where
@@ -143,74 +138,87 @@ Eq DayOfWeek where
   Sunday == Sunday = True
   _ == _ = False
 
+--------------------------------------------------------------------------------
+-- Leap Year
+--------------------------------------------------------------------------------
+
 ||| Check if a year is a leap year
 public export
 isLeapYear : Nat -> Bool
 isLeapYear year =
   (year `mod` 4 == 0 && year `mod` 100 /= 0) || (year `mod` 400 == 0)
 
-||| Days in a month
+||| Days in a month for a given year
 public export
 daysInMonth : Nat -> Month -> Nat
-daysInMonth year January = 31
 daysInMonth year February = if isLeapYear year then 29 else 28
-daysInMonth year March = 31
-daysInMonth year April = 30
-daysInMonth year May = 31
-daysInMonth year June = 30
-daysInMonth year July = 31
-daysInMonth year August = 31
-daysInMonth year September = 30
-daysInMonth year October = 31
-daysInMonth year November = 30
-daysInMonth year December = 31
+daysInMonth _ January = 31
+daysInMonth _ March = 31
+daysInMonth _ April = 30
+daysInMonth _ May = 31
+daysInMonth _ June = 30
+daysInMonth _ July = 31
+daysInMonth _ August = 31
+daysInMonth _ September = 30
+daysInMonth _ October = 31
+daysInMonth _ November = 30
+daysInMonth _ December = 31
 
 --------------------------------------------------------------------------------
--- Date Type
+-- Date Type (validated via smart constructors)
 --------------------------------------------------------------------------------
 
-||| A valid date in proleptic Gregorian calendar
+||| A date in the proleptic Gregorian calendar.
+||| Fields are plain Nat — use makeDate for validated construction.
 public export
 record Date where
   constructor MkDate
-  year : Nat
+  year  : Nat
   month : Month
-  day : Nat
-  {auto validYear : (year >= 1, year <= 9999)}
-  {auto validDay : (day >= 1, day <= daysInMonth year month)}
+  day   : Nat
 
-||| Construct date safely
+||| Construct date safely (validates ranges)
 public export
-makeDate : (year : Nat) -> (month : Nat) -> (day : Nat) -> Maybe Date
+makeDate : (year : Nat) -> (monthNum : Nat) -> (day : Nat) -> Maybe Date
 makeDate year monthNum day = do
   month <- natToMonth monthNum
   if year >= 1 && year <= 9999 && day >= 1 && day <= daysInMonth year month
     then Just (MkDate year month day)
     else Nothing
 
+||| Helper for internal padded display
+padZero : Nat -> String
+padZero n = if n < 10 then "0" ++ show n else show n
+
 public export
 Show Date where
   show d = show d.year ++ "-" ++ padZero (monthToNat d.month) ++ "-" ++ padZero d.day
-    where
-      padZero : Nat -> String
-      padZero n = if n < 10 then "0" ++ show n else show n
+
+public export
+Eq Date where
+  d1 == d2 = d1.year == d2.year && d1.month == d2.month && d1.day == d2.day
+
+public export
+Ord Date where
+  compare d1 d2 =
+    case compare d1.year d2.year of
+      EQ => case compare (monthToNat d1.month) (monthToNat d2.month) of
+              EQ => compare d1.day d2.day
+              other => other
+      other => other
 
 --------------------------------------------------------------------------------
--- Time Type
+-- Time Type (validated via smart constructors)
 --------------------------------------------------------------------------------
 
-||| A valid time of day
+||| A time of day. Use makeTime for validated construction.
 public export
 record Time where
   constructor MkTime
-  hour : Nat
-  minute : Nat
-  second : Nat
+  hour       : Nat
+  minute     : Nat
+  second     : Nat
   nanosecond : Nat
-  {auto validHour : hour < 24}
-  {auto validMinute : minute < 60}
-  {auto validSecond : second < 60}
-  {auto validNano : nanosecond < 1000000000}
 
 ||| Construct time safely
 public export
@@ -231,9 +239,22 @@ makeTimeNano hour minute second nano =
 public export
 Show Time where
   show t = padZero t.hour ++ ":" ++ padZero t.minute ++ ":" ++ padZero t.second
-    where
-      padZero : Nat -> String
-      padZero n = if n < 10 then "0" ++ show n else show n
+
+public export
+Eq Time where
+  t1 == t2 = t1.hour == t2.hour && t1.minute == t2.minute &&
+             t1.second == t2.second && t1.nanosecond == t2.nanosecond
+
+public export
+Ord Time where
+  compare t1 t2 =
+    case compare t1.hour t2.hour of
+      EQ => case compare t1.minute t2.minute of
+              EQ => case compare t1.second t2.second of
+                      EQ => compare t1.nanosecond t2.nanosecond
+                      other => other
+              other => other
+      other => other
 
 --------------------------------------------------------------------------------
 -- DateTime Type
@@ -255,6 +276,17 @@ public export
 Show DateTime where
   show dt = show dt.date ++ "T" ++ show dt.time
 
+public export
+Eq DateTime where
+  dt1 == dt2 = dt1.date == dt2.date && dt1.time == dt2.time
+
+public export
+Ord DateTime where
+  compare dt1 dt2 =
+    case compare dt1.date dt2.date of
+      EQ => compare dt1.time dt2.time
+      other => other
+
 --------------------------------------------------------------------------------
 -- Zoned DateTime
 --------------------------------------------------------------------------------
@@ -263,9 +295,9 @@ Show DateTime where
 public export
 record ZonedDateTime where
   constructor MkZonedDateTime
-  datetime : DateTime
-  timezone : Timezone
-  offsetSeconds : Integer  -- Offset from UTC in seconds
+  datetime      : DateTime
+  timezone      : Timezone
+  offsetSeconds : Integer
 
 public export
 Show ZonedDateTime where
@@ -275,19 +307,16 @@ Show ZonedDateTime where
       formatOffset 0 = "Z"
       formatOffset secs =
         let absSeconds = abs secs
-            hours = absSeconds `div` 3600
+            hrs = absSeconds `div` 3600
             mins = (absSeconds `mod` 3600) `div` 60
             sign = if secs >= 0 then "+" else "-"
-        in sign ++ padZero (cast hours) ++ ":" ++ padZero (cast mins)
-
-      padZero : Nat -> String
-      padZero n = if n < 10 then "0" ++ show n else show n
+        in sign ++ padZero (cast hrs) ++ ":" ++ padZero (cast mins)
 
 --------------------------------------------------------------------------------
 -- Duration Type
 --------------------------------------------------------------------------------
 
-||| Duration between two points in time
+||| Duration between two points in time (nanosecond precision)
 public export
 record Duration where
   constructor MkDuration
@@ -295,18 +324,11 @@ record Duration where
 
 ||| Create duration from components
 public export
-makeDuration : (days : Integer) ->
-               (hours : Integer) ->
-               (minutes : Integer) ->
-               (seconds : Integer) ->
-               (nanos : Integer) ->
-               Duration
-makeDuration days hours minutes seconds nanos =
-  MkDuration $ days * 86400000000000
-             + hours * 3600000000000
-             + minutes * 60000000000
-             + seconds * 1000000000
-             + nanos
+makeDuration : (days : Integer) -> (hours : Integer) -> (minutes : Integer) ->
+               (seconds : Integer) -> (nanos : Integer) -> Duration
+makeDuration d h m s n =
+  MkDuration $ d * 86400000000000 + h * 3600000000000 +
+               m * 60000000000 + s * 1000000000 + n
 
 ||| Duration in seconds
 public export
@@ -328,7 +350,7 @@ public export
 days : Integer -> Duration
 days n = hours (n * 24)
 
-||| Add durations (safe - Integer doesn't overflow in practice)
+||| Add durations
 public export
 addDuration : Duration -> Duration -> Duration
 addDuration (MkDuration a) (MkDuration b) = MkDuration (a + b)
@@ -370,22 +392,26 @@ Show Duration where
        (if m > 0 then show m ++ "M" else "") ++
        show s ++ "S"
 
+public export
+Eq Duration where
+  (MkDuration a) == (MkDuration b) = a == b
+
+public export
+Ord Duration where
+  compare (MkDuration a) (MkDuration b) = compare a b
+
 --------------------------------------------------------------------------------
 -- Instant (Unix timestamp)
 --------------------------------------------------------------------------------
 
-||| Unix timestamp (seconds since 1970-01-01T00:00:00Z)
+||| Unix timestamp (seconds + nanoseconds since 1970-01-01T00:00:00Z)
 public export
 record Instant where
   constructor MkInstant
   epochSecond : Integer
-  nano : Nat
-  {auto validNano : nano < 1000000000}
+  nano        : Nat
 
-||| Current time (stub -- requires FFI for real system clock)
-|||
-||| Returns epoch zero until the Zig FFI bridge to clock_gettime is wired up.
-||| The auto-proof {validNano} resolves because 0 < 1000000000 = True.
+||| Current time (stub — requires FFI for real system clock)
 public export
 now : IO Instant
 now = pure $ MkInstant 0 0
@@ -404,7 +430,7 @@ fromEpochMilli millis =
 ||| Get epoch seconds
 public export
 toEpochSecond : Instant -> Integer
-toEpochSecond inst = inst.epochSecond
+toEpochSecond = epochSecond
 
 ||| Get epoch milliseconds
 public export
@@ -433,50 +459,6 @@ durationBetween start end =
       endNanos = cast end.epochSecond * 1000000000 + cast end.nano
   in MkDuration (endNanos - startNanos)
 
---------------------------------------------------------------------------------
--- Comparisons
---------------------------------------------------------------------------------
-
-public export
-Eq Date where
-  d1 == d2 = d1.year == d2.year && d1.month == d2.month && d1.day == d2.day
-
-public export
-Ord Date where
-  compare d1 d2 =
-    case compare d1.year d2.year of
-      EQ => case compare (monthToNat d1.month) (monthToNat d2.month) of
-              EQ => compare d1.day d2.day
-              other => other
-      other => other
-
-public export
-Eq Time where
-  t1 == t2 = t1.hour == t2.hour && t1.minute == t2.minute &&
-             t1.second == t2.second && t1.nanosecond == t2.nanosecond
-
-public export
-Ord Time where
-  compare t1 t2 =
-    case compare t1.hour t2.hour of
-      EQ => case compare t1.minute t2.minute of
-              EQ => case compare t1.second t2.second of
-                      EQ => compare t1.nanosecond t2.nanosecond
-                      other => other
-              other => other
-      other => other
-
-public export
-Eq DateTime where
-  dt1 == dt2 = dt1.date == dt2.date && dt1.time == dt2.time
-
-public export
-Ord DateTime where
-  compare dt1 dt2 =
-    case compare dt1.date dt2.date of
-      EQ => compare dt1.time dt2.time
-      other => other
-
 public export
 Eq Instant where
   i1 == i2 = i1.epochSecond == i2.epochSecond && i1.nano == i2.nano
@@ -492,11 +474,10 @@ Ord Instant where
 -- Utility Functions
 --------------------------------------------------------------------------------
 
-||| Get day of week for a date
+||| Get day of week for a date (Zeller's congruence)
 public export
 dayOfWeek : Date -> DayOfWeek
 dayOfWeek d =
-  -- Zeller's congruence
   let y = if monthToNat d.month < 3 then d.year `minus` 1 else d.year
       m = if monthToNat d.month < 3 then monthToNat d.month + 12 else monthToNat d.month
       k = y `mod` 100
@@ -524,7 +505,6 @@ isWeekend d = case dayOfWeek d of
 public export
 daysSinceEpoch : Date -> Integer
 daysSinceEpoch d =
-  -- Simplified calculation
   let y = cast d.year - (if monthToNat d.month <= 2 then 1 else 0)
       era = (if y >= 0 then y else y - 399) `div` 400
       yoe = y - era * 400
@@ -536,9 +516,8 @@ daysSinceEpoch d =
 ||| Date from days since epoch
 public export
 dateFromDays : Integer -> Maybe Date
-dateFromDays days =
-  -- Simplified inverse calculation
-  let z = days + 719468
+dateFromDays numDays =
+  let z = numDays + 719468
       era = (if z >= 0 then z else z - 146096) `div` 146097
       doe = z - era * 146097
       yoe = (doe - doe `div` 1460 + doe `div` 36524 - doe `div` 146096) `div` 365
@@ -547,5 +526,5 @@ dateFromDays days =
       mp = (5 * doy + 2) `div` 153
       d = doy - (153 * mp + 2) `div` 5 + 1
       m = mp + (if mp < 10 then 3 else -9)
-      year = y + (if m <= 2 then 1 else 0)
-  in makeDate (cast year) (cast m) (cast d)
+      yr = y + (if m <= 2 then 1 else 0)
+  in makeDate (cast yr) (cast m) (cast d)

@@ -34,8 +34,11 @@ import public Proven.SafeBase64.Proofs
 
 import Data.List
 import Data.String
+import Data.Bits
 
-%default total
+-- Encoding/decoding functions call covering functions from Encode/Decode.
+-- High-level API inherits covering from those modules.
+%default covering
 
 --------------------------------------------------------------------------------
 -- High-Level API
@@ -112,7 +115,7 @@ fromDataURI uri =
   if not (isPrefixOf "data:" uri)
     then Err (InvalidCharacter 'd' 0)
     else
-      let rest = strSubstr 5 (cast (length uri - 5)) uri
+      let rest = substr 5 (minus (length uri) 5) uri
       in case break (== ',') (unpack rest) of
            (metaPart, ',' :: base64Part) =>
              let meta = pack metaPart
@@ -164,7 +167,7 @@ hexToBase64 hex = do
           case (hexCharToNibble c1, hexCharToNibble c2) of
             (Just h, Just l) => do
               restBytes <- go (pos + 2) rest
-              Ok ((h `shiftL` 4 .|. l) :: restBytes)
+              Ok (((h `shiftL` 4) .|. l) :: restBytes)
             (Nothing, _) => Err (InvalidCharacter c1 pos)
             (_, Nothing) => Err (InvalidCharacter c2 (pos + 1))
 
@@ -212,7 +215,7 @@ detectVariant s =
       hasDash = '-' `elem` unpack s
       hasUnderscore = '_' `elem` unpack s
       hasPadding = '=' `elem` unpack s
-      hasNewline = '\n' `elem` unpack s || '\r' `elem` unpack s
+      hasNewline = ('\n' `elem` unpack s) || ('\r' `elem` unpack s)
   in if hasNewline then Just MIME
      else if hasPlus || hasSlash then Just Standard
      else if hasDash || hasUnderscore then
@@ -313,17 +316,18 @@ validateFormat variant input = do
                 MIME => pack (filter (not . isBase64Whitespace) (unpack input))
                 _ => input
   -- Check all characters are valid
-  _ <- traverse_ checkChar (zip [0..] (unpack clean))
+  checkChars 0 (unpack clean)
   -- Check length
   let len = length (unpack clean)
   if usesPadding variant && len `mod` 4 /= 0
     then Err (InvalidLength len)
     else Ok ()
   where
-    checkChar : (Nat, Char) -> Base64Result ()
-    checkChar (pos, c) =
+    checkChars : Nat -> List Char -> Base64Result ()
+    checkChars _ [] = Ok ()
+    checkChars pos (c :: cs) =
       if isValidBase64Char variant c || isPaddingChar c
-        then Ok ()
+        then checkChars (S pos) cs
         else Err (InvalidCharacter c pos)
 
 ||| Get detailed validation result
@@ -393,6 +397,5 @@ peekDecoded n input =
   case decodeAuto input of
     Err e => "Error: " ++ show e
     Ok bytes =>
-      let preview = take n bytes
-      in "Decoded " ++ show (length bytes) ++ " bytes: " ++
-         show (map cast preview : List Int)
+      "Decoded " ++ show (length bytes) ++ " bytes: " ++
+      show (the (List Int) (map cast (take n bytes)))

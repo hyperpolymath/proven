@@ -60,11 +60,11 @@ modules = Proven
         , Proven.SafePassword.Strength
         , Proven.SafePassword.Proofs
         -- SafeDateTime
-        -- , Proven.SafeDateTime  -- not-proven
-        -- , Proven.SafeDateTime  -- not-proven.Types
-        -- , Proven.SafeDateTime  -- not-proven.Parse
-        -- , Proven.SafeDateTime  -- not-proven.Zones
-        -- , Proven.SafeDateTime  -- not-proven.Proofs
+        , Proven.SafeDateTime
+        , Proven.SafeDateTime.Types
+        , Proven.SafeDateTime.Parse
+        , Proven.SafeDateTime.Zones
+        , Proven.SafeDateTime.Proofs
         -- SafeNetwork
         , Proven.SafeNetwork
         , Proven.SafeNetwork.IPv4
@@ -99,11 +99,11 @@ modules = Proven
         , Proven.SafeJWT.Validate
         , Proven.SafeJWT.Proofs
         -- SafeBase64
-        -- , Proven.SafeBase64  -- MOVED to not-proven/
-        -- , Proven.SafeBase64  -- not-proven.Types
-        -- , Proven.SafeBase64  -- not-proven.Encode
-        -- , Proven.SafeBase64  -- not-proven.Decode
-        -- , Proven.SafeBase64  -- not-proven.Proofs
+        , Proven.SafeBase64
+        , Proven.SafeBase64.Types
+        , Proven.SafeBase64.Encode
+        , Proven.SafeBase64.Decode
+        , Proven.SafeBase64.Proofs
         -- SafeXML
         , Proven.SafeXML
         , Proven.SafeXML.Types

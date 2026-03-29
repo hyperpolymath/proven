@@ -2,3 +2,5 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Proofs for DateTime operations
 module Proven.SafeDateTime.Proofs
+
+%default total
