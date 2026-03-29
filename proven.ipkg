@@ -259,7 +259,7 @@ modules = Proven
         , Proven.FFI.SafeMath
         , Proven.FFI.SafeString
         , Proven.FFI.SafeEmail
-        , Proven.FFI.SafeDateTime
+        -- , Proven.FFI.SafeDateTime  -- not-proven
         , Proven.FFI.SafeHtml
         , Proven.FFI.SafeCookie
         , Proven.FFI.SafeHeader
@@ -279,54 +279,54 @@ modules = Proven
         , Proven.FFI.SafeArgs
         , Proven.FFI.SafeFile
         , Proven.FFI.SafeUUID
-        , Proven.FFI.SafeCurrency
-        , Proven.FFI.SafeHex
+        -- , Proven.FFI.SafeCurrency  -- not-proven
+        -- , Proven.FFI.SafeHex  -- not-proven
         , Proven.FFI.SafeTree
-        , Proven.FFI.SafeBuffer
+        -- , Proven.FFI.SafeBuffer  -- not-proven
         , Proven.FFI.SafePolicy
         , Proven.FFI.SafeProvenance
         , Proven.FFI.SafeStateMachine
-        , Proven.FFI.SafeMarkdown
-        , Proven.FFI.SafeLog
+        -- , Proven.FFI.SafeMarkdown  -- not-proven
+        -- , Proven.FFI.SafeLog  -- not-proven
         , Proven.FFI.SafeCron
         , Proven.FFI.SafeFloat
-        , Proven.FFI.SafeColor
+        -- , Proven.FFI.SafeColor  -- not-proven
         , Proven.FFI.SafeVersion
-        , Proven.FFI.SafeChecksum
-        , Proven.FFI.SafeGeo
-        , Proven.FFI.SafeAngle
+        -- , Proven.FFI.SafeChecksum  -- not-proven
+        -- , Proven.FFI.SafeGeo  -- not-proven
+        -- , Proven.FFI.SafeAngle  -- not-proven
         , Proven.FFI.SafeProbability
         , Proven.FFI.SafeUnit
         , Proven.FFI.SafeQueue
-        , Proven.FFI.SafeBloom
+        -- , Proven.FFI.SafeBloom  -- not-proven
         , Proven.FFI.SafeLRU
         , Proven.FFI.SafeRateLimiter
-        , Proven.FFI.SafeCircuitBreaker
+        -- , Proven.FFI.SafeCircuitBreaker  -- not-proven
         , Proven.FFI.SafeRetry
         , Proven.FFI.SafeMonotonic
-        , Proven.FFI.SafeGraph
+        -- , Proven.FFI.SafeGraph  -- not-proven
         , Proven.FFI.SafeResource
         , Proven.FFI.SafeTransaction
-        , Proven.FFI.SafeCapability
+        -- , Proven.FFI.SafeCapability  -- not-proven
         , Proven.FFI.SafeConsensus
-        , Proven.FFI.SafeFiniteField
+        -- , Proven.FFI.SafeFiniteField  -- not-proven
         , Proven.FFI.SafeOrdering
         , Proven.FFI.SafeSchema
         , Proven.FFI.SafeTensor
         , Proven.FFI.SafeGit
         , Proven.FFI.SafeDocker
-        , Proven.FFI.SafeDNS
+        -- , Proven.FFI.SafeDNS  -- not-proven
         , Proven.FFI.SafeSSH
-        , Proven.FFI.SafeI18n
+        -- , Proven.FFI.SafeI18n  -- not-proven
         , Proven.FFI.SafeTemplate
         , Proven.FFI.SafeArchive
-        , Proven.FFI.SafeCert
+        -- , Proven.FFI.SafeCert  -- not-proven
         , Proven.FFI.SafeOAuth
         , Proven.FFI.SafeWebhook
         , Proven.FFI.SafeBibTeX
         , Proven.FFI.SafeMCP
-        , Proven.FFI.SafeML
-        , Proven.FFI.SafePhone
+        -- , Proven.FFI.SafeML  -- not-proven
+        -- , Proven.FFI.SafePhone  -- not-proven
         -- ECHIDNA neurosymbolic theorem prover validation
         -- NOTE: ECHIDNA modules temporarily excluded - need redesign
         -- (proof keyword, ProofValid forward ref, All ambiguity, verify resolution)
