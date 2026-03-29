@@ -14,6 +14,17 @@ import Data.String
 %default total
 
 --------------------------------------------------------------------------------
+-- Internal Helpers
+--------------------------------------------------------------------------------
+
+||| Convert a non-negative Double to Nat via Int intermediate.
+||| Negative values clamp to 0.
+doubleToNat : Double -> Nat
+doubleToNat x =
+  let i : Int = cast x
+  in if i < 0 then 0 else cast i
+
+--------------------------------------------------------------------------------
 -- Color Types
 --------------------------------------------------------------------------------
 
@@ -58,50 +69,32 @@ Eq RGBA where
 public export
 parseHex : String -> Maybe RGBA
 parseHex s =
-  let hex = if isPrefixOf "#" s then drop 1 s else s
-  in case length hex of
-       3 => parseShortHex hex
-       6 => parseLongHex hex
-       8 => parseAlphaHex hex
+  let chars = unpack s
+      hex = case chars of
+              ('#' :: rest) => rest
+              _             => chars
+  in case hex of
+       [c0, c1, c2] => do
+         r <- hexToNibble c0
+         g <- hexToNibble c1
+         b <- hexToNibble c2
+         Just (MkRGBA (r * 17) (g * 17) (b * 17) 255)
+       [c0, c1, c2, c3, c4, c5] => do
+         r <- hexPairToByte c0 c1
+         g <- hexPairToByte c2 c3
+         b <- hexPairToByte c4 c5
+         Just (MkRGBA r g b 255)
+       [c0, c1, c2, c3, c4, c5, c6, c7] => do
+         r <- hexPairToByte c0 c1
+         g <- hexPairToByte c2 c3
+         b <- hexPairToByte c4 c5
+         a <- hexPairToByte c6 c7
+         Just (MkRGBA r g b a)
        _ => Nothing
-  where
-    parseShortHex : String -> Maybe RGBA
-    parseShortHex str = do
-      r <- hexToNibble =<< strIndex str 0
-      g <- hexToNibble =<< strIndex str 1
-      b <- hexToNibble =<< strIndex str 2
-      Just (MkRGBA (r * 17) (g * 17) (b * 17) 255)
 
-    parseLongHex : String -> Maybe RGBA
-    parseLongHex str = do
-      c0 <- strIndex str 0
-      c1 <- strIndex str 1
-      c2 <- strIndex str 2
-      c3 <- strIndex str 3
-      c4 <- strIndex str 4
-      c5 <- strIndex str 5
-      r <- hexPairToByte c0 c1
-      g <- hexPairToByte c2 c3
-      b <- hexPairToByte c4 c5
-      Just (MkRGBA r g b 255)
-
-    parseAlphaHex : String -> Maybe RGBA
-    parseAlphaHex str = do
-      c0 <- strIndex str 0
-      c1 <- strIndex str 1
-      c2 <- strIndex str 2
-      c3 <- strIndex str 3
-      c4 <- strIndex str 4
-      c5 <- strIndex str 5
-      c6 <- strIndex str 6
-      c7 <- strIndex str 7
-      r <- hexPairToByte c0 c1
-      g <- hexPairToByte c2 c3
-      b <- hexPairToByte c4 c5
-      a <- hexPairToByte c6 c7
-      Just (MkRGBA r g b a)
-
-||| Convert color to hex string
+||| Convert color to hex string.
+||| Marked covering because intToHex uses Integer recursion.
+covering
 public export
 toHex : RGBA -> String
 toHex c =
@@ -144,7 +137,7 @@ hslToRGB c =
       s = c.saturation / 100.0
       l = c.lightness / 100.0
   in if s < 0.00001
-     then let v = cast (floor (l * 255.0 + 0.5)) in MkRGB v v v
+     then let v = doubleToNat (floor (l * 255.0 + 0.5)) in MkRGB v v v
      else
        let q = if l < 0.5 then l * (1.0 + s) else l + s - l * s
            p = 2.0 * l - q
@@ -162,7 +155,7 @@ hslToRGB c =
          else p
 
     toChannel : Double -> Nat
-    toChannel x = cast (floor (x * 255.0 + 0.5))
+    toChannel x = doubleToNat (floor (x * 255.0 + 0.5))
 
 --------------------------------------------------------------------------------
 -- WCAG Contrast
@@ -211,9 +204,9 @@ blend fg bg =
   let alpha = cast fg.alpha / 255.0
       invAlpha = 1.0 - alpha
   in MkRGB
-       (cast (floor (cast fg.red * alpha + cast bg.red * invAlpha + 0.5)))
-       (cast (floor (cast fg.green * alpha + cast bg.green * invAlpha + 0.5)))
-       (cast (floor (cast fg.blue * alpha + cast bg.blue * invAlpha + 0.5)))
+       (doubleToNat (floor (cast fg.red * alpha + cast bg.red * invAlpha + 0.5)))
+       (doubleToNat (floor (cast fg.green * alpha + cast bg.green * invAlpha + 0.5)))
+       (doubleToNat (floor (cast fg.blue * alpha + cast bg.blue * invAlpha + 0.5)))
 
 ||| Lighten a color by a percentage
 public export

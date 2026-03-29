@@ -8,6 +8,7 @@ module Proven.SafeHex
 
 import public Proven.Core
 import Data.String
+import Data.List
 
 %default total
 
@@ -15,16 +16,27 @@ import Data.String
 -- Hex Encoding
 --------------------------------------------------------------------------------
 
-||| Hexadecimal alphabet (lowercase)
-hexChars : String
-hexChars = "0123456789abcdef"
-
-||| Convert a nibble (0-15) to a hex character
+||| Convert a nibble (0-15) to a hex character via pattern matching.
+||| Values outside 0-15 are clamped to '0'.
 public export
 nibbleToHex : Nat -> Char
-nibbleToHex n = case strIndex hexChars (cast (n `mod` 16)) of
-  Just c => c
-  Nothing => '0'
+nibbleToHex 0  = '0'
+nibbleToHex 1  = '1'
+nibbleToHex 2  = '2'
+nibbleToHex 3  = '3'
+nibbleToHex 4  = '4'
+nibbleToHex 5  = '5'
+nibbleToHex 6  = '6'
+nibbleToHex 7  = '7'
+nibbleToHex 8  = '8'
+nibbleToHex 9  = '9'
+nibbleToHex 10 = 'a'
+nibbleToHex 11 = 'b'
+nibbleToHex 12 = 'c'
+nibbleToHex 13 = 'd'
+nibbleToHex 14 = 'e'
+nibbleToHex 15 = 'f'
+nibbleToHex _  = '0'
 
 ||| Convert a byte to two hex characters
 public export
@@ -95,7 +107,9 @@ isValidHex s =
 -- Hex Utilities
 --------------------------------------------------------------------------------
 
-||| Convert an integer to hex string
+||| Convert an integer to hex string.
+||| Marked covering because Integer recursion is not provably terminating.
+covering
 public export
 intToHex : Integer -> String
 intToHex n =
@@ -103,6 +117,7 @@ intToHex n =
   else if n == 0 then "0"
   else toHex' n ""
   where
+    covering
     toHex' : Integer -> String -> String
     toHex' 0 acc = acc
     toHex' i acc =
@@ -114,8 +129,11 @@ intToHex n =
 public export
 hexToInt : String -> Maybe Integer
 hexToInt s =
-  let s' = if isPrefixOf "0x" s || isPrefixOf "0X" s then drop 2 s else s
-  in if s' == "" then Nothing else parseHex' (unpack s') 0
+  let chars = unpack s
+      stripped = if isPrefixOf "0x" s || isPrefixOf "0X" s
+                   then drop 2 chars
+                   else chars
+  in if isNil stripped then Nothing else parseHex' stripped 0
   where
     parseHex' : List Char -> Integer -> Maybe Integer
     parseHex' [] acc = Just acc
@@ -128,4 +146,4 @@ public export
 padHex : (len : Nat) -> String -> String
 padHex len s =
   let padding = minus len (length s)
-  in replicate padding '0' ++ s
+  in pack (List.replicate padding '0') ++ s

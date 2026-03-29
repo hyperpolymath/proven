@@ -102,10 +102,11 @@ parseAlgorithm _ = Nothing
 public export
 parseDigest : String -> DigestResult
 parseDigest input =
-  case break (== ':') input of
-    (algo, []) => InvalidFormat "Missing colon separator"
-    (algo, ':' :: rest) =>
-      let hexValue = pack rest
+  case break (== ':') (unpack input) of
+    (algChars, []) => InvalidFormat "Missing colon separator"
+    (algChars, ':' :: rest) =>
+      let algo = pack algChars
+          hexValue = pack rest
       in case parseAlgorithm algo of
            Nothing => UnknownAlgorithm algo
            Just alg =>

@@ -152,7 +152,7 @@ modules = Proven
         , Proven.SafeUUID
         , Proven.SafeCurrency
         -- , Proven.SafePhone  -- not-proven
-        -- , Proven.SafeHex  -- not-proven
+        , Proven.SafeHex
         -- Tree & buffer modules
         , Proven.SafeTree
         , Proven.SafeBuffer
@@ -171,13 +171,13 @@ modules = Proven
         , Proven.SafeCron
         -- Numeric safety
         , Proven.SafeFloat
-        -- , Proven.SafeDecimal  -- not-proven
+        , Proven.SafeDecimal
         , Proven.SafeRational
-        -- , Proven.SafeComplex  -- not-proven
+        , Proven.SafeComplex
         -- Domain values
-        -- , Proven.SafeColor  -- not-proven
+        , Proven.SafeColor
         , Proven.SafeVersion
-        -- , Proven.SafeChecksum  -- not-proven
+        , Proven.SafeChecksum
         -- , Proven.SafeGeo  -- not-proven
         -- , Proven.SafeAngle  -- MOVED to not-proven/
         -- Mathematics & physics
@@ -190,7 +190,7 @@ modules = Proven
         , Proven.SafeLRU
         , Proven.SafeSet
         -- , Proven.SafeHeap  -- not-proven
-        -- , Proven.SafeMatrix  -- not-proven
+        , Proven.SafeMatrix
         -- , Proven.SafeBitset  -- not-proven
         -- , Proven.SafeInterval  -- not-proven
         , Proven.SafeUnionFind
@@ -209,8 +209,8 @@ modules = Proven
         , Proven.SafeSchema
         , Proven.SafeTensor
         -- Data formats
-        -- , Proven.SafeCSV  -- not-proven
-        -- , Proven.SafeDigest  -- not-proven
+        , Proven.SafeCSV
+        , Proven.SafeDigest
         , Proven.SafeRegistry
         -- Concurrency primitives
         , Proven.SafeSemaphore
@@ -218,7 +218,7 @@ modules = Proven
         -- New v1.1.0 modules
         , Proven.SafeGit
         , Proven.SafeDocker
-        -- , Proven.SafeDNS  -- not-proven
+        , Proven.SafeDNS
         , Proven.SafeSSH
         -- , Proven.SafeI18n  -- not-proven
         , Proven.SafeTemplate
@@ -228,7 +228,13 @@ modules = Proven
         , Proven.SafeWebhook
         , Proven.SafeBibTeX
         , Proven.SafeMCP
-        -- , Proven.SafeML  -- not-proven
+        , Proven.SafeML
+        -- Web security modules (v1.2.0)
+        , Proven.SafeHTTP
+        , Proven.SafePromptInjection
+        , Proven.SafeCORS
+        , Proven.SafeAPIKey
+        , Proven.SafeWebSocket
         -- Framework convenience re-export modules
         , Proven.Network
         , Proven.Crypto

@@ -59,7 +59,7 @@ adler32 : List Nat -> Bits32
 adler32 bytes = go 1 0 bytes
   where
     go : Nat -> Nat -> List Nat -> Bits32
-    go a b [] = cast ((b `shiftL` 16) .|. a)
+    go a b [] = (cast b `shiftL` 16) .|. cast a
     go a b (x :: xs) =
       let a' = (a + x) `mod` adler32Mod
           b' = (b + a') `mod` adler32Mod
@@ -89,7 +89,7 @@ public export
 twosComplement : List Nat -> Nat
 twosComplement bytes =
   let s = sumChecksum bytes
-  in (256 - s) `mod` 256
+  in minus 256 s `mod` 256
 
 --------------------------------------------------------------------------------
 -- Luhn Algorithm
@@ -108,11 +108,11 @@ luhnDigit s =
      else Just (computeLuhn (reverse digits) 0 0)
   where
     computeLuhn : List Nat -> Nat -> Nat -> Nat
-    computeLuhn [] _ acc = (10 - (acc `mod` 10)) `mod` 10
+    computeLuhn [] _ acc = minus 10 (acc `mod` 10) `mod` 10
     computeLuhn (d :: ds) idx acc =
       let n = if idx `mod` 2 == 0
               then let doubled = d * 2
-                   in if doubled > 9 then doubled - 9 else doubled
+                   in if doubled > 9 then minus doubled 9 else doubled
               else d
       in computeLuhn ds (S idx) (acc + n)
 
@@ -129,7 +129,7 @@ validateLuhn s =
     computeLuhn (d :: ds) idx acc =
       let n = if idx `mod` 2 == 1
               then let doubled = d * 2
-                   in if doubled > 9 then doubled - 9 else doubled
+                   in if doubled > 9 then minus doubled 9 else doubled
               else d
       in computeLuhn ds (S idx) (acc + n)
 
@@ -166,5 +166,5 @@ validateISBN13 s =
     computeISBN13 : List Nat -> Nat -> Nat -> Nat
     computeISBN13 [] _ acc = acc
     computeISBN13 (d :: ds) idx acc =
-      let weight = if idx `mod` 2 == 0 then 1 else 3
+      let weight : Nat = if idx `mod` 2 == 0 then 1 else 3
       in computeISBN13 ds (S idx) (acc + d * weight)

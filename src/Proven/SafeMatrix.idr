@@ -70,13 +70,10 @@ identity n = tabulate n (\i => tabulate n (\j => if finToNat i == finToNat j the
 
 ||| Create a diagonal matrix from a vector
 public export
-diagonal : Num a => Vect n a -> Matrix n n a
-diagonal vals = zipWithIndex vals
-  where
-    zipWithIndex : Vect m a -> Matrix m m a
-    zipWithIndex {m = Z} [] = []
-    zipWithIndex {m = S k} (x :: xs) =
-      (x :: replicate k 0) :: map (0 ::) (zipWithIndex xs)
+diagonal : Num a => {n : Nat} -> Vect n a -> Matrix n n a
+diagonal {n = Z} [] = []
+diagonal {n = S k} (x :: xs) =
+  (x :: replicate k 0) :: map (0 ::) (diagonal xs)
 
 --------------------------------------------------------------------------------
 -- Access
@@ -108,9 +105,9 @@ setIndex mat r c val = updateAt r (\row => updateAt c (const val) row) mat
 
 ||| Transpose a matrix
 public export
-transpose : Matrix rows cols a -> Matrix cols rows a
-transpose {cols = Z} _ = []
-transpose {cols = S k} mat = head <$> mat :: transpose (tail <$> mat)
+transpose : {cols : Nat} -> Matrix rows cols a -> Matrix cols rows a
+transpose {cols} [] = replicate cols []
+transpose {cols} (row :: rows) = zipWith (::) row (SafeMatrix.transpose rows)
 
 ||| Element-wise addition
 public export
@@ -119,7 +116,7 @@ add = zipWith (zipWith (+))
 
 ||| Element-wise subtraction
 public export
-sub : Num a => Matrix rows cols a -> Matrix rows cols a -> Matrix rows cols a
+sub : Neg a => Matrix rows cols a -> Matrix rows cols a -> Matrix rows cols a
 sub = zipWith (zipWith (-))
 
 ||| Scalar multiplication
@@ -134,13 +131,10 @@ hadamard = zipWith (zipWith (*))
 
 ||| Matrix multiplication
 public export
-mul : Num a => Matrix m n a -> Matrix n p a -> Matrix m p a
+mul : Num a => {p : Nat} -> Matrix m n a -> Matrix n p a -> Matrix m p a
 mul a b =
-  let bt = transpose b
-  in map (\row => map (dot row) bt) a
-  where
-    dot : Num a => Vect n a -> Vect n a -> a
-    dot xs ys = sum (zipWith (*) xs ys)
+  let bt = SafeMatrix.transpose b
+  in map (\row => map (\col => sum (zipWith (*) row col)) bt) a
 
 --------------------------------------------------------------------------------
 -- Queries
@@ -148,18 +142,18 @@ mul a b =
 
 ||| Get the dimensions as a pair
 public export
-dimensions : Matrix rows cols a -> (Nat, Nat)
-dimensions {rows} {cols} _ = (rows, cols)
+dimensions : {rows, cols : Nat} -> Matrix rows cols a -> (Nat, Nat)
+dimensions _ = (rows, cols)
 
 ||| Check if matrix is square
 public export
-isSquare : Matrix rows cols a -> Bool
-isSquare {rows} {cols} _ = rows == cols
+isSquare : {rows, cols : Nat} -> Matrix rows cols a -> Bool
+isSquare _ = rows == cols
 
 ||| Check if matrix is symmetric
 public export
-isSymmetric : Eq a => Matrix n n a -> Bool
-isSymmetric mat = mat == transpose mat
+isSymmetric : Eq a => {n : Nat} -> Matrix n n a -> Bool
+isSymmetric mat = mat == SafeMatrix.transpose mat
 
 ||| Trace of a square matrix (sum of diagonal elements)
 public export
@@ -172,13 +166,13 @@ trace mat = sum (diag mat)
 
 ||| Sum of all elements
 public export
-total : Num a => Matrix rows cols a -> a
-total = sum . map sum
+sumAll : Num a => Matrix rows cols a -> a
+sumAll = sum . map sum
 
 ||| Frobenius norm squared
 public export
 frobeniusNormSq : Num a => Matrix rows cols a -> a
-frobeniusNormSq mat = total (hadamard mat mat)
+frobeniusNormSq mat = sumAll (hadamard mat mat)
 
 --------------------------------------------------------------------------------
 -- Transformations

@@ -86,7 +86,7 @@ fromPolar r theta = MkComplex (r * cos theta) (r * sin theta)
 
 ||| Addition
 public export
-Num a => Num (Complex a) where
+(Num a, Neg a) => Num (Complex a) where
   (+) (MkComplex a b) (MkComplex c d) = MkComplex (a + c) (b + d)
   (*) (MkComplex a b) (MkComplex c d) = MkComplex (a * c - b * d) (a * d + b * c)
   fromInteger n = MkComplex (fromInteger n) 0
@@ -99,7 +99,7 @@ Neg a => Neg (Complex a) where
 
 ||| Absolute value (modulus) squared - avoids sqrt
 public export
-Num a => absSquared : Complex a -> a
+absSquared : Num a => Complex a -> a
 absSquared (MkComplex a b) = a * a + b * b
 
 ||| Absolute value (modulus)
@@ -112,14 +112,24 @@ public export
 abs : Complex Double -> Double
 abs = magnitude
 
+||| Two-argument arctangent (atan2 y x)
+atan2Impl : Double -> Double -> Double
+atan2Impl y x =
+  if x > 0.0 then atan (y / x)
+  else if x < 0.0 && y >= 0.0 then atan (y / x) + pi
+  else if x < 0.0 && y < 0.0 then atan (y / x) - pi
+  else if x == 0.0 && y > 0.0 then pi / 2.0
+  else if x == 0.0 && y < 0.0 then negate (pi / 2.0)
+  else 0.0  -- x == 0 && y == 0
+
 ||| Argument (phase angle) in radians
 public export
 arg : Complex Double -> Double
-arg (MkComplex a b) = atan2 b a
+arg (MkComplex a b) = atan2Impl b a
 
 ||| Conjugate
 public export
-Neg a => conjugate : Complex a -> Complex a
+conjugate : Neg a => Complex a -> Complex a
 conjugate (MkComplex a b) = MkComplex a (negate b)
 
 --------------------------------------------------------------------------------
@@ -144,7 +154,7 @@ div : Complex Double -> Complex Double -> Maybe (Complex Double)
 div num den =
   case divSafe num den of
     Left _ => Nothing
-    Right r => Right r
+    Right r => Just r
 
 ||| Division with default value for zero divisor
 public export
@@ -291,7 +301,7 @@ isZero (MkComplex a b) = a == 0 && b == 0
 public export
 approxEqual : (eps : Double) -> Complex Double -> Complex Double -> Bool
 approxEqual eps (MkComplex a1 b1) (MkComplex a2 b2) =
-  abs (a1 - a2) < eps && abs (b1 - b2) < eps
+  Prelude.abs (a1 - a2) < eps && Prelude.abs (b1 - b2) < eps
 
 --------------------------------------------------------------------------------
 -- Conversions
@@ -321,11 +331,8 @@ Eq a => Eq (Complex a) where
   (==) (MkComplex a1 b1) (MkComplex a2 b2) = a1 == a2 && b1 == b2
 
 public export
-Show a => Ord a => Num a => Show (Complex a) where
+Show a => Ord a => Neg a => Num a => Show (Complex a) where
   show (MkComplex r i) =
     if i >= 0
       then show r ++ " + " ++ show i ++ "i"
-      else show r ++ " - " ++ show (abs i) ++ "i"
-    where
-      abs : Num a => Ord a => a -> a
-      abs x = if x >= 0 then x else negate x
+      else show r ++ " - " ++ show (negate i) ++ "i"

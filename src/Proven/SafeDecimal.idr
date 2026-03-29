@@ -51,12 +51,16 @@ pow10 Z = 1
 pow10 (S n) = 10 * pow10 n
 
 ||| Normalize by removing trailing zeros (reduce scale)
+||| Structurally decreasing on scale (Nat) ensures totality.
 normalize : Decimal -> Decimal
-normalize (MkDecimal m Z) = MkDecimal m Z
-normalize (MkDecimal m (S n)) =
-  if m `mod` 10 == 0
-    then normalize (MkDecimal (m `div` 10) n)
-    else MkDecimal m (S n)
+normalize (MkDecimal m s) = go s m
+  where
+    go : Nat -> Integer -> Decimal
+    go Z mantissa = MkDecimal mantissa Z
+    go (S n) mantissa =
+      if mantissa `mod` 10 == 0
+        then go n (mantissa `div` 10)
+        else MkDecimal mantissa (S n)
 
 ||| Align two decimals to the same scale
 align : Decimal -> Decimal -> (Decimal, Decimal)
@@ -84,8 +88,8 @@ fromInteger n = MkDecimal n 0
 public export
 decimal' : (whole : Integer) -> (frac : Nat) -> (fracDigits : Nat) -> Decimal
 decimal' w f d =
-  let sign = if w < 0 then -1 else 1
-      mantissa = abs w * pow10 d + cast f
+  let sign : Integer = if w < 0 then -1 else 1
+      mantissa : Integer = Prelude.abs w * pow10 d + cast f
   in normalize (MkDecimal (sign * mantissa) d)
 
 ||| Zero
@@ -105,12 +109,13 @@ parse s =
   case break (== '.') (unpack s) of
     (wholeChars, []) =>
       -- No decimal point
-      case parseInteger (pack wholeChars) of
+      case the (Maybe Integer) (parseInteger (pack wholeChars)) of
         Nothing => Nothing
-        Just w => Just (fromInteger w)
+        Just w => Just (SafeDecimal.fromInteger w)
     (wholeChars, '.' :: fracChars) =>
       -- Has decimal point
-      case (parseInteger (pack wholeChars), parseNat (pack fracChars)) of
+      case (the (Maybe Integer) (parseInteger (pack wholeChars)),
+            parseNat (pack fracChars)) of
         (Just w, Just f) =>
           let d = length fracChars
           in Just (decimal' w f d)
@@ -118,8 +123,8 @@ parse s =
     _ => Nothing
   where
     parseNat : String -> Maybe Nat
-    parseNat s =
-      case parseInteger s of
+    parseNat str =
+      case the (Maybe Integer) (parseInteger str) of
         Nothing => Nothing
         Just n => if n >= 0 then Just (cast n) else Nothing
 

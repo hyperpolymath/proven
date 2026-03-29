@@ -8,6 +8,7 @@ module Proven.SafeDNS
 
 import Data.String
 import Data.List
+import Data.List1
 import Data.Nat
 import Data.Maybe
 
@@ -95,7 +96,7 @@ public export
 isValidHostname : String -> Bool
 isValidHostname s =
   length s <= 253 &&
-  all isValidLabel (split (== '.') s)
+  all isValidLabel (forget (split (== '.') s))
 
 ||| Parse a hostname string
 public export
@@ -103,7 +104,7 @@ parseHostname : String -> Maybe Hostname
 parseHostname s =
   if not (isValidHostname s) then Nothing
   else
-    let parts = split (== '.') s
+    let parts = forget (split (== '.') s)
         labels = traverse mkLabel parts
     in map MkHostname labels
 

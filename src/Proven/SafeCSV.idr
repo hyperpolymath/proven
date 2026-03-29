@@ -75,147 +75,135 @@ record ParseState where
 initState : ParseState
 initState = MkParseState 1 1 False [] [] []
 
-||| Parse a CSV string with default options
-public export
-parse : String -> Either CSVError CSV
-parse = parseWith defaultOptions
+||| Finalize remaining fields into a row
+finalizeRow : ParseState -> CSV
+finalizeRow st =
+  let field = pack (reverse st.currentField)
+      row = reverse (field :: st.currentRow)
+  in if null st.currentField && null st.currentRow && null st.rows
+       then st.rows
+       else row :: st.rows
+
+mutual
+  ||| Character-by-character parser
+  covering
+  parseChars : CSVOptions -> List Char -> ParseState -> Either CSVError CSV
+  parseChars _ [] state =
+    if state.inQuote
+      then Left (UnterminatedQuote state.line)
+      else Right (reverse (finalizeRow state))
+  parseChars opts (c :: cs) state =
+    if state.inQuote
+      then parseInQuote opts c cs state
+      else parseNormal opts c cs state
+
+  ||| Parse while inside a quoted field
+  covering
+  parseInQuote : CSVOptions -> Char -> List Char -> ParseState -> Either CSVError CSV
+  parseInQuote opts c cs state =
+    if c == opts.quote
+      then case cs of
+             (c2 :: rest) =>
+               if c2 == opts.escape
+                 then parseChars opts rest
+                        (MkParseState state.line (state.column + 2)
+                         True (opts.quote :: state.currentField)
+                         state.currentRow state.rows)
+                 else parseChars opts cs
+                        (MkParseState state.line (state.column + 1)
+                         False state.currentField
+                         state.currentRow state.rows)
+             [] => parseChars opts []
+                     (MkParseState state.line (state.column + 1)
+                      False state.currentField
+                      state.currentRow state.rows)
+      else parseChars opts cs
+             (MkParseState state.line (state.column + 1)
+              True (c :: state.currentField)
+              state.currentRow state.rows)
+
+  ||| Parse while outside a quoted field
+  covering
+  parseNormal : CSVOptions -> Char -> List Char -> ParseState -> Either CSVError CSV
+  parseNormal opts c cs state =
+    if c == opts.quote
+      then parseChars opts cs
+             (MkParseState state.line (state.column + 1)
+              True state.currentField
+              state.currentRow state.rows)
+      else if c == opts.delimiter
+        then let field = pack (reverse state.currentField)
+             in parseChars opts cs
+                  (MkParseState state.line (state.column + 1)
+                   False [] (field :: state.currentRow) state.rows)
+        else if c == '\r'
+          then let field = pack (reverse state.currentField)
+                   row = reverse (field :: state.currentRow)
+               in case cs of
+                    ('\n' :: rest) =>
+                      parseChars opts rest
+                        (MkParseState (state.line + 1) 1 False [] [] (row :: state.rows))
+                    _ =>
+                      parseChars opts cs
+                        (MkParseState (state.line + 1) 1 False [] [] (row :: state.rows))
+          else if c == '\n'
+            then let field = pack (reverse state.currentField)
+                     row = reverse (field :: state.currentRow)
+                 in parseChars opts cs
+                      (MkParseState (state.line + 1) 1 False [] [] (row :: state.rows))
+            else parseChars opts cs
+                   (MkParseState state.line (state.column + 1)
+                    False (c :: state.currentField)
+                    state.currentRow state.rows)
 
 ||| Parse a CSV string with custom options
-public export
+public export covering
 parseWith : CSVOptions -> String -> Either CSVError CSV
 parseWith opts input =
   if null input then Left EmptyInput
   else parseChars opts (unpack input) initState
 
-||| Character-by-character parser
-parseChars : CSVOptions -> List Char -> ParseState -> Either CSVError CSV
-parseChars _ [] state =
-  if state.inQuote
-    then Left (UnterminatedQuote state.line)
-    else Right (reverse (finalizeRow state))
-  where
-    finalizeRow : ParseState -> CSV
-    finalizeRow st =
-      let field = pack (reverse st.currentField)
-          row = reverse (field :: st.currentRow)
-      in if null st.currentField && null st.currentRow && null st.rows
-           then st.rows
-           else row :: st.rows
-
-parseChars opts (c :: cs) state =
-  if state.inQuote
-    then parseInQuote opts c cs state
-    else parseNormal opts c cs state
-
-||| Parse while inside a quoted field
-parseInQuote : CSVOptions -> Char -> List Char -> ParseState -> Either CSVError CSV
-parseInQuote opts c cs state =
-  if c == opts.quote
-    then case cs of
-           (c2 :: rest) =>
-             if c2 == opts.escape
-               then -- Escaped quote - add single quote to field
-                 parseChars opts rest
-                   (MkParseState state.line (state.column + 2)
-                    True (opts.quote :: state.currentField)
-                    state.currentRow state.rows)
-               else -- End of quoted field
-                 parseChars opts cs
-                   (MkParseState state.line (state.column + 1)
-                    False state.currentField
-                    state.currentRow state.rows)
-           [] => -- End of input after closing quote
-             parseChars opts [] (MkParseState state.line (state.column + 1)
-                                 False state.currentField
-                                 state.currentRow state.rows)
-    else -- Regular character inside quote
-      parseChars opts cs
-        (MkParseState state.line (state.column + 1)
-         True (c :: state.currentField)
-         state.currentRow state.rows)
-
-||| Parse while outside a quoted field
-parseNormal : CSVOptions -> Char -> List Char -> ParseState -> Either CSVError CSV
-parseNormal opts c cs state =
-  if c == opts.quote
-    then -- Start of quoted field
-      parseChars opts cs
-        (MkParseState state.line (state.column + 1)
-         True state.currentField
-         state.currentRow state.rows)
-    else if c == opts.delimiter
-      then -- End of field
-        let field = pack (reverse state.currentField)
-        in parseChars opts cs
-             (MkParseState state.line (state.column + 1)
-              False []
-              (field :: state.currentRow) state.rows)
-      else if c == '\r'
-        then case cs of
-               ('\n' :: rest) => -- CRLF line ending
-                 let field = pack (reverse state.currentField)
-                     row = reverse (field :: state.currentRow)
-                 in parseChars opts rest
-                      (MkParseState (state.line + 1) 1
-                       False []
-                       [] (row :: state.rows))
-               _ => -- Just CR
-                 let field = pack (reverse state.currentField)
-                     row = reverse (field :: state.currentRow)
-                 in parseChars opts cs
-                      (MkParseState (state.line + 1) 1
-                       False []
-                       [] (row :: state.rows))
-        else if c == '\n'
-          then -- LF line ending
-            let field = pack (reverse state.currentField)
-                row = reverse (field :: state.currentRow)
-            in parseChars opts cs
-                 (MkParseState (state.line + 1) 1
-                  False []
-                  [] (row :: state.rows))
-          else -- Regular character
-            parseChars opts cs
-              (MkParseState state.line (state.column + 1)
-               False (c :: state.currentField)
-               state.currentRow state.rows)
+||| Parse a CSV string with default options
+public export covering
+parse : String -> Either CSVError CSV
+parse = parseWith defaultOptions
 
 --------------------------------------------------------------------------------
 -- Generation
 --------------------------------------------------------------------------------
 
-||| Convert CSV to string with default options
-public export
-render : CSV -> String
-render = renderWith defaultOptions
+||| Render a single field (quoting if necessary)
+renderField : CSVOptions -> String -> String
+renderField opts field =
+  if needsQuoting
+    then quoteIt
+    else field
+  where
+    needsQuoting : Bool
+    needsQuoting =
+      any (\c => c == opts.delimiter || c == opts.quote || c == '\n' || c == '\r') (unpack field)
+
+    quoteIt : String
+    quoteIt =
+      let escaped = concatMap (\c => if c == opts.quote
+                                       then pack [opts.escape, opts.quote]
+                                       else singleton c)
+                              (unpack field)
+      in singleton opts.quote ++ escaped ++ singleton opts.quote
+
+||| Render a single row
+renderRow : CSVOptions -> Row -> String
+renderRow opts row = concat (intersperse (singleton opts.delimiter) (map (renderField opts) row))
 
 ||| Convert CSV to string with custom options
 public export
 renderWith : CSVOptions -> CSV -> String
 renderWith opts csv = concat (intersperse opts.lineEnding (map (renderRow opts) csv))
 
-||| Render a single row
-renderRow : CSVOptions -> Row -> String
-renderRow opts row = concat (intersperse (singleton opts.delimiter) (map (renderField opts) row))
-
-||| Render a single field (quoting if necessary)
-renderField : CSVOptions -> String -> String
-renderField opts field =
-  if needsQuoting opts field
-    then quoteField opts field
-    else field
-  where
-    needsQuoting : CSVOptions -> String -> Bool
-    needsQuoting opts s =
-      any (\c => c == opts.delimiter || c == opts.quote || c == '\n' || c == '\r') (unpack s)
-
-    quoteField : CSVOptions -> String -> String
-    quoteField opts s =
-      let escaped = concatMap (\c => if c == opts.quote
-                                       then pack [opts.escape, opts.quote]
-                                       else singleton c)
-                              (unpack s)
-      in singleton opts.quote ++ escaped ++ singleton opts.quote
+||| Convert CSV to string with default options
+public export
+render : CSV -> String
+render = renderWith defaultOptions
 
 --------------------------------------------------------------------------------
 -- Utilities
@@ -285,7 +273,6 @@ columnByName name (headerRow :: rows) =
     Nothing => []
     Just idx => column idx rows
   where
-    ||| Find the position of the first element satisfying a predicate
     findPos : Nat -> List String -> Maybe Nat
     findPos _ [] = Nothing
     findPos n (x :: xs) = if x == name then Just n else findPos (S n) xs
@@ -299,27 +286,6 @@ filterRows = filter
 public export
 mapFields : (String -> String) -> CSV -> CSV
 mapFields f = map (map f)
-
-||| Transpose CSV (rows become columns)
-public export
-transpose : CSV -> CSV
-transpose [] = []
-transpose csv =
-  let maxCols = foldl (\acc, row => max acc (length row)) 0 csv
-      padded = makeRectangular csv
-  in transposeHelper padded
-  where
-    transposeHelper : CSV -> CSV
-    transposeHelper rows =
-      if all null rows then []
-      else map getHead rows :: transposeHelper (map getTail rows)
-      where
-        getHead : Row -> String
-        getHead [] = ""
-        getHead (x :: _) = x
-        getTail : Row -> Row
-        getTail [] = []
-        getTail (_ :: xs) = xs
 
 --------------------------------------------------------------------------------
 -- Display

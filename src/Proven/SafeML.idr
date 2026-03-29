@@ -122,10 +122,10 @@ public export
 normalizeL1 : List Double -> Maybe (List Double)
 normalizeL1 [] = Nothing
 normalizeL1 xs =
-  let total = foldl (\acc, x => acc + abs x) 0.0 xs
-  in if total < 1.0e-15
+  let sumAbs = foldl (\acc, x => acc + abs x) 0.0 xs
+  in if sumAbs < 1.0e-15
        then Nothing
-       else Just (map (/ total) xs)
+       else Just (map (/ sumAbs) xs)
 
 ||| Dot product of two vectors
 public export
@@ -170,10 +170,10 @@ accuracy : List (Nat, Nat) -> Maybe Prob
 accuracy [] = Nothing
 accuracy pairs =
   let correct = length (filter (\(pred, actual) => pred == actual) pairs)
-      total = length pairs
-  in if total == 0
+      count = length pairs
+  in if count == 0
        then Nothing
-       else Just (clampProb (cast correct / cast total))
+       else Just (clampProb (cast correct / cast count))
 
 ||| Mean Squared Error
 public export
