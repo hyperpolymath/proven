@@ -7,9 +7,12 @@
 module Proven.SafeJWT.Proofs
 
 import Proven.Core
+import Proven.SafeJWT.Types
 import Proven.SafeJWT.Decode
 import Proven.SafeJWT.Validate
+import Data.Bits
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -89,7 +92,7 @@ noneNotSecure EdDSASecure impossible
 ||| Depends on isSymmetric implementation returning True for HMAC variants.
 export
 hmacIsSymmetric : (alg : JWTAlgorithm) -> IsSecureAlg alg ->
-                  (alg = HS256 \/ alg = HS384 \/ alg = HS512) ->
+                  Either (alg = HS256) (Either (alg = HS384) (alg = HS512)) ->
                   isSymmetric alg = True
 hmacIsSymmetric HS256 _ _ = Refl
 hmacIsSymmetric HS384 _ _ = Refl
@@ -128,14 +131,14 @@ hmacIsSymmetric None sec _ = absurd (noneNotSecure sec)
 
 ||| Theorem: Default validation rejects 'none' algorithm
 export
-defaultRejectsNone : defaultValidation.rejectNone = True
+defaultRejectsNone : Types.defaultValidation.rejectNone = True
 defaultRejectsNone = Refl
 
 ||| Theorem: Strict validation requires secure algorithms only
 ||| Depends on strictValidation.allowedAlgorithms containing only secure algorithms.
 export
 strictAllowsOnlySecure : (alg : JWTAlgorithm) ->
-                         alg `elem` strictValidation.allowedAlgorithms = True ->
+                         alg `elem` Types.strictValidation.allowedAlgorithms = True ->
                          IsSecureAlg alg
 strictAllowsOnlySecure HS256 _ = HS256Secure
 strictAllowsOnlySecure HS384 _ = HS384Secure

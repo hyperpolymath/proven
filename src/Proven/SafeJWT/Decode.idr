@@ -7,8 +7,11 @@
 module Proven.SafeJWT.Decode
 
 import Proven.Core
-import Proven.SafeJWT.Types
+import public Proven.SafeJWT.Types
+import Data.Bits
+import Data.Fin
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -23,7 +26,7 @@ base64UrlAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456
 
 ||| Get index of character in base64url alphabet
 base64Index : Char -> Maybe Nat
-base64Index c = findIndex (== c) (unpack base64UrlAlphabet)
+base64Index c = map finToNat (findIndex (== c) (unpack base64UrlAlphabet))
 
 ||| Check if character is valid base64url
 isBase64UrlChar : Char -> Bool
@@ -141,7 +144,7 @@ parseJsonNumber : List Char -> (Either Integer Double, List Char)
 parseJsonNumber chars =
   let (numChars, rest) = span isNumChar chars
       numStr = pack numChars
-  in if '.' `elem` numChars || 'e' `elem` numChars || 'E' `elem` numChars
+  in if ('.' `elem` numChars) || ('e' `elem` numChars) || ('E' `elem` numChars)
        then (Right (cast numStr), rest)
        else (Left (cast numStr), rest)
   where
@@ -152,8 +155,10 @@ parseJsonNumber chars =
 skipWs : List Char -> List Char
 skipWs = dropWhile isSpace
 
+-- covering: mutual recursion between parseValue/parseArray/parseObject
+-- is structurally decreasing on input chars but crosses where-clause boundaries
 mutual
-  ||| Parse a JSON value
+  covering
   parseValue : List Char -> Maybe (JsonValue, List Char)
   parseValue chars =
     case skipWs chars of
@@ -174,7 +179,7 @@ mutual
           else Nothing
       [] => Nothing
 
-  ||| Parse a JSON array
+  covering
   parseArray : List Char -> Maybe (JsonValue, List Char)
   parseArray chars = go (skipWs chars) []
     where
@@ -189,7 +194,7 @@ mutual
               _ => Nothing
           Nothing => Nothing
 
-  ||| Parse a JSON object
+  covering
   parseObject : List Char -> Maybe (JsonValue, List Char)
   parseObject chars = go (skipWs chars) []
     where
@@ -209,7 +214,8 @@ mutual
              _ => Nothing
       go _ _ = Nothing
 
-||| Parse JSON string to JsonValue
+-- covering: depends on parseValue which is covering
+covering
 parseJson : String -> Maybe JsonValue
 parseJson s = map fst (parseValue (unpack s))
 
@@ -234,7 +240,7 @@ getField key [] = Nothing
 getField key ((k, v) :: rest) = if k == key then Just v else getField key rest
 
 ||| Parse JWT header from JSON
-public export
+public export covering
 parseHeader : String -> Result JWTError JWTHeader
 parseHeader json =
   case parseJson json of
@@ -259,7 +265,8 @@ parseHeader json =
 -- Claims Parsing
 --------------------------------------------------------------------------------
 
-||| Convert JsonValue to ClaimValue
+-- covering: recursive through ClaimObject branch
+covering
 jsonToClaimValue : JsonValue -> ClaimValue
 jsonToClaimValue (JsonString s) = ClaimString s
 jsonToClaimValue (JsonInt i) = ClaimInt i
@@ -284,7 +291,7 @@ parseAudience (JsonArray xs) =
 parseAudience _ = Nothing
 
 ||| Parse JWT claims from JSON
-public export
+public export covering
 parseClaims : String -> Result JWTError JWTClaims
 parseClaims json =
   case parseJson json of
@@ -310,7 +317,7 @@ parseClaims json =
 
 ||| Decode a JWT token without validating the signature
 ||| This is useful for inspecting tokens before validation
-public export
+public export covering
 decode : String -> Result JWTError DecodedJWT
 decode token = do
   -- Split into segments
@@ -327,7 +334,7 @@ decode token = do
   Ok (MkDecodedJWT token header claims sig segs.header segs.payload)
 
 ||| Decode only the header (without parsing full token)
-public export
+public export covering
 decodeHeader : String -> Result JWTError JWTHeader
 decodeHeader token = do
   segs <- splitToken token
@@ -335,7 +342,7 @@ decodeHeader token = do
   parseHeader headerJson
 
 ||| Decode only the claims/payload
-public export
+public export covering
 decodeClaims : String -> Result JWTError JWTClaims
 decodeClaims token = do
   segs <- splitToken token
@@ -343,12 +350,12 @@ decodeClaims token = do
   parseClaims payloadJson
 
 ||| Get the algorithm from a token without full decoding
-public export
+public export covering
 getAlgorithm : String -> Result JWTError JWTAlgorithm
 getAlgorithm token = map (.alg) (decodeHeader token)
 
 ||| Check if token uses a specific algorithm
-public export
+public export covering
 usesAlgorithm : JWTAlgorithm -> String -> Bool
 usesAlgorithm alg token =
   case getAlgorithm token of

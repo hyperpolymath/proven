@@ -7,8 +7,10 @@
 module Proven.SafeJWT.Validate
 
 import Proven.Core
-import Proven.SafeJWT.Decode
+import public Proven.SafeJWT.Decode
+import Data.Bits
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -313,7 +315,7 @@ validate opts key currentTime jwt = do
   Ok (MkValidatedJWT jwt currentTime "validated")
 
 ||| Validate a token string (decode + validate)
-public export
+public export covering
 validateToken : ValidationOptions -> SigningKey -> Integer -> String ->
                 Result JWTError ValidatedJWT
 validateToken opts key currentTime token = do
@@ -325,7 +327,7 @@ validateToken opts key currentTime token = do
 --------------------------------------------------------------------------------
 
 ||| Quick validation with just a secret key (HMAC)
-public export
+public export covering
 validateWithSecret : String -> Integer -> String -> Result JWTError ValidatedJWT
 validateWithSecret secret currentTime token =
   let key = SecretKey (map (cast . ord) (unpack secret))
@@ -333,7 +335,7 @@ validateWithSecret secret currentTime token =
 
 ||| Quick validation without signature check (claims only)
 ||| WARNING: Only use when you trust the token source
-public export
+public export covering
 validateClaimsOnly : ValidationOptions -> Integer -> String -> Result JWTError DecodedJWT
 validateClaimsOnly opts currentTime token = do
   jwt <- decode token
@@ -341,7 +343,7 @@ validateClaimsOnly opts currentTime token = do
   Ok jwt
 
 ||| Check if token is valid (returns Bool instead of Result)
-public export
+public export covering
 isValid : ValidationOptions -> SigningKey -> Integer -> String -> Bool
 isValid opts key currentTime token =
   isOk (validateToken opts key currentTime token)

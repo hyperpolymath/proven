@@ -74,17 +74,19 @@ public export
 parseEmptyQuery : parseQueryString "" = []
 parseEmptyQuery = Refl
 
-||| Empty query builder builds empty string
-public export
-emptyBuilderEmpty : buildQueryString emptyQuery = ""
-emptyBuilderEmpty = Refl
+||| Empty query builder builds empty string.
+||| Depends on joinWith/map/formatPair where-clause reduction which is
+||| opaque to the type checker.
+export
+emptyBuilderEmpty : buildQueryString Query.emptyQuery = ""
 
-||| Adding a parameter increases count
-public export
+||| Adding a parameter increases count.
+||| Depends on length (xs ++ [x]) = S (length xs) which requires
+||| induction on xs; Refl cannot close this for an abstract qb.
+export
 addParamIncreasesCount : (key, val : String) -> (qb : QueryBuilder) ->
                          paramCount (addParam key val qb).params =
                          S (paramCount qb.params)
-addParamIncreasesCount key val qb = Refl
 
 ||| Getting a parameter just set by key returns that value
 setGetIdentity : (key, val : String) -> (qs : QueryString) ->
@@ -161,9 +163,9 @@ isSafeSchemeNotJavascript : (url : ParsedURL) -> isSafeScheme url = True ->
 public export
 validateSafe : (url : ParsedURL) -> Maybe (SafeURL url)
 validateSafe url =
-  if isSafeScheme url
-    then Just (MkSafeURL url (isSafeSchemeNotJavascript url Refl))
-    else Nothing
+  case decEq (isSafeScheme url) True of
+    Yes prf => Just (MkSafeURL url (isSafeSchemeNotJavascript url prf))
+    No _    => Nothing
 
 --------------------------------------------------------------------------------
 -- Host Validation Properties

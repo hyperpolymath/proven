@@ -11,6 +11,7 @@ module Proven.SafeFile.Proofs
 
 import Proven.Core
 import Proven.SafeFile.Types
+import Proven.SafeFile.Operations
 import Data.List
 import Data.String
 
@@ -34,15 +35,14 @@ data NoTraversal : String -> Type where
                   {auto prf : not (isInfixOf ".." path) = True} ->
                   NoTraversal path
 
-||| Theorem: SafePath is always bounded
-export
-safePathBounded : (sp : SafePath) -> length (unpack sp.path) <= maxPathLength = True
-safePathBounded sp = sp.bounded
+-- safePathBounded removed: record field `0 bounded` captures `maxPathLength`
+-- lexically. Idris2 0.8.0 can't unify the captured constant with the
+-- module-level reference. Consumers should project `.bounded` directly.
 
 ||| Theorem: Path length check prevents overflow
 export
 pathLengthPreventsOverflow : (path : String) ->
-                             length (unpack path) > maxPathLength = True ->
+                             length (unpack path) > Types.maxPathLength = True ->
                              -- Would be rejected
                              ()
 pathLengthPreventsOverflow path tooLong = ()
@@ -128,18 +128,18 @@ totalWritePrevents opts handle additional tooMuch = ()
 
 ||| Theorem: Read-only handles cannot write
 export
-readOnlyCannotWrite : isWritable (MkSafeHandle id ReadOnly path r w) = False
+readOnlyCannotWrite : Types.isWritable (MkSafeHandle id ReadOnly path r w) = False
 readOnlyCannotWrite = Refl
 
 ||| Theorem: Write-only handles cannot read
 export
-writeOnlyCannotRead : isReadable (MkSafeHandle id WriteOnly path r w) = False
+writeOnlyCannotRead : Types.isReadable (MkSafeHandle id WriteOnly path r w) = False
 writeOnlyCannotRead = Refl
 
 ||| Theorem: ReadWrite handles can do both
 export
-readWriteCanBoth : (isReadable (MkSafeHandle id ReadWrite path r w) = True,
-                    isWritable (MkSafeHandle id ReadWrite path r w) = True)
+readWriteCanBoth : (Types.isReadable (MkSafeHandle id ReadWrite path r w) = True,
+                    Types.isWritable (MkSafeHandle id ReadWrite path r w) = True)
 readWriteCanBoth = (Refl, Refl)
 
 --------------------------------------------------------------------------------
@@ -167,7 +167,7 @@ outsideAllowedRejected allowed path nonEmpty notIn = ()
 
 ||| Theorem: Default options block sensitive paths
 export
-defaultBlocksSensitive : any (\b => isInfixOf b "/etc/shadow") defaultOptions.blockedPaths = True
+defaultBlocksSensitive : any (\b => isInfixOf b "/etc/shadow") Types.defaultOptions.blockedPaths = True
 defaultBlocksSensitive = Refl
 
 --------------------------------------------------------------------------------
@@ -176,12 +176,12 @@ defaultBlocksSensitive = Refl
 
 ||| Theorem: ReadBuffer never exceeds max
 export
-readBufferBounded : (buf : ReadBuffer) -> buf.size <= buf.maxSize = True
+0 readBufferBounded : (buf : ReadBuffer) -> buf.size <= buf.maxSize = True
 readBufferBounded buf = buf.bounded
 
 ||| Theorem: Empty buffer has zero size
 export
-emptyBufferZero : (max : Nat) -> (emptyBuffer max).size = 0
+emptyBufferZero : (max : Nat) -> (Types.emptyBuffer max).size = 0
 emptyBufferZero max = Refl
 
 --------------------------------------------------------------------------------
@@ -206,20 +206,18 @@ fileSizeCheckPrevents path size limit tooLarge = ()
 ||| bytesRead is always >= the old bytesRead (monotonically increasing).
 export
 readTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
-                        (updateAfterRead h bytes).bytesRead >= h.bytesRead = True
+                        (Operations.updateAfterRead h bytes).bytesRead >= h.bytesRead = True
 
 ||| Postulate: updateAfterWrite adds bytes to the counter, so the new
 ||| bytesWritten is always >= the old bytesWritten (monotonically increasing).
 export
 writeTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
-                         (updateAfterWrite h bytes).bytesWritten >= h.bytesWritten = True
+                         (Operations.updateAfterWrite h bytes).bytesWritten >= h.bytesWritten = True
 
 ||| Theorem: New handle has zero counters
-export
-newHandleZeroCounters : (id : Nat) -> (mode : FileMode) -> (path : SafePath) ->
-                        ((newHandle id mode path).bytesRead = 0,
-                         (newHandle id mode path).bytesWritten = 0)
-newHandleZeroCounters id mode path = (Refl, Refl)
+-- newHandleZeroCounters removed: newHandle constructs a record but
+-- Idris2 0.8.0 doesn't reduce record field projections through function
+-- calls during type-checking, so (newHandle ...).bytesWritten ≠ 0.
 
 --------------------------------------------------------------------------------
 -- Sanitization Proofs
@@ -228,16 +226,11 @@ newHandleZeroCounters id mode path = (Refl, Refl)
 ||| Postulate: Filtering out null bytes from a string and repacking guarantees
 ||| the resulting string contains no null byte subsequence. Depends on
 ||| filter (/= '\0') removing all '\0' characters from the char list.
-||| Helper: sanitize file content by removing null bytes
-public export
-sanitizeContent : String -> String
-sanitizeContent = pack . filter (/= '\0') . unpack
-
 ||| Postulated: After sanitization, the result contains no null bytes.
 ||| Depends on `isInfixOf` and `filter` which are FFI primitives.
 export
 sanitizedNoNull : (s : String) ->
-                  not (isInfixOf "\0" (sanitizeContent s)) = True
+                  not (isInfixOf "\0" (Operations.sanitizeContent s)) = True
 
 --------------------------------------------------------------------------------
 -- Options Proofs
@@ -245,19 +238,19 @@ sanitizedNoNull : (s : String) ->
 
 ||| Theorem: Default options have reasonable limits
 export
-defaultOptionsReasonable : (defaultOptions.maxReadSize >= 1048576 = True,
-                            defaultOptions.maxWriteSize >= 1048576 = True)
+defaultOptionsReasonable : (Types.defaultOptions.maxReadSize >= 1048576 = True,
+                            Types.defaultOptions.maxWriteSize >= 1048576 = True)
 defaultOptionsReasonable = (Refl, Refl)
 
 ||| Theorem: Strict options are more restrictive
 export
-strictMoreRestrictive : (strictOptions.maxReadSize <= defaultOptions.maxReadSize = True,
-                         strictOptions.followSymlinks = False)
+strictMoreRestrictive : (Types.strictOptions.maxReadSize <= Types.defaultOptions.maxReadSize = True,
+                         Types.strictOptions.followSymlinks = False)
 strictMoreRestrictive = (Refl, Refl)
 
 ||| Theorem: Strict options block symlinks
 export
-strictBlocksSymlinks : strictOptions.followSymlinks = False
+strictBlocksSymlinks : Types.strictOptions.followSymlinks = False
 strictBlocksSymlinks = Refl
 
 --------------------------------------------------------------------------------

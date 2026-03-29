@@ -7,7 +7,9 @@
 module Proven.SafePassword.Hash
 
 import Proven.Core
+import Data.Bits
 import Data.List
+import Data.String
 import Data.Vect
 
 %default total
@@ -293,7 +295,7 @@ encodePHCFormat : PHCFormat -> String
 encodePHCFormat phc =
   "$" ++ phc.algorithm ++
   maybe "" (\v => "$v=" ++ show v) phc.version ++
-  "$" ++ intercalate "," (map (\(k,v) => k ++ "=" ++ v) phc.params) ++
+  "$" ++ joinBy "," (map (\(k,v) => k ++ "=" ++ v) phc.params) ++
   "$" ++ phc.salt ++
   "$" ++ phc.hash
 
@@ -337,7 +339,7 @@ constantTimeHashCompare xs ys =
   where
     go : List Bits8 -> List Bits8 -> Bits8 -> Bool
     go [] [] acc = acc == 0
-    go (x :: xs') (y :: ys') acc = go xs' ys' (acc `or` (x `xor` y))
+    go (x :: xs') (y :: ys') acc = go xs' ys' (acc .|. (x `xor` y))
     go _ _ _ = False
 
 ||| Constant-time string hash comparison

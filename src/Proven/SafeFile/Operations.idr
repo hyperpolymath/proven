@@ -12,7 +12,9 @@ module Proven.SafeFile.Operations
 import Proven.Core
 import Proven.SafeFile.Types
 import Data.List
+import Data.List1
 import Data.String
+import Data.Maybe
 
 %default total
 
@@ -46,7 +48,7 @@ validatePathDefault = validatePath defaultOptions
 export
 normalizePath : String -> String
 normalizePath path =
-  let parts = filter (not . null) (split (== '/') path)
+  let parts = Prelude.List.filter (not . null) (forget $ split (== '/') path)
       normalized = "/" ++ joinBy "/" parts
   in if isPrefixOf "/" path then normalized else joinBy "/" parts
 
@@ -54,9 +56,9 @@ normalizePath path =
 export
 splitPath : String -> (String, String)
 splitPath path =
-  case break (== '/') (reverse path) of
-    (revName, revDir) =>
-      (reverse (drop 1 revDir), reverse revName)
+  let chars = unpack path
+      (revName, revDir) = break (== '/') (reverse chars)
+  in (pack (reverse (drop 1 revDir)), pack (reverse revName))
 
 ||| Get filename from path
 export
@@ -111,9 +113,9 @@ checkReadSize opts requested =
 export
 checkTotalRead : FileOptions -> SafeHandle -> Nat -> FileResult ()
 checkTotalRead opts handle additional =
-  let total = handle.bytesRead + additional
-  in if total > opts.maxTotalRead
-       then Err (ReadLimitExceeded total opts.maxTotalRead)
+  let totalBytes = handle.bytesRead + additional
+  in if totalBytes > opts.maxTotalRead
+       then Err (ReadLimitExceeded totalBytes opts.maxTotalRead)
        else Ok ()
 
 ||| Check if write size is within limits
@@ -128,9 +130,9 @@ checkWriteSize opts requested =
 export
 checkTotalWrite : FileOptions -> SafeHandle -> Nat -> FileResult ()
 checkTotalWrite opts handle additional =
-  let total = handle.bytesWritten + additional
-  in if total > opts.maxTotalWrite
-       then Err (WriteLimitExceeded total opts.maxTotalWrite)
+  let totalBytes = handle.bytesWritten + additional
+  in if totalBytes > opts.maxTotalWrite
+       then Err (WriteLimitExceeded totalBytes opts.maxTotalWrite)
        else Ok ()
 
 --------------------------------------------------------------------------------
@@ -237,21 +239,27 @@ readBoundedPure fs opts path limit = do
           actualSize = min limit (length (unpack content))
       in Ok (pack (take actualSize (unpack content)))
 
-||| List directory contents (pure)
-export
-listDirPure : FileSystem -> FileOptions -> String -> FileResult (List String)
-listDirPure fs opts path = do
-  sp <- validatePath opts path
+||| Implementation helper for listDirPure
+listDirImpl : FileSystem -> String -> FileResult (List String)
+listDirImpl fs path =
   case findEntry fs path of
     Nothing => Err (NotFound path)
     Just entry =>
       if entry.entryType /= Directory
         then Err (InvalidPath path "not a directory")
-        else let prefix = if isSuffixOf "/" path then path else path ++ "/"
-                 entries = filter (\e => isPrefixOf prefix e.entryPath &&
-                                         not (isInfixOf "/" (drop (length (unpack prefix)) e.entryPath)))
-                                  fs
-             in Ok (map (\e => filename e.entryPath) entries)
+        else let pfx = if isSuffixOf "/" path then path else path ++ "/"
+             in Ok (map (\e => filename e.entryPath)
+                        (Prelude.List.filter (\e => isPrefixOf pfx e.entryPath &&
+                                       not (isInfixOf "/" (substr (length pfx) (length e.entryPath) e.entryPath)))
+                                fs))
+
+||| List directory contents (pure)
+export
+listDirPure : FileSystem -> FileOptions -> String -> FileResult (List String)
+listDirPure fs opts path =
+  case validatePath opts path of
+    Err e => Err e
+    Ok _ => listDirImpl fs path
 
 --------------------------------------------------------------------------------
 -- Line-Based Operations
@@ -290,7 +298,7 @@ isValidUtf8 s = all (\c => ord c >= 0 && ord c <= 1114111) (unpack s)
 ||| Sanitize content (remove null bytes)
 export
 sanitizeContent : String -> String
-sanitizeContent = pack . filter (/= '\0') . unpack
+sanitizeContent = pack . Prelude.List.filter (/= '\0') . unpack
 
 --------------------------------------------------------------------------------
 -- Path Security Helpers
@@ -338,7 +346,7 @@ safeJoin opts base rel = do
 ||| Generate temp filename (pure - needs seed)
 export
 tempFilename : Nat -> String -> String
-tempFilename seed prefix = prefix ++ "-" ++ show seed ++ ".tmp"
+tempFilename seed pfx = pfx ++ "-" ++ show seed ++ ".tmp"
 
 ||| Check if path looks like temp file
 export

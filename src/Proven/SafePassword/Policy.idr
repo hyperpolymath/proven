@@ -180,13 +180,6 @@ checkPolicy policy pwd =
            then Just (InsufficientUniqueChars unique minUnique)
            else Nothing
 
-    checkRepeatedChars : List Char -> Nat -> Maybe PolicyViolation
-    checkRepeatedChars chars maxRepeat =
-      let maxFound = maxConsecutiveRepeats chars
-      in if maxFound > maxRepeat
-           then Just (TooManyRepeatedChars maxFound maxRepeat)
-           else Nothing
-
     maxConsecutiveRepeats : List Char -> Nat
     maxConsecutiveRepeats [] = 0
     maxConsecutiveRepeats (c :: cs) = go c 1 1 cs
@@ -197,6 +190,13 @@ checkPolicy policy pwd =
           if x == prev
             then go prev (S count) (max maxSoFar (S count)) xs
             else go x 1 maxSoFar xs
+
+    checkRepeatedChars : List Char -> Nat -> Maybe PolicyViolation
+    checkRepeatedChars chars maxRepeat =
+      let maxFound = maxConsecutiveRepeats chars
+      in if maxFound > maxRepeat
+           then Just (TooManyRepeatedChars maxFound maxRepeat)
+           else Nothing
 
     checkWhitespace : List Char -> Maybe PolicyViolation
     checkWhitespace chars =
@@ -271,7 +271,7 @@ withMinUniqueChars n (MkPolicyBuilder p) =
 public export
 withForbiddenPattern : String -> PolicyBuilder -> PolicyBuilder
 withForbiddenPattern pattern (MkPolicyBuilder p) =
-  MkPolicyBuilder ({ forbiddenPatterns := pattern :: access p } p)
+  MkPolicyBuilder ({ forbiddenPatterns $= (pattern ::) } p)
 
 ||| Add forbidden word (e.g., username, company name)
 public export

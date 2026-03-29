@@ -207,11 +207,17 @@ combinePreservesSafety q1 q2 safe1 safe2 =
 ||| addParam only appends to q.params and preserves fragments/dialect.
 ||| Since allValuesSafe covers all constructors and fragments are unchanged,
 ||| the parameterized query remains injection-safe.
-||| TODO: full structural proof requires lemma that record update preserves dialect.
+||| addParam uses record update `{ params := q.params ++ [val] } q`, which
+||| preserves fragments and dialect. The proof follows the same pattern as
+||| combinePreservesSafety.
 export
 addParamPreservesSafety : (q : ParameterizedQuery) -> (v : SQLValue) ->
                           InjectionSafe q ->
                           InjectionSafe (addParam v q)
+addParamPreservesSafety q v safe =
+  SafeByParameterization (addParam v q)
+    (parameterizedQueriesSafe (addParam v q))
+    (\v', _ => allValuesSafe (addParam v q).dialect v')
 
 --------------------------------------------------------------------------------
 -- Defensive Checks (Runtime Validation)

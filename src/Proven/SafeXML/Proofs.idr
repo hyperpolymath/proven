@@ -35,20 +35,22 @@ data NoDTD : String -> Type where
             {auto prf : not (isInfixOf "<!DOCTYPE" xml) = True} ->
             NoDTD xml
 
+||| Compute nesting depth of an XML node
+public export covering
+nodeDepth : XMLNode -> Nat
+nodeDepth (Text _) = 0
+nodeDepth (CDATA _) = 0
+nodeDepth (Comment _) = 0
+nodeDepth (ProcessingInstruction _ _) = 0
+nodeDepth (Element _ _ []) = 1
+nodeDepth (Element _ _ children) = S (foldl max 0 (map nodeDepth children))
+
 ||| Predicate: Element nesting depth is bounded
 public export
 data BoundedDepth : Nat -> XMLNode -> Type where
   MkBoundedDepth : (maxDepth : Nat) -> (node : XMLNode) ->
-                   {auto prf : nodeDepth node <= maxDepth = True} ->
+                   {auto prf : Proofs.nodeDepth node <= maxDepth = True} ->
                    BoundedDepth maxDepth node
-  where
-    nodeDepth : XMLNode -> Nat
-    nodeDepth (Text _) = 0
-    nodeDepth (CDATA _) = 0
-    nodeDepth (Comment _) = 0
-    nodeDepth (ProcessingInstruction _ _) = 0
-    nodeDepth (Element _ _ []) = 1
-    nodeDepth (Element _ _ children) = S (foldl max 0 (map nodeDepth children))
 
 ||| Predicate: All text is properly escaped
 public export
@@ -66,22 +68,22 @@ data WellFormed : XMLDocument -> Type where
 
 ||| Theorem: Secure defaults prevent external entities
 export
-secureDefaultsBlockXXE : secureDefaults.allowExternalEntities = False
+secureDefaultsBlockXXE : Types.secureDefaults.allowExternalEntities = False
 secureDefaultsBlockXXE = Refl
 
 ||| Theorem: Secure defaults prevent internal entities
 export
-secureDefaultsBlockEntities : secureDefaults.allowInternalEntities = False
+secureDefaultsBlockEntities : Types.secureDefaults.allowInternalEntities = False
 secureDefaultsBlockEntities = Refl
 
 ||| Theorem: Secure defaults prevent DTD
 export
-secureDefaultsBlockDTD : secureDefaults.allowDTD = False
+secureDefaultsBlockDTD : Types.secureDefaults.allowDTD = False
 secureDefaultsBlockDTD = Refl
 
 ||| Theorem: Secure defaults limit entity expansion to zero
 export
-secureDefaultsZeroExpansions : secureDefaults.maxEntityExpansions = 0
+secureDefaultsZeroExpansions : Types.secureDefaults.maxEntityExpansions = 0
 secureDefaultsZeroExpansions = Refl
 
 ||| The builder API never emits <!ENTITY ... SYSTEM/PUBLIC ...> in rendered output.
@@ -180,8 +182,8 @@ elementNameValidation : (name : String) ->
 ||| isValidXMLName. Depends on xmlQName validating each component.
 export
 qnameComponentsValid : (pfx : String) -> (local : String) ->
-                       isOk (xmlQName prefix local) = True ->
-                       (isValidXMLName prefix = True, isValidXMLName local = True)
+                       isOk (xmlQName pfx local) = True ->
+                       (isValidXMLName pfx = True, isValidXMLName local = True)
 
 --------------------------------------------------------------------------------
 -- Depth Limiting Proofs
@@ -263,11 +265,8 @@ nestedElementsSafe : (parent : ElementBuilder) -> (child : XMLNode) ->
 export
 multipleChildrenWellFormed : (builder : ElementBuilder) ->
                              (children : List XMLNode) ->
-                             all isWellFormedNode children = True ->
+                             all (\_ => True) children = True ->
                              WellFormed (MkXMLDocument Nothing Nothing (build (withChildren children builder)))
-  where
-    isWellFormedNode : XMLNode -> Bool
-    isWellFormedNode _ = True  -- Simplified
 multipleChildrenWellFormed builder children allWF = MkWellFormed (MkXMLDocument Nothing Nothing (build (withChildren children builder)))
 
 --------------------------------------------------------------------------------

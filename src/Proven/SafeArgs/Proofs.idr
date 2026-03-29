@@ -17,6 +17,7 @@ module Proven.SafeArgs.Proofs
 import Proven.Core
 import Proven.SafeArgs.Types
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -156,7 +157,7 @@ boolParsingComplete : (s : String) ->
 export
 intParsingHandlesNegative : (s : String) ->
                             isPrefixOf "-" s = True ->
-                            all isDigit (unpack (drop 1 s)) = True ->
+                            all Prelude.Types.isDigit (Data.List.drop 1 (unpack s)) = True ->
                             isJust (parseInteger s) = True
 
 ||| Natural number parsing rejects negative inputs.
@@ -183,22 +184,22 @@ natRejectsNegative : (s : String) ->
 
 ||| Theorem: Default options are reasonable
 export
-defaultOptionsReasonable : defaultParserOptions.maxArgLength >= 1024 = True
+defaultOptionsReasonable : Types.defaultParserOptions.maxArgLength >= 1024 = True
 defaultOptionsReasonable = Refl
 
 ||| Theorem: Strict options are more restrictive
 export
-strictMoreRestrictive : strictParserOptions.maxArgLength <= defaultParserOptions.maxArgLength = True
+strictMoreRestrictive : Types.strictParserOptions.maxArgLength <= Types.defaultParserOptions.maxArgLength = True
 strictMoreRestrictive = Refl
 
 ||| Theorem: Strict disallows unknown
 export
-strictDisallowsUnknown : strictParserOptions.allowUnknown = False
+strictDisallowsUnknown : Types.strictParserOptions.allowUnknown = False
 strictDisallowsUnknown = Refl
 
 ||| Theorem: Permissive allows unknown
 export
-permissiveAllowsUnknown : permissiveParserOptions.allowUnknown = True
+permissiveAllowsUnknown : Types.permissiveParserOptions.allowUnknown = True
 permissiveAllowsUnknown = Refl
 
 --------------------------------------------------------------------------------

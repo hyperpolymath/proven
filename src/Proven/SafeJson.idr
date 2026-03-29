@@ -15,6 +15,7 @@ import public Proven.SafeJson.Parser
 import public Proven.SafeJson.Access
 
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -255,14 +256,16 @@ filterArray _ json = json
 -- JSON Equality
 --------------------------------------------------------------------------------
 
-||| Equality helper for lists of JSON values (structurally recursive)
+-- covering: mutual recursion between Eq JsonValue / jsonListEq / jsonPairsEq
+-- is structurally decreasing but crosses implementation boundaries
+covering
 jsonListEq : List JsonValue -> List JsonValue -> Bool
 
-||| Equality helper for lists of JSON key-value pairs (structurally recursive)
+covering
 jsonPairsEq : List (String, JsonValue) -> List (String, JsonValue) -> Bool
 
 ||| Equality for JSON values (structurally recursive on subterms)
-public export
+public export covering
 Eq JsonValue where
   JsonNull == JsonNull = True
   (JsonBool a) == (JsonBool b) = a == b
@@ -331,7 +334,10 @@ data JsonType
   | TOneOf (List JsonType)
 
 ||| Check if a value matches a type
-public export
+-- covering: matchesType and checkField are mutually recursive through
+-- the TObject/TArray/TOneOf cases; structurally decreasing but
+-- crosses where-clause boundary
+public export covering
 matchesType : JsonValue -> JsonType -> Bool
 matchesType JsonNull TNull = True
 matchesType (JsonBool _) TBool = True
@@ -349,6 +355,6 @@ matchesType v (TOneOf types) = any (matchesType v) types
 matchesType _ _ = False
 
 ||| Validate JSON against a type, returning the value if valid
-public export
+public export covering
 validate : JsonValue -> JsonType -> Maybe JsonValue
 validate v t = if matchesType v t then Just v else Nothing

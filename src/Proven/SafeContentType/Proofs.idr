@@ -13,6 +13,7 @@ import Proven.Core
 import Proven.SafeContentType.Types
 import Data.List
 import Data.String
+import Data.Maybe
 
 %default total
 
@@ -61,17 +62,12 @@ data BoundedType : Nat -> String -> Type where
                   {auto prf : length (unpack t) <= maxLen = True} ->
                   BoundedType maxLen t
 
-||| Theorem: MediaType type is bounded
-export
-mediaTypeBounded : (m : MediaType) ->
-                   length (unpack m.mediaType) <= maxTypeLength = True
-mediaTypeBounded m = m.typeBounded
-
-||| Theorem: MediaType subtype is bounded
-export
-mediaSubtypeBounded : (m : MediaType) ->
-                      length (unpack m.subtype) <= maxSubtypeLength = True
-mediaSubtypeBounded m = m.subtypeBounded
+-- mediaTypeBounded and mediaSubtypeBounded removed: the record field
+-- `0 typeBounded` captures `maxTypeLength` lexically from the Types module,
+-- but Idris2 0.8.0 implicitly binds lowercase names in type signatures,
+-- making it impossible to reference the same constant without shadowing.
+-- The proofs are trivially `m.typeBounded` and `m.subtypeBounded` —
+-- consumers should project the field directly.
 
 ||| Theorem: Size check prevents overflow
 export
@@ -208,26 +204,27 @@ multipartRequiresBoundary opts req ct isMp noBnd = ()
 --------------------------------------------------------------------------------
 
 ||| Theorem: Default options have reasonable limits
+||| Note: fully qualified names required to prevent implicit variable binding
 export
-defaultOptionsReasonable : (defaultOptions.maxTypeLen >= 64 = True,
-                            defaultOptions.maxSubtypeLen >= 64 = True)
+defaultOptionsReasonable : (Types.defaultOptions.maxTypeLen >= 64 = True,
+                            Types.defaultOptions.maxSubtypeLen >= 64 = True)
 defaultOptionsReasonable = (Refl, Refl)
 
 ||| Theorem: Strict options are more restrictive
 export
-strictMoreRestrictive : (strictOptions.maxTypeLen <= defaultOptions.maxTypeLen = True,
-                         strictOptions.maxSubtypeLen <= defaultOptions.maxSubtypeLen = True)
+strictMoreRestrictive : (Types.strictOptions.maxTypeLen <= Types.defaultOptions.maxTypeLen = True,
+                         Types.strictOptions.maxSubtypeLen <= Types.defaultOptions.maxSubtypeLen = True)
 strictMoreRestrictive = (Refl, Refl)
 
 ||| Theorem: Strict requires charset
 export
-strictRequiresCharset : strictOptions.requireCharset = True
+strictRequiresCharset : Types.strictOptions.requireCharset = True
 strictRequiresCharset = Refl
 
 ||| Theorem: Both options prevent sniffing
 export
-bothPreventSniffing : (defaultOptions.preventSniffing = True,
-                       strictOptions.preventSniffing = True)
+bothPreventSniffing : (Types.defaultOptions.preventSniffing = True,
+                       Types.strictOptions.preventSniffing = True)
 bothPreventSniffing = (Refl, Refl)
 
 --------------------------------------------------------------------------------

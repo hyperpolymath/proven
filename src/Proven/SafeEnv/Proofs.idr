@@ -13,6 +13,7 @@ import Proven.Core
 import Proven.SafeEnv.Types
 import Proven.SafeEnv.Access
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -38,13 +39,13 @@ emptyNameInvalid = Refl
 export
 digitStartInvalid : (s : String) ->
                     (c : Char) -> isDigit c = True ->
-                    pack (c :: unpack s) `isValidEnvName` = False
+                    isValidEnvName (pack (c :: unpack s)) = False
 
 ||| Depends on elem over the well-known variable list and isValidEnvName
 ||| agreeing that each listed name passes validation. Opaque due to string ops.
 export
 wellKnownValid : (name : String) ->
-                 name `elem` wellKnownVars = True ->
+                 Prelude.elem name Types.wellKnownVars = True ->
                  isValidEnvName name = True
 
 ||| Theorem: PATH is valid
@@ -88,7 +89,7 @@ boundedValuePreventsOverflow maxLen value tooLong = ()
 
 ||| Theorem: Default max length is reasonable
 export
-defaultMaxLengthReasonable : defaultMaxValueLength >= 1024 = True
+defaultMaxLengthReasonable : Types.defaultMaxValueLength >= 1024 = True
 defaultMaxLengthReasonable = Refl
 
 --------------------------------------------------------------------------------
@@ -142,22 +143,22 @@ sensitiveClassification : (name : String) ->
 
 ||| Theorem: Strict options block sensitive access
 export
-strictBlocksSensitive : strictOptions.allowSensitive = False
+strictBlocksSensitive : Types.strictOptions.allowSensitive = False
 strictBlocksSensitive = Refl
 
 ||| Theorem: Strict options require uppercase
 export
-strictRequiresUppercase : strictOptions.requireUppercase = True
+strictRequiresUppercase : Types.strictOptions.requireUppercase = True
 strictRequiresUppercase = Refl
 
 ||| Theorem: Permissive options allow sensitive
 export
-permissiveAllowsSensitive : permissiveOptions.allowSensitive = True
+permissiveAllowsSensitive : Types.permissiveOptions.allowSensitive = True
 permissiveAllowsSensitive = Refl
 
 ||| Theorem: Default options block sensitive
 export
-defaultBlocksSensitive : defaultOptions.allowSensitive = False
+defaultBlocksSensitive : Types.defaultOptions.allowSensitive = False
 defaultBlocksSensitive = Refl
 
 ||| Theorem: Blocked patterns prevent access
@@ -184,8 +185,8 @@ validBoolParses : (s : String) ->
 ||| Depends on parseInteger implementation (FFI string-to-integer conversion).
 export
 validIntParses : (s : String) ->
-                 all isDigit (unpack s) = True ->
-                 isJust (parseInteger s) = True
+                 all Prelude.Types.isDigit (unpack s) = True ->
+                 isJust (parseInteger {a=Integer} s) = True
 
 ||| Theorem: Valid ports are in range
 export
@@ -199,37 +200,28 @@ validPortInRange n inRange = ()
 -- Redaction Proofs
 --------------------------------------------------------------------------------
 
+||| Helper for redaction proof
+redactValue : EnvSecurity -> String -> String
+redactValue Public v = v
+redactValue Sensitive _ = "***REDACTED***"
+redactValue Secret _ = "***SECRET***"
+
 ||| Theorem: Public values are not redacted
 export
 publicNotRedacted : (value : String) ->
-                    redactValue Public value = value
-  where
-    redactValue : EnvSecurity -> String -> String
-    redactValue Public v = v
-    redactValue Sensitive _ = "***REDACTED***"
-    redactValue Secret _ = "***SECRET***"
+                    Proofs.redactValue Public value = value
 publicNotRedacted value = Refl
 
 ||| Theorem: Sensitive values are redacted
 export
 sensitiveRedacted : (value : String) ->
-                    redactValue Sensitive value = "***REDACTED***"
-  where
-    redactValue : EnvSecurity -> String -> String
-    redactValue Public v = v
-    redactValue Sensitive _ = "***REDACTED***"
-    redactValue Secret _ = "***SECRET***"
+                    Proofs.redactValue Sensitive value = "***REDACTED***"
 sensitiveRedacted value = Refl
 
 ||| Theorem: Secret values are redacted
 export
 secretRedacted : (value : String) ->
-                 redactValue Secret value = "***SECRET***"
-  where
-    redactValue : EnvSecurity -> String -> String
-    redactValue Public v = v
-    redactValue Sensitive _ = "***REDACTED***"
-    redactValue Secret _ = "***SECRET***"
+                 Proofs.redactValue Secret value = "***SECRET***"
 secretRedacted value = Refl
 
 --------------------------------------------------------------------------------

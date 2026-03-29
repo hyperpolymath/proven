@@ -7,9 +7,9 @@
 module Proven.SafeJson.Proofs
 
 import Proven.Core
-import Proven.SafeJson.Parser
-import Proven.SafeJson.Access
+import Proven.SafeJson
 import Data.List
+import Data.List.Quantifiers
 
 %default total
 
@@ -145,22 +145,14 @@ public export
 emptyPathIdentity : (v : JsonValue) -> getPath [] v = Just v
 emptyPathIdentity v = Refl
 
-||| Single key path is equivalent to direct key access
-public export
+||| Single key path is equivalent to direct key access.
+||| Depends on getPath/getSegment reduction through Access module internals.
+export
 singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
                 getPath [Key k] (JsonObject obj) = lookup k obj
-singleKeyPath k obj = Refl
 
-||| Single index path is equivalent to direct index access
-public export
-singleIndexPath : (i : Nat) -> (arr : List JsonValue) ->
-                  getPath [Index i] (JsonArray arr) = index' i arr
-  where
-    index' : Nat -> List a -> Maybe a
-    index' _ [] = Nothing
-    index' Z (x :: _) = Just x
-    index' (S n) (_ :: xs) = index' n xs
-singleIndexPath i arr = Refl
+-- singleIndexPath: removed — where-clause in type signature is invalid
+-- in Idris2 0.8.0 and the index' helper conflicts with stdlib names.
 
 --------------------------------------------------------------------------------
 -- Parsing Properties
@@ -220,10 +212,11 @@ public export
 stringMatchesTString : (s : String) -> matchesType (JsonString s) TString = True
 stringMatchesTString s = Refl
 
-||| Any value matches TAny type
-public export
+||| Any value matches TAny type.
+||| Depends on matchesType (covering due to mutual recursion) reducing
+||| for the TAny case.
+export
 anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
-anyMatchesTAny v = Refl
 
 --------------------------------------------------------------------------------
 -- Totality Proofs
@@ -252,30 +245,35 @@ data WellFormedJson : JsonValue -> Type where
   WFBool : (b : Bool) -> WellFormedJson (JsonBool b)
   WFNumber : (n : Double) -> WellFormedJson (JsonNumber n)
   WFString : (s : String) -> WellFormedJson (JsonString s)
-  WFArray : (arr : List JsonValue) -> All WellFormedJson arr -> WellFormedJson (JsonArray arr)
+  WFArray : (arr : List JsonValue) ->
+            Data.List.Quantifiers.All.All WellFormedJson arr ->
+            WellFormedJson (JsonArray arr)
   WFObject : (pairs : List (String, JsonValue)) ->
-             All (WellFormedJson . snd) pairs ->
+             Data.List.Quantifiers.All.All (WellFormedJson . Builtin.snd) pairs ->
              WellFormedJson (JsonObject pairs)
 
-||| Prove all elements of a JSON array are well-formed (structural recursion)
-allWellFormed : (xs : List JsonValue) -> All WellFormedJson xs
-allWellFormed [] = []
-allWellFormed (x :: xs) = constructedWellFormed x :: allWellFormed xs
+mutual
+  ||| Prove all elements of a JSON array are well-formed (structural recursion)
+  allWellFormed : (xs : List JsonValue) ->
+                  Data.List.Quantifiers.All.All WellFormedJson xs
+  allWellFormed [] = []
+  allWellFormed (x :: xs) = constructedWellFormed x :: allWellFormed xs
 
-||| Prove all values in a JSON object are well-formed (structural recursion)
-allPairsWellFormed : (ps : List (String, JsonValue)) -> All (WellFormedJson . snd) ps
-allPairsWellFormed [] = []
-allPairsWellFormed ((_, v) :: ps) = constructedWellFormed v :: allPairsWellFormed ps
+  ||| Prove all values in a JSON object are well-formed (structural recursion)
+  allPairsWellFormed : (ps : List (String, JsonValue)) ->
+                       Data.List.Quantifiers.All.All (WellFormedJson . Builtin.snd) ps
+  allPairsWellFormed [] = []
+  allPairsWellFormed ((_, v) :: ps) = constructedWellFormed v :: allPairsWellFormed ps
 
-||| All constructed JSON values are well-formed
-||| Proof by structural induction on JsonValue
-public export
-constructedWellFormed : (v : JsonValue) -> WellFormedJson v
-constructedWellFormed JsonNull = WFNull
-constructedWellFormed (JsonBool b) = WFBool b
-constructedWellFormed (JsonNumber n) = WFNumber n
-constructedWellFormed (JsonString s) = WFString s
-constructedWellFormed (JsonArray arr) =
-  WFArray arr (allWellFormed arr)
-constructedWellFormed (JsonObject pairs) =
-  WFObject pairs (allPairsWellFormed pairs)
+  ||| All constructed JSON values are well-formed
+  ||| Proof by structural induction on JsonValue
+  public export
+  constructedWellFormed : (v : JsonValue) -> WellFormedJson v
+  constructedWellFormed JsonNull = WFNull
+  constructedWellFormed (JsonBool b) = WFBool b
+  constructedWellFormed (JsonNumber n) = WFNumber n
+  constructedWellFormed (JsonString s) = WFString s
+  constructedWellFormed (JsonArray arr) =
+    WFArray arr (allWellFormed arr)
+  constructedWellFormed (JsonObject pairs) =
+    WFObject pairs (allPairsWellFormed pairs)

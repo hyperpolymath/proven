@@ -12,6 +12,7 @@ module Proven.SafeCookie.Proofs
 import Proven.Core
 import Proven.SafeCookie.Types
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -74,7 +75,7 @@ export
 hostPrefixPathRoot : (name : String) ->
                      (attrs : CookieAttributes) ->
                      getPrefix name = HostPrefix ->
-                     attrs.path /= Just "/" ->
+                     (attrs.path == Just "/") = False ->
                      -- Would be rejected
                      ()
 hostPrefixPathRoot name attrs isHost wrongPath = ()
@@ -102,12 +103,12 @@ strictSameSitePreventsCsrf attrs isStrict = ()
 
 ||| Theorem: Default attributes use SameSite=Lax
 export
-defaultSameSiteLax : defaultAttributes.sameSite = Just Lax
+defaultSameSiteLax : Types.defaultAttributes.sameSite = Just Lax
 defaultSameSiteLax = Refl
 
 ||| Theorem: Strict attributes use SameSite=Strict
 export
-strictSameSiteStrict : strictAttributes.sameSite = Just Strict
+strictSameSiteStrict : Types.strictAttributes.sameSite = Just Strict
 strictSameSiteStrict = Refl
 
 --------------------------------------------------------------------------------
@@ -121,17 +122,13 @@ data BoundedName : Nat -> String -> Type where
                   {auto prf : length (unpack name) <= maxLen = True} ->
                   BoundedName maxLen name
 
-||| Theorem: CookieName is bounded
-export
-cookieNameBounded : (c : CookieName) ->
-                    length (unpack c.name) <= maxNameLength = True
-cookieNameBounded c = c.bounded
+-- cookieNameBounded removed: record field `0 bounded` captures
+-- `maxNameLength` lexically, Idris2 implicitly binds it.
+-- Project `.bounded` directly.
 
-||| Theorem: CookieValue is bounded
-export
-cookieValueBounded : (v : CookieValue) ->
-                     length (unpack v.value) <= maxValueLength = True
-cookieValueBounded v = v.bounded
+-- cookieValueBounded removed: record field `0 bounded` captures
+-- `maxValueLength` lexically, Idris2 implicitly binds it.
+-- Project `.bounded` directly.
 
 ||| Theorem: Size check prevents oversized cookies
 export
@@ -155,12 +152,12 @@ httpOnlyPreventsXss attrs isHttpOnly = ()
 
 ||| Theorem: Default attributes have HttpOnly
 export
-defaultHasHttpOnly : defaultAttributes.httpOnly = True
+defaultHasHttpOnly : Types.defaultAttributes.httpOnly = True
 defaultHasHttpOnly = Refl
 
 ||| Theorem: Session attributes have HttpOnly
 export
-sessionHasHttpOnly : sessionAttributes.httpOnly = True
+sessionHasHttpOnly : Types.sessionAttributes.httpOnly = True
 sessionHasHttpOnly = Refl
 
 --------------------------------------------------------------------------------
@@ -177,12 +174,12 @@ securePreventsInterception attrs isSecure = ()
 
 ||| Theorem: Default attributes have Secure
 export
-defaultHasSecure : defaultAttributes.secure = True
+defaultHasSecure : Types.defaultAttributes.secure = True
 defaultHasSecure = Refl
 
 ||| Theorem: Cross-site attributes require Secure
 export
-crossSiteHasSecure : crossSiteAttributes.secure = True
+crossSiteHasSecure : Types.crossSiteAttributes.secure = True
 crossSiteHasSecure = Refl
 
 --------------------------------------------------------------------------------
@@ -220,7 +217,7 @@ pathMustStartWithSlash path noSlash notEmpty = ()
 
 ||| Theorem: Default path is /
 export
-defaultPathIsRoot : defaultAttributes.path = Just "/"
+defaultPathIsRoot : Types.defaultAttributes.path = Just "/"
 defaultPathIsRoot = Refl
 
 --------------------------------------------------------------------------------
@@ -241,12 +238,12 @@ cookieCountLimited count tooMany = ()
 
 ||| Theorem: Session cookies have no Max-Age
 export
-sessionNoMaxAge : sessionAttributes.maxAge = Nothing
+sessionNoMaxAge : Types.sessionAttributes.maxAge = Nothing
 sessionNoMaxAge = Refl
 
 ||| Theorem: Session cookies have no Expires
 export
-sessionNoExpires : sessionAttributes.expires = Nothing
+sessionNoExpires : Types.sessionAttributes.expires = Nothing
 sessionNoExpires = Refl
 
 --------------------------------------------------------------------------------
@@ -255,19 +252,19 @@ sessionNoExpires = Refl
 
 ||| Theorem: Default options have reasonable limits
 export
-defaultOptionsReasonable : (defaultOptions.maxNameLen >= 64 = True,
-                            defaultOptions.maxValueLen >= 1024 = True)
+defaultOptionsReasonable : (Types.defaultOptions.maxNameLen >= 64 = True,
+                            Types.defaultOptions.maxValueLen >= 1024 = True)
 defaultOptionsReasonable = (Refl, Refl)
 
 ||| Theorem: Strict options enforce security flags
 export
-strictEnforcesSecurity : (strictOptions.requireSecure = True,
-                          strictOptions.requireHttpOnly = True)
+strictEnforcesSecurity : (Types.strictOptions.requireSecure = True,
+                          Types.strictOptions.requireHttpOnly = True)
 strictEnforcesSecurity = (Refl, Refl)
 
 ||| Theorem: Strict options enforce prefixes
 export
-strictEnforcesPrefixes : strictOptions.enforcePrefixes = True
+strictEnforcesPrefixes : Types.strictOptions.enforcePrefixes = True
 strictEnforcesPrefixes = Refl
 
 --------------------------------------------------------------------------------

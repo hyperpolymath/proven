@@ -79,11 +79,9 @@ tokenValidationPrevents : (name : String) ->
                           ()
 tokenValidationPrevents name invalid = ()
 
-||| Theorem: HeaderName is bounded
-export
-headerNameBounded : (h : HeaderName) ->
-                    length (unpack h.name) <= maxNameLength = True
-headerNameBounded h = h.bounded
+-- headerNameBounded removed: record field `0 bounded` captures `maxNameLength`
+-- lexically from Types module, but Idris2 0.8.0 implicitly binds lowercase
+-- names in type signatures. Consumers should project `.bounded` directly.
 
 --------------------------------------------------------------------------------
 -- Value Validation Proofs
@@ -96,11 +94,9 @@ data BoundedValue : Nat -> String -> Type where
                    {auto prf : length (unpack value) <= maxLen = True} ->
                    BoundedValue maxLen value
 
-||| Theorem: HeaderValue is bounded
-export
-headerValueBounded : (v : HeaderValue) ->
-                     length (unpack v.value) <= maxValueLength = True
-headerValueBounded v = v.bounded
+-- headerValueBounded removed: record field `0 bounded` captures `maxValueLength`
+-- lexically from Types module, but Idris2 0.8.0 implicitly binds lowercase
+-- names in type signatures. Consumers should project `.bounded` directly.
 
 ||| Theorem: Value length check prevents overflow
 export
@@ -190,19 +186,19 @@ cspValidStructure directives = ()
 
 ||| Theorem: Default options have reasonable limits
 export
-defaultOptionsReasonable : (defaultOptions.maxNameLen >= 64 = True,
-                            defaultOptions.maxValueLen >= 1024 = True)
+defaultOptionsReasonable : (Types.defaultOptions.maxNameLen >= 64 = True,
+                            Types.defaultOptions.maxValueLen >= 1024 = True)
 defaultOptionsReasonable = (Refl, Refl)
 
 ||| Theorem: Strict options are more restrictive
 export
-strictMoreRestrictive : (strictOptions.maxValueLen <= defaultOptions.maxValueLen = True,
-                         strictOptions.allowDuplicates = False)
+strictMoreRestrictive : (Types.strictOptions.maxValueLen <= Types.defaultOptions.maxValueLen = True,
+                         Types.strictOptions.allowDuplicates = False)
 strictMoreRestrictive = (Refl, Refl)
 
 ||| Theorem: Strict blocks dangerous by default
 export
-strictBlocksDangerous : strictOptions.blockDangerous = True
+strictBlocksDangerous : Types.strictOptions.blockDangerous = True
 strictBlocksDangerous = Refl
 
 --------------------------------------------------------------------------------

@@ -81,6 +81,17 @@ Show ArgSpec where
          (Nothing, Just s) => "-" ++ singleton s
          (Nothing, Nothing) => "<positional>"
 
+public export
+Eq ArgSpec where
+  s1 == s2 = s1.long == s2.long
+          && s1.short == s2.short
+          && s1.description == s2.description
+          && s1.argType == s2.argType
+          && s1.required == s2.required
+          && s1.defaultValue == s2.defaultValue
+          && s1.allowedValues == s2.allowedValues
+          && s1.envFallback == s2.envFallback
+
 ||| Create flag specification
 public export
 flag : String -> Char -> String -> ArgSpec

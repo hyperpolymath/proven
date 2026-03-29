@@ -14,6 +14,7 @@ module Proven.SafeJson.Parser
 
 import Proven.Core
 import Data.List
+import Data.String
 import Data.Maybe
 import Data.String
 
@@ -33,6 +34,19 @@ data JsonValue : Type where
   JsonString : String -> JsonValue
   JsonArray  : List JsonValue -> JsonValue
   JsonObject : List (String, JsonValue) -> JsonValue
+
+public export covering
+Show JsonValue where
+  show JsonNull = "null"
+  show (JsonBool True) = "true"
+  show (JsonBool False) = "false"
+  show (JsonNumber n) = show n
+  show (JsonString s) = show s
+  show (JsonArray xs) = "[" ++ joinBy ", " (map show xs) ++ "]"
+  show (JsonObject kvs) = "{" ++ joinBy ", " (map showKV kvs) ++ "}"
+    where
+      showKV : (String, JsonValue) -> String
+      showKV (k, v) = show k ++ ": " ++ show v
 
 ||| Parse error with location info
 public export

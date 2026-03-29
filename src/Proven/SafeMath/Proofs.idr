@@ -168,16 +168,23 @@ modLtDivisor n (S d) = boundModNatNZ n (S d) ItIsSucc
 --------------------------------------------------------------------------------
 
 -- | GCD of n and 0 is n.
--- | Postulated: `gcd` in Data.Nat has an erased `NotBothZero` constraint
--- | that prevents type-level reduction even though `gcd a Z = a` is a
--- | direct pattern match. Consider using Data.Nat.Factor.gcdUnproven for
--- | provable GCD properties (it uses well-founded recursion with proofs).
+-- | POSTULATE: Data.Nat.gcd is `covering` (not total), so Idris 2 refuses to
+-- | reduce `gcd (S n) 0` during type-checking even though `gcd a Z = a` is a
+-- | direct clause. Verified 2026-03-29: Refl fails with "Can't solve constraint
+-- | between: S _ and gcd (S _) 0".
+-- | Resolution: rewrite signature to use Data.Nat.Factor.gcdUnproven (total),
+-- | or wait for upstream to make gcd total.
 export
 gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
 
 -- | GCD is commutative: gcd a b = gcd b a
--- | Postulated: requires well-founded induction on (mod a b) and reasoning
--- | about the Euclidean algorithm's termination. Data.Nat.Factor provides
--- | GCD symmetry via `Symmetric Nat (GCD p)` for the evidence-carrying type.
+-- | POSTULATE: The base cases (gcd 0 (S b) = gcd (S b) 0) are trivially Refl,
+-- | but the recursive case gcd (S a) (S b) requires well-founded induction
+-- | on (a + b) with properties of modNatNZ. Since Data.Nat.gcd is `covering`
+-- | (not total), structural induction is unavailable. The evidence-carrying
+-- | GCD type in Data.Nat.Factor has `Symmetric Nat (GCD p)` but that proves
+-- | symmetry of the *evidence*, not equality of the computed Nat values.
+-- | Resolution path: prove via gcdUnproven (which IS total) then show
+-- | gcdUnproven agrees with gcd on all inputs.
 export
 gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}
