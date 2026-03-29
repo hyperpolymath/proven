@@ -235,6 +235,12 @@ modules = Proven
         , Proven.SafeCORS
         , Proven.SafeAPIKey
         , Proven.SafeWebSocket
+        -- Security hardening modules (v1.2.0)
+        , Proven.SafeCSRF
+        , Proven.SafeCSP
+        , Proven.SafeRedirect
+        , Proven.SafeSRI
+        , Proven.SafeOTP
         -- Framework convenience re-export modules
         , Proven.Network
         , Proven.Crypto
