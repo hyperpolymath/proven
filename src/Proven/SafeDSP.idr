@@ -9,6 +9,9 @@
 ||| configurations (e.g. cutoff frequency above the Nyquist limit).
 module Proven.SafeDSP
 
+import Data.Nat
+import Data.Nat.Division
+
 %default total
 
 --------------------------------------------------------------------------------
@@ -110,7 +113,7 @@ validateSampleConfig cfg =
 ||| Nyquist frequency: half the sample rate
 public export
 nyquistFrequency : SampleConfig -> Nat
-nyquistFrequency cfg = cfg.sampleRate `div` 2
+nyquistFrequency cfg = divNatNZ cfg.sampleRate 2 ItIsSucc
 
 ||| Check whether the Nyquist frequency is above a given target frequency
 public export
@@ -167,4 +170,4 @@ estimateMACs fs = fs.order + 1
 ||| Calculate the byte rate (bytes per second) for a sample configuration
 public export
 byteRate : SampleConfig -> Nat
-byteRate cfg = cfg.sampleRate * (cfg.bitDepth `div` 8) * cfg.channels
+byteRate cfg = cfg.sampleRate * (divNatNZ cfg.bitDepth 8 ItIsSucc) * cfg.channels

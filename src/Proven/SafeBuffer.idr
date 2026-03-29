@@ -51,7 +51,7 @@ setAt idx val (MkBuffer v) = MkBuffer (replaceAt idx val v)
 ||| Get buffer size (constant, known at compile time)
 public export
 bufferSize : Buffer size a -> Nat
-bufferSize {size} _ = size
+bufferSize (MkBuffer v) = length v
 
 ||| Convert buffer to list
 public export
@@ -106,7 +106,7 @@ writeMany xs buf =
 ||| Safe read at index
 public export
 readAt : (idx : Nat) -> DynBuffer a -> Maybe a
-readAt idx buf = index' idx buf.content
+readAt idx buf = getAt idx buf.content
 
 ||| Clear the buffer
 public export

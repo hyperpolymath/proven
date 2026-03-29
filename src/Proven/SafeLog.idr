@@ -200,24 +200,7 @@ recentEntries n logger = take n logger.entries
 ||| Get entries containing a string in message
 public export
 search : String -> Logger -> List LogEntry
-search term logger = filter (\e => isInfixOf term e.message) logger.entries
-  where
-    isInfixOf : String -> String -> Bool
-    isInfixOf needle haystack =
-      let ns = unpack needle
-          hs = unpack haystack
-      in checkInfix ns hs
-    
-    checkInfix : List Char -> List Char -> Bool
-    checkInfix [] _ = True
-    checkInfix _ [] = False
-    checkInfix ns (h :: hs) =
-      startsWith ns (h :: hs) || checkInfix ns hs
-    
-    startsWith : List Char -> List Char -> Bool
-    startsWith [] _ = True
-    startsWith _ [] = False
-    startsWith (n :: ns) (h :: hs) = n == h && startsWith ns hs
+search term logger = filter (\e => Data.String.isInfixOf term e.message) logger.entries
 
 --------------------------------------------------------------------------------
 -- Statistics
@@ -270,14 +253,14 @@ formatEntry e =
   e.message ++
   formatContext e.context
   where
-    formatContext : List (String, String) -> String
-    formatContext [] = ""
-    formatContext ctx = " {" ++ formatPairs ctx ++ "}"
-    
     formatPairs : List (String, String) -> String
     formatPairs [] = ""
     formatPairs [(k, v)] = k ++ "=" ++ v
     formatPairs ((k, v) :: rest) = k ++ "=" ++ v ++ ", " ++ formatPairs rest
+
+    formatContext : List (String, String) -> String
+    formatContext [] = ""
+    formatContext ctx = " {" ++ formatPairs ctx ++ "}"
 
 public export
 Show LogEntry where

@@ -126,7 +126,7 @@ union : BloomFilter -> BloomFilter -> Maybe BloomFilter
 union a b =
   if a.size /= b.size || a.numHashes /= b.numHashes
     then Nothing
-    else Just (MkBloom (zipWith (||) a.bits b.bits) a.size a.numHashes)
+    else Just (MkBloom (zipWith (\x, y => x || y) a.bits b.bits) a.size a.numHashes)
 
 ||| Intersection of two Bloom filters
 public export
@@ -134,7 +134,7 @@ intersection : BloomFilter -> BloomFilter -> Maybe BloomFilter
 intersection a b =
   if a.size /= b.size || a.numHashes /= b.numHashes
     then Nothing
-    else Just (MkBloom (zipWith (&&) a.bits b.bits) a.size a.numHashes)
+    else Just (MkBloom (zipWith (\x, y => x && y) a.bits b.bits) a.size a.numHashes)
 
 ||| Clear the Bloom filter
 public export

@@ -155,7 +155,7 @@ modules = Proven
         -- , Proven.SafeHex  -- not-proven
         -- Tree & buffer modules
         , Proven.SafeTree
-        -- , Proven.SafeBuffer  -- not-proven
+        , Proven.SafeBuffer
         -- Policy & audit
         , Proven.SafePolicy
         , Proven.SafeProvenance
@@ -167,7 +167,7 @@ modules = Proven
         , Proven.SafeStateMachine
         -- Format safety
         , Proven.SafeMarkdown
-        -- , Proven.SafeLog  -- not-proven
+        , Proven.SafeLog
         , Proven.SafeCron
         -- Numeric safety
         , Proven.SafeFloat
@@ -186,7 +186,7 @@ modules = Proven
         -- , Proven.SafeFiniteField  -- not-proven
         -- Data structures
         , Proven.SafeQueue
-        -- , Proven.SafeBloom  -- not-proven
+        , Proven.SafeBloom
         , Proven.SafeLRU
         , Proven.SafeSet
         -- , Proven.SafeHeap  -- not-proven
@@ -244,7 +244,7 @@ modules = Proven
         , Proven.SafeCryptoAccel
         , Proven.SafeFPGA
         , Proven.SafeNPU
-        -- , Proven.SafeDSP  -- not-proven
+        , Proven.SafeDSP
         , Proven.SafeISA
         -- Shell-specific modules (for valence-shell integration)
         , Proven.SafeShell
