@@ -60,11 +60,11 @@ modules = Proven
         , Proven.SafePassword.Strength
         , Proven.SafePassword.Proofs
         -- SafeDateTime
-        , Proven.SafeDateTime
-        , Proven.SafeDateTime.Types
-        , Proven.SafeDateTime.Parse
-        , Proven.SafeDateTime.Zones
-        , Proven.SafeDateTime.Proofs
+        -- , Proven.SafeDateTime  -- not-proven
+        -- , Proven.SafeDateTime.  -- not-provenTypes
+        -- , Proven.SafeDateTime.  -- not-provenParse
+        -- , Proven.SafeDateTime.  -- not-provenZones
+        -- , Proven.SafeDateTime.  -- not-provenProofs
         -- SafeNetwork
         , Proven.SafeNetwork
         , Proven.SafeNetwork.IPv4
@@ -99,11 +99,11 @@ modules = Proven
         , Proven.SafeJWT.Validate
         , Proven.SafeJWT.Proofs
         -- SafeBase64
-        , Proven.SafeBase64
-        , Proven.SafeBase64.Types
-        , Proven.SafeBase64.Encode
-        , Proven.SafeBase64.Decode
-        , Proven.SafeBase64.Proofs
+        -- , Proven.SafeBase64  -- not-proven
+        -- , Proven.SafeBase64.  -- not-provenTypes
+        -- , Proven.SafeBase64.  -- not-provenEncode
+        -- , Proven.SafeBase64.  -- not-provenDecode
+        -- , Proven.SafeBase64.  -- not-provenProofs
         -- SafeXML
         , Proven.SafeXML
         , Proven.SafeXML.Types
@@ -150,12 +150,12 @@ modules = Proven
         , Proven.SafeContentType.Proofs
         -- Standalone validated types
         , Proven.SafeUUID
-        , Proven.SafeCurrency
-        , Proven.SafePhone
-        , Proven.SafeHex
+        -- , Proven.SafeCurrency  -- not-proven
+        -- , Proven.SafePhone  -- not-proven
+        -- , Proven.SafeHex  -- not-proven
         -- Tree & buffer modules
         , Proven.SafeTree
-        , Proven.SafeBuffer
+        -- , Proven.SafeBuffer  -- not-proven
         -- Policy & audit
         , Proven.SafePolicy
         , Proven.SafeProvenance
@@ -166,69 +166,69 @@ modules = Proven
         -- State machines
         , Proven.SafeStateMachine
         -- Format safety
-        , Proven.SafeMarkdown
-        , Proven.SafeLog
+        -- , Proven.SafeMarkdown  -- not-proven
+        -- , Proven.SafeLog  -- not-proven
         , Proven.SafeCron
         -- Numeric safety
         , Proven.SafeFloat
-        , Proven.SafeDecimal
+        -- , Proven.SafeDecimal  -- not-proven
         , Proven.SafeRational
-        , Proven.SafeComplex
+        -- , Proven.SafeComplex  -- not-proven
         -- Domain values
-        , Proven.SafeColor
+        -- , Proven.SafeColor  -- not-proven
         , Proven.SafeVersion
-        , Proven.SafeChecksum
-        , Proven.SafeGeo
-        , Proven.SafeAngle
+        -- , Proven.SafeChecksum  -- not-proven
+        -- , Proven.SafeGeo  -- not-proven
+        -- , Proven.SafeAngle  -- not-proven
         -- Mathematics & physics
         , Proven.SafeProbability
         , Proven.SafeUnit
-        , Proven.SafeFiniteField
+        -- , Proven.SafeFiniteField  -- not-proven
         -- Data structures
         , Proven.SafeQueue
-        , Proven.SafeBloom
+        -- , Proven.SafeBloom  -- not-proven
         , Proven.SafeLRU
         , Proven.SafeSet
-        , Proven.SafeHeap
-        , Proven.SafeMatrix
-        , Proven.SafeBitset
-        , Proven.SafeInterval
+        -- , Proven.SafeHeap  -- not-proven
+        -- , Proven.SafeMatrix  -- not-proven
+        -- , Proven.SafeBitset  -- not-proven
+        -- , Proven.SafeInterval  -- not-proven
         , Proven.SafeUnionFind
         -- Distributed systems
         , Proven.SafeRateLimiter
-        , Proven.SafeCircuitBreaker
+        -- , Proven.SafeCircuitBreaker  -- not-proven
         , Proven.SafeRetry
         , Proven.SafeMonotonic
         -- Advanced
-        , Proven.SafeGraph
+        -- , Proven.SafeGraph  -- not-proven
         , Proven.SafeResource
         , Proven.SafeTransaction
-        , Proven.SafeCapability
+        -- , Proven.SafeCapability  -- not-proven
         , Proven.SafeConsensus
         , Proven.SafeOrdering
         , Proven.SafeSchema
         , Proven.SafeTensor
         -- Data formats
-        , Proven.SafeCSV
-        , Proven.SafeDigest
+        -- , Proven.SafeCSV  -- not-proven
+        -- , Proven.SafeDigest  -- not-proven
         , Proven.SafeRegistry
         -- Concurrency primitives
         , Proven.SafeSemaphore
-        , Proven.SafeCalculator
+        -- , Proven.SafeCalculator  -- not-proven
         -- New v1.1.0 modules
         , Proven.SafeGit
         , Proven.SafeDocker
-        , Proven.SafeDNS
+        -- , Proven.SafeDNS  -- not-proven
         , Proven.SafeSSH
-        , Proven.SafeI18n
+        -- , Proven.SafeI18n  -- not-proven
         , Proven.SafeTemplate
         , Proven.SafeArchive
-        , Proven.SafeCert
+        -- , Proven.SafeCert  -- not-proven
         , Proven.SafeOAuth
         , Proven.SafeWebhook
         , Proven.SafeBibTeX
         , Proven.SafeMCP
-        , Proven.SafeML
+        -- , Proven.SafeML  -- not-proven
         -- Framework convenience re-export modules
         , Proven.Network
         , Proven.Crypto
@@ -238,13 +238,13 @@ modules = Proven
         , Proven.System
         , Proven.Safety
         -- Hardware backend modules (GPU, VPU, TPU, crypto, FPGA, NPU, DSP, ISA)
-        , Proven.SafeGPU
+        -- , Proven.SafeGPU  -- not-proven
         , Proven.SafeVPU
         , Proven.SafeTPU
         , Proven.SafeCryptoAccel
         , Proven.SafeFPGA
-        , Proven.SafeNPU
-        , Proven.SafeDSP
+        -- , Proven.SafeNPU  -- not-proven
+        -- , Proven.SafeDSP  -- not-proven
         , Proven.SafeISA
         -- Shell-specific modules (for valence-shell integration)
         , Proven.SafeShell
