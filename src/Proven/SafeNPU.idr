@@ -9,6 +9,9 @@
 ||| rather than causing opaque runtime failures on the NPU.
 module Proven.SafeNPU
 
+import Data.Nat
+import Data.Nat.Division
+
 %default total
 
 --------------------------------------------------------------------------------

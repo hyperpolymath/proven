@@ -8,6 +8,9 @@
 ||| preventing misconfigured kernel launches that would crash at runtime.
 module Proven.SafeGPU
 
+import Data.Nat
+import Data.Nat.Division
+
 %default total
 
 --------------------------------------------------------------------------------
@@ -175,7 +178,7 @@ validateKernelConfig cfg =
 isPowerOfTwo : Nat -> Bool
 isPowerOfTwo Z = False
 isPowerOfTwo (S Z) = True
-isPowerOfTwo n = (n `mod` 2 == 0) && isPowerOfTwo (n `div` 2)
+isPowerOfTwo n = (modNatNZ n 2 ItIsSucc == 0) && isPowerOfTwo (assert_smaller n (divNatNZ n 2 ItIsSucc))
 
 ||| Validate a buffer allocation descriptor
 ||| Checks that size is nonzero and alignment is a power of two

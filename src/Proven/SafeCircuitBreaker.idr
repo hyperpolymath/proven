@@ -153,7 +153,7 @@ recordAttempt breaker =
 
 ||| Result of attempting to execute through circuit breaker
 public export
-data ExecuteResult a : Type where
+data ExecuteResult : Type -> Type where
   Executed : a -> ExecuteResult a
   CircuitOpen : (retryAfter : Nat) -> ExecuteResult a
 
@@ -177,9 +177,9 @@ tryExecute now breaker result =
 public export
 failureRate : CircuitBreaker -> Double
 failureRate breaker =
-  let total = breaker.failures + breaker.successes
-  in if total == 0 then 0.0
-     else cast breaker.failures / cast total
+  let totalCount = breaker.failures + breaker.successes
+  in if totalCount == 0 then 0.0
+     else cast breaker.failures / cast totalCount
 
 ||| Check if circuit is healthy
 public export

@@ -196,7 +196,7 @@ modules = Proven
         , Proven.SafeUnionFind
         -- Distributed systems
         , Proven.SafeRateLimiter
-        -- , Proven.SafeCircuitBreaker  -- not-proven
+        , Proven.SafeCircuitBreaker
         , Proven.SafeRetry
         , Proven.SafeMonotonic
         -- Advanced
@@ -238,12 +238,12 @@ modules = Proven
         , Proven.System
         , Proven.Safety
         -- Hardware backend modules (GPU, VPU, TPU, crypto, FPGA, NPU, DSP, ISA)
-        -- , Proven.SafeGPU  -- not-proven
+        , Proven.SafeGPU
         , Proven.SafeVPU
         , Proven.SafeTPU
         , Proven.SafeCryptoAccel
         , Proven.SafeFPGA
-        -- , Proven.SafeNPU  -- not-proven
+        , Proven.SafeNPU
         -- , Proven.SafeDSP  -- not-proven
         , Proven.SafeISA
         -- Shell-specific modules (for valence-shell integration)
