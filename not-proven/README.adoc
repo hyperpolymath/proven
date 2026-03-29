@@ -52,3 +52,17 @@ To work on fixing a module:
 | SafeComplex | 1 | Couldn't parse declaration.
 | SafeCSV | 7 | While processing right hand side of parse. Undefined name parseWith. 
 | SafeCurrency | 1 | Couldn't parse any alternatives:
+| SafeDateTime | 25 | While processing constructor MkYear. When unifying:
+| SafeDecimal | 1 | Expected 'in'.
+| SafeDigest | 4 | While processing right hand side of nibbleToHex. When unifying:
+| SafeDNS | 2 | While processing right hand side of isValidHostname. Sorry, I can't find any elaboration which works. All errors:
+| SafeDSP | 2 | While processing right hand side of nyquistFrequency. Can't find an implementation for Integral Nat.
+| SafeFiniteField | 28 | While processing type of maskLtPow2. When unifying:
+| SafeGeo | 3 | While processing right hand side of haversineDistance. Undefined name atan2. 
+| SafeGPU | 1 | While processing right hand side of isPowerOfTwo. Can't find an implementation for Integral Nat.
+| SafeGraph | 3 | While processing right hand side of addEdge. Undefined name hasVertex. 
+| SafeHeap | 8 | While processing right hand side of getAt. Ambiguous elaboration. Possible results:
+| SafeHex | 4 | While processing right hand side of nibbleToHex. When unifying:
+| SafeI18n | 4 | While processing right hand side of parseLanguageTag. Sorry, I can't find any elaboration which works. All errors:
+| SafeInterval | 5 | While processing right hand side of width. Can't find an implementation for Neg a.
+| SafeLog | 2 | While processing right hand side of search. While processing right hand side of search,isInfixOf. Undefined name Proven.SafeLog.5278:3274:checkInfix. 
