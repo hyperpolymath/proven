@@ -31,7 +31,9 @@ import public Proven.SafeJWT.Decode
 import public Proven.SafeJWT.Validate
 import public Proven.SafeJWT.Proofs
 
+import Data.Bits
 import Data.List
+import Data.Maybe
 import Data.String
 
 %default total
@@ -44,7 +46,7 @@ import Data.String
 |||
 ||| This is the primary entry point for JWT validation.
 ||| Uses default validation options with the provided secret.
-public export
+public export covering
 verifyJWT : (secret : String) -> (currentTime : Integer) -> (token : String) ->
             Result JWTError ValidatedJWT
 verifyJWT secret = validateWithSecret secret
@@ -53,14 +55,14 @@ verifyJWT secret = validateWithSecret secret
 |||
 ||| Use this to inspect a token before deciding how to validate it.
 ||| WARNING: The token is NOT verified - do not trust claims until validated.
-public export
+public export covering
 inspectJWT : String -> Result JWTError DecodedJWT
 inspectJWT = decode
 
 ||| Quick check if a token appears valid
 |||
 ||| Performs full validation and returns a boolean.
-public export
+public export covering
 isTokenValid : (secret : String) -> (currentTime : Integer) -> (token : String) -> Bool
 isTokenValid secret currentTime token =
   let key = SecretKey (map (cast . ord) (unpack secret))
@@ -90,19 +92,19 @@ base64UrlEncode bytes = pack (go bytes)
     go : List Bits8 -> List Char
     go [] = []
     go [a] =
-      let b0 = cast a `shiftR` 2
-          b1 = (cast a .&. 0x03) `shiftL` 4
+      let b0 = cast {to=Nat} (a `shiftR` 2)
+          b1 = cast {to=Nat} ((a .&. 0x03) `shiftL` 4)
       in [charAt b0, charAt b1]
     go [a, b] =
-      let b0 = cast a `shiftR` 2
-          b1 = ((cast a .&. 0x03) `shiftL` 4) .|. (cast b `shiftR` 4)
-          b2 = (cast b .&. 0x0F) `shiftL` 2
+      let b0 = cast {to=Nat} (a `shiftR` 2)
+          b1 = cast {to=Nat} (((a .&. 0x03) `shiftL` 4) .|. (b `shiftR` 4))
+          b2 = cast {to=Nat} ((b .&. 0x0F) `shiftL` 2)
       in [charAt b0, charAt b1, charAt b2]
     go (a :: b :: c :: rest) =
-      let b0 = cast a `shiftR` 2
-          b1 = ((cast a .&. 0x03) `shiftL` 4) .|. (cast b `shiftR` 4)
-          b2 = ((cast b .&. 0x0F) `shiftL` 2) .|. (cast c `shiftR` 6)
-          b3 = cast c .&. 0x3F
+      let b0 = cast {to=Nat} (a `shiftR` 2)
+          b1 = cast {to=Nat} (((a .&. 0x03) `shiftL` 4) .|. (b `shiftR` 4))
+          b2 = cast {to=Nat} (((b .&. 0x0F) `shiftL` 2) .|. (c `shiftR` 6))
+          b3 = cast {to=Nat} (c .&. 0x3F)
       in charAt b0 :: charAt b1 :: charAt b2 :: charAt b3 :: go rest
 
 ||| Base64URL encode a string
@@ -402,7 +404,7 @@ prettyPrintJWT jwt =
   "    Custom Claims: " ++ show (map fst jwt.claims.customClaims)
 
 ||| Get token info without sensitive data (for logging)
-public export
+public export covering
 tokenInfo : String -> Result JWTError String
 tokenInfo token = do
   jwt <- decode token

@@ -130,6 +130,12 @@ hashPassword pwd = hashPasswordArgon2id pwd defaultArgon2Params
 export
 verifyPassword : RawPassword -> HashedPassword -> IO VerifyResult
 
+||| Check if hash parameters are outdated
+public export
+needsRehash : HashedPassword -> HashParams -> Bool
+needsRehash (MkHashedPassword _ _ _ oldParams) newParams =
+  not (paramsAtLeast oldParams newParams)
+
 ||| Verify and check if rehash needed
 public export
 verifyAndCheckRehash : RawPassword ->
@@ -144,12 +150,6 @@ verifyAndCheckRehash pwd hash currentParams = do
         then pure NeedsRehash
         else pure Verified
     other => pure other
-
-||| Check if hash parameters are outdated
-public export
-needsRehash : HashedPassword -> HashParams -> Bool
-needsRehash (MkHashedPassword _ _ _ oldParams) newParams =
-  not (paramsAtLeast oldParams newParams)
 
 --------------------------------------------------------------------------------
 -- Password Generation
@@ -330,7 +330,7 @@ public export
 isCommonPattern : String -> Bool
 isCommonPattern pwd =
   let lower = toLower pwd
-  in lower `elem` commonPasswords || isKeyboardPattern lower || isSequential lower
+  in (lower `elem` commonPasswords) || isKeyboardPattern lower || isSequential lower
   where
     commonPasswords : List String
     commonPasswords = ["password", "123456", "qwerty", "letmein", "welcome",

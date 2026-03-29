@@ -88,46 +88,48 @@ noneNotSecure PS384Secure impossible
 noneNotSecure PS512Secure impossible
 noneNotSecure EdDSASecure impossible
 
-||| Theorem: HMAC algorithms are symmetric
-||| Depends on isSymmetric implementation returning True for HMAC variants.
+||| Theorem: HMAC algorithms are symmetric.
+||| Proof by case-split on algorithm, discharging impossible branches.
 export
-hmacIsSymmetric : (alg : JWTAlgorithm) -> IsSecureAlg alg ->
+hmacIsSymmetric : (alg : JWTAlgorithm) ->
                   Either (alg = HS256) (Either (alg = HS384) (alg = HS512)) ->
                   isSymmetric alg = True
-hmacIsSymmetric HS256 _ _ = Refl
-hmacIsSymmetric HS384 _ _ = Refl
-hmacIsSymmetric HS512 _ _ = Refl
-hmacIsSymmetric RS256 _ (Left prf) = absurd prf
-hmacIsSymmetric RS256 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric RS256 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric RS384 _ (Left prf) = absurd prf
-hmacIsSymmetric RS384 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric RS384 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric RS512 _ (Left prf) = absurd prf
-hmacIsSymmetric RS512 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric RS512 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric ES256 _ (Left prf) = absurd prf
-hmacIsSymmetric ES256 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric ES256 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric ES384 _ (Left prf) = absurd prf
-hmacIsSymmetric ES384 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric ES384 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric ES512 _ (Left prf) = absurd prf
-hmacIsSymmetric ES512 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric ES512 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric PS256 _ (Left prf) = absurd prf
-hmacIsSymmetric PS256 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric PS256 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric PS384 _ (Left prf) = absurd prf
-hmacIsSymmetric PS384 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric PS384 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric PS512 _ (Left prf) = absurd prf
-hmacIsSymmetric PS512 _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric PS512 _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric EdDSA _ (Left prf) = absurd prf
-hmacIsSymmetric EdDSA _ (Right (Left prf)) = absurd prf
-hmacIsSymmetric EdDSA _ (Right (Right prf)) = absurd prf
-hmacIsSymmetric None sec _ = absurd (noneNotSecure sec)
+hmacIsSymmetric HS256 _  = Refl
+hmacIsSymmetric HS384 _  = Refl
+hmacIsSymmetric HS512 _  = Refl
+hmacIsSymmetric None  (Left prf)          = case prf of _ impossible
+hmacIsSymmetric None  (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric None  (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric RS256 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric RS256 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric RS256 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric RS384 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric RS384 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric RS384 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric RS512 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric RS512 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric RS512 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric ES256 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric ES256 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric ES256 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric ES384 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric ES384 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric ES384 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric ES512 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric ES512 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric ES512 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric PS256 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric PS256 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric PS256 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric PS384 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric PS384 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric PS384 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric PS512 (Left prf)          = case prf of _ impossible
+hmacIsSymmetric PS512 (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric PS512 (Right (Right prf)) = case prf of _ impossible
+hmacIsSymmetric EdDSA (Left prf)          = case prf of _ impossible
+hmacIsSymmetric EdDSA (Right (Left prf))  = case prf of _ impossible
+hmacIsSymmetric EdDSA (Right (Right prf)) = case prf of _ impossible
 
 ||| Theorem: Default validation rejects 'none' algorithm
 export

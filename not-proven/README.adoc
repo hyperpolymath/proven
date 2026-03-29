@@ -1,0 +1,54 @@
+= not-proven — Modules That Do Not Compile
+:toc:
+
+== Purpose
+
+This directory contains Idris2 modules that were removed from the main
+`src/Proven/` tree because they **do not compile** with Idris2 0.8.0
+and therefore cannot be formally verified.
+
+== Why They Were Moved
+
+Each module has specific compilation errors documented below. Common patterns:
+
+* **Undefined names**: Functions referenced but never defined (batch-generated stubs)
+* **Type mismatches**: String vs List, Bool vs Type, wrong Nat operations
+* **Missing instances**: Eq, Foldable, Show not derived for custom types
+* **Keyword conflicts**: `total`, `prefix`, `record` used as variable names
+* **Covering/totality**: Recursive functions not provably total
+
+== Status
+
+These modules are **NOT DELETED** — they contain useful type signatures and
+proof obligations that document what SHOULD be proven. They serve as a
+specification for future work.
+
+== How to Restore
+
+To work on fixing a module:
+
+1. Copy it back: `cp not-proven/SafeFoo.idr src/Proven/SafeFoo.idr`
+2. Fix the compilation errors
+3. Verify: `idris2 --find-ipkg --check src/Proven/SafeFoo.idr`
+4. If it passes, commit the restoration
+
+== Module List
+
+[cols="1,1,2"]
+|===
+| Module | Errors | Root Cause
+
+| SafeAngle | 1 | While processing right hand side of safeAtan2. Undefined name atan2. 
+| SafeBase64 | 2 | Expected '=>' or 'impossible'.
+| SafeBitset | 9 | While processing right hand side of capacity. Ambiguous elaboration. Possible results:
+| SafeBloom | 2 | While processing right hand side of union. Can't solve constraint between: Bool and Lazy Bool.
+| SafeBuffer | 2 | While processing right hand side of bufferSize. size is not accessible in this context.
+| SafeCalculator | 29 | Proven.SafeCalculator.UnaryOp is already defined.
+| SafeCapability | 1 | While processing right hand side of attenuationSound. Can't solve constraint between: (attenuate newPerms cap) .capPermissions and filter (\p => elem p newPerms) (capPermissions cap).
+| SafeCert | 2 | While processing right hand side of matchesHostname. While processing right hand side of matchesHostname,matchWildcard. Sorry, I can't find any elaboration which works. All errors:
+| SafeChecksum | 5 | While processing right hand side of adler32. While processing right hand side of adler32,go. Can't find an implementation for Bits Nat.
+| SafeCircuitBreaker | 1 | Expected 'where'.
+| SafeColor | 4 | While processing right hand side of nibbleToHex. When unifying:
+| SafeComplex | 1 | Couldn't parse declaration.
+| SafeCSV | 7 | While processing right hand side of parse. Undefined name parseWith. 
+| SafeCurrency | 1 | Couldn't parse any alternatives:

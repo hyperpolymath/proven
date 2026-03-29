@@ -52,12 +52,12 @@ decodeInteger n = cast n
 -- JWT Validation
 --------------------------------------------------------------------------------
 
-export
+export covering
 proven_idris_jwt_verify : String -> Integer -> String -> (Int, String)
 proven_idris_jwt_verify secret currentTime token =
   encodeJWTResult (verifyJWT secret currentTime token)
 
-export
+export covering
 proven_idris_jwt_is_valid : String -> Integer -> String -> Int
 proven_idris_jwt_is_valid secret currentTime token =
   encodeBool (isTokenValid secret currentTime token)
@@ -66,12 +66,12 @@ proven_idris_jwt_is_valid secret currentTime token =
 -- JWT Decoding (Inspection)
 --------------------------------------------------------------------------------
 
-export
+export covering
 proven_idris_jwt_decode : String -> (Int, String)
 proven_idris_jwt_decode token =
   encodeDecodedResult (inspectJWT token)
 
-export
+export covering
 proven_idris_jwt_token_info : String -> (Int, String)
 proven_idris_jwt_token_info token =
   case tokenInfo token of
@@ -124,20 +124,21 @@ proven_idris_jwt_id_token_max_age = 3600  -- 1 hour
 --------------------------------------------------------------------------------
 
 ||| Helper to parse current time and check validity
+covering
 parseAndCheckValidity : Integer -> String -> Maybe Integer
 parseAndCheckValidity currentTime tokenStr =
   case inspectJWT tokenStr of
     Err _ => Nothing
-    Ok decoded => timeUntilExpiration currentTime (MkValidatedJWT decoded (SecretKey []))
+    Ok decoded => timeUntilExpiration currentTime (MkValidatedJWT decoded currentTime "ffi-inspect")
 
-export
+export covering
 proven_idris_jwt_remaining_validity : Integer -> String -> (Int, Integer)
 proven_idris_jwt_remaining_validity currentTime token =
   case parseAndCheckValidity currentTime token of
     Nothing => (1, 0)  -- Error
     Just remaining => (0, remaining)
 
-export
+export covering
 proven_idris_jwt_needs_refresh : Integer -> Int -> String -> Int
 proven_idris_jwt_needs_refresh currentTime thresholdSeconds token =
   case parseAndCheckValidity currentTime token of
