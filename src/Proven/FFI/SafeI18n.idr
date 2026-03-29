@@ -86,13 +86,13 @@ proven_idris_i18n_mk_message_key s = case mkMessageKey s of
 -- Template Interpolation
 --------------------------------------------------------------------------------
 
-export
+export covering
 proven_idris_i18n_parse_template_params : String -> String
 proven_idris_i18n_parse_template_params s =
   let tmpl = parseTemplate s
   in show (parameterNames tmpl)
 
-export
+export covering
 proven_idris_i18n_interpolate_single : String -> String -> String -> String
 proven_idris_i18n_interpolate_single template key value =
   let tmpl = parseTemplate template

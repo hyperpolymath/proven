@@ -19,6 +19,9 @@ module Proven.FFI.SafeLog
 import Proven.SafeLog
 import Proven.Core
 import Data.String
+import Data.List
+import Data.List1
+import Data.Maybe
 
 %default total
 
@@ -54,11 +57,11 @@ decodeLogLevel _ = Nothing
 parseContext : String -> List (String, String)
 parseContext s =
   if s == "" then []
-  else mapMaybe parsePair (split (== ',') s)
+  else mapMaybe parsePair (forget (split (== ',') s))
   where
     parsePair : String -> Maybe (String, String)
     parsePair pair =
-      case split (== '=') pair of
+      case forget (split (== '=') pair) of
         [k, v] => Just (k, v)
         _ => Nothing
 
@@ -248,7 +251,7 @@ containsIP s =
 ||| Redact email addresses (keep first letter and domain)
 redactEmail : String -> String
 redactEmail email =
-  case split (== '@') email of
+  case forget (split (== '@') email) of
     [local, domain] =>
       let localFirst = case unpack local of
                          (c :: _) => strCons c ""
@@ -288,24 +291,7 @@ proven_idris_log_contains_pii s =
 export
 proven_idris_log_message_contains : String -> String -> Int
 proven_idris_log_message_contains message searchTerm =
-  encodeBool (isInfixOf searchTerm message)
-  where
-    isInfixOf : String -> String -> Bool
-    isInfixOf needle haystack =
-      let ns = unpack needle
-          hs = unpack haystack
-      in checkInfix ns hs
-
-    checkInfix : List Char -> List Char -> Bool
-    checkInfix [] _ = True
-    checkInfix _ [] = False
-    checkInfix ns (h :: hs) =
-      startsWith ns (h :: hs) || checkInfix ns hs
-
-    startsWith : List Char -> List Char -> Bool
-    startsWith [] _ = True
-    startsWith _ [] = False
-    startsWith (n :: ns) (h :: hs) = n == h && startsWith ns hs
+  encodeBool (Data.String.isInfixOf searchTerm message)
 
 export
 proven_idris_log_logger_name_matches : String -> String -> Int

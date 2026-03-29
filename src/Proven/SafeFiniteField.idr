@@ -46,22 +46,22 @@ zeroLtNonZero : (p : Nat) -> {auto 0 _ : NonZero p} -> So (0 < p)
 oneLtGt1 : (p : Nat) -> {auto 0 _ : GT p 1} -> So (1 < p)
 
 ||| Bitwise AND with (2^n - 1) mask yields a value < 2^n
-maskLtPow2 : (b : Bits64) -> (n : Nat) -> So (b .&. (cast (natPow 2 n) - 1) < cast (natPow 2 n))
+maskLtPow2 : (b : Bits64) -> (n : Nat) -> So (b .&. (cast {to=Bits64} (natPow 2 n) - 1) < cast {to=Bits64} (natPow 2 n))
 
 ||| 0 < 2^n for any n
-zeroLtPow2 : (n : Nat) -> So (0 < cast (natPow 2 n))
+zeroLtPow2 : (n : Nat) -> So (the Bits64 0 < cast (natPow 2 n))
 
 ||| 1 < 2^n when n > 0
-oneLtPow2 : (n : Nat) -> {auto 0 _ : GT n 0} -> So (1 < cast (natPow 2 n))
+oneLtPow2 : (n : Nat) -> {auto 0 _ : GT n 0} -> So (the Bits64 1 < cast (natPow 2 n))
 
 ||| XOR of two values both < 2^n stays < 2^n
 xorLtPow2 : (a, b : Bits64) -> (n : Nat) ->
-             {auto 0 _ : So (a < cast (natPow 2 n))} ->
-             {auto 0 _ : So (b < cast (natPow 2 n))} ->
-             So ((a `xor` b) < cast (natPow 2 n))
+             {auto 0 _ : So (a < cast {to=Bits64} (natPow 2 n))} ->
+             {auto 0 _ : So (b < cast {to=Bits64} (natPow 2 n))} ->
+             So ((a `xor` b) < cast {to=Bits64} (natPow 2 n))
 
 ||| Polynomial reduction modulo an irreducible of degree n yields result < 2^n
-polyModLtPow2 : (result : Bits64) -> (n : Nat) -> So (result < cast (natPow 2 n))
+polyModLtPow2 : (result : Bits64) -> (n : Nat) -> So (result < cast {to=Bits64} (natPow 2 n))
 
 ||| A modular-inverse result in [0, p) satisfies So (v < p)
 inverseInRange : (v, p : Nat) -> So (v < p)
@@ -115,13 +115,13 @@ pfAdd a b = MkPFE ((a.value + b.value) `mod` p) (modLtPrime (a.value + b.value) 
 export
 pfSub : {p : Nat} -> {auto 0 _ : NonZero p} ->
         PrimeFieldElement p -> PrimeFieldElement p -> PrimeFieldElement p
-pfSub a b = MkPFE ((a.value + p - b.value) `mod` p) (modLtPrime (a.value + p - b.value) p)
+pfSub a b = MkPFE ((minus (a.value + p) b.value) `mod` p) (modLtPrime (minus (a.value + p) b.value) p)
 
 ||| Negation in GF(p)
 export
 pfNeg : {p : Nat} -> {auto 0 _ : NonZero p} ->
         PrimeFieldElement p -> PrimeFieldElement p
-pfNeg a = MkPFE ((p - a.value) `mod` p) (modLtPrime (p - a.value) p)
+pfNeg a = MkPFE ((minus p a.value) `mod` p) (modLtPrime (minus p a.value) p)
 
 ||| Multiplication in GF(p)
 export
@@ -160,7 +160,7 @@ pfDiv a b = map (pfMul a) (pfInverse b)
 ||| Exponentiation by squaring
 export
 covering
-pfPow : {p : Nat} -> {auto 0 _ : GT p 1} ->
+pfPow : {p : Nat} -> {auto 0 _ : GT p 1} -> {auto 0 _ : NonZero p} ->
         PrimeFieldElement p -> Nat -> PrimeFieldElement p
 pfPow base exp = go base exp (MkPFE 1 (oneLtGt1 p))
   where
@@ -183,12 +183,12 @@ record BinaryFieldElement (n : Nat) where
   constructor MkBFE
   -- Coefficients stored as bits: coefficient of x^i is bit i
   bfBitsVal : Bits64
-  0 inRange : So (bfBitsVal < cast (natPow 2 n))
+  0 inRange : So (bfBitsVal < cast {to=Bits64} (natPow 2 n))
 
 ||| Create a binary field element (masks to n bits)
 export
 bfElement : (n : Nat) -> {auto prf : LTE n 64} -> Bits64 -> BinaryFieldElement n
-bfElement n b = MkBFE (b .&. (cast (natPow 2 n) - 1)) (maskLtPow2 b n)
+bfElement n b = MkBFE (b .&. (cast {to=Bits64} (natPow 2 n) - 1)) (maskLtPow2 b n)
 
 ||| Zero element
 export
@@ -212,7 +212,7 @@ bfBits e = e.bfBitsVal
 ||| Addition in GF(2^n) (XOR)
 export
 bfAdd : BinaryFieldElement n -> BinaryFieldElement n -> BinaryFieldElement n
-bfAdd a b = MkBFE (a.bfBitsVal `xor` b.bfBitsVal) (xorLtPow2 a.bfBitsVal b.bfBitsVal n)
+bfAdd a b = MkBFE (a.bfBitsVal `xor` b.bfBitsVal) (xorLtPow2 a.bfBitsVal b.bfBitsVal n @{a.inRange} @{b.inRange})
 
 ||| Subtraction in GF(2^n) (same as addition in characteristic 2)
 export
@@ -233,14 +233,14 @@ polyMul a b = go a b 0 0
     go : Bits64 -> Bits64 -> Bits64 -> Bits64 -> Bits64
     go _ 0 acc _ = acc
     go x y acc i =
-      let acc' = if (y .&. 1) /= 0 then acc `xor` (x `shiftL` i) else acc
+      let acc' = if (y .&. 1) /= 0 then acc `xor` (prim__shl_Bits64 x i) else acc
       in go x (y `shiftR` 1) acc' (i + 1)
 
 ||| Polynomial modulo reduction by irreducible polynomial
 covering
 polyModReduction : Bits64 -> Bits64 -> Nat -> Bits64
 polyModReduction val irr n =
-  let mask : Bits64 = cast (natPow 2 n) - 1
+  let mask : Bits64 = cast {to=Bits64} (natPow 2 n) - 1
   in go mask val
   where
     covering
@@ -255,7 +255,7 @@ polyModReduction val irr n =
       else let deg = highestBit x
                shift : Integer = cast deg - cast n
            in if shift < 0 then x
-              else go mask (x `xor` (irr `shiftL` cast {to = Bits64} shift))
+              else go mask (x `xor` (prim__shl_Bits64 irr (cast {to = Bits64} shift)))
 
 ||| Multiplication in GF(2^n) with irreducible polynomial
 export
@@ -285,27 +285,27 @@ gcmIrreducible = 0x87  -- Lower bits, actual is x^128 + this
 ||| Returns 1 if a is quadratic residue, -1 if not, 0 if a = 0
 export
 covering
-legendreSymbol : {p : Nat} -> {auto 0 _ : GT p 1} ->
+legendreSymbol : {p : Nat} -> {auto 0 _ : GT p 1} -> {auto 0 _ : NonZero p} ->
                 PrimeFieldElement p -> Integer
 legendreSymbol a =
   if a.value == 0 then 0
-  else let exp = (p - 1) `div` 2
+  else let exp = (minus p 1) `div` 2
            result = pfPow a exp
        in if result.value == 1 then 1
-          else if result.value == p - 1 then -1
+          else if result.value == minus p 1 then -1
           else 0
 
 ||| Check if element is a quadratic residue
 export
 covering
-isQuadraticResidue : {p : Nat} -> {auto 0 _ : GT p 1} ->
+isQuadraticResidue : {p : Nat} -> {auto 0 _ : GT p 1} -> {auto 0 _ : NonZero p} ->
                      PrimeFieldElement p -> Bool
 isQuadraticResidue a = legendreSymbol a == 1
 
 ||| Tonelli-Shanks square root (returns None if not a residue)
 export
 covering
-pfSqrt : {p : Nat} -> {auto 0 _ : GT p 1} ->
+pfSqrt : {p : Nat} -> {auto 0 _ : GT p 1} -> {auto 0 _ : NonZero p} ->
          PrimeFieldElement p -> Maybe (PrimeFieldElement p)
 pfSqrt a =
   if a.value == 0 then Just (MkPFE 0 (zeroLtGt1 p))
@@ -360,7 +360,7 @@ zipWithDefault f def (x :: xs) (y :: ys) = f x y :: zipWithDefault f def xs ys
 ||| Evaluate polynomial at a point
 export
 covering
-polyEval : {p : Nat} -> {auto 0 _ : GT p 1} ->
+polyEval : {p : Nat} -> {auto _ : GT p 1} -> {auto _ : NonZero p} ->
            Polynomial p -> PrimeFieldElement p -> PrimeFieldElement p
 polyEval poly x = go poly.coefficients (pfOne p) (MkPFE 0 (zeroLtGt1 p))
   where
@@ -371,7 +371,7 @@ polyEval poly x = go poly.coefficients (pfOne p) (MkPFE 0 (zeroLtGt1 p))
 
 ||| Polynomial addition
 export
-polyAdd : {p : Nat} -> {auto 0 _ : NonZero p} ->
+polyAdd : {p : Nat} -> {auto _ : NonZero p} ->
           Polynomial p -> Polynomial p -> Polynomial p
 polyAdd a b = MkPolynomial (zipWithDefault pfAdd (pfZero p) a.coefficients b.coefficients)
 

@@ -324,7 +324,7 @@ proven_idris_graph_visit_limit_exceeded visitCount vertexCount =
 --------------------------------------------------------------------------------
 
 export
-proven_idris_graph_clustering_coefficient : Int -> Int -> Int -> Double
+proven_idris_graph_clustering_coefficient : Int -> Int -> Double
 proven_idris_graph_clustering_coefficient triangles connectedTriples =
   if connectedTriples == 0 then 0.0
   else cast triangles / cast connectedTriples

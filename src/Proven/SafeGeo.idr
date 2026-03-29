@@ -90,10 +90,12 @@ atan2 y x = if x > 0.0 then Prelude.atan (y / x)
   else 0.0
 
 ||| Earth's radius in kilometers
+public export
 earthRadiusKm : Double
 earthRadiusKm = 6371.0
 
 ||| Convert degrees to radians
+public export
 toRadians : Double -> Double
 toRadians deg = deg * pi / 180.0
 

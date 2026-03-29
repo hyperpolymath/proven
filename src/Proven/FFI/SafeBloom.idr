@@ -146,8 +146,8 @@ proven_idris_bloom_is_saturated bitsSet filterSize =
 export
 proven_idris_bloom_is_nearly_saturated : Int -> Int -> Int -> Int
 proven_idris_bloom_is_nearly_saturated bitsSet filterSize threshold =
-  let percent = cast (bitsSet * 100) / cast filterSize
-  in encodeBool (percent >= cast threshold)
+  let percent = (bitsSet * 100) `div` filterSize
+  in encodeBool (percent >= threshold)
 
 --------------------------------------------------------------------------------
 -- Expected Bits Set

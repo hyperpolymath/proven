@@ -42,6 +42,7 @@ module Proven.FFI.SafeFiniteField
 import Proven.SafeFiniteField
 import Proven.Core
 import Data.String
+import Data.Bits
 
 %default total
 
@@ -111,13 +112,13 @@ proven_idris_ff_mod_square a modulus =
 -- Extended GCD Helper
 --------------------------------------------------------------------------------
 
-export
+export covering
 proven_idris_ff_gcd : Int -> Int -> Int
 proven_idris_ff_gcd a b =
   if b == 0 then a
   else proven_idris_ff_gcd b (a `mod` b)
 
-export
+export covering
 proven_idris_ff_coprime : Int -> Int -> Int
 proven_idris_ff_coprime a b =
   encodeBool (proven_idris_ff_gcd a b == 1)
@@ -126,12 +127,12 @@ proven_idris_ff_coprime a b =
 -- Modular Inverse
 --------------------------------------------------------------------------------
 
-export
+export covering
 proven_idris_ff_has_inverse : Int -> Int -> Int
 proven_idris_ff_has_inverse a modulus =
   encodeBool (a /= 0 && proven_idris_ff_coprime a modulus == 1)
 
-export
+export covering
 proven_idris_ff_inverse_exists : Int -> Int -> Int
 proven_idris_ff_inverse_exists = proven_idris_ff_has_inverse
 
@@ -167,19 +168,21 @@ proven_idris_bf_and a b = a .&. b
 export
 proven_idris_bf_shift_left : Int -> Int -> Int
 proven_idris_bf_shift_left a shift =
-  a `shiftL` shift
+  let b64 : Bits64 = cast a
+  in cast (prim__shl_Bits64 b64 (cast shift))
 
 export
 proven_idris_bf_shift_right : Int -> Int -> Int
 proven_idris_bf_shift_right a shift =
-  a `shiftR` shift
+  let b64 : Bits64 = cast a
+  in cast (prim__shr_Bits64 b64 (cast shift))
 
 export
 proven_idris_bf_mask : Int -> Int
 proven_idris_bf_mask n =
-  (1 `shiftL` n) - 1
+  proven_idris_bf_shift_left 1 n - 1
 
-export
+export covering
 proven_idris_bf_degree : Int -> Int
 proven_idris_bf_degree poly =
   if poly == 0 then 0
@@ -187,7 +190,7 @@ proven_idris_bf_degree poly =
   where
     go : Int -> Int -> Int
     go 0 acc = acc
-    go p acc = go (p `shiftR` 1) (acc + 1)
+    go p acc = go (proven_idris_bf_shift_right p 1) (acc + 1)
 
 --------------------------------------------------------------------------------
 -- Legendre Symbol
@@ -256,7 +259,7 @@ proven_idris_poly_is_monic leadingCoeff =
 -- Prime Checking
 --------------------------------------------------------------------------------
 
-export
+export covering
 proven_idris_ff_is_prime : Int -> Int
 proven_idris_ff_is_prime n =
   if n < 2 then 0

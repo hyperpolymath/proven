@@ -138,7 +138,7 @@ proven_idris_color_parse_hex s =
     Nothing => (1, 0, 0, 0, 0)  -- Error
     Just rgba => (0, cast rgba.red, cast rgba.green, cast rgba.blue, cast rgba.alpha)
 
-export
+export covering
 proven_idris_color_to_hex : Int -> Int -> Int -> Int -> String
 proven_idris_color_to_hex r g b a =
   toHex (MkRGBA (cast r) (cast g) (cast b) (cast a))
@@ -146,26 +146,26 @@ proven_idris_color_to_hex r g b a =
 export
 proven_idris_color_is_valid_hex_format : String -> Int
 proven_idris_color_is_valid_hex_format s =
-  let hex = if isPrefixOf "#" s then drop 1 s else s
+  let hex = if isPrefixOf "#" s then strSubstr 1 (cast (length s)) s else s
       len = length hex
   in encodeBool (len == 3 || len == 6 || len == 8)
 
 export
 proven_idris_color_is_short_hex : String -> Int
 proven_idris_color_is_short_hex s =
-  let hex = if isPrefixOf "#" s then drop 1 s else s
+  let hex = if isPrefixOf "#" s then strSubstr 1 (cast (length s)) s else s
   in encodeBool (length hex == 3)
 
 export
 proven_idris_color_is_long_hex : String -> Int
 proven_idris_color_is_long_hex s =
-  let hex = if isPrefixOf "#" s then drop 1 s else s
+  let hex = if isPrefixOf "#" s then strSubstr 1 (cast (length s)) s else s
   in encodeBool (length hex == 6)
 
 export
 proven_idris_color_has_alpha_channel : String -> Int
 proven_idris_color_has_alpha_channel s =
-  let hex = if isPrefixOf "#" s then drop 1 s else s
+  let hex = if isPrefixOf "#" s then strSubstr 1 (cast (length s)) s else s
   in encodeBool (length hex == 8)
 
 --------------------------------------------------------------------------------

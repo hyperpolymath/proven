@@ -230,12 +230,12 @@ proven_idris_checksum_is_valid_length_for_luhn s =
 -- Checksum Format Helpers
 --------------------------------------------------------------------------------
 
-export
+export covering
 proven_idris_checksum_to_hex : Int -> String
 proven_idris_checksum_to_hex csum =
   let hex = toHex (cast {to = Bits32} csum)
   in if length hex < 8
-       then pack (replicate (8 - length hex) '0') ++ hex
+       then pack (replicate (minus 8 (length hex)) '0') ++ hex
        else hex
   where
     toHex : Bits32 -> String

@@ -320,25 +320,25 @@ proven_idris_cap_audit_entry_count count = count
 
 export
 proven_idris_cap_access_success_rate : Int -> Int -> Double
-proven_idris_cap_access_success_rate granted total =
-  if total == 0 then 0.0
-  else cast granted / cast total
+proven_idris_cap_access_success_rate granted tot =
+  if tot == 0 then 0.0
+  else cast granted / cast tot
 
 export
 proven_idris_cap_access_success_rate_percent : Int -> Int -> Double
-proven_idris_cap_access_success_rate_percent granted total =
-  proven_idris_cap_access_success_rate granted total * 100.0
+proven_idris_cap_access_success_rate_percent granted tot =
+  proven_idris_cap_access_success_rate granted tot * 100.0
 
 export
 proven_idris_cap_denial_rate : Int -> Int -> Double
-proven_idris_cap_denial_rate denied total =
-  if total == 0 then 0.0
-  else cast denied / cast total
+proven_idris_cap_denial_rate denied tot =
+  if tot == 0 then 0.0
+  else cast denied / cast tot
 
 export
 proven_idris_cap_denial_rate_percent : Int -> Int -> Double
-proven_idris_cap_denial_rate_percent denied total =
-  proven_idris_cap_denial_rate denied total * 100.0
+proven_idris_cap_denial_rate_percent denied tot =
+  proven_idris_cap_denial_rate denied tot * 100.0
 
 --------------------------------------------------------------------------------
 -- Token Validation

@@ -45,7 +45,7 @@ proven_idris_phone_parse_e164 s = case parseE164 s of
   Nothing => (1, "Invalid E.164 phone number")
   Just phone => (0, formatE164 phone)
 
-export
+export covering
 proven_idris_phone_format_display : String -> (Int, String)
 proven_idris_phone_format_display s = case parseE164 s of
   Nothing => (1, "Invalid phone number")

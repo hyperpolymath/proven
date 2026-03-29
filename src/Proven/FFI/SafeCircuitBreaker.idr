@@ -104,7 +104,7 @@ proven_idris_circuitbreaker_should_close consecutiveSuccesses successThreshold =
   encodeBool (consecutiveSuccesses >= successThreshold)
 
 export
-proven_idris_circuitbreaker_should_reopen : Int -> Int
+proven_idris_circuitbreaker_should_reopen : Int -> Int -> Int
 proven_idris_circuitbreaker_should_reopen state failureOccurred =
   encodeBool (state == 2 && failureOccurred == 1)  -- HalfOpen + failure
 
@@ -163,25 +163,25 @@ proven_idris_circuitbreaker_reset_success_count = 0
 
 export
 proven_idris_circuitbreaker_failure_rate : Int -> Int -> Double
-proven_idris_circuitbreaker_failure_rate failures total =
-  if total == 0 then 0.0
-  else cast failures / cast total
+proven_idris_circuitbreaker_failure_rate failures tot =
+  if tot == 0 then 0.0
+  else cast failures / cast tot
 
 export
 proven_idris_circuitbreaker_failure_rate_percent : Int -> Int -> Double
-proven_idris_circuitbreaker_failure_rate_percent failures total =
-  proven_idris_circuitbreaker_failure_rate failures total * 100.0
+proven_idris_circuitbreaker_failure_rate_percent failures tot =
+  proven_idris_circuitbreaker_failure_rate failures tot * 100.0
 
 export
 proven_idris_circuitbreaker_success_rate : Int -> Int -> Double
-proven_idris_circuitbreaker_success_rate successes total =
-  if total == 0 then 0.0
-  else cast successes / cast total
+proven_idris_circuitbreaker_success_rate successes tot =
+  if tot == 0 then 0.0
+  else cast successes / cast tot
 
 export
 proven_idris_circuitbreaker_success_rate_percent : Int -> Int -> Double
-proven_idris_circuitbreaker_success_rate_percent successes total =
-  proven_idris_circuitbreaker_success_rate successes total * 100.0
+proven_idris_circuitbreaker_success_rate_percent successes tot =
+  proven_idris_circuitbreaker_success_rate successes tot * 100.0
 
 export
 proven_idris_circuitbreaker_uptime_percent : Int -> Int -> Double

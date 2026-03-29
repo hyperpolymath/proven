@@ -18,6 +18,7 @@ import Data.Bits
 --------------------------------------------------------------------------------
 
 ||| CRC32 polynomial (IEEE 802.3)
+public export
 crc32Polynomial : Bits32
 crc32Polynomial = 0xEDB88320
 
@@ -50,6 +51,7 @@ verifyCRC32 bytes expected = crc32 bytes == expected
 --------------------------------------------------------------------------------
 
 ||| Adler-32 modulus
+public export
 adler32Mod : Nat
 adler32Mod = 65521
 

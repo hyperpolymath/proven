@@ -12,6 +12,8 @@
 module Proven.FFI.SafeCert
 
 import Proven.SafeCert
+import Data.String
+import Data.List1
 
 %default total
 
@@ -96,14 +98,14 @@ proven_idris_cert_days_until_expiry : Int -> Int -> Int
 proven_idris_cert_days_until_expiry notAfter currentTime =
   if currentTime >= notAfter
     then 0
-    else cast (div (minus (cast notAfter) (cast currentTime)) 86400)
+    else (notAfter - currentTime) `div` 86400
 
 export
 proven_idris_cert_expires_within_days : Int -> Int -> Int -> Int
 proven_idris_cert_expires_within_days notAfter currentTime days =
   let remaining = if currentTime >= notAfter
                     then 0
-                    else div (minus (cast notAfter) (cast currentTime)) 86400
+                    else (notAfter - currentTime) `div` 86400
   in encodeBool (remaining <= cast days)
 
 --------------------------------------------------------------------------------
@@ -120,16 +122,16 @@ proven_idris_cert_expires_within_days notAfter currentTime days =
 export
 proven_idris_cert_matches_hostname : String -> String -> Int
 proven_idris_cert_matches_hostname sanList hostname =
-  let sans = split (== ',') sanList
+  let sans = forget (split (== ',') sanList)
   in encodeBool (elem hostname sans || any (\san => matchWildcard san hostname) sans)
   where
     ||| Wildcard matching: *.example.com matches host.example.com
     ||| but NOT sub.host.example.com (no dots in matched prefix)
     matchWildcard : String -> String -> Bool
-    matchWildcard pattern host =
-      if isPrefixOf "*." pattern
-        then let suffix = strSubstr 2 (length pattern) pattern
-                 prefixLen = minus (length host) (length suffix)
-                 prefix = strSubstr 0 prefixLen host
-             in isSuffixOf suffix host && not (isInfixOf "." prefix)
-        else pattern == host
+    matchWildcard pat host =
+      if isPrefixOf "*." pat
+        then let suffix = strSubstr 2 (cast (length pat)) pat
+             in let prefixLen = minus (length host) (length suffix)
+             in let pfx = strSubstr 0 (cast prefixLen) host
+             in isSuffixOf suffix host && not (isInfixOf "." pfx)
+        else pat == host
