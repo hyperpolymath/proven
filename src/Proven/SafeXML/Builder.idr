@@ -250,8 +250,9 @@ renderDeclaration d =
 renderAttr : XMLAttr -> String
 renderAttr a = qualifiedName a.name ++ "=\"" ++ a.value.escaped ++ "\""
 
-||| Render node to string
 mutual
+  ||| Render node to string
+  covering
   public export
   renderNode : XMLNode -> String
   renderNode (Element name attrs children) =
@@ -267,6 +268,7 @@ mutual
   renderNode (ProcessingInstruction target dat) = "<?" ++ target ++ " " ++ dat ++ "?>"
 
 ||| Render document to string
+covering
 public export
 renderDocument : XMLDocument -> String
 renderDocument doc =
@@ -277,8 +279,9 @@ renderDocument doc =
 -- Pretty Printing
 --------------------------------------------------------------------------------
 
-||| Render with indentation
 mutual
+  ||| Render with indentation
+  covering
   public export
   renderPretty : Nat -> XMLNode -> String
   renderPretty indent (Element name attrs children) =
@@ -296,6 +299,7 @@ mutual
     pack (replicate indent ' ') ++ "<?" ++ target ++ " " ++ dat ++ "?>\n"
 
 ||| Pretty print document
+covering
 public export
 renderDocumentPretty : XMLDocument -> String
 renderDocumentPretty doc =

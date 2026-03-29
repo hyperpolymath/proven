@@ -11,6 +11,7 @@ module Proven.SafeEnv.Access
 import Proven.Core
 import Proven.SafeEnv.Types
 import Data.List
+import Data.List1
 import Data.Maybe
 import Data.String
 
@@ -129,7 +130,7 @@ parsePort s = do
 export
 parseList : String -> List String
 parseList s =
-  map trim (split (== ',') s)
+  map trim (forget (split (== ',') s))
 
 ||| Parse key-value from string (key=value)
 export
@@ -139,7 +140,7 @@ parseKeyValue s =
     (key, rest) =>
       if null (unpack rest)
         then Nothing
-        else Just (key, drop 1 rest)
+        else Just (key, substr 1 (length rest `minus` 1) rest)
 
 --------------------------------------------------------------------------------
 -- Typed Getters

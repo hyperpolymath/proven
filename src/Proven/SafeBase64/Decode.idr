@@ -112,38 +112,39 @@ decodeGroup variant c0 c1 c2 c3 = do
       -- Invalid: padding in wrong position
       Nothing
 
-||| Decode without padding (add implicit padding)
-decodeNoPadding : Base64Variant -> List Char -> Base64Result (List Bits8)
-decodeNoPadding variant chars =
-  let remainder = length chars `mod` 4
-      paddedChars = case remainder of
-                      0 => chars
-                      2 => chars ++ ['=', '=']
-                      3 => chars ++ ['=']
-                      _ => chars  -- 1 is invalid
-  in if remainder == 1
-       then Err (InvalidLength (length chars))
-       else decodeLoop variant paddedChars
+mutual
+  ||| Decode without padding (add implicit padding)
+  decodeNoPadding : Base64Variant -> List Char -> Base64Result (List Bits8)
+  decodeNoPadding variant chars =
+    let remainder = length chars `mod` 4
+        paddedChars = case remainder of
+                        0 => chars
+                        2 => chars ++ ['=', '=']
+                        3 => chars ++ ['=']
+                        _ => chars  -- 1 is invalid
+    in if remainder == 1
+         then Err (InvalidLength (length chars))
+         else decodeLoop variant paddedChars
 
-||| Main decoding loop
-decodeLoop : Base64Variant -> List Char -> Base64Result (List Bits8)
-decodeLoop variant [] = Ok []
-decodeLoop variant [_] = Err (InvalidLength 1)
-decodeLoop variant [_, _] = Err (InvalidLength 2)
-decodeLoop variant [_, _, _] = Err (InvalidLength 3)
-decodeLoop variant (c0 :: c1 :: c2 :: c3 :: rest) =
-  case decodeGroup variant c0 c1 c2 c3 of
-    Nothing => Err NonZeroTrailingBits
-    Just bytes =>
-      if c3 == '=' || c2 == '='
-        then
-          -- Padding means end of data
-          if null rest
-            then Ok bytes
-            else Err InvalidPadding  -- Padding in middle
-        else do
-          restBytes <- decodeLoop variant rest
-          Ok (bytes ++ restBytes)
+  ||| Main decoding loop
+  decodeLoop : Base64Variant -> List Char -> Base64Result (List Bits8)
+  decodeLoop variant [] = Ok []
+  decodeLoop variant [_] = Err (InvalidLength 1)
+  decodeLoop variant [_, _] = Err (InvalidLength 2)
+  decodeLoop variant [_, _, _] = Err (InvalidLength 3)
+  decodeLoop variant (c0 :: c1 :: c2 :: c3 :: rest) =
+    case decodeGroup variant c0 c1 c2 c3 of
+      Nothing => Err NonZeroTrailingBits
+      Just bytes =>
+        if c3 == '=' || c2 == '='
+          then
+            -- Padding means end of data
+            if null rest
+              then Ok bytes
+              else Err InvalidPadding  -- Padding in middle
+          else do
+            restBytes <- decodeLoop variant rest
+            Ok (bytes ++ restBytes)
 
 --------------------------------------------------------------------------------
 -- Main Decoding Functions

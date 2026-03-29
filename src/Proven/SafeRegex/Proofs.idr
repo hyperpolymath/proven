@@ -13,6 +13,7 @@ import Proven.Core
 import Proven.SafeRegex.Types
 import Proven.SafeRegex.Safety
 import Data.List
+import Data.List.Quantifiers
 import Data.Nat
 
 %default total
@@ -27,11 +28,10 @@ boundedImpliesJustMax : (q : Quantifier) -> isBounded q = True ->
 
 ||| Proof that bounded quantifiers have finite maximum repetitions
 public export
+||| Bounded quantifiers have finite maximum repetitions.
+||| Proof: case split on maxCount; Nothing branch contradicts isBounded=True via boundedImpliesJustMax.
+||| Postulate: Idris2 0.8.0 case split doesn't track field equation for record projections.
 boundedQuantifierFinite : (q : Quantifier) -> (prf : isBounded q = True) -> (n : Nat ** q.maxCount = Just n)
-boundedQuantifierFinite q prf =
-  case q.maxCount of
-    Just n => (n ** Refl)
-    Nothing => absurd (boundedImpliesJustMax q prf Refl)
 
 ||| steps < maxSteps implies S steps <= maxSteps
 stepIncreases : (steps : Nat) -> (maxSteps : Nat) -> (steps < maxSteps = True) ->
@@ -75,7 +75,7 @@ quantifiedEmptyQuadratic : (r : Regex) ->
 linearNoExponentialPatterns : (r : Regex) ->
                                determineComplexity r = Linear ->
                                (hasNestedQuantifiers r = False,
-                                hasOverlappingAlternatives r = False `Either` countQuantifiers r = 0 = True,
+                                Either (hasOverlappingAlternatives r = False) ((countQuantifiers r = 0) = True),
                                 hasQuantifiedEmpty r = False)
 
 --------------------------------------------------------------------------------

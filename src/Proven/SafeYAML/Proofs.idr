@@ -25,25 +25,27 @@ public export
 data NoDangerousTags : YAMLValue -> Type where
   MkNoDangerousTags : (val : YAMLValue) -> NoDangerousTags val
 
+||| Compute YAML value nesting depth
+covering
+valueDepth : YAMLValue -> Nat
+valueDepth YNull = 0
+valueDepth (YBool _) = 0
+valueDepth (YInt _) = 0
+valueDepth (YFloat _) = 0
+valueDepth (YString _) = 0
+valueDepth (YBinary _) = 0
+valueDepth (YTimestamp _) = 0
+valueDepth (YArray []) = 1
+valueDepth (YArray xs) = S (foldl max 0 (map valueDepth xs))
+valueDepth (YObject []) = 1
+valueDepth (YObject kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
+
 ||| Predicate: YAML has bounded depth
 public export
 data BoundedDepth : Nat -> YAMLValue -> Type where
   MkBoundedDepth : (maxDepth : Nat) -> (val : YAMLValue) ->
                    {auto prf : valueDepth val <= maxDepth = True} ->
                    BoundedDepth maxDepth val
-  where
-    valueDepth : YAMLValue -> Nat
-    valueDepth YNull = 0
-    valueDepth (YBool _) = 0
-    valueDepth (YInt _) = 0
-    valueDepth (YFloat _) = 0
-    valueDepth (YString _) = 0
-    valueDepth (YBinary _) = 0
-    valueDepth (YTimestamp _) = 0
-    valueDepth (YArray []) = 1
-    valueDepth (YArray xs) = S (foldl max 0 (map valueDepth xs))
-    valueDepth (YObject []) = 1
-    valueDepth (YObject kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
 
 ||| Predicate: Value is scalar (no alias expansion possible)
 public export
@@ -102,7 +104,7 @@ secureDefaultsBlockDangerous : (tag : String) ->
 
 ||| Theorem: Secure defaults disable anchors
 export
-secureDefaultsNoAnchors : secureDefaults.allowAnchors = False
+secureDefaultsNoAnchors : Proven.SafeYAML.Types.secureDefaults.allowAnchors = False
 secureDefaultsNoAnchors = Refl
 
 ||| Theorem: Alias depth is bounded
@@ -196,6 +198,10 @@ isScalarCorrect : (val : YAMLValue) ->
 -- Deserialization Safety Proofs
 --------------------------------------------------------------------------------
 
+-- Stub for parseYAMLWith used in parsingNeverCrashes postulate
+parseYAMLWith : YAMLSecurityOptions -> String -> YAMLResult YAMLValue
+parseYAMLWith _ _ = Ok YNull
+
 ||| Postulate: YAML parsing always returns a Result type (either Err or Ok),
 ||| never throws an exception. All error paths produce YAMLError values
 ||| wrapped in Err; successful parsing produces YAMLValue wrapped in Ok.
@@ -203,9 +209,6 @@ export
 parsingNeverCrashes : (input : String) -> (opts : YAMLSecurityOptions) ->
                       (err : YAMLError ** parseYAMLWith opts input = Err err) `Either`
                       (val : YAMLValue ** parseYAMLWith opts input = Ok val)
-  where
-    parseYAMLWith : YAMLSecurityOptions -> String -> YAMLResult YAMLValue
-    parseYAMLWith _ _ = Ok YNull  -- Stub
 
 ||| Theorem: Dangerous input is rejected
 export

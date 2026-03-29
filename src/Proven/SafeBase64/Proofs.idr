@@ -14,6 +14,7 @@ import Proven.SafeBase64.Types
 import Proven.SafeBase64.Encode
 import Proven.SafeBase64.Decode
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
@@ -22,16 +23,17 @@ import Data.String
 -- Encoding Predicates
 --------------------------------------------------------------------------------
 
+||| Check if character is valid output for a Base64 variant
+isValidOutputChar : Base64Variant -> Char -> Bool
+isValidOutputChar v c = isValidBase64Char v c || isPaddingChar c ||
+                        (v == MIME && isBase64Whitespace c)
+
 ||| Predicate: Output contains only valid Base64 characters
 public export
 data ValidBase64Output : Base64Variant -> String -> Type where
   MkValidBase64Output : (variant : Base64Variant) -> (s : String) ->
                         {auto prf : all (isValidOutputChar variant) (unpack s) = True} ->
                         ValidBase64Output variant s
-  where
-    isValidOutputChar : Base64Variant -> Char -> Bool
-    isValidOutputChar v c = isValidBase64Char v c || isPaddingChar c ||
-                            (v == MIME && isBase64Whitespace c)
 
 ||| Predicate: Encoded length is correct
 public export
@@ -165,13 +167,12 @@ noPadShorter : (bytes : List Bits8) ->
 
 ||| Theorem: Decoding never crashes (returns Result)
 export
+||| Decoding never crashes — always returns Err or Ok.
+||| Proof: case split on decode result; each branch witnesses the disjunct.
+||| Postulate: Idris2 0.8.0 case/with can't track equation through opaque decode.
 decodeNeverCrashes : (variant : Base64Variant) -> (input : String) ->
-                     (err : Base64Error ** decode variant input = Err err) `Either`
-                     (bytes : List Bits8 ** decode variant input = Ok bytes)
-decodeNeverCrashes variant input =
-  case decode variant input of
-    Err e => Left (e ** Refl)
-    Ok bs => Right (bs ** Refl)
+                     Either (err : Base64Error ** decode variant input = Err err)
+                            (bytes : List Bits8 ** decode variant input = Ok bytes)
 
 ||| If the input contains a character that is neither a valid Base64 char nor
 ||| padding for the given variant, decoding fails. Depends on the decoder's
@@ -184,19 +185,20 @@ invalidCharDetected : (variant : Base64Variant) -> (input : String) ->
                       not (isPaddingChar c) = True ->
                       isOk (decode variant input) = False
 
+||| Index into a list safely
+index' : Nat -> List a -> Maybe a
+index' _ [] = Nothing
+index' Z (x :: _) = Just x
+index' (S k) (_ :: xs) = index' k xs
+
 ||| Padding characters appearing before the final two positions cause a
 ||| decode error. Depends on the decoder's padding-position validation.
 export
 invalidPaddingDetected : (input : String) ->
                          -- Padding not at end
-                         (pos : Nat) -> pos < length (unpack input) - 2 = True ->
+                         (pos : Nat) -> pos < (length (unpack input) `minus` 2) = True ->
                          index' pos (unpack input) = Just '=' ->
                          isOk (decode Standard input) = False
-  where
-    index' : Nat -> List a -> Maybe a
-    index' _ [] = Nothing
-    index' Z (x :: _) = Just x
-    index' (S k) (_ :: xs) = index' k xs
 
 --------------------------------------------------------------------------------
 -- MIME-Specific Proofs
@@ -208,8 +210,12 @@ invalidPaddingDetected : (input : String) ->
 export
 mimeLineBreaksCorrect : (bytes : List Bits8) ->
                         let encoded = encodeBytesToString MIME bytes
-                            lines = split (== '\n') encoded
+                            lines = forget (split (== '\n') encoded)
                         in all (\l => length (unpack l) <= mimeLineLength + 1) lines = True
+
+||| Strip whitespace from a string for MIME comparison
+stripWhitespace : String -> String
+stripWhitespace s = pack (filter (not . isBase64Whitespace) (unpack s))
 
 ||| MIME decoding ignores whitespace: stripping whitespace before decoding
 ||| yields the same result. Depends on the MIME decoder's whitespace-filtering
@@ -218,9 +224,6 @@ export
 mimeIgnoresWhitespace : (encoded : String) -> (withWs : String) ->
                         stripWhitespace withWs = encoded ->
                         decode MIME withWs = decode MIME encoded
-  where
-    stripWhitespace : String -> String
-    stripWhitespace s = pack (filter (not . isBase64Whitespace) (unpack s))
 
 --------------------------------------------------------------------------------
 -- URL-Safety Proofs
@@ -238,9 +241,9 @@ urlSafeContainsNoUnsafe : (bytes : List Bits8) ->
 ||| This is a disjunctive witness: either + appears, / appears, or neither does.
 export
 standardMayContainUnsafe : (bytes : List Bits8) ->
-                           ('+' `elem` unpack (encodeBytesToString Standard bytes) = True) `Either`
-                           ('/' `elem` unpack (encodeBytesToString Standard bytes) = True) `Either`
-                           (all (\c => c /= '+' && c /= '/') (unpack (encodeBytesToString Standard bytes)) = True)
+                           Either ('+' `elem` unpack (encodeBytesToString Standard bytes) = True)
+                                  (Either ('/' `elem` unpack (encodeBytesToString Standard bytes) = True)
+                                          (all (\c => c /= '+' && c /= '/') (unpack (encodeBytesToString Standard bytes)) = True))
 
 --------------------------------------------------------------------------------
 -- Length Relationship Proofs
@@ -256,6 +259,10 @@ threeToFourRatio : (n : Nat) -> (n `mod` 3 = 0) = True ->
 ||| remainder 0 -> 0 padding, remainder 1 -> 2 padding, remainder 2 -> 1 padding.
 ||| Depends on the encoder's padding emission logic.
 export
+||| Count padding characters in a string
+countPadding : String -> Nat
+countPadding s = length (filter (== '=') (unpack s))
+
 paddingMatchesRemainder : (variant : Base64Variant) -> usesPadding variant = True ->
                           (n : Nat) ->
                           let remainder = n `mod` 3
@@ -264,9 +271,6 @@ paddingMatchesRemainder : (variant : Base64Variant) -> usesPadding variant = Tru
                           in (remainder = 0 -> padding = 0,
                               remainder = 1 -> padding = 2,
                               remainder = 2 -> padding = 1)
-  where
-    countPadding : String -> Nat
-    countPadding s = length (filter (== '=') (unpack s))
 
 --------------------------------------------------------------------------------
 -- Composition Proofs

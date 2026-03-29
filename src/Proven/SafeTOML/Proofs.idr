@@ -20,27 +20,29 @@ import Data.String
 -- Security Predicates
 --------------------------------------------------------------------------------
 
+||| Compute TOML value nesting depth
+covering
+valueDepth : TOMLValue -> Nat
+valueDepth (TString _) = 0
+valueDepth (TInt _) = 0
+valueDepth (TFloat _) = 0
+valueDepth (TBool _) = 0
+valueDepth (TDateTime _) = 0
+valueDepth (TDate _) = 0
+valueDepth (TTime _) = 0
+valueDepth (TArray []) = 1
+valueDepth (TArray xs) = S (foldl max 0 (map valueDepth xs))
+valueDepth (TInlineTable []) = 1
+valueDepth (TInlineTable kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
+valueDepth (TTable []) = 1
+valueDepth (TTable kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
+
 ||| Predicate: TOML has bounded nesting depth
 public export
 data BoundedDepth : Nat -> TOMLValue -> Type where
   MkBoundedDepth : (maxDepth : Nat) -> (val : TOMLValue) ->
                    {auto prf : valueDepth val <= maxDepth = True} ->
                    BoundedDepth maxDepth val
-  where
-    valueDepth : TOMLValue -> Nat
-    valueDepth (TString _) = 0
-    valueDepth (TInt _) = 0
-    valueDepth (TFloat _) = 0
-    valueDepth (TBool _) = 0
-    valueDepth (TDateTime _) = 0
-    valueDepth (TDate _) = 0
-    valueDepth (TTime _) = 0
-    valueDepth (TArray []) = 1
-    valueDepth (TArray xs) = S (foldl max 0 (map valueDepth xs))
-    valueDepth (TInlineTable []) = 1
-    valueDepth (TInlineTable kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
-    valueDepth (TTable []) = 1
-    valueDepth (TTable kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
 
 ||| Predicate: TOML arrays are homogeneous
 public export
