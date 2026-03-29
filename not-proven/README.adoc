@@ -66,3 +66,9 @@ To work on fixing a module:
 | SafeI18n | 4 | While processing right hand side of parseLanguageTag. Sorry, I can't find any elaboration which works. All errors:
 | SafeInterval | 5 | While processing right hand side of width. Can't find an implementation for Neg a.
 | SafeLog | 2 | While processing right hand side of search. While processing right hand side of search,isInfixOf. Undefined name Proven.SafeLog.5278:3274:checkInfix. 
+| SafeMarkdown | 1 | While processing right hand side of table. While processing right hand side of table,mkRow. Undefined name Proven.SafeMarkdown.5114:3126:intersperse. 
+| SafeMatrix | 1 | Couldn't parse declaration.
+| SafeML | 1 | Couldn't parse any alternatives:
+| SafeNPU | 1 | While processing right hand side of estimateLatency. Can't find an implementation for Integral Nat.
+| SafePhone | 4 | While processing right hand side of parseE164. While processing right hand side of parseE164,tryCountryCode. When unifying:
+|===
