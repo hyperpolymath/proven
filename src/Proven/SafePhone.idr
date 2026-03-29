@@ -93,15 +93,15 @@ parseE164 : String -> Maybe PhoneNumber
 parseE164 s =
   if not (isPrefixOf "+" s)
     then Nothing
-    else let digits = stripFormatting (strSubstr 1 (length s) s)
+    else let digits = stripFormatting (substr 1 (length s) s)
          in if length digits < 7 || length digits > maxE164Length || not (isDigitsOnly digits)
               then Nothing
               else parseWithCountryCode digits
   where
     tryCountryCode : Nat -> String -> Maybe PhoneNumber
     tryCountryCode ccLen digits =
-      let ccStr = strSubstr 0 ccLen digits
-          rest = strSubstr ccLen (length digits) digits
+      let ccStr = substr 0 ccLen digits
+          rest = substr ccLen (length digits) digits
       in case parsePositive {a=Nat} ccStr of
            Nothing => Nothing
            Just cc => if length rest >= 4
@@ -125,7 +125,7 @@ formatE164 phone =
   in "+" ++ show cc ++ phoneSubscriber phone
 
 ||| Format with spaces for display
-public export
+public export covering
 formatDisplay : PhoneNumber -> String
 formatDisplay phone =
   let (MkCountryCode cc) = phoneCountry phone
@@ -146,7 +146,7 @@ maskPhone phone =
       len = length full
   in if len <= 4
        then full
-       else replicate' (minus len 4) '*' ++ strSubstr (minus len 4) len full
+       else replicate' (minus len 4) '*' ++ substr (minus len 4) len full
   where
     replicate' : Nat -> Char -> String
     replicate' Z _ = ""

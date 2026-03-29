@@ -151,7 +151,7 @@ modules = Proven
         -- Standalone validated types
         , Proven.SafeUUID
         , Proven.SafeCurrency
-        -- , Proven.SafePhone  -- not-proven
+        , Proven.SafePhone
         , Proven.SafeHex
         -- Tree & buffer modules
         , Proven.SafeTree
@@ -178,21 +178,21 @@ modules = Proven
         , Proven.SafeColor
         , Proven.SafeVersion
         , Proven.SafeChecksum
-        -- , Proven.SafeGeo  -- not-proven
+        , Proven.SafeGeo
         -- , Proven.SafeAngle  -- MOVED to not-proven/
         -- Mathematics & physics
         , Proven.SafeProbability
         , Proven.SafeUnit
-        -- , Proven.SafeFiniteField  -- not-proven
+        , Proven.SafeFiniteField
         -- Data structures
         , Proven.SafeQueue
         , Proven.SafeBloom
         , Proven.SafeLRU
         , Proven.SafeSet
-        -- , Proven.SafeHeap  -- not-proven
+        , Proven.SafeHeap
         , Proven.SafeMatrix
-        -- , Proven.SafeBitset  -- not-proven
-        -- , Proven.SafeInterval  -- not-proven
+        , Proven.SafeBitset
+        , Proven.SafeInterval
         , Proven.SafeUnionFind
         -- Distributed systems
         , Proven.SafeRateLimiter
@@ -200,10 +200,10 @@ modules = Proven
         , Proven.SafeRetry
         , Proven.SafeMonotonic
         -- Advanced
-        -- , Proven.SafeGraph  -- not-proven
+        , Proven.SafeGraph
         , Proven.SafeResource
         , Proven.SafeTransaction
-        -- , Proven.SafeCapability  -- not-proven
+        , Proven.SafeCapability
         , Proven.SafeConsensus
         , Proven.SafeOrdering
         , Proven.SafeSchema
@@ -214,16 +214,16 @@ modules = Proven
         , Proven.SafeRegistry
         -- Concurrency primitives
         , Proven.SafeSemaphore
-        -- , Proven.SafeCalculator  -- not-proven
+        , Proven.SafeCalculator
         -- New v1.1.0 modules
         , Proven.SafeGit
         , Proven.SafeDocker
         , Proven.SafeDNS
         , Proven.SafeSSH
-        -- , Proven.SafeI18n  -- not-proven
+        , Proven.SafeI18n
         , Proven.SafeTemplate
         , Proven.SafeArchive
-        -- , Proven.SafeCert  -- not-proven
+        , Proven.SafeCert
         , Proven.SafeOAuth
         , Proven.SafeWebhook
         , Proven.SafeBibTeX
