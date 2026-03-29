@@ -275,10 +275,10 @@ split (S n) m =
 public export
 allocate : List Nat -> Money -> Maybe (List Money)
 allocate ratios m =
-  let total = sum ratios
-  in if total == 0
+  let totalRatio = sum ratios
+  in if totalRatio == 0
        then Nothing
-       else Just (allocateByRatio ratios total m.amount m.currency)
+       else Just (allocateByRatio ratios totalRatio m.amount m.currency)
   where
     sum : List Nat -> Nat
     sum [] = 0
@@ -286,9 +286,9 @@ allocate ratios m =
     
     allocateByRatio : List Nat -> Nat -> Integer -> CurrencyCode -> List Money
     allocateByRatio [] _ _ _ = []
-    allocateByRatio (r :: rs) total amt curr =
-      let share = (amt * cast r) `div` cast total
-      in MkMoney share curr :: allocateByRatio rs total amt curr
+    allocateByRatio (r :: rs) tot amt curr =
+      let share = (amt * cast r) `div` cast tot
+      in MkMoney share curr :: allocateByRatio rs tot amt curr
 
 --------------------------------------------------------------------------------
 -- Formatting

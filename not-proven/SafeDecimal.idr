@@ -299,9 +299,9 @@ split (S n) amount =
   let baseAmount = case divWithPrecision 2 amount (fromInteger (cast (S n))) of
                      Nothing => zero
                      Just r => roundTo 2 r
-      total = mul baseAmount (fromInteger (cast (S n)))
-      remainder = sub amount total
-  in baseAmount :: replicate n baseAmount  -- Simplified: distribute remainder to first
+      summed = mul baseAmount (fromInteger (cast (S n)))
+      remainder = sub amount summed
+  in baseAmount :: List.replicate n baseAmount  -- Simplified: distribute remainder to first
 
 --------------------------------------------------------------------------------
 -- Conversions

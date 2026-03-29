@@ -150,7 +150,7 @@ modules = Proven
         , Proven.SafeContentType.Proofs
         -- Standalone validated types
         , Proven.SafeUUID
-        -- , Proven.SafeCurrency  -- not-proven
+        , Proven.SafeCurrency
         -- , Proven.SafePhone  -- not-proven
         -- , Proven.SafeHex  -- not-proven
         -- Tree & buffer modules
