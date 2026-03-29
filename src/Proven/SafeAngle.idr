@@ -14,6 +14,20 @@ import public Proven.SafeFloat
 %default total
 
 --------------------------------------------------------------------------------
+-- Missing stdlib: atan2 (not in Idris2 Prelude, bind to libm)
+--------------------------------------------------------------------------------
+
+||| Two-argument arctangent via C libm.
+||| Returns angle in radians between -pi and pi.
+%foreign "C:atan2,libm,math.h"
+prim__atan2 : Double -> Double -> Double
+
+||| Safe wrapper for atan2 (total, no exceptions).
+export
+atan2 : Double -> Double -> Double
+atan2 = prim__atan2
+
+--------------------------------------------------------------------------------
 -- Angle Types
 --------------------------------------------------------------------------------
 

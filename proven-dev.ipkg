@@ -166,7 +166,7 @@ modules = Proven
         -- State machines
         , Proven.SafeStateMachine
         -- Format safety
-        -- , Proven.SafeMarkdown  -- not-proven
+        , Proven.SafeMarkdown
         -- , Proven.SafeLog  -- not-proven
         , Proven.SafeCron
         -- Numeric safety
@@ -179,7 +179,7 @@ modules = Proven
         , Proven.SafeVersion
         -- , Proven.SafeChecksum  -- not-proven
         -- , Proven.SafeGeo  -- not-proven
-        -- , Proven.SafeAngle  -- not-proven
+        , Proven.SafeAngle
         -- Mathematics & physics
         , Proven.SafeProbability
         , Proven.SafeUnit

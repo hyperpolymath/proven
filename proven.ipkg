@@ -166,7 +166,7 @@ modules = Proven
         -- State machines
         , Proven.SafeStateMachine
         -- Format safety
-        -- , Proven.SafeMarkdown  -- not-proven
+        , Proven.SafeMarkdown
         -- , Proven.SafeLog  -- not-proven
         , Proven.SafeCron
         -- Numeric safety

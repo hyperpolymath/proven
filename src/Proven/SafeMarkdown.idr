@@ -239,6 +239,12 @@ data Alignment : Type where
   AlignRight : Alignment
   AlignDefault : Alignment
 
+||| Interleave separator between list elements
+interleaveSep : a -> List a -> List a
+interleaveSep _ [] = []
+interleaveSep _ [x] = [x]
+interleaveSep sep (x :: xs) = x :: sep :: interleaveSep sep xs
+
 ||| Create a table
 public export
 table : (headers : List String) -> (alignments : List Alignment) -> (rows : List (List String)) -> String
@@ -250,14 +256,9 @@ table headers aligns rows =
   where
     mkCell : String -> String
     mkCell s = " " ++ escape s ++ " "
-    
+
     mkRow : List String -> String
-    mkRow cells = "|" ++ concat (intersperse "|" (map mkCell cells)) ++ "|"
-    
-    intersperse : a -> List a -> List a
-    intersperse _ [] = []
-    intersperse _ [x] = [x]
-    intersperse sep (x :: xs) = x :: sep :: intersperse sep xs
+    mkRow cells = "|" ++ concat (interleaveSep "|" (map mkCell cells)) ++ "|"
     
     alignSep : Alignment -> String
     alignSep AlignLeft = ":---"
@@ -267,11 +268,9 @@ table headers aligns rows =
     
     mkSeparator : List Alignment -> Nat -> String
     mkSeparator as n =
-      let aligns = take n (as ++ repeat AlignDefault)
-      in "|" ++ concat (intersperse "|" (map alignSep aligns)) ++ "|"
-    
-    repeat : a -> List a
-    repeat x = x :: repeat x  -- Infinite, but `take` limits it
+      let padding = List.replicate (minus n (length as)) AlignDefault
+          aligns = take n (as ++ padding)
+      in "|" ++ concat (interleaveSep "|" (map alignSep aligns)) ++ "|"
     
     unlines : List String -> String
     unlines [] = ""
