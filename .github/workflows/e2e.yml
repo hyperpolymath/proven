@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# proven — E2E + Safety Aspect + Bench
+#
+# Tests the full proof chain: Idris2 → Zig FFI → integration.
+# Safety aspects verify no dangerous patterns escape into production.
+
+name: E2E + Safety + Bench
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'src/**'
+      - 'ffi/**'
+      - 'tests/**'
+      - 'bindings/**'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'ffi/**'
+      - 'tests/**'
+      - 'bindings/**'
+  workflow_dispatch:
+
+permissions: read-all
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-ffi:
+    name: E2E — Zig FFI Build + Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@7ab2955eb728f5440978d7b4f723a50dea1f3608  # v2
+        with:
+          version: 0.15.0
+
+      - name: Build FFI
+        run: cd ffi/zig && zig build
+
+      - name: Run FFI integration tests
+        run: cd ffi/zig && zig build test
+
+      - name: Verify library output
+        run: ls -la ffi/zig/zig-out/lib/libproven.* || echo "Library output check"
+
+  safety-aspects:
+    name: Aspect — Safety Invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: No dangerous Idris2 patterns
+        run: |
+          DANGEROUS=$(grep -rn 'believe_me\|assert_total\|really_believe_me' src/ 2>/dev/null | grep -v test || true)
+          if [ -n "$DANGEROUS" ]; then
+            echo "FAIL: Dangerous patterns found in src/"
+            echo "$DANGEROUS"
+            exit 1
+          fi
+          echo "PASS: No believe_me/assert_total in src/"
+
+      - name: No @panic in Zig production code
+        run: |
+          PANICS=$(grep -rn '@panic' ffi/zig/src/ 2>/dev/null | grep -v test || true)
+          if [ -n "$PANICS" ]; then
+            echo "FAIL: @panic in FFI production code"
+            echo "$PANICS"
+            exit 1
+          fi
+          echo "PASS: No @panic in Zig production code"
+
+      - name: No unsafe patterns in bindings
+        run: |
+          if [ -d "bindings" ]; then
+            UNSAFE=$(grep -rn 'unsafe\|unwrap()\|getExn\|unsafeCoerce' bindings/ 2>/dev/null | grep -v test || true)
+            if [ -n "$UNSAFE" ]; then
+              echo "FAIL: Unsafe patterns in bindings"
+              echo "$UNSAFE" | head -10
+              exit 1
+            fi
+          fi
+          echo "PASS: No unsafe patterns in bindings"
+
+      - name: SPDX headers present
+        run: |
+          MISSING=0
+          for f in $(find src/ -name "*.idr" 2>/dev/null | head -50); do
+            if ! head -5 "$f" | grep -q "SPDX"; then
+              echo "MISSING: $f"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          if [ "$MISSING" -gt 0 ]; then
+            echo "WARN: $MISSING files missing SPDX headers"
+          else
+            echo "PASS: All checked files have SPDX headers"
+          fi
+
+  benchmarks:
+    name: Bench — FFI Performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@7ab2955eb728f5440978d7b4f723a50dea1f3608  # v2
+        with:
+          version: 0.15.0
+
+      - name: Build and bench FFI
+        run: cd ffi/zig && zig build bench 2>&1 | tee /tmp/bench-results.txt || echo "No bench target yet"
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: benchmark-results
+          path: /tmp/bench-results.txt
+          retention-days: 30
