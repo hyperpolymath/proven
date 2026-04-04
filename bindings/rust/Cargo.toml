@@ -25,3 +25,5 @@ crate-type = ["lib"]
 
 [dev-dependencies]
 # Tests require libproven to be built and available
+# proptest: property-based testing for P2P tests (CRG Grade C)
+proptest = "1.4"

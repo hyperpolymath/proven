@@ -296,3 +296,12 @@ pub use safe_state_machine::{StateMachine, StateMachineBuilder};
 // Network (used in re-exports but also needs its own module declaration)
 /// Safe network address operations (IPv4 parsing, classification).
 pub mod safe_network;
+
+// ============================================================================
+// CRG Grade C test suite
+// ============================================================================
+
+/// CRG Grade C tests: P2P (property-based), E2E (structural/reflexive),
+/// and aspect (security boundary) tests for the proven Rust binding.
+#[cfg(test)]
+pub mod tests;
