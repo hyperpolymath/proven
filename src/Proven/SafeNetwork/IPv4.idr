@@ -244,13 +244,18 @@ hostCount mask =
       hostBits = countZeros bits
   in if hostBits <= 2 then 0 else cast (power 2 hostBits) `minus` 2
   where
+    -- popCount via fuel: Bits32 has at most 32 bits so fuel=32 is always sufficient.
+    popCountFuel : Nat -> Bits32 -> Nat
+    popCountFuel Z     _ = 0
+    popCountFuel _     0 = 0
+    popCountFuel (S f) x = cast (x .&. 1) + popCountFuel f (x `shiftR` 1)
+
+    popCount : Bits32 -> Nat
+    popCount x = popCountFuel 32 x
+
     countZeros : Bits32 -> Nat
     countZeros 0xFFFFFFFF = 0
     countZeros n = 32 `minus` popCount n
-      where
-        popCount : Bits32 -> Nat
-        popCount 0 = 0
-        popCount x = cast (x .&. 1) + popCount (assert_smaller x (x `shiftR` 1))
 
     power : Nat -> Nat -> Nat
     power _ 0 = 1
@@ -284,9 +289,14 @@ maskToPrefix mask =
       let inverted = complement n
       in (inverted .&. (inverted + 1)) == 0
 
+    -- countOnes via fuel: same reasoning as popCount above.
+    countOnesFuel : Nat -> Bits32 -> Nat
+    countOnesFuel Z     _ = 0
+    countOnesFuel _     0 = 0
+    countOnesFuel (S f) n = cast (n .&. 1) + countOnesFuel f (n `shiftR` 1)
+
     countOnes : Bits32 -> Nat
-    countOnes 0 = 0
-    countOnes n = cast (n .&. 1) + countOnes (assert_smaller n (n `shiftR` 1))
+    countOnes n = countOnesFuel 32 n
 
 --------------------------------------------------------------------------------
 -- Common Netmasks

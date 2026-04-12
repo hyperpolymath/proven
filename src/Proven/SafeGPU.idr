@@ -174,11 +174,19 @@ validateKernelConfig cfg =
     then Just cfg
     else Nothing
 
+-- Fuel-bounded helper: n halves each step, so fuel=n is always sufficient
+-- (log₂ n ≤ n−1 for all n ≥ 1). Eliminates assert_smaller.
+private
+isPowerOfTwoFuel : Nat -> Nat -> Bool
+isPowerOfTwoFuel _      Z      = False
+isPowerOfTwoFuel _      (S Z)  = True
+isPowerOfTwoFuel Z      _      = False    -- fuel exhausted; n > 1 → not a power of two
+isPowerOfTwoFuel (S f)  n      =
+  (modNatNZ n 2 ItIsSucc == 0) && isPowerOfTwoFuel f (divNatNZ n 2 ItIsSucc)
+
 ||| Check if a value is a power of two
 isPowerOfTwo : Nat -> Bool
-isPowerOfTwo Z = False
-isPowerOfTwo (S Z) = True
-isPowerOfTwo n = (modNatNZ n 2 ItIsSucc == 0) && isPowerOfTwo (assert_smaller n (divNatNZ n 2 ItIsSucc))
+isPowerOfTwo n = isPowerOfTwoFuel n n
 
 ||| Validate a buffer allocation descriptor
 ||| Checks that size is nonzero and alignment is a power of two
