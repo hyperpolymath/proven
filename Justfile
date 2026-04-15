@@ -13,6 +13,8 @@
 #   - just (https://just.systems)
 
 # Default recipe: show available recipes
+import? "contractile.just"
+
 default:
     @just --list
 
