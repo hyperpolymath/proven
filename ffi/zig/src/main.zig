@@ -291,6 +291,39 @@ export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) callconv(.c) 
 }
 
 //==============================================================================
+// SafeHeader — HTTP header safety
+// Matches the declarations in proven.h and src/abi/Foreign.idr.
+//==============================================================================
+
+/// Check if a byte slice contains CRLF injection characters ("\r\n").
+///
+/// Matches: ProvenBoolResult proven_header_has_crlf(const uint8_t* ptr, size_t len)
+///
+/// Returns BoolResult{ .status = PROVEN_OK, .value = true } when CRLF is found,
+/// and { .status = PROVEN_OK, .value = false } otherwise.
+/// Returns { .status = PROVEN_ERR_NULL_POINTER } when ptr is null.
+///
+/// Detection rule: scan for the byte sequence CR (0x0D) followed by LF (0x0A).
+/// This prevents CRLF injection attacks in HTTP headers.
+export fn proven_header_has_crlf(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult {
+    const p = ptr orelse return BoolResult{ .status = PROVEN_ERR_NULL_POINTER, .value = false };
+    if (len == 0) return BoolResult{ .status = PROVEN_OK, .value = false };
+
+    const bytes = p[0..len];
+
+    // Scan for the CRLF sequence: 0x0D (CR) followed by 0x0A (LF).
+    var i: usize = 0;
+    while (i < len - 1) {
+        if (bytes[i] == '\r' and bytes[i + 1] == '\n') {
+            return BoolResult{ .status = PROVEN_OK, .value = true };
+        }
+        i += 1;
+    }
+
+    return BoolResult{ .status = PROVEN_OK, .value = false };
+}
+
+//==============================================================================
 // Utility Functions
 //==============================================================================
 
@@ -354,4 +387,42 @@ test "proven_path_has_traversal handles null and empty" {
     const r_empty = proven_path_has_traversal("".ptr, 0);
     try std.testing.expectEqual(@as(c_int, PROVEN_OK), r_empty.status);
     try std.testing.expect(!r_empty.value);
+}
+
+test "proven_header_has_crlf detects CRLF" {
+    // Classic CRLF injection.
+    const r1 = proven_header_has_crlf("Set-Cookie: foo=bar\r\nSet-Cookie: admin=true".ptr,
+        "Set-Cookie: foo=bar\r\nSet-Cookie: admin=true".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r1.status);
+    try std.testing.expect(r1.value);
+
+    const r2 = proven_header_has_crlf("X-Custom\r\n".ptr, "X-Custom\r\n".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r2.status);
+    try std.testing.expect(r2.value);
+}
+
+test "proven_header_has_crlf allows safe headers" {
+    const r1 = proven_header_has_crlf("Content-Type: application/json".ptr,
+        "Content-Type: application/json".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r1.status);
+    try std.testing.expect(!r1.value);
+
+    const r2 = proven_header_has_crlf("Authorization: Bearer token123".ptr,
+        "Authorization: Bearer token123".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r2.status);
+    try std.testing.expect(!r2.value);
+}
+
+test "proven_header_has_crlf handles null and empty" {
+    const r_null = proven_header_has_crlf(null, 0);
+    try std.testing.expectEqual(@as(c_int, PROVEN_ERR_NULL_POINTER), r_null.status);
+
+    const r_empty = proven_header_has_crlf("".ptr, 0);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r_empty.status);
+    try std.testing.expect(!r_empty.value);
+
+    // Single byte should not crash.
+    const r_single = proven_header_has_crlf("X".ptr, 1);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r_single.status);
+    try std.testing.expect(!r_single.value);
 }
