@@ -198,3 +198,7 @@ htmlcov/
 *.bak
 # asdf version manager
 .tool-versions
+_build/
+deps/
+.elixir_ls/
+.cache/
