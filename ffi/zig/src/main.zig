@@ -37,12 +37,11 @@ pub const Result = enum(c_int) {
     null_pointer = 4,
 };
 
-/// Library handle (opaque to prevent direct access)
-pub const Handle = opaque {
-    // Internal state hidden from C
-    allocator: std.mem.Allocator,
+/// Library handle.  C consumers receive only a pointer, so C code treats it
+/// as opaque.  Zig code accesses fields directly via the pointer.
+pub const Handle = struct {
+    allocator:   std.mem.Allocator,
     initialized: bool,
-    // Add your fields here
 };
 
 //==============================================================================
@@ -209,7 +208,7 @@ export fn proven_build_info() [*:0]const u8 {
 //==============================================================================
 
 /// Callback function type (C ABI)
-pub const Callback = *const fn (u64, u32) callconv(.C) u32;
+pub const Callback = *const fn (u64, u32) callconv(.c) u32;
 
 /// Register a callback
 export fn proven_register_callback(
@@ -236,6 +235,59 @@ export fn proven_register_callback(
 
     clearError();
     return .ok;
+}
+
+//==============================================================================
+// SafePath — Filesystem traversal prevention
+// Matches the declarations in proven.h and src/abi/Foreign.idr.
+//==============================================================================
+
+/// C-ABI result type for boolean operations (matches ProvenBoolResult in proven.h).
+/// Layout: { status: i32, value: bool }  (4 + 1 bytes; compiler pads as needed).
+pub const BoolResult = extern struct {
+    status: c_int,
+    value:  bool,
+};
+
+/// Status codes matching ProvenStatus in proven.h.
+const PROVEN_OK: c_int                    =   0;
+const PROVEN_ERR_NULL_POINTER: c_int      =  -1;
+
+/// Check if a byte slice contains a directory traversal sequence ("..").
+///
+/// Matches: ProvenBoolResult proven_path_has_traversal(const uint8_t* ptr, size_t len)
+///
+/// Returns BoolResult{ .status = PROVEN_OK, .value = true } when a ".." component
+/// is present in the path, and { .status = PROVEN_OK, .value = false } otherwise.
+/// Returns { .status = PROVEN_ERR_NULL_POINTER } when ptr is null.
+///
+/// Detection rule: look for the two-byte sequence ".." bounded by path separators
+/// ('/'), a NUL byte, or the start/end of the slice.  This matches what the
+/// Idris2 backend will formally verify once the RefC pipeline is available.
+export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult {
+    const p = ptr orelse return BoolResult{ .status = PROVEN_ERR_NULL_POINTER, .value = false };
+    if (len == 0) return BoolResult{ .status = PROVEN_OK, .value = false };
+
+    const bytes = p[0..len];
+
+    // Walk the byte slice and check every ".." component.
+    var i: usize = 0;
+    while (i < len) {
+        // Find next component boundary: advance past leading separators.
+        while (i < len and bytes[i] == '/') : (i += 1) {}
+        if (i >= len) break;
+
+        // Measure the component.
+        const comp_start = i;
+        while (i < len and bytes[i] != '/') : (i += 1) {}
+        const component = bytes[comp_start..i];
+
+        if (std.mem.eql(u8, component, "..")) {
+            return BoolResult{ .status = PROVEN_OK, .value = true };
+        }
+    }
+
+    return BoolResult{ .status = PROVEN_OK, .value = false };
 }
 
 //==============================================================================
@@ -271,4 +323,35 @@ test "version" {
     const ver = proven_version();
     const ver_str = std.mem.span(ver);
     try std.testing.expectEqualStrings(VERSION, ver_str);
+}
+
+test "proven_path_has_traversal detects traversal" {
+    // Classic attacks.
+    const r1 = proven_path_has_traversal("../etc/passwd".ptr, "../etc/passwd".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r1.status);
+    try std.testing.expect(r1.value);
+
+    const r2 = proven_path_has_traversal("/tmp/../../root".ptr, "/tmp/../../root".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r2.status);
+    try std.testing.expect(r2.value);
+}
+
+test "proven_path_has_traversal allows safe paths" {
+    const r1 = proven_path_has_traversal("/var/mnt/eclipse/repos/myrepo/file.scm".ptr,
+        "/var/mnt/eclipse/repos/myrepo/file.scm".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r1.status);
+    try std.testing.expect(!r1.value);
+
+    const r2 = proven_path_has_traversal("/tmp/scratch.scm".ptr, "/tmp/scratch.scm".len);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r2.status);
+    try std.testing.expect(!r2.value);
+}
+
+test "proven_path_has_traversal handles null and empty" {
+    const r_null = proven_path_has_traversal(null, 0);
+    try std.testing.expectEqual(@as(c_int, PROVEN_ERR_NULL_POINTER), r_null.status);
+
+    const r_empty = proven_path_has_traversal("".ptr, 0);
+    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r_empty.status);
+    try std.testing.expect(!r_empty.value);
 }
