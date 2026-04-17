@@ -10,5 +10,5 @@ status = "active"
 
 [project-context]
 name = "proven"
-completion-percentage = 0
-phase = "In development"
+completion-percentage = "stable"
+phase = "stable-library"
