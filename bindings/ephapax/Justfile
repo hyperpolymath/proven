@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: PMPL-1.0
+# Justfile for Ephapax <-> Proven FFI bindings
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+default:
+    @just --list --unsorted
+
+all:
+    zig build-lib src/ephapax_proven.zig -dynamic -fallow-shlib-undefined -O ReleaseFast -femit-bin=libephapax_proven.so
+
+test: all
+    gcc -std=c11 -Wall -I. -L. -o test_ffi test_simple.c -lephapax_proven
+    LD_LIBRARY_PATH=. ./test_ffi
+
+clean:
+    rm -f libephapax_proven.so test_ffi *.o
