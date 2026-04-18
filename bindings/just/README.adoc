@@ -53,7 +53,7 @@ just version-compare "1.2.3" "2.0.0"
 
 == Importing into Your Project
 
-Add to your own justfile:
+Add to your own Justfile:
 
 [source,just]
 ----
