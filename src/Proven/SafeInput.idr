@@ -123,6 +123,13 @@ handleKey key buf = case key of
   End => { cursorPos := length buf.content } buf
   _ => buf  -- Enter, Escape, Tab handled at higher level
   where
+    doInsert : Char -> InputBuffer -> InputBuffer
+    doInsert c b =
+      let chars = unpack b.content
+          (before, after) = splitAt b.cursorPos chars
+          newContent = pack (before ++ [c] ++ after)
+      in { content := newContent, cursorPos := b.cursorPos + 1 } b
+
     insertChar : Char -> InputBuffer -> InputBuffer
     insertChar c b =
       -- Check length limit
@@ -131,13 +138,6 @@ handleKey key buf = case key of
       else case b.charFilter of
         Nothing => doInsert c b
         Just cls => if matchesClass c cls then doInsert c b else b
-
-    doInsert : Char -> InputBuffer -> InputBuffer
-    doInsert c b =
-      let chars = unpack b.content
-          (before, after) = splitAt b.cursorPos chars
-          newContent = pack (before ++ [c] ++ after)
-      in { content := newContent, cursorPos := b.cursorPos + 1 } b
 
     deleteBackward : InputBuffer -> InputBuffer
     deleteBackward b =
@@ -279,7 +279,7 @@ tokenize s = go (unpack (trim s)) []
         then let (numChars, rest) = span isDigit cs
              in case parseInteger (pack numChars) of
                   Nothing => Invalid "Invalid number"
-                  Just n => go rest (TokNum n :: acc)
+                  Just n => go (assert_smaller cs rest) (TokNum n :: acc)
         else Invalid ("Unexpected character: " ++ singleton c)
 
 -- ============================================================================
