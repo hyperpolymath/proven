@@ -62,6 +62,34 @@ parsePath : String -> JsonPath
 parsePath s = parsePathSegments (unpack s) [] []
 
 --------------------------------------------------------------------------------
+-- Structured Field Access
+--------------------------------------------------------------------------------
+
+||| Errors that can occur when reading a field from a JSON value.
+public export
+data AccessError
+  = NotAnObject       -- the JSON value was not an object
+  | KeyNotFound String  -- the object did not contain the requested key
+
+public export
+Show AccessError where
+  show NotAnObject     = "Expected JSON object"
+  show (KeyNotFound k) = "Key not found: " ++ k
+
+||| Look up a field on a JSON object, returning a structured error on failure.
+|||
+||| This is the fail-fast accessor referenced from idaptik's ProvenBridge:
+||| it returns `Right` with the value, or `Left` with a typed error explaining
+||| which failure mode occurred (not an object vs. missing key). Chain results
+||| with `Either`'s Monad instance for accumulation-free pipelines.
+public export
+field : String -> JsonValue -> Either AccessError JsonValue
+field key (JsonObject pairs) = case lookup key pairs of
+  Just v  => Right v
+  Nothing => Left (KeyNotFound key)
+field _ _ = Left NotAnObject
+
+--------------------------------------------------------------------------------
 -- Safe Path Access
 --------------------------------------------------------------------------------
 

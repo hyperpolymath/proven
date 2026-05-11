@@ -6,7 +6,9 @@
 ||| Inspired by TUI input handling where user input must be validated
 ||| character by character and expressions parsed safely.
 
-module SafeInput
+module Proven.SafeInput
+
+import public Proven.Core
 
 import Data.String
 import Data.List
