@@ -53,6 +53,8 @@ modules = Proven
         , Proven.SafeCrypto.Hash
         , Proven.SafeCrypto.Random
         , Proven.SafeCrypto.Proofs
+        -- SafeInput
+        , Proven.SafeInput
         -- SafePassword
         , Proven.SafePassword
         , Proven.SafePassword.Policy

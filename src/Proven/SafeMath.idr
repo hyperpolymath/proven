@@ -79,6 +79,13 @@ public export
 mulChecked : Integer -> Integer -> Maybe Integer
 mulChecked = mulInt64
 
+||| Safe division (returns Nothing on division by zero).
+||| Named for parity with addChecked/subChecked/mulChecked so consumers can
+||| treat the four checked-arithmetic operations uniformly.
+public export
+divChecked : Integer -> Integer -> Maybe Integer
+divChecked = safeDiv
+
 --------------------------------------------------------------------------------
 -- Safe Absolute Value
 --------------------------------------------------------------------------------
