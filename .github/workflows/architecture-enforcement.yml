@@ -111,17 +111,17 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
-      - name: Setup Idris2
+      - name: Build Idris2 modules (via container)
         run: |
-          # Install Idris2 from package manager or build from source
-          # This is a placeholder - actual installation varies by CI environment
-          echo "Idris2 installation (manual review required)"
-
-      - name: Build Idris2 modules
-        run: |
-          # Build all Idris modules to verify totality proofs
-          idris2 --build proven.ipkg || {
-            echo "❌ Idris2 build failed - proofs are broken"
-            exit 1
-          }
+          # Use the snazzybucket/idris2 container so we don't pay a 10-minute
+          # bootstrap on every job. The container is the same one used locally
+          # to verify proven#9 before merge.
+          docker run --rm \
+            -v "$PWD:/proj" \
+            -w /proj \
+            snazzybucket/idris2:latest \
+            sh -c 'idris2 --build proven.ipkg' || {
+              echo "❌ Idris2 build failed - proofs are broken"
+              exit 1
+            }
           echo "✅ Idris2 modules build successfully with totality checking"
