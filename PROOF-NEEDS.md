@@ -39,6 +39,29 @@
 | Single-file `src/Proven/Safe*.idr` modules (no `Proofs.idr` dir) | 133 |
 | — single-file modules shipping a safety/security **doc claim** | **76** |
 
+## Security-critical decidable proofs landed (2026-05-18)
+
+The following security-critical modules previously shipped only inline
+witness *types* (`StrongKey`, `StrongCert`, …) with a "Prevents: …"
+module-doc claim but **no discharged theorem** that the predicate
+rejects the bad case. Real verified `Proofs.idr` files now exist
+(`idris2 --check` exit 0), modelled on `SafeCommand/Proofs.idr`:
+
+- **SafeSSH/Proofs.idr** — exhaustive per-constructor `Refl`: DSA
+  provably rejected by `isWeakAlgorithm`/`validateKey`; `StrongKey`
+  uninhabitable for DSA. Pure enum, **no bridge axiom**.
+- **SafeCert/Proofs.idr** — SHA-1 provably weak, RSA-2048 provably not
+  strong; `StrongCert` uninhabitable for SHA-1 / RSA-2048; temporal
+  expiry guard. Pure enum, **no bridge axiom**.
+- **SafePromptInjection/Proofs.idr** — per-char delimiter-escape
+  soundness + canonical attack-vector detection + `RejectUnsafe`
+  enforcement; one explicit named erased string bridge axiom only.
+
+Still owed (single-file, witness-type-only, "Prevents" doc claim
+undischarged — honest ledger): SafeMCP, SafeOAuth, SafeWebAuthn,
+SafeWebSocket, SafeWebhook, SafeCapability, SafeAttestation, SafeJWK,
+SafeSecretShare.
+
 Companion `Proofs.idr` content was *not* re-verified theorem-by-theorem in this
 pass; the 39 non-stub directories are carried forward as claimed-proven pending
 a separate Proofs.idr discharge audit. **The single-file population is the
