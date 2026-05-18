@@ -18,6 +18,29 @@
 | SafePromptInjection completeness | Injection detection covers all known attack vectors | LLM prompt injection is a rapidly evolving threat |
 | SafeSQL injection proofs | SQL construction prevents all injection attacks | SQL injection is the classic web vulnerability |
 
+## Security-critical decidable proofs landed (2026-05-18)
+
+The following security-critical modules previously shipped only inline
+witness *types* (`StrongKey`, `StrongCert`, …) with a "Prevents: …"
+module-doc claim but **no discharged theorem** that the predicate
+rejects the bad case. Real verified `Proofs.idr` files now exist
+(`idris2 --check` exit 0), modelled on `SafeCommand/Proofs.idr`:
+
+- **SafeSSH/Proofs.idr** — exhaustive per-constructor `Refl`: DSA
+  provably rejected by `isWeakAlgorithm`/`validateKey`; `StrongKey`
+  uninhabitable for DSA. Pure enum, **no bridge axiom**.
+- **SafeCert/Proofs.idr** — SHA-1 provably weak, RSA-2048 provably not
+  strong; `StrongCert` uninhabitable for SHA-1 / RSA-2048; temporal
+  expiry guard. Pure enum, **no bridge axiom**.
+- **SafePromptInjection/Proofs.idr** — per-char delimiter-escape
+  soundness + canonical attack-vector detection + `RejectUnsafe`
+  enforcement; one explicit named erased string bridge axiom only.
+
+Still owed (single-file, witness-type-only, "Prevents" doc claim
+undischarged — honest ledger): SafeMCP, SafeOAuth, SafeWebAuthn,
+SafeWebSocket, SafeWebhook, SafeCapability, SafeAttestation, SafeJWK,
+SafeSecretShare.
+
 ## Recommended Prover
 
 **Idris2** — This IS the Idris2 proof library. Continue adding `Proofs.idr` files for the ~30 modules that lack them. The existing proof infrastructure is the template.
