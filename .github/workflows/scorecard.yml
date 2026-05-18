@@ -1,5 +1,11 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
-name: OpenSSF Scorecard
+# SPDX-License-Identifier: PMPL-1.0
+name: OSSF Scorecard
+on:
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
 
 # Estate guardrail: cancel superseded runs so re-pushes / rebased PR
 # updates do not pile up queued runs against the shared account-wide
@@ -12,35 +18,24 @@ concurrency:
 permissions:
   contents: read
 
-on:
-  branch_protection_rule:
-  schedule:
-    - cron: '30 5 * * 1'
-  push:
-    branches: [main]
-
 jobs:
   analysis:
-    name: Scorecard analysis
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       id-token: write
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - name: Run analysis
-        uses: ossf/scorecard-action@e93faf2ab2f3663b51bc6e62d42b8520f2eff874 # v2.3.1
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.3.1
         with:
           results_file: results.sarif
           results_format: sarif
-          publish_results: true
 
       - name: Upload results
-        uses: github/codeql-action/upload-sarif@a4784f2dad6682d68cce8299ef20b1ca931bbdfb # v4
+        uses: github/codeql-action/upload-sarif@c6f931105cb2c34c8f901cc885ba1e2e259cf745 # v3.31.8
         with:
           sarif_file: results.sarif
