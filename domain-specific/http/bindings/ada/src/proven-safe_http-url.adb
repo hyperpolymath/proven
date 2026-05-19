@@ -8,9 +8,9 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-package body Proven.Safe_HTTP.URL
-   with SPARK_Mode => Off  --  String building requires unbounded strings
-is
+package body Proven.Safe_HTTP.URL is
+   --  No SPARK_Mode aspect: this binding is not SPARK-analysed (unbounded
+   --  string building); the proof lives in Idris2 Proven.SafeHTTP.
 
    ---------------------------------------------------------------------------
    --  Constants
