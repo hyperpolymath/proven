@@ -35,7 +35,7 @@
 | Bucket | Count |
 |--------|------:|
 | Safe\* directories with a companion `Proofs.idr` | 41 |
-| — of which are **stubs** (header only, no theorem) → treat as UNPROVEN | 2 (`SafeCommand` 8 ln, `SafeDateTime` 5 ln) |
+| — of which are **stubs** (header only, no theorem) → treat as UNPROVEN | **0** (`SafeCommand` discharged by proven#21; `SafeDateTime` discharged on branch `proof-debt/standards-132-safedatetime-stub`) |
 | Single-file `src/Proven/Safe*.idr` modules (no `Proofs.idr` dir) | 133 |
 | — single-file modules shipping a safety/security **doc claim** | **76** |
 
@@ -148,17 +148,22 @@ SafeShell, SafeString, SafeTOML, SafeUrl, SafeXML, SafeYAML — **plus**
 SafeOrdering (single-file, one discharged theorem). These are *claimed*
 proven; their `Proofs.idr` bodies are not re-verified by this pass.
 
-## Stubs — proof absence disguised as presence (CRITICAL)
+## Stubs — proof absence disguised as presence (CRITICAL) — *now empty*
 
-| Module | State | Risk |
-|--------|-------|------|
-| **SafeCommand** | `Proofs.idr` 8 ln, header only; doc claims escaping/injection proofs that do not exist | CRITICAL — shell command construction; comment misrepresents verification |
-| SafeDateTime | `Proofs.idr` 5 ln, header only | LOW — parse/format |
+Both audited stubs have been discharged (no remaining "header-only"
+`Proofs.idr` in the audited set):
+
+| Module | Was | Now |
+|--------|-----|-----|
+| SafeCommand | `Proofs.idr` 8 ln, header only — CRITICAL | proven#21 — 160 ln real injection-safety proofs, `idris2 --check` exit 0, no escapes |
+| SafeDateTime | `Proofs.idr` 5 ln, header only — LOW | real `daysInMonth` band lemmas (28..31, non-zero) + `makeDate` smart-constructor soundness (`makeDate ... = Just dt -> dateGuard dt.year dt.month dt.day = True`), `idris2 --check` exit 0, no escapes — landed in this PR |
 
 ## What needs proving (priority)
 
-1. **Stubs first** — populate or delete the misleading `SafeCommand` /
-   `SafeDateTime` `Proofs.idr`; a stub is worse than an honest absence.
+1. **Stubs first** — done. Both audited stubs (`SafeCommand`,
+   `SafeDateTime`) now carry genuine machine-checked theorems
+   (proven#21 + this PR); the misleading "proof-absence-as-presence"
+   class is closed for the audited set.
 2. **Strip or discharge the security overclaims** — for every ✗ module either
    discharge the claimed theorem or downgrade the doc header to a non-promising
    description. Lead with **SafeDigest** ("formally verified" is actively
