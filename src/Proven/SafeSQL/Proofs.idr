@@ -97,28 +97,73 @@ data IsEscapedValue : SQLDialect -> SQLValue -> Type where
 -- Core Safety Theorems
 --------------------------------------------------------------------------------
 
-||| Theorem: escapeString produces a string with no unescaped single quotes
+||| OWED: for every dialect `d` and input `s`, the result of
+||| `escapeString d s` satisfies `NoUnescapedQuotes`. Operationally
+||| witnessed by `Proven.SafeSQL.Params.escapeString`, which wraps the
+||| input in single quotes and doubles every internal `'\''`
+||| (`'\'' :: cs |-> "''" ++ escape cs`) — by case-analysis every
+||| position of the output is either a non-quote source char, a
+||| dialect-specific escape sequence, or a doubled `''`, so no raw
+||| unescaped `'\''` remains.
 |||
-||| The escaping function doubles all single quotes, making it impossible
-||| for user input to break out of a string literal.
-||| Depends on the correctness of escapeString in Proven.SafeSQL.Params.
+||| Held back by Idris2 0.8.0 not reducing `unpack` / `pack` / `++` /
+||| `singleton` over abstract `String` at the type level — these are
+||| FFI-bound String primitives, so `all (\c => c /= '\'')
+||| (unpack (escapeString d s))` does not normalise to `True` by Refl
+||| alone for an abstract `s`. Same blocker family as SafeChecksum's
+||| `luhnValidatesKnownGood` and SafeHtml's `escapePreservesNoLT`
+||| (opaque String FFI). Discharge once a `Data.String` reflective
+||| tactic or per-character induction lemma over
+||| `unpack . concat . map` is available.
 export
-escapeStringQuotesSafe : (d : SQLDialect) -> (s : String) ->
-                                   NoUnescapedQuotes (escapeString d s)
+0 escapeStringQuotesSafe : (d : SQLDialect) -> (s : String) ->
+                                     NoUnescapedQuotes (escapeString d s)
 
-||| Theorem: ValidIdentifier strings contain only safe characters
-||| Depends on isValidIdentifier checking character validity, length > 0, and length <= 128.
-export
-identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = True) ->
-                                IsSafeIdentifier s
-
-||| Theorem: Parameterized queries separate data from code
+||| OWED: if `isValidIdentifier s = True` then `IsSafeIdentifier s`.
+||| Operationally `isValidIdentifier` (in `Proven.SafeSQL.Types`) is
+||| the conjunction `(isAlpha c0 || c0 == '_') && all isIdentifierChar
+||| (unpack rest) && length s <= 128`, which directly mirrors the
+||| three fields of `MkSafeIdent` (validChars / notEmpty / notTooLong)
+||| — so the witness is structurally derivable from the Boolean proof.
 |||
-||| When using parameterized queries, user input is never parsed as SQL
-||| because parameters are bound separately from the query structure.
-||| Depends on the query builder only producing Literal, Param, NamedParam, and Identifier fragments.
+||| Held back by Idris2 0.8.0 not reducing `strM` / `unpack` /
+||| `length` over abstract `String` at the type level — these are
+||| FFI-bound String primitives, so the conjunction does not split
+||| into its three component `Refl`s by Refl alone, and the
+||| `notEmpty : length s > 0 = True` field cannot be projected from
+||| `isValidIdentifier s = True` without per-character induction.
+||| Same blocker family as SafeHtml's `sanitizeRemovesScripts`
+||| (opaque String FFI). Discharge once a `Data.String` reflective
+||| tactic for `strM` / `unpack` / `length` is available, or
+||| `isValidIdentifier` is refactored to return a structural witness
+||| (e.g. `Dec (IsSafeIdentifier s)`) instead of a `Bool`.
 export
-parameterizedQueriesSafe : (q : ParameterizedQuery) -> IsParameterized q
+0 identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = True) ->
+                                  IsSafeIdentifier s
+
+||| OWED: every `ParameterizedQuery` value `q` satisfies
+||| `IsParameterized q`, i.e. every fragment in `q.fragments`
+||| satisfies `isParamOrLiteral`. Operationally true because
+||| `QueryFragment` has exactly four constructors (`Literal`, `Param`,
+||| `NamedParam`, `Identifier`) and `isParamOrLiteral` returns `True`
+||| on all four — so the predicate is total-by-exhaustion and the
+||| witness is constructible by induction over `q.fragments`.
+|||
+||| Held back by Idris2 0.8.0 not reducing `all` (`Data.List`) at the
+||| type level over an abstract `List QueryFragment` — `all f xs`
+||| does not normalise to `True` by Refl alone for an opaque `xs`,
+||| so the structural induction case `all isParamOrLiteral
+||| (f :: fs) = isParamOrLiteral f && all isParamOrLiteral fs`
+||| cannot be discharged without a `Data.List.all`-reflection lemma.
+||| The current `ParameterizedQuery` record also does not carry the
+||| invariant in its constructor, so a manufactured `q` with a future
+||| non-paramic fragment would not be ruled out by typing. Same
+||| blocker family as the String-FFI OWED set. Discharge once either
+||| (a) a `Data.List.all` reflective tactic + a per-fragment lemma is
+||| available, or (b) `ParameterizedQuery` is refactored to carry an
+||| `IsParameterized` field at construction (intrinsic invariant).
+export
+0 parameterizedQueriesSafe : (q : ParameterizedQuery) -> IsParameterized q
 
 ||| Theorem: All SQLValue types are safely escapable
 export
