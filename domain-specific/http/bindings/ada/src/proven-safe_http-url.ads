@@ -3,13 +3,14 @@
 --  SPDX-License-Identifier: PMPL-1.0-or-later
 --
 --  RFC 3986 percent encoding for URL query parameters and paths.
---  Formally verified via Idris2 Proven.SafeHTTP module.
---
---  This is the Ada binding layer for the Idris2 → Zig → Ada FFI chain.
+--  Formally verified via the Idris2 Proven.SafeHTTP module; this is only
+--  the Ada binding layer for the Idris2 → Zig → Ada FFI chain. No SPARK
+--  proof obligation is discharged here (the body uses unbounded strings and
+--  is SPARK_Mode Off), so the vestigial `with SPARK_Mode => On` aspect was
+--  removed — it asserted analysis that never ran. Proof = Idris2, not SPARK.
 -------------------------------------------------------------------------------
 
 package Proven.Safe_HTTP.URL
-   with SPARK_Mode => On
 is
 
    ---------------------------------------------------------------------------

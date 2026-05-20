@@ -213,6 +213,7 @@ modules = Proven
         -- Data formats
         , Proven.SafeCSV
         , Proven.SafeDigest
+        , Proven.SafeDigest.Proofs
         , Proven.SafeRegistry
         -- Concurrency primitives
         , Proven.SafeSemaphore

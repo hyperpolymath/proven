@@ -16,22 +16,31 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
-      - name: Block unsafe Rust reimplementations
+      - name: Block unsafe patterns in Rust safe_*.rs wrappers
         run: |
-          # Check for safe_*.rs files in bindings/rust/src/ (should not exist)
-          if ls bindings/rust/src/safe_*.rs 1> /dev/null 2>&1; then
-            echo "❌ ERROR: safe_*.rs files found in Rust bindings"
-            echo "These are reimplementations that bypass Idris2 verification"
+          # safe_*.rs files are legitimate FFI wrappers around Proven.Safe.*
+          # Idris modules (see bindings/rust/README.md). The filename itself
+          # is not the violation; the violation is reimplemented logic, which
+          # surfaces as panic-prone Rust idioms in the wrapper body.
+          #
+          # This step asserts the body-shape rule from ADR-008: wrappers may
+          # only call FFI / compose other safe wrappers, never panic.
+          shopt -s nullglob
+          violations=0
+          for f in bindings/rust/src/safe_*.rs; do
+            if grep -nE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(|unimplemented!\(' "$f"; then
+              echo "❌ $f contains panic-prone idioms forbidden in FFI wrappers"
+              violations=$((violations + 1))
+            fi
+          done
+          if [ "$violations" -gt 0 ]; then
             echo ""
-            echo "Found files:"
-            ls bindings/rust/src/safe_*.rs
-            echo ""
-            echo "SOLUTION: Delete these files. Logic belongs in src/Proven/*.idr"
-            echo "Bindings should ONLY contain FFI wrappers calling Zig bridge."
-            echo "See bindings/rust/README.md for correct architecture."
+            echo "SOLUTION: FFI wrappers must propagate errors, not panic."
+            echo "Logic that needs unwrap/expect/panic belongs in src/Proven/*.idr,"
+            echo "with the binding returning the Result via FFI."
             exit 1
           fi
-          echo "✅ No Rust reimplementations found"
+          echo "✅ Rust safe_*.rs wrappers contain no panic-prone idioms"
 
       - name: Block non-FFI Zig code
         run: |
@@ -72,7 +81,15 @@ jobs:
   hypatia-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - name: Checkout proven
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Checkout hypatia
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          repository: hyperpolymath/hypatia
+          path: hypatia
+          fetch-depth: 1
 
       - name: Setup Elixir (for hypatia scanner)
         uses: erlef/setup-beam@b9c58b0450cd832ccdb3c17cc156a47065d2114f # v1.18.2
@@ -81,7 +98,7 @@ jobs:
           otp-version: '27.0'
 
       - name: Build hypatia scanner
-        working-directory: ../hypatia/elixir-scanner
+        working-directory: hypatia/elixir-scanner
         run: |
           mix local.hex --force
           mix local.rebar --force
@@ -89,9 +106,9 @@ jobs:
           mix escript.build
 
       - name: Scan bindings for security issues
-        working-directory: ../hypatia/elixir-scanner
+        working-directory: hypatia/elixir-scanner
         run: |
-          ./hypatia ../proven/bindings --severity=critical --severity=high --exclude=tests > scan.json
+          ./hypatia "${GITHUB_WORKSPACE}/bindings" --severity=critical --severity=high --exclude=tests > scan.json
 
           # Parse results
           critical=$(jq '.findings[] | select(.severity == "critical")' scan.json | wc -l)
@@ -111,17 +128,17 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
-      - name: Setup Idris2
+      - name: Build Idris2 modules (via container)
         run: |
-          # Install Idris2 from package manager or build from source
-          # This is a placeholder - actual installation varies by CI environment
-          echo "Idris2 installation (manual review required)"
-
-      - name: Build Idris2 modules
-        run: |
-          # Build all Idris modules to verify totality proofs
-          idris2 --build proven.ipkg || {
-            echo "❌ Idris2 build failed - proofs are broken"
-            exit 1
-          }
+          # Use the snazzybucket/idris2 container so we don't pay a 10-minute
+          # bootstrap on every job. The container is the same one used locally
+          # to verify proven#9 before merge.
+          docker run --rm \
+            -v "$PWD:/proj" \
+            -w /proj \
+            snazzybucket/idris2:latest \
+            sh -c 'idris2 --build proven.ipkg' || {
+              echo "❌ Idris2 build failed - proofs are broken"
+              exit 1
+            }
           echo "✅ Idris2 modules build successfully with totality checking"
