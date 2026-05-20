@@ -128,11 +128,29 @@ alphaAfterNumeric _ _ = Refl
 -- Compatibility Properties
 --------------------------------------------------------------------------------
 
-||| A version is compatible with itself if stable.
-export
-compatibleWithSelf : (v : SemVer) -> isStable v = True -> isCompatible v v = True
+||| OWED: a stable version is compatible with itself. By definition
+||| `isCompatible v v = v.major == v.major && isStable v && isStable v`,
+||| which under the `isStable v = True` hypothesis reduces to
+||| `v.major == v.major`. Held back by Idris2 0.8.0 not reducing the
+||| `Nat` `Eq` `(==)` reflexive case `n == n = True` to `True` by Refl
+||| alone for an abstract `n : Nat` (the `Eq Nat` instance is defined
+||| by structural recursion, so a `Nat`-induction lemma is needed).
+||| Discharge once a reusable `eqNatRefl : (n : Nat) -> (n == n) = True`
+||| lemma is available in `Data.Nat`, or refactor `isCompatible` to use
+||| `decEq` or `compare ... = EQ` form.
+public export
+0 compatibleWithSelf : (v : SemVer) -> isStable v = True -> isCompatible v v = True
 
-||| satisfiesGTE is reflexive: any version satisfies >= itself.
-||| compare v v = EQ, and EQ /= LT = True.
-export
-satisfiesGTERefl : (v : SemVer) -> satisfiesGTE v v = True
+||| OWED: `satisfiesGTE` is reflexive — every version satisfies `>=`
+||| itself. By definition `satisfiesGTE v v = compare v v /= LT`, so
+||| the claim reduces to showing `compare v v = EQ`. Held back by
+||| Idris2 0.8.0 not reducing the four nested case-splits of the
+||| `Ord SemVer` instance (`compare a.major b.major`, `a.minor`,
+||| `a.patch`, then `comparePre a.prerelease b.prerelease`) to `EQ`
+||| by Refl alone for an abstract `v : SemVer` — each branch needs a
+||| `compareNatRefl : (n : Nat) -> compare n n = EQ` lemma plus a
+||| list-induction lemma for the local `comparePre`. Discharge once
+||| an `Ord`-reflexivity lemma is available for `Nat` and `List` is
+||| chained through `comparePre`.
+public export
+0 satisfiesGTERefl : (v : SemVer) -> satisfiesGTE v v = True
