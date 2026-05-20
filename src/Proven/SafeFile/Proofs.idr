@@ -85,12 +85,20 @@ totalReadPrevents : (opts : FileOptions) ->
                     ()
 totalReadPrevents opts handle additional tooMuch = ()
 
-||| Postulate: Taking at most `limit` characters from a string and repacking
-||| produces a string of length <= limit. Relies on List.take semantics:
-||| take n xs always produces a list of length min(n, length xs).
+||| OWED: Taking at most `limit` characters from a string, repacking, then
+||| measuring the unpacked length yields a value `<= limit`. Operationally
+||| true by `List.take` semantics (`length (take n xs) = min n (length xs)`)
+||| composed with the `unpack . pack = id` String round-trip.
+||| Held back by Idris2 0.8.0 not reducing the `unpack` / `pack` FFI
+||| primitives at the type level — `pack . unpack` is identity at runtime
+||| but is not a definitional Refl for abstract `String`. Same blocker
+||| family as SafeChecksum's `luhnValidatesKnownGood` (FFI-bound String
+||| traversal). Discharge once a `Data.String` reflective tactic gives
+||| `length (unpack (pack xs)) = length xs`, plus the `List.take` length
+||| lemma from `Data.List`.
 export
-boundedReadAtMostLimit : (limit : Nat) -> (content : String) ->
-                         length (unpack (pack (take limit (unpack content)))) <= limit = True
+0 boundedReadAtMostLimit : (limit : Nat) -> (content : String) ->
+                           length (unpack (pack (take limit (unpack content)))) <= limit = True
 
 --------------------------------------------------------------------------------
 -- Write Bound Proofs
@@ -202,17 +210,35 @@ fileSizeCheckPrevents path size limit tooLarge = ()
 -- Handle Tracking Proofs
 --------------------------------------------------------------------------------
 
-||| Postulate: updateAfterRead adds bytes to the counter, so the new
-||| bytesRead is always >= the old bytesRead (monotonically increasing).
+||| OWED: `updateAfterRead h bytes` produces a handle whose `bytesRead`
+||| field equals `h.bytesRead + bytes`, hence is `>=` the prior value.
+||| Operationally true by direct unfolding of
+|||   `updateAfterRead h bytes = { bytesRead := h.bytesRead + bytes } h`
+||| in `Proven.SafeFile.Operations`.
+||| Held back by Idris2 0.8.0 not reducing record-update field projection
+||| through a function call during type-checking — `(updateAfterRead h
+||| bytes).bytesRead` does not normalise to `h.bytesRead + bytes` by Refl
+||| (same blocker as the deleted `newHandleZeroCounters` documented at
+||| L218-220). Discharge once Idris2 fixes the record-update reduction
+||| (tracked upstream) or via a manual rewrite + `lteAddRight` proof on
+||| `Nat` once both sides are forced into normal form.
 export
-readTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
-                        (Operations.updateAfterRead h bytes).bytesRead >= h.bytesRead = True
+0 readTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
+                          (Operations.updateAfterRead h bytes).bytesRead >= h.bytesRead = True
 
-||| Postulate: updateAfterWrite adds bytes to the counter, so the new
-||| bytesWritten is always >= the old bytesWritten (monotonically increasing).
+||| OWED: `updateAfterWrite h bytes` produces a handle whose
+||| `bytesWritten` field equals `h.bytesWritten + bytes`, hence is `>=`
+||| the prior value. Operationally true by direct unfolding of
+|||   `updateAfterWrite h bytes = { bytesWritten := h.bytesWritten + bytes } h`
+||| in `Proven.SafeFile.Operations`.
+||| Held back by Idris2 0.8.0 not reducing record-update field projection
+||| through a function call during type-checking (same blocker family as
+||| `readTrackingMonotonic` above). Discharge once Idris2 fixes the
+||| record-update reduction, or via a manual rewrite + `lteAddRight`
+||| proof on `Nat` once both sides are forced into normal form.
 export
-writeTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
-                         (Operations.updateAfterWrite h bytes).bytesWritten >= h.bytesWritten = True
+0 writeTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
+                           (Operations.updateAfterWrite h bytes).bytesWritten >= h.bytesWritten = True
 
 ||| Theorem: New handle has zero counters
 -- newHandleZeroCounters removed: newHandle constructs a record but
@@ -223,14 +249,22 @@ writeTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
 -- Sanitization Proofs
 --------------------------------------------------------------------------------
 
-||| Postulate: Filtering out null bytes from a string and repacking guarantees
-||| the resulting string contains no null byte subsequence. Depends on
-||| filter (/= '\0') removing all '\0' characters from the char list.
-||| Postulated: After sanitization, the result contains no null bytes.
-||| Depends on `isInfixOf` and `filter` which are FFI primitives.
+||| OWED: After `sanitizeContent`, the result contains no null-byte
+||| substring, i.e. `not (isInfixOf "\0" (sanitizeContent s)) = True`.
+||| Operationally true by the definition
+|||   `sanitizeContent = pack . filter (/= '\0') . unpack`
+||| — every `'\0'` is removed before repacking, so `'\0'` cannot occur in
+||| the output, hence neither can the single-char substring `"\0"`.
+||| Held back by Idris2 0.8.0 not reducing `isInfixOf`, `unpack`, `pack`
+||| and `filter` over abstract `String` at the type level — these are
+||| FFI-bound primitives. Same blocker family as SafeChecksum's
+||| `extractDigits` / `unpack` / `ord` / `filter` chain (FFI-correctness
+||| assumption I7 in proof-of-work). Discharge once a `Data.String`
+||| reflective tactic gives `isInfixOf "\0" (pack xs) = elem '\0' xs`
+||| plus the `filter` exclusion lemma.
 export
-sanitizedNoNull : (s : String) ->
-                  not (isInfixOf "\0" (Operations.sanitizeContent s)) = True
+0 sanitizedNoNull : (s : String) ->
+                    not (isInfixOf "\0" (Operations.sanitizeContent s)) = True
 
 --------------------------------------------------------------------------------
 -- Options Proofs
