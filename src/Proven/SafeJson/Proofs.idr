@@ -87,29 +87,74 @@ asObjectFromObject obj = Refl
 -- Object Access Properties
 --------------------------------------------------------------------------------
 
-||| Getting a key that was just set returns that value.
-||| Depends on Idris2 SafeJson set/get implementation correctness.
-export
-setGetIdentity : (k : String) -> (v : JsonValue) -> (obj : List (String, JsonValue)) ->
+||| OWED: getting a key that was just set returns that value:
+||| `get k (set k v (JsonObject obj)) = Just v`.
+||| `set` calls `update key val pairs` (`SafeJson.idr` L179) and `get`
+||| calls `lookup key pairs` (L156). Both thread through `(==)` on
+||| `String`, whose comparison is the opaque FFI primitive
+||| `prim__eq_String`. Idris2 0.8.0 does not reduce `k == k = True`
+||| by `Refl` — same blocker family as `SafeChecksum` Luhn/ISBN
+||| (FFI-bound String) and `boj-server` `Boj.SafetyLemmas.charEqSym`
+||| (the class-(J) `prim__eqChar` reflection gap, generalised to
+||| `String`). Held back by the absence of a reflective
+||| `prim__eq_String`-to-`Dec`-eq lemma in Idris2 0.8.0 base.
+||| Discharge once a class-(J) `String` reflection axiom is added
+||| or `update`/`lookup` are refactored onto a decidable-equality
+||| key type.
+public export
+0 setGetIdentity : (k : String) -> (v : JsonValue) -> (obj : List (String, JsonValue)) ->
                            get k (set k v (JsonObject obj)) = Just v
 
-||| Setting a key preserves other keys.
-||| Depends on Idris2 SafeJson set/get implementation correctness.
-export
-setPreservesOther : (k1, k2 : String) -> Not (k1 = k2) ->
+||| OWED: setting a different key preserves the other key's value:
+||| `Not (k1 = k2) -> get k2 (set k1 v obj) = get k2 obj`.
+||| `set k1 v` calls `update k1 v pairs`, which compares `k1 == k`
+||| for every pair `(k, _)` in the list. The proof requires that
+||| `k1 == k2 = False` (negative direction) whenever `Not (k1 = k2)`
+||| — the converse of `setGetIdentity`'s blocker, in the same
+||| `prim__eq_String` reflection-gap family. Idris2 0.8.0 has no
+||| primitive lemma `Not (a = b) -> prim__eq_String a b = False` and
+||| the elaborator cannot derive it by `Refl`. Same shape as the
+||| `gossamer` `stringNotEqCommut` class-(J) axiom landed in
+||| `Panels.Distinct` (`PR #41`). Held back by absence of a
+||| reflective `String`-disequality lemma. Discharge once the
+||| class-(J) `stringNotEq` axiom is shared via base, or `update`
+||| is rewritten on a `DecEq` carrier.
+public export
+0 setPreservesOther : (k1, k2 : String) -> Not (k1 = k2) ->
                               (v : JsonValue) -> (obj : JsonValue) ->
                               get k2 (set k1 v obj) = get k2 obj
 
-||| A key that was set exists in the object.
-||| Depends on Idris2 SafeJson set/hasKey implementation correctness.
-export
-setHasKey : (k : String) -> (v : JsonValue) -> (obj : JsonValue) ->
+||| OWED: after `set k v obj`, `hasKey k` returns `True` whenever
+||| `obj` is an object.
+||| `hasKey key json = isJust (get key json)` (`SafeJson.idr` L162),
+||| so this reduces to `get k (set k v obj) = Just _`, which is the
+||| same `prim__eq_String` reflection gap as `setGetIdentity`. The
+||| extra hypothesis `isObject obj = True` only excludes the
+||| non-`JsonObject` arms of `set` (which return `obj` unchanged) —
+||| the residual obligation still threads through opaque String FFI
+||| equality. Held back by the same Idris2 0.8.0 blocker. Discharge
+||| together with `setGetIdentity` once a class-(J) `String`
+||| reflection lemma is in base.
+public export
+0 setHasKey : (k : String) -> (v : JsonValue) -> (obj : JsonValue) ->
                       isObject obj = True -> hasKey k (set k v obj) = True
 
-||| Removing a key means it no longer exists.
-||| Depends on Idris2 SafeJson remove/hasKey implementation correctness.
-export
-removeNotHasKey : (k : String) -> (obj : JsonValue) ->
+||| OWED: after `remove k obj`, `hasKey k` returns `False`.
+||| `remove k (JsonObject pairs) = JsonObject (filter (\(k', _) => k' /= k) pairs)`
+||| (`SafeJson.idr` L191). The proof needs `filter` to drop every
+||| pair with key `k`, which requires `k' /= k = False` whenever
+||| `k' = k` — i.e. `prim__eq_String k k = True` and its lifting
+||| through `/=`. Same FFI-opaque-String blocker family as
+||| `setGetIdentity` / `setPreservesOther`. Also requires the
+||| non-`JsonObject` arms (which return `obj` unchanged) not to
+||| contain `k`, but for arbitrary `obj : JsonValue` the statement
+||| is unconditionally false on `JsonObject [(k, _)]` reduced
+||| through any non-pattern-matching FFI path. Held back jointly
+||| by the `prim__eq_String` reflection gap and the absence of a
+||| reduction lemma for `filter` on FFI-keyed pairs. Discharge once
+||| both are addressed.
+public export
+0 removeNotHasKey : (k : String) -> (obj : JsonValue) ->
                             hasKey k (remove k obj) = False
 
 --------------------------------------------------------------------------------
@@ -129,10 +174,27 @@ prependLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
                    Just (S (length arr))
 prependLengthInc v arr = Refl
 
-||| Appending increases array length by 1.
-||| Depends on Idris2 SafeJson append/arrayLength implementation correctness.
-export
-appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
+||| OWED: appending an element increments the array length:
+||| `arrayLength (append v (JsonArray arr)) = Just (length arr + 1)`.
+||| `append v (JsonArray arr) = JsonArray (arr ++ [v])` (`SafeJson.idr`
+||| L234), so the proof reduces to
+||| `length (arr ++ [v]) = length arr + 1`, the standard list lemma.
+||| Idris2 0.8.0 does NOT reduce `length (arr ++ [v])` to
+||| `length arr + 1` by `Refl` alone — `(++)` is recursive on its
+||| first argument and stuck on the abstract `arr`. The proof
+||| obligation is `lengthAppend` (with `[v]` on the right), but
+||| `Data.List.lengthAppend` in Idris2 0.8.0 is stated as
+||| `length (xs ++ ys) = length xs + length ys` and applying it
+||| leaves a residual `length arr + length [v] = length arr + 1`
+||| that further requires `length [v] = 1` by `Refl` and the
+||| asymmetry of `+` on Nat (`plusZeroRightNeutral` shape). Doable
+||| with a multi-step proof; deferred for batch-discharge alongside
+||| the rest of this module. Held back by absence of a one-step
+||| `Data.List.lengthAppendSingleton` lemma. Discharge by composing
+||| `lengthAppend` + `plusZeroRightNeutral` + `S` congruence, or by
+||| adding a direct singleton-append lemma to base.
+public export
+0 appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
                             arrayLength (append v (JsonArray arr)) =
                             Just (length arr + 1)
 
@@ -145,10 +207,25 @@ public export
 emptyPathIdentity : (v : JsonValue) -> getPath [] v = Just v
 emptyPathIdentity v = Refl
 
-||| Single key path is equivalent to direct key access.
-||| Depends on getPath/getSegment reduction through Access module internals.
-export
-singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
+||| OWED: a single-segment `Key k` path equals direct `lookup`:
+||| `getPath [Key k] (JsonObject obj) = lookup k obj`.
+||| `getPath` is defined in `Proven.SafeJson.Access` and dispatches
+||| through `getSegment` (mutually recursive across `PathSegment`
+||| constructors). Idris2 0.8.0 marks the family `covering` (not
+||| `total`) because the recursion is on `List PathSegment` paired
+||| with a `JsonValue` whose `JsonArray`/`JsonObject` arms recurse
+||| with new path-tails — same termination-witness shape as the
+||| `Proven.SafeJson.Access.deletePath` unreachable-clause warning
+||| already in this build. Covering functions do NOT reduce by
+||| `Refl` outside their pattern arms in Idris2 0.8.0, so this
+||| statement cannot be discharged without an external
+||| `assert_total`-style reduction lemma. Held back by the same
+||| Access-module covering/total gap that motivated removing
+||| `singleIndexPath` (L154 comment). Discharge once `getPath`
+||| can be re-stated as `total` via a structurally decreasing
+||| metric (path length is the obvious candidate).
+public export
+0 singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
                 getPath [Key k] (JsonObject obj) = lookup k obj
 
 -- singleIndexPath: removed — where-clause in type signature is invalid
@@ -158,35 +235,63 @@ singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
 -- Parsing Properties
 --------------------------------------------------------------------------------
 
-||| Parsing "null" gives JsonNull.
-||| Depends on Idris2 SafeJson parseJson implementation correctness.
-export
-parseNullCorrect : parseJson "null" = Just JsonNull
+-- The six `parse*Correct` / `parseEmpty*` declarations below all
+-- share the same blocker family: `parseJson` (defined in
+-- `Proven.SafeJson` and dispatching to `Proven.SafeJson.Parser`)
+-- threads through `unpack`, `pack`, `strHead`, `strSubstr` and
+-- explicit fuel-driven recursion. Every one of those operates on
+-- `String` via Idris2 0.8.0's opaque FFI primitives, so no
+-- `parseJson "<literal>"` reduces to its result by `Refl`. Same
+-- blocker family as `SafeChecksum` Luhn/ISBN (FFI-bound String)
+-- and `SafeHtml.escapePreservesNoLT`. They all discharge together
+-- once Idris2 gains a reflective `String`-to-`List Char` axiom (or
+-- the parser is rewritten to operate on `List Char` end-to-end so
+-- the literal `unpack` can be supplied at the call site as a
+-- trusted constant).
 
-||| Parsing "true" gives JsonBool True.
-||| Depends on Idris2 SafeJson parseJson implementation correctness.
-export
-parseTrueCorrect : parseJson "true" = Just (JsonBool True)
+||| OWED: `parseJson "null" = Just JsonNull`.
+||| Held back by Idris2 0.8.0's String-FFI opacity on the parser's
+||| `unpack`/`strHead` driver (see module-level comment above).
+||| Discharge once a reflective `String`-to-`List Char` axiom is
+||| available, or the parser is refactored onto `List Char`.
+public export
+0 parseNullCorrect : parseJson "null" = Just JsonNull
 
-||| Parsing "false" gives JsonBool False.
-||| Depends on Idris2 SafeJson parseJson implementation correctness.
-export
-parseFalseCorrect : parseJson "false" = Just (JsonBool False)
+||| OWED: `parseJson "true" = Just (JsonBool True)`.
+||| Held back by the same String-FFI parser opacity as
+||| `parseNullCorrect`. Discharge together.
+public export
+0 parseTrueCorrect : parseJson "true" = Just (JsonBool True)
 
-||| Parsing an empty string fails.
-||| Depends on Idris2 SafeJson parseJson implementation correctness.
-export
-parseEmptyFails : parseJson "" = Nothing
+||| OWED: `parseJson "false" = Just (JsonBool False)`.
+||| Held back by the same String-FFI parser opacity as
+||| `parseNullCorrect`. Discharge together.
+public export
+0 parseFalseCorrect : parseJson "false" = Just (JsonBool False)
 
-||| Parsing empty array succeeds.
-||| Depends on Idris2 SafeJson parseJson implementation correctness.
-export
-parseEmptyArray : parseJson "[]" = Just (JsonArray [])
+||| OWED: `parseJson "" = Nothing`.
+||| Held back by the same String-FFI parser opacity as
+||| `parseNullCorrect` — `parseJson` cannot reduce the empty-string
+||| early-return arm to `Nothing` by `Refl` because the dispatch
+||| goes through `strHead`/`strLength` (FFI primitives). Discharge
+||| together with the rest of the parse-* family.
+public export
+0 parseEmptyFails : parseJson "" = Nothing
 
-||| Parsing empty object succeeds.
-||| Depends on Idris2 SafeJson parseJson implementation correctness.
-export
-parseEmptyObject : parseJson "{}" = Just (JsonObject [])
+||| OWED: `parseJson "[]" = Just (JsonArray [])`.
+||| Held back by the same String-FFI parser opacity as
+||| `parseNullCorrect`, plus the parser's two-character lookahead
+||| (`'['` then `']'`) which threads through `strSubstr`. Discharge
+||| together.
+public export
+0 parseEmptyArray : parseJson "[]" = Just (JsonArray [])
+
+||| OWED: `parseJson "{}" = Just (JsonObject [])`.
+||| Held back by the same String-FFI parser opacity as
+||| `parseEmptyArray` (object-literal lookahead on `'{'` / `'}'`).
+||| Discharge together.
+public export
+0 parseEmptyObject : parseJson "{}" = Just (JsonObject [])
 
 --------------------------------------------------------------------------------
 -- Validation Properties
@@ -212,11 +317,26 @@ public export
 stringMatchesTString : (s : String) -> matchesType (JsonString s) TString = True
 stringMatchesTString s = Refl
 
-||| Any value matches TAny type.
-||| Depends on matchesType (covering due to mutual recursion) reducing
-||| for the TAny case.
-export
-anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
+||| OWED: every `JsonValue` matches `TAny`:
+||| `matchesType v TAny = True` for all `v`.
+||| Definitionally `matchesType _ TAny = True` (`SafeJson.idr` L353).
+||| The clause is a catch-all on the second argument and reduces by
+||| `Refl` for any concrete `v` constructor — but Idris2 0.8.0 will
+||| not reduce it for an abstract `v : JsonValue` because the
+||| preceding clauses (`JsonArray arr` / `JsonObject pairs` with
+||| `TArray`/`TObject`/`TOneOf` on the right) are *covering* (not
+||| total): `matchesType` mutually recurses through `all` over the
+||| array/object children. Covering definitions do not reduce on
+||| open variables in Idris2 0.8.0 — same blocker family as
+||| `singleKeyPath` above. The proof would normally close by a
+||| six-arm case-split on `v` (`JsonNull`/`JsonBool b`/`JsonNumber n`
+||| /`JsonString s`/`JsonArray arr`/`JsonObject pairs`), each with
+||| `Refl`. Held back by the covering-vs-total reduction policy.
+||| Discharge once `matchesType` is restated as `total` (e.g. by
+||| an explicit size metric over `JsonValue` + children), or with
+||| a manual six-arm split that elaborates per-arm `Refl`s.
+public export
+0 anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
 
 --------------------------------------------------------------------------------
 -- Totality Proofs
