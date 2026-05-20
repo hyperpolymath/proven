@@ -131,13 +131,30 @@ parsedTypesCorrect (TArray _) = Refl
 parsedTypesCorrect (TInlineTable _) = Refl
 parsedTypesCorrect (TTable _) = Refl
 
-||| Postulate: isScalar, isTable, and isArray are mutually exclusive on
-||| TOMLValue constructors. Scalars (TString, TInt, TFloat, TBool, TDateTime,
-||| TDate, TTime) never satisfy isTable or isArray.
-export
-isScalarCorrect : (val : TOMLValue) ->
-                  isScalar val = True ->
-                  not (isTable val || isArray val) = True
+||| OWED: `isScalar`, `isTable`, and `isArray` are pairwise disjoint on
+||| `TOMLValue` constructors. The seven scalar constructors (`TString`,
+||| `TInt`, `TFloat`, `TBool`, `TDateTime`, `TDate`, `TTime`) make
+||| `isScalar val = True`; the same constructors all make
+||| `isTable val = False` and `isArray val = False` (see
+||| `src/Proven/SafeTOML/Types.idr` L376-L393). The two propositions
+||| therefore agree by exhaustive case-split on `val`.
+|||
+||| Held back by Idris2 0.8.0 requiring an explicit ten-arm case-split
+||| on `val` to close the proof — for each scalar arm the
+||| `isScalar val = True` premise is already `Refl`, and the conclusion
+||| reduces to `not (False || False) = True` which is *also* `Refl`,
+||| but the three non-scalar arms (`TArray`, `TInlineTable`, `TTable`)
+||| make the premise `False = True`, requiring an `absurd`/`uninhabited`
+||| witness that the elaborator does not derive automatically from the
+||| `Bool` decision shape. Same shape as boj-server's class-J
+||| `Bool`-vs-`Prop` reflection gap (see SafetyLemmas `charEqSound`).
+||| Discharge once a reflective `Bool`-to-`Dec` lemma is wired up for
+||| derived enum-shaped predicates, or by hand-writing the ten-arm
+||| case-split with one `Refl` per arm and `absurd Refl` for the three
+||| `True = False` branches.
+0 isScalarCorrect : (val : TOMLValue) ->
+                    isScalar val = True ->
+                    not (isTable val || isArray val) = True
 
 ||| Theorem: Scalars cannot contain nested structures
 export
@@ -150,26 +167,55 @@ scalarNotNested _ _ = ()
 -- Key Validation Proofs
 --------------------------------------------------------------------------------
 
-||| Postulate: isValidBareKey checks that all characters satisfy
-||| isValidBareKeyChar (alphanumeric, dash, underscore). If the overall
-||| check passes, every individual character must be valid.
-export
-bareKeyCharsValid : (key : String) ->
-                    isValidBareKey key = True ->
-                    all isValidBareKeyChar (unpack key) = True
+||| OWED: if `isValidBareKey key = True`, then every character of
+||| `unpack key` satisfies `isValidBareKeyChar`. The definition is
+||| `isValidBareKey s = not (null (unpack s)) && all isValidBareKeyChar
+||| (unpack s)` (see `src/Proven/SafeTOML/Types.idr` L461-L463), so
+||| from `(&&) = True` we have `all isValidBareKeyChar (unpack key)
+||| = True` directly by the second `&&` projection.
+|||
+||| Held back by Idris2 0.8.0 not reducing `unpack` over an abstract
+||| `String` at the type level — `unpack` is an FFI-bound `String`
+||| primitive, so the `unpack key` on both sides of the implication
+||| is opaque and the `&&`-elimination does not normalise by Refl
+||| alone (the elaborator cannot unify the two opaque `unpack key`
+||| occurrences without a reducible head). Same blocker family as
+||| `SafeHtml.escapePreservesNoLT` and SafeChecksum's Luhn/ISBN OWED
+||| set (opaque String FFI). Discharge once a `Data.String` reflective
+||| tactic for `unpack` is available, or by introducing a generic
+||| `andTrueSplit : (x && y = True) -> (x = True, y = True)` and
+||| applying it under the opaque `unpack key`.
+0 bareKeyCharsValid : (key : String) ->
+                      isValidBareKey key = True ->
+                      all isValidBareKeyChar (unpack key) = True
 
 ||| Theorem: Empty keys are invalid
 export
 emptyKeyInvalid : isValidBareKey "" = False
 emptyKeyInvalid = Refl
 
-||| Postulate: If any character in the key is not a valid bare key char,
-||| needsQuoting returns True. needsQuoting is defined as the negation of
-||| isValidBareKey, which checks all chars.
-export
-specialCharsNeedQuoting : (key : String) ->
-                          any (\c => not (isValidBareKeyChar c)) (unpack key) = True ->
-                          needsQuoting key = True
+||| OWED: if any character in `unpack key` fails `isValidBareKeyChar`,
+||| then `needsQuoting key = True`. The chain is:
+||| `any (not . isValidBareKeyChar) (unpack key) = True`
+|||   ==> `all isValidBareKeyChar (unpack key) = False` (De Morgan on
+|||       `any/all`)
+|||   ==> `isValidBareKey key = False` (definition L461-L463)
+|||   ==> `needsQuoting key = True` (definition L467-L468:
+|||       `needsQuoting s = not (isValidBareKey s)`).
+|||
+||| Held back by Idris2 0.8.0 not reducing `unpack` over an abstract
+||| `String` at the type level (FFI-bound primitive) and not exposing
+||| a definitional De Morgan lemma `any (not . p) xs = not (all p xs)`
+||| as `Refl` — both `unpack key` occurrences are opaque, and the
+||| `any`/`all` duality is currently a hand-rolled `Data.List` lemma.
+||| Same blocker family as `bareKeyCharsValid` above and
+||| `SafeHtml.escapePreservesNoLT`. Discharge once a `Data.String`
+||| reflective tactic for `unpack` is available, or by composing a
+||| hand-written `anyNotAll : any (not . p) xs = True -> all p xs =
+||| False` with `notTrueIsFalse` on the chained `Bool` equations.
+0 specialCharsNeedQuoting : (key : String) ->
+                            any (\c => not (isValidBareKeyChar c)) (unpack key) = True ->
+                            needsQuoting key = True
 
 --------------------------------------------------------------------------------
 -- Array Homogeneity Proofs
@@ -234,22 +280,55 @@ inlineTableImmutable tab isTab = ()
 -- DateTime Validation Proofs
 --------------------------------------------------------------------------------
 
-||| Postulate: The TOML parser validates date components during parsing.
-||| A successfully parsed TOMLDate has month in [1,12] and day in [1,31].
-||| The parser rejects dates with out-of-range components.
-export
-dateComponentsValid : (d : TOMLDate) ->
-                      (d.month >= 1 && d.month <= 12 &&
-                       d.day >= 1 && d.day <= 31) = True
+||| OWED: every inhabited `TOMLDate` has `month ∈ [1,12]` and `day ∈
+||| [1,31]`. Witnessed operationally by `Proven.SafeTOML.Parser`,
+||| which rejects out-of-range components at parse time — but
+||| `TOMLDate` is a plain record (`MkTOMLDate : Integer -> Nat -> Nat
+||| -> TOMLDate`, see `src/Proven/SafeTOML/Types.idr` L64-L68) and
+||| does NOT carry a refinement on its `month`/`day` fields, so the
+||| `Nat`-level inequalities are not statically derivable from the
+||| constructor.
+|||
+||| Held back by Idris2 0.8.0 because the property is a
+||| parser-postcondition, not a type-level invariant — there is no
+||| Idris-side proof that `Parser.parseDate` is the *only* constructor
+||| of `TOMLDate` values (anyone can `MkTOMLDate 2026 13 31`). Same
+||| shape as boj-server's I7 FFI-correctness assumptions (stated, not
+||| proved, at the parser/FFI seam). Discharge once `TOMLDate` is
+||| refactored to a smart-constructor / refinement type
+||| (`MkTOMLDate : (month : Nat) -> {auto 0 _ : InRange month 1 12} ->
+||| ...`) and `Parser.parseDate` is updated to produce the refined
+||| record, or once a `Trusted.Parser` ghost-oracle predicate is
+||| threaded through every `TOMLDate` consumer.
+0 dateComponentsValid : (d : TOMLDate) ->
+                        (d.month >= 1 && d.month <= 12 &&
+                         d.day >= 1 && d.day <= 31) = True
 
-||| Postulate: The TOML parser validates time components during parsing.
-||| A successfully parsed TOMLTime has hour in [0,23], minute in [0,59],
-||| and second in [0,60] (60 allowed for leap seconds per ISO 8601).
-export
-timeComponentsValid : (t : TOMLTime) ->
-                      (t.hour <= 23 &&
-                       t.minute <= 59 &&
-                       t.second <= 60) = True  -- 60 for leap second
+||| OWED: every inhabited `TOMLTime` has `hour ≤ 23`, `minute ≤ 59`,
+||| and `second ≤ 60` (the `60` upper bound is intentional, matching
+||| ISO 8601 leap-second semantics). Witnessed operationally by
+||| `Proven.SafeTOML.Parser`, which rejects out-of-range components
+||| at parse time — but `TOMLTime` is a plain record (`MkTOMLTime :
+||| Nat -> Nat -> Nat -> Nat -> TOMLTime`, see
+||| `src/Proven/SafeTOML/Types.idr` L83-L88) and does NOT carry a
+||| refinement on its `hour`/`minute`/`second` fields, so the bounds
+||| are not statically derivable from the constructor.
+|||
+||| Held back by Idris2 0.8.0 for the same reason as
+||| `dateComponentsValid`: a parser-postcondition rather than a
+||| constructor-enforced invariant — anyone can build
+||| `MkTOMLTime 25 99 99 0` and it will typecheck. Same blocker
+||| family as boj-server's I7 FFI-correctness assumptions (stated at
+||| the parser seam, not proved). Discharge once `TOMLTime` is
+||| refactored to a smart-constructor / refinement type
+||| (`MkTOMLTime : (hour : Nat) -> {auto 0 _ : LTE hour 23} -> ...`)
+||| and `Parser.parseTime` is updated to produce the refined record,
+||| or once a `Trusted.Parser` ghost-oracle predicate is threaded
+||| through every `TOMLTime` consumer.
+0 timeComponentsValid : (t : TOMLTime) ->
+                        (t.hour <= 23 &&
+                         t.minute <= 59 &&
+                         t.second <= 60) = True  -- 60 for leap second
 
 --------------------------------------------------------------------------------
 -- Security Documentation
