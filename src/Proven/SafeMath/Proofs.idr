@@ -167,24 +167,37 @@ modLtDivisor n (S d) = boundModNatNZ n (S d) ItIsSucc
 -- GCD Properties
 --------------------------------------------------------------------------------
 
--- | GCD of n and 0 is n.
--- | POSTULATE: Data.Nat.gcd is `covering` (not total), so Idris 2 refuses to
--- | reduce `gcd (S n) 0` during type-checking even though `gcd a Z = a` is a
--- | direct clause. Verified 2026-03-29: Refl fails with "Can't solve constraint
--- | between: S _ and gcd (S _) 0".
--- | Resolution: rewrite signature to use Data.Nat.Factor.gcdUnproven (total),
--- | or wait for upstream to make gcd total.
-export
-gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
+||| OWED: GCD of n and 0 is n. `Data.Nat.gcd` is declared `covering`
+||| (not `total`) in Idris2 0.8.0, so the type-checker refuses to
+||| reduce `gcd (S k) 0` even though `gcd a Z = a` is a direct
+||| pattern-clause. Re-verified 2026-05-20 on Idris2 0.8.0:
+|||   * `Refl` fails: "Can't solve constraint between: n and gcd n 0".
+|||   * Case-split on `n` (Z impossible by `NotBothZero`; `S k`)
+|||     still fails with the same constraint on `S k` vs `gcd (S k) 0`.
+|||   * `assert_total Refl` does not help — the blocker is type-level
+|||     reduction of a covering function, not totality of the term.
+||| Held back by upstream `Data.Nat.gcd` being `covering`. Discharge
+||| once either (a) upstream marks `gcd` `total` (no longer
+||| `covering`), or (b) we rewrite the signature against
+||| `Data.Nat.Factor.gcdUnproven` (which IS total) and prove agreement
+||| with `Data.Nat.gcd` on every input.
+public export
+0 gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
 
--- | GCD is commutative: gcd a b = gcd b a
--- | POSTULATE: The base cases (gcd 0 (S b) = gcd (S b) 0) are trivially Refl,
--- | but the recursive case gcd (S a) (S b) requires well-founded induction
--- | on (a + b) with properties of modNatNZ. Since Data.Nat.gcd is `covering`
--- | (not total), structural induction is unavailable. The evidence-carrying
--- | GCD type in Data.Nat.Factor has `Symmetric Nat (GCD p)` but that proves
--- | symmetry of the *evidence*, not equality of the computed Nat values.
--- | Resolution path: prove via gcdUnproven (which IS total) then show
--- | gcdUnproven agrees with gcd on all inputs.
-export
-gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}
+||| OWED: GCD is commutative — `gcd a b = gcd b a`. The base cases
+||| (`gcd 0 (S b)` vs `gcd (S b) 0`) would be trivially `Refl` if
+||| `Data.Nat.gcd` reduced under the type-checker, but Idris2 0.8.0
+||| declares `gcd` `covering` (not `total`), so it does not. The
+||| recursive case `gcd (S a) (S b)` further requires well-founded
+||| induction on `a + b` with properties of `modNatNZ`; structural
+||| induction is unavailable for the same `covering` reason.
+||| `Data.Nat.Factor.GCD` has a `Symmetric Nat (GCD p)` instance, but
+||| that proves symmetry of the *evidence type*, not equality of the
+||| computed `Nat` values returned by `gcd`.
+||| Held back by upstream `Data.Nat.gcd` being `covering`. Discharge
+||| once either (a) upstream marks `gcd` `total`, or (b) we route
+||| through `Data.Nat.Factor.gcdUnproven` (which IS total) and prove
+||| agreement with `Data.Nat.gcd` on every input — at which point
+||| both `gcdZeroRight` and `gcdCommutative` discharge together.
+public export
+0 gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}
