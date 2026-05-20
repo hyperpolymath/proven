@@ -82,21 +82,63 @@ export
 javaObjectIsDangerous : isDangerousTag "!!java/object" = True
 javaObjectIsDangerous = Refl
 
-||| Postulate: Standard YAML tags (!!null, !!bool, !!int, !!float, !!str,
-||| !!seq, !!map) are not in the dangerous tag list. The dangerous list only
-||| contains language-specific object instantiation tags (!!python/*, !!ruby/*, etc.).
+||| OWED: any `tag` that is one of the seven standard YAML tags
+||| `!!null` / `!!bool` / `!!int` / `!!float` / `!!str` / `!!seq` /
+||| `!!map` is not in `dangerousTags`, so `isDangerousTag tag = False`.
+||| Witnessed by inspection of the `dangerousTags` list
+||| (`Proven.SafeYAML.Types`), which contains only language-specific
+||| object-instantiation tags (`!!python/*`, `!!ruby/*`, `!!java/*`,
+||| `!!php/*`, plus their `tag:yaml.org,2002:` long forms).
+|||
+||| Held back by Idris2 0.8.0 not reducing `elem` over abstract
+||| `String` at the type level — `(==) : String -> String -> Bool`
+||| is FFI-bound (`prim__eq_String`) and does not type-level normalise
+||| for an unknown `tag`, so `tag \`elem\` dangerousTags` will not
+||| reduce to `False` by Refl even given the hypothesis `tag \`elem\`
+||| [standard tags] = True`. Same blocker family as SafeChecksum's
+||| Luhn/ISBN String-FFI OWED set and the boj-server `charEqSym`
+||| class-J axiom. Discharge once a `Data.String` reflective tactic
+||| (or a `DecEq String` lemma over the two literal lists) is
+||| available, or refactor to a `YAMLTag` enum where decidable
+||| equality reduces by Refl.
 export
-standardTagsSafe : (tag : String) ->
-                   tag `elem` ["!!null", "!!bool", "!!int", "!!float", "!!str", "!!seq", "!!map"] = True ->
-                   isDangerousTag tag = False
+0 standardTagsSafe : (tag : String) ->
+                     tag `elem` ["!!null", "!!bool", "!!int", "!!float", "!!str", "!!seq", "!!map"] = True ->
+                     isDangerousTag tag = False
 
-||| Postulate: The secureDefaults configuration blocks every tag that
-||| isDangerousTag identifies as dangerous. The blocked tag list in
-||| secureDefaults is a superset of the dangerous tag list.
+||| OWED: if `isDangerousTag tag = True` then `isBlockedTag
+||| secureDefaults tag = True`. Witnessed (modulo the load-bearing
+||| caveat below) by the overlap between `dangerousTags` and
+||| `secureDefaults.blockedTags` for the language-object tags
+||| (`!!python/object`, `!!python/object/apply`, `!!python/object/new`,
+||| `!!python/name`, `!!python/module`, `!!ruby/object`,
+||| `!!java/object`, `!!php/object`, and the
+||| `tag:yaml.org,2002:python/object` long form).
+|||
+||| Caveat — the load-bearing equivalence is presently NOT total in
+||| the source: `dangerousTags` also lists `!!ruby/object:Gem::Installer`,
+||| `!!ruby/object:Gem::SpecFetcher`, `!!ruby/object:Gem::Requirement`,
+||| `tag:yaml.org,2002:ruby/object` and `tag:yaml.org,2002:java/object`,
+||| none of which appear in `secureDefaults.blockedTags`. The OWED
+||| therefore packages two unblockings: (a) widen
+||| `secureDefaults.blockedTags` to be a true superset (Types-side
+||| fix), and (b) discharge the Refl/`elem` gap below.
+|||
+||| Held back by Idris2 0.8.0 not reducing `elem` over abstract
+||| `String` at the type level — `prim__eq_String` is FFI-bound, so
+||| neither `tag \`elem\` dangerousTags` nor `tag \`elem\`
+||| opts.blockedTags` normalise to a definite Bool for an unknown
+||| `tag`. Same blocker family as `standardTagsSafe` above and
+||| SafeChecksum's Luhn/ISBN family. Discharge once (a) the
+||| `blockedTags` list is widened to include every entry of
+||| `dangerousTags` and (b) a `Data.String` reflective tactic (or a
+||| `DecEq String`-driven `elem`-monotonicity lemma) is available,
+||| or refactor to a `YAMLTag` enum where decidable equality reduces
+||| by Refl.
 export
-secureDefaultsBlockDangerous : (tag : String) ->
-                               isDangerousTag tag = True ->
-                               isBlockedTag secureDefaults tag = True
+0 secureDefaultsBlockDangerous : (tag : String) ->
+                                 isDangerousTag tag = True ->
+                                 isBlockedTag secureDefaults tag = True
 
 --------------------------------------------------------------------------------
 -- Anchor/Alias Proofs
@@ -185,14 +227,29 @@ parsedTypesCorrect (YObject _) = Refl
 parsedTypesCorrect (YBinary _) = Refl
 parsedTypesCorrect (YTimestamp _) = Refl
 
-||| Postulate: isScalar and isCollection are complementary predicates on
-||| YAMLValue. If isScalar returns True for a value, isCollection returns
-||| False. Scalars are leaf nodes (null, bool, int, float, string, binary,
-||| timestamp); collections are YArray and YObject.
+||| OWED: `isScalar` and `isCollection` are complementary predicates
+||| on `YAMLValue`, i.e. `isScalar val = True` implies `not
+||| (isCollection val) = True`. Witnessed by the source definition
+||| `isCollection = not . isScalar` in `Proven.SafeYAML.Types`, so
+||| the goal is by `Bool` double-negation: `not (not (isScalar val))
+||| = isScalar val = True`.
+|||
+||| Held back by Idris2 0.8.0 not reducing `not . not . isScalar val`
+||| to `isScalar val` by Refl when `val` is abstract. The composition
+||| `(not . isScalar) val` only unfolds to `not (isScalar val)` once
+||| Idris splits on `val`'s constructor (so it can pattern-match
+||| `isScalar` to a literal `True`/`False`); for an abstract `val`
+||| the outer `not` keeps `not (isScalar val)` stuck, and the second
+||| `not` then keeps the whole expression stuck. Same blocker family
+||| as the `Data.Bool` involution gap noted in SafeChecksum's
+||| `xorChecksum [x,x] = 0` OWED. Discharge by case-analysis on the
+||| nine `YAMLValue` constructors (each branch reduces to `not (not
+||| True) = True` by Refl), or by a `boolDoubleNegation` lemma over
+||| `Bool`.
 export
-isScalarCorrect : (val : YAMLValue) ->
-                  isScalar val = True ->
-                  not (isCollection val) = True
+0 isScalarCorrect : (val : YAMLValue) ->
+                    isScalar val = True ->
+                    not (isCollection val) = True
 
 --------------------------------------------------------------------------------
 -- Deserialization Safety Proofs
@@ -202,13 +259,32 @@ isScalarCorrect : (val : YAMLValue) ->
 parseYAMLWith : YAMLSecurityOptions -> String -> YAMLResult YAMLValue
 parseYAMLWith _ _ = Ok YNull
 
-||| Postulate: YAML parsing always returns a Result type (either Err or Ok),
-||| never throws an exception. All error paths produce YAMLError values
-||| wrapped in Err; successful parsing produces YAMLValue wrapped in Ok.
+||| OWED: for every `input` and `opts`, `parseYAMLWith opts input`
+||| reduces to either `Err err` for some `YAMLError err` or `Ok val`
+||| for some `YAMLValue val` — i.e. parsing is exception-free and
+||| always returns a `Result`. Witnessed by the totality of the
+||| `Result` ADT (`%default total` is in force) and the in-module
+||| stub which trivially returns `Ok YNull`.
+|||
+||| Held back by two compounding gaps in Idris2 0.8.0: (a) the
+||| in-module `parseYAMLWith` here is a stub returning `Ok YNull` —
+||| the real parser lives outside this proof module and is not yet
+||| wired in, so an honest discharge must wait until the proof
+||| imports the production parser surface; and (b) even with the
+||| stub the trivial witness `Right (YNull ** Refl)` would require
+||| Refl to reduce `parseYAMLWith opts input = Ok YNull` for
+||| abstract `input`/`opts`, which it does — but that proof is then
+||| a no-op against the production parser. Same shape as
+||| SafeChecksum's `verifyCRC32Definition` (definitional unfolding)
+||| but blocked on the real-parser hookup rather than the FFI seam.
+||| Discharge once the real `Proven.SafeYAML.parseYAML` (or its
+||| `*With` variant) is imported and the totality of its return
+||| pattern is established, at which point this becomes a structural
+||| `Right (val ** Refl)` over the parser's case-tree.
 export
-parsingNeverCrashes : (input : String) -> (opts : YAMLSecurityOptions) ->
-                      (err : YAMLError ** parseYAMLWith opts input = Err err) `Either`
-                      (val : YAMLValue ** parseYAMLWith opts input = Ok val)
+0 parsingNeverCrashes : (input : String) -> (opts : YAMLSecurityOptions) ->
+                        (err : YAMLError ** parseYAMLWith opts input = Err err) `Either`
+                        (val : YAMLValue ** parseYAMLWith opts input = Ok val)
 
 ||| Theorem: Dangerous input is rejected
 export
