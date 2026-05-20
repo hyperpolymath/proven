@@ -1,9 +1,22 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
 # META.a2ml — Project meta-information
-# Converted from META.scm on 2026-03-15
 
 [metadata]
 project = "proven"
 author = "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 license = "PMPL-1.0-or-later"
 standard = "RSR 2026"
+last-updated = "2026-05-20"
+
+[architecture-decisions]
+decisions = [
+  { id = "ADR-001", title = "OWED-with-justification convention for bodyless declarations in Proofs.idr files", status = "accepted", date = "2026-05-20", body = "Bodyless type signatures (implicit postulates) are made discoverable via triple-pipe doc-comment naming the claim + Idris2 0.8.0 blocker + discharge condition, plus a leading `0 ` erased-multiplicity marker, plus the original bare signature. The `postulate` keyword is NOT used (zero Proofs.idr files use it). Canonical example: src/Proven/SafeChecksum/Proofs.idr. Reference: hyperpolymath/standards#158 Fork A campaign, PROOF-NEEDS.md." },
+]
+
+[proof-conventions]
+# Reference: see PROOF-NEEDS.md "OWED-with-justification convention".
+unproven-obligation-pattern = "owed-with-justification"
+unproven-obligation-shape = "triple-pipe-doccomment + 0-erased-multiplicity + bare-signature"
+banned-tokens-in-proofs-idr = ["believe_me", "idris_crash", "postulate"]
+canonical-example = "src/Proven/SafeChecksum/Proofs.idr"
+adr-reference = "ADR-001"

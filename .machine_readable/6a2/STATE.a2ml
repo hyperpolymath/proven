@@ -1,14 +1,48 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
 # STATE.a2ml — Project state checkpoint
-# Converted from STATE.scm on 2026-03-15
 
 [metadata]
 project = "proven"
 version = "0.1.0"
-last-updated = "2026-03-15"
+last-updated = "2026-05-20"
 status = "active"
 
 [project-context]
 name = "proven"
 completion-percentage = "stable"
 phase = "stable-library"
+
+[proof-coverage]
+# Counts as of 2026-05-20 audit (standards#158 Fork A).
+safe-modules-with-proofs-idr-directory = 41
+safe-modules-clean = 6
+# Clean = zero bodyless decls. Modules: SafeChecksum, SafeBuffer, SafeBloom,
+# SafeCryptoAccel, SafeHKDF, SafeFPGA. These landed 2026-05-19/20 and set the
+# OWED convention.
+
+safe-modules-with-owed-annotation = 28
+# Annotated via PRs #37-64 under standards#158 Fork A (excl. #36 = CI bump).
+# Eight locally idris2-0.8.0-verified: #52 #54 #56 #57 #58 #60 #62 #63.
+
+bodyless-decls-total = 250
+# All annotated with ||| OWED: + 0 erased-multiplicity per the SafeChecksum
+# convention. See PROOF-NEEDS.md "OWED-with-justification convention" and
+# META.a2ml ADR-001.
+
+[trust-posture]
+believe-me-uses = 0
+idris-crash-uses = 0
+postulate-keyword-uses = 0
+# Zero proof-bypass tokens in Proofs.idr files. All unproven obligations are
+# explicit OWED declarations with named blocker + discharge condition.
+
+[active-campaigns]
+fork-a-annotation = "complete (28 DRAFT PRs filed, awaiting estate CI clear of concurrency-pool exhaustion)"
+fork-b-discharge = "triage open — quick-wins flagged in PROOF-NEEDS.md (SafeCrypto isSecure refactor; SafePath already-Refl pairs)"
+
+[session-history]
+# Most recent first.
+"2026-05-20" = "Fork A campaign complete: 250 bodyless decls across 28 of 41 modules annotated via OWED-with-justification convention (PRs #37-64, Refs standards#158); cross-prover audit confirms 0 Lean sorry / 0 Coq Admitted in first-party code (only echidnabot dogfood fixtures)"
+"2026-05-19" = "Six new modules merged with explicit OWED markers (SafeChecksum, SafeBuffer, SafeBloom, SafeCryptoAccel, SafeHKDF, SafeFPGA) — convention-setting"
+"2026-05-18" = "PROOF-NEEDS.md honesty refresh (standards#124); ~70 single-file overclaim modules surfaced separately from the Proofs.idr-directory audit"
+"2026-03-15" = "STATE.scm converted to STATE.a2ml"
