@@ -125,12 +125,6 @@ defaultSatisfiesRequired spec required hasDefault = ()
 -- Type Conversion Proofs
 --------------------------------------------------------------------------------
 
-||| Boolean parsing is complete for all recognised boolean strings.
-||| Postulated: the proof requires showing that when `toLower s` is
-||| a member of the recognised list, the `if` chain in `parseBool'`
-||| will match one of the two branches and return `Just`. This depends
-||| on `toLower` (an FFI primitive) and `elem` over `String` equality,
-||| neither of which reduces in Idris 2's evaluator.
 ||| Helper: parse boolean string
 public export
 parseBool' : String -> Maybe Bool
@@ -142,30 +136,43 @@ parseBool' str =
          then Just False
          else Nothing
 
-export
-boolParsingComplete : (s : String) ->
-                      toLower s `elem` ["true", "yes", "1", "on",
-                                        "false", "no", "0", "off"] = True ->
-                      isJust (parseBool' s) = True
+||| OWED: `parseBool'` returns `Just` for every string whose
+||| lower-cased form is one of the eight recognised boolean tokens
+||| (`true`/`yes`/`1`/`on` or `false`/`no`/`0`/`off`). Held back by
+||| Idris2 0.8.0 not type-level reducing `String.toLower` (an opaque
+||| C FFI primitive) or `elem` over `String` (which threads through
+||| `prim__eq_String`, the same primitive equality blocker as the
+||| `SafeChecksum` Luhn/ISBN OWED items and the gossamer
+||| `stringNotEqCommut` class-J axiom). The `Bool`-level dispatch in
+||| `parseBool'`'s nested `if` cannot then be bridged to the
+||| propositional membership hypothesis by Refl. Discharge once a
+||| reflective `Bool ↔ Prop` lemma for `String.elem` and an
+||| `Eq`-instance reduction lemma for `toLower` are available — or
+||| once the parser is refactored to case-split via `DecEq` on a
+||| `Recognised` ADT.
+0 boolParsingComplete : (s : String) ->
+                        toLower s `elem` ["true", "yes", "1", "on",
+                                          "false", "no", "0", "off"] = True ->
+                        isJust (parseBool' s) = True
 
-||| Integer parsing handles negative numbers correctly.
-||| Postulated: requires showing that `parseInteger` (an FFI call to
-||| the C runtime's string-to-integer conversion) returns `Just` when
-||| the input starts with "-" and is followed by all-digit characters.
-||| The `isPrefixOf`, `drop`, and `parseInteger` functions are all
-||| opaque FFI primitives.
-export
-intParsingHandlesNegative : (s : String) ->
-                            isPrefixOf "-" s = True ->
-                            all Prelude.Types.isDigit (Data.List.drop 1 (unpack s)) = True ->
-                            isJust (parseInteger s) = True
+||| OWED: `parseInteger s = Just _` whenever `s` begins with `"-"`
+||| and the remaining characters are all digits. Held back by Idris2
+||| 0.8.0: `parseInteger` is a `%foreign` call into the C runtime's
+||| `strtol`-family conversion and is wholly opaque to the
+||| evaluator; `isPrefixOf` and `Data.List.drop` route through
+||| `unpack` (String FFI) and `prim__strCons` reductions that
+||| Idris2 0.8.0 also does not perform at the type level. Same
+||| FFI-opacity blocker family as `SafeChecksum`'s `extractDigits`
+||| OWED set. Discharge once `parseInteger` is given a proof-carrying
+||| spec (e.g. a `Reads`-style relational characterisation) and the
+||| String FFI primitives are exposed with reflective lemmas, or
+||| once the parser is rewritten to fold over a typed `List Digit`
+||| with explicit sign handling.
+0 intParsingHandlesNegative : (s : String) ->
+                              isPrefixOf "-" s = True ->
+                              all Prelude.Types.isDigit (Data.List.drop 1 (unpack s)) = True ->
+                              isJust (parseInteger s) = True
 
-||| Natural number parsing rejects negative inputs.
-||| Postulated: requires showing that when `isPrefixOf "-" s` holds,
-||| `parseInteger s` returns a negative `Integer`, causing the
-||| `if i >= 0` guard to fail and return `Nothing`. This depends on
-||| the behaviour of the C `parseInteger` FFI function for strings
-||| beginning with '-'.
 ||| Helper: parse natural number string
 public export
 parseNat' : String -> Maybe Nat
@@ -173,10 +180,20 @@ parseNat' str = do
   i <- parseInteger str
   if i >= 0 then Just (cast i) else Nothing
 
-export
-natRejectsNegative : (s : String) ->
-                     isPrefixOf "-" s = True ->
-                     parseNat' s = Nothing
+||| OWED: `parseNat' s = Nothing` whenever `s` begins with `"-"` —
+||| because `parseInteger s` then yields a negative `Integer` and the
+||| `i >= 0` guard fails, short-circuiting the `Maybe` bind to
+||| `Nothing`. Held back by the same `parseInteger` FFI opacity as
+||| `intParsingHandlesNegative` (the C `strtol` family is not
+||| reducible in Idris2 0.8.0), compounded by the `Maybe`-monad
+||| `>>=` not unfolding inside a `do`-block at the type level until
+||| the scrutinee is in WHNF. Discharge once `parseInteger` carries
+||| a sign-tracking spec lemma, or once `parseNat'` is rewritten
+||| without going through `Integer` (e.g. directly folding `Digit`
+||| values into `Nat`).
+0 natRejectsNegative : (s : String) ->
+                       isPrefixOf "-" s = True ->
+                       parseNat' s = Nothing
 
 --------------------------------------------------------------------------------
 -- Parser Options Proofs
