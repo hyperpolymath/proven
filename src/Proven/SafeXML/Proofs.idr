@@ -86,18 +86,30 @@ export
 secureDefaultsZeroExpansions : Types.secureDefaults.maxEntityExpansions = 0
 secureDefaultsZeroExpansions = Refl
 
-||| The builder API never emits <!ENTITY ... SYSTEM/PUBLIC ...> in rendered output.
-||| Depends on renderNode implementation which constructs XML from safe primitives
-||| and never injects entity declarations.
+||| OWED: The builder API never emits `<!ENTITY ... SYSTEM/PUBLIC ...>` in
+||| rendered output, because `renderNode` constructs XML from safe primitives
+||| (element/text/attribute markup) and never injects entity declarations.
+||| Held back by Idris2 0.8.0 not type-level reducing the recursive
+||| `renderNode` / `isInfixOf` composition over an opaque `String` —
+||| `NoExternalEntities` lives behind `auto`-found Bool-equality proofs on
+||| `isInfixOf`, and the FFI-bound `String` primitives do not reduce by
+||| `Refl`. Discharge once an `isInfixOf` reflective tactic (or a structural
+||| `Data.String` representation supplanting the FFI-opaque one) is
+||| available.
 export
-builderNoXXE : (builder : ElementBuilder) ->
-               NoExternalEntities (renderNode (build builder))
+0 builderNoXXE : (builder : ElementBuilder) ->
+                 NoExternalEntities (renderNode (build builder))
 
-||| The builder API never emits <!DOCTYPE ...> in rendered output.
-||| Depends on renderNode only producing element/text/attribute markup.
+||| OWED: The builder API never emits `<!DOCTYPE ...>` in rendered output,
+||| because `renderNode` only produces element/text/attribute markup and
+||| never an `<!DOCTYPE` token. Held back by Idris2 0.8.0 not type-level
+||| reducing `isInfixOf "<!DOCTYPE" (renderNode …)` over an opaque
+||| FFI-bound `String`. Same blocker family as `builderNoXXE`. Discharge
+||| once `isInfixOf` is reflective, or once `renderNode` is refactored to
+||| return a structural type that excludes `!DOCTYPE` by construction.
 export
-builderNoDTD : (builder : ElementBuilder) ->
-               NoDTD (renderNode (build builder))
+0 builderNoDTD : (builder : ElementBuilder) ->
+                 NoDTD (renderNode (build builder))
 
 --------------------------------------------------------------------------------
 -- Entity Expansion Proofs
@@ -111,37 +123,54 @@ entityExpansionBounded : (opts : XMLSecurityOptions) -> (count : Nat) ->
                          ()
 entityExpansionBounded opts count tooMany = ()
 
-||| The builder escapes & to &amp;, so rendered output contains no raw entity
-||| references beyond the five XML predefined entities (&amp; &lt; &gt; &quot; &#39;).
-||| Depends on the escaping behaviour of renderNode.
+||| OWED: The builder escapes `&` to `&amp;`, so rendered output contains
+||| no raw entity references beyond the five XML predefined entities
+||| (`&amp;` `&lt;` `&gt;` `&quot;` `&#39;`). Held back by Idris2 0.8.0
+||| not type-level reducing `isInfixOf` over `renderNode`'s opaque
+||| FFI-bound `String` output — the proof obligation is a Bool equality
+||| that bottoms out in `prim__eq_String`, which is class-(J) opaque
+||| (same trust posture as `Boj.SafetyLemmas.charEqSym`). Discharge once
+||| an `isInfixOf` reflective tactic is available, or once `xmlText` /
+||| `xmlAttrValue` return a structural escaped-string type that
+||| character-class excludes raw `&` by construction.
 export
-builderNoEntities : (builder : ElementBuilder) ->
-                    -- Builder escapes & to &amp;, preventing entity references
-                    not (isInfixOf "&" (renderNode (build builder)) &&
-                         not (isInfixOf "&amp;" (renderNode (build builder)) ||
-                              isInfixOf "&lt;" (renderNode (build builder)) ||
-                              isInfixOf "&gt;" (renderNode (build builder)) ||
-                              isInfixOf "&quot;" (renderNode (build builder)))) = True
+0 builderNoEntities : (builder : ElementBuilder) ->
+                      -- Builder escapes & to &amp;, preventing entity references
+                      not (isInfixOf "&" (renderNode (build builder)) &&
+                           not (isInfixOf "&amp;" (renderNode (build builder)) ||
+                                isInfixOf "&lt;" (renderNode (build builder)) ||
+                                isInfixOf "&gt;" (renderNode (build builder)) ||
+                                isInfixOf "&quot;" (renderNode (build builder)))) = True
 
 --------------------------------------------------------------------------------
 -- Escaping Correctness Proofs
 --------------------------------------------------------------------------------
 
-||| xmlText escapes all occurrences of '<' to '&lt;', so the escaped output
-||| never contains a raw '<' that could be interpreted as tag injection.
-||| Depends on the character-level escaping in xmlText.
+||| OWED: `xmlText` escapes all occurrences of `'<'` to `'&lt;'`, so the
+||| escaped output never contains a raw `<` that could be interpreted as
+||| tag injection. Held back by Idris2 0.8.0 not type-level reducing the
+||| per-character escape pass over an opaque FFI-bound `String` —
+||| `unpack`/`pack`/`prim__strCons` do not reduce by `Refl`, and
+||| `isInfixOf` inherits that opacity. Discharge once a `Data.String`
+||| reflective tactic over `unpack` is available, or once `xmlText`
+||| returns a structural `EscapedString` whose constructor character-class
+||| excludes raw `<`.
 export
-textEscapingSound : (s : String) ->
-                    let escaped = (xmlText s).escaped
-                    in not (isInfixOf "<" escaped && not (isInfixOf "&lt;" escaped)) = True
+0 textEscapingSound : (s : String) ->
+                      let escaped = (xmlText s).escaped
+                      in not (isInfixOf "<" escaped && not (isInfixOf "&lt;" escaped)) = True
 
-||| xmlAttrValue escapes all occurrences of '"' to '&quot;', so the escaped output
-||| never contains a raw quote that could break out of attribute context.
-||| Depends on the character-level escaping in xmlAttrValue.
+||| OWED: `xmlAttrValue` escapes all occurrences of `'"'` to `'&quot;'`,
+||| so the escaped output never contains a raw quote that could break out
+||| of attribute context. Held back by Idris2 0.8.0 not type-level
+||| reducing the per-character escape pass over an opaque FFI-bound
+||| `String` (same blocker family as `textEscapingSound`). Discharge once
+||| `unpack` is reflective, or once `xmlAttrValue` returns a structural
+||| `EscapedAttrValue` whose constructor character-class excludes raw `"`.
 export
-attrEscapingSound : (s : String) ->
-                    let escaped = (xmlAttrValue s).escaped
-                    in not (isInfixOf "\"" escaped && not (isInfixOf "&quot;" escaped)) = True
+0 attrEscapingSound : (s : String) ->
+                      let escaped = (xmlAttrValue s).escaped
+                      in not (isInfixOf "\"" escaped && not (isInfixOf "&quot;" escaped)) = True
 
 ||| Theorem: Escaping preserves content semantics
 export
@@ -170,20 +199,32 @@ builderElementWellFormed : (builder : ElementBuilder) ->
                            WellFormed (MkXMLDocument Nothing Nothing (build builder))
 builderElementWellFormed builder = MkWellFormed (MkXMLDocument Nothing Nothing (build builder))
 
-||| When xmlName returns Ok, isValidXMLName holds. Depends on xmlName
-||| performing the same character checks as isValidXMLName but returning
-||| a validated wrapper type (opaque string validation).
+||| OWED: When `xmlName` returns `Ok`, `isValidXMLName` holds, because
+||| `xmlName` performs the same character checks as `isValidXMLName`
+||| before producing the validated wrapper. Held back by Idris2 0.8.0
+||| not type-level reducing the two character-check passes to a single
+||| `Refl` — both traverse `unpack`, which is FFI-opaque, and the proof
+||| requires showing extensional equality between two opaque pipelines.
+||| Discharge once `unpack` is reflective, or once `xmlName` is rewritten
+||| to call `isValidXMLName` directly (so the two paths share a single
+||| reduction).
 export
-elementNameValidation : (name : String) ->
-                        isOk (xmlName name) = True ->
-                        isValidXMLName name = True
+0 elementNameValidation : (name : String) ->
+                          isOk (xmlName name) = True ->
+                          isValidXMLName name = True
 
-||| When xmlQName returns Ok, both prefix and local components satisfy
-||| isValidXMLName. Depends on xmlQName validating each component.
+||| OWED: When `xmlQName` returns `Ok`, both `pfx` and `local`
+||| individually satisfy `isValidXMLName`, because `xmlQName` validates
+||| each component before composing them. Held back by Idris2 0.8.0 not
+||| type-level reducing the conjunction across two opaque
+||| `isValidXMLName` calls (same `unpack` opacity blocker as
+||| `elementNameValidation`). Discharge once `unpack` is reflective, or
+||| once `xmlQName` is rewritten to compose `xmlName pfx` and
+||| `xmlName local` so the two arms expose their underlying checks.
 export
-qnameComponentsValid : (pfx : String) -> (local : String) ->
-                       isOk (xmlQName pfx local) = True ->
-                       (isValidXMLName pfx = True, isValidXMLName local = True)
+0 qnameComponentsValid : (pfx : String) -> (local : String) ->
+                         isOk (xmlQName pfx local) = True ->
+                         (isValidXMLName pfx = True, isValidXMLName local = True)
 
 --------------------------------------------------------------------------------
 -- Depth Limiting Proofs
@@ -208,13 +249,19 @@ builderDepthConstant builder = ()
 -- Attribute Safety Proofs
 --------------------------------------------------------------------------------
 
-||| xmlAttrValue replaces all '"' characters with '&quot;', so the escaped
-||| attribute value contains no unescaped double-quote characters.
-||| Depends on the character-level escaping in xmlAttrValue.
+||| OWED: `xmlAttrValue` replaces all `'"'` characters with `'&quot;'`,
+||| so the escaped attribute value contains no unescaped double-quote
+||| characters. Held back by Idris2 0.8.0 not type-level reducing
+||| `all (\c => c /= '"' || False)` over `unpack` of an opaque FFI-bound
+||| `String` — the `unpack` produces a `List Char` whose elements are
+||| FFI-opaque, and the predicate's `Bool` reduction inherits that
+||| opacity. Discharge once `unpack` is reflective, or once
+||| `xmlAttrValue` returns a structural `EscapedAttrValue` indexed by a
+||| `List Char` whose constructor excludes `'"'` by construction.
 export
-attrValueNoQuotes : (value : String) ->
-                    let attrVal = xmlAttrValue value
-                    in all (\c => c /= '"' || False) (unpack attrVal.escaped) = True
+0 attrValueNoQuotes : (value : String) ->
+                      let attrVal = xmlAttrValue value
+                      in all (\c => c /= '"' || False) (unpack attrVal.escaped) = True
 
 ||| Theorem: Attribute count is bounded
 export
@@ -253,13 +300,22 @@ piNotXmlDecl target isXml = ()
 -- Composition Proofs
 --------------------------------------------------------------------------------
 
-||| Adding a properly-escaped child to a builder preserves the ProperlyEscaped
-||| property on the built output. Depends on withChild not altering the
-||| child's escaped content and build composing children safely.
+||| OWED: Adding a properly-escaped child to a builder preserves the
+||| `ProperlyEscaped` property on the built output, because `withChild`
+||| does not alter the child's escaped content and `build` composes
+||| children without re-escaping. Held back by Idris2 0.8.0 not
+||| type-level reducing `build . withChild child` to the child-level
+||| `ProperlyEscaped` witness through the `XMLNode` tree-traversal
+||| (DOM-traversal `Refl` gap — the `Element` constructor pattern-match
+||| does not propagate the child invariant without an explicit induction
+||| on the children list). Discharge once a structural induction lemma
+||| on `XMLNode` children is written, or once `ProperlyEscaped` is
+||| refactored to a structurally-recursive proof over the `XMLNode`
+||| constructors.
 export
-nestedElementsSafe : (parent : ElementBuilder) -> (child : XMLNode) ->
-                     ProperlyEscaped child ->
-                     ProperlyEscaped (build (withChild child parent))
+0 nestedElementsSafe : (parent : ElementBuilder) -> (child : XMLNode) ->
+                       ProperlyEscaped child ->
+                       ProperlyEscaped (build (withChild child parent))
 
 ||| Theorem: Multiple children preserve well-formedness
 export
