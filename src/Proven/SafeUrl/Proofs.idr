@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Proofs for SafeUrl operations
 |||
@@ -32,20 +32,41 @@ parseDeterministic s = Refl
 -- URL Encoding Properties
 --------------------------------------------------------------------------------
 
-||| Percent-encoding leaves unreserved (alphanumeric) characters unchanged
-unreservedNotEncoded : (c : Char) ->
-                       isAlphaNum c = True ->
-                       percentEncode c = singleton c
+||| OWED: Percent-encoding leaves unreserved (alphanumeric) characters
+||| unchanged. Operationally true by direct unfolding of `percentEncode`:
+||| `if isUnreserved c then singleton c else "%" ++ toHex (ord c)` —
+||| and `isUnreserved c = isAlphaNum c || c == '-' || c == '.' || ...`,
+||| so `isAlphaNum c = True` collapses `isUnreserved c` to `True` and the
+||| branch reduces to `singleton c`. Held back by Idris2 0.8.0 not
+||| type-level reducing `Data.Char.isAlphaNum` / `isUnreserved` — both
+||| route through the `Char` FFI primitive `prim__charPred` whose result
+||| is opaque to `Refl`. Same blocker family as SafeChecksum's
+||| `extractDigits` and SafeHeader's `hasCRLF` (Char/String FFI opacity).
+||| Discharge once a `Data.Char` reflective tactic is available, or
+||| `isUnreserved` is refactored to a non-FFI predicate.
+export
+0 unreservedNotEncoded : (c : Char) ->
+                         isAlphaNum c = True ->
+                         percentEncode c = singleton c
 
 ||| Empty string encodes to empty string
 public export
 encodeEmptyEmpty : urlEncode "" = ""
 encodeEmptyEmpty = Refl
 
-||| URL-encoding a fully alphanumeric string is the identity
-encodePreservesAlphaNum : (s : String) ->
-                          all isAlphaNum (unpack s) = True ->
-                          urlEncode s = s
+||| OWED: URL-encoding a fully alphanumeric string is the identity.
+||| Operationally follows from `unreservedNotEncoded` lifted across
+||| `unpack`/`map percentEncode`/`concat`, plus the `concat . map
+||| singleton . unpack = id` String round-trip. Held back by Idris2
+||| 0.8.0 not type-level reducing `unpack`/`pack`/`concat` (String FFI
+||| opacity, same family as SafeFile `boundedReadAtMostLimit`) and not
+||| reducing `Data.Char.isAlphaNum` per-element (see
+||| `unreservedNotEncoded` above). Discharge once both String FFI
+||| reduction and a `Data.Char` reflective tactic are available.
+export
+0 encodePreservesAlphaNum : (s : String) ->
+                            all isAlphaNum (unpack s) = True ->
+                            urlEncode s = s
 
 --------------------------------------------------------------------------------
 -- URL Decoding Properties
@@ -56,14 +77,35 @@ public export
 decodeEmptySucceeds : urlDecode "" = Just ""
 decodeEmptySucceeds = Refl
 
-||| Decoding a string of unreserved characters is the identity
-decodeUnreservedIdentity : (s : String) ->
-                           all isAlphaNum (unpack s) = True ->
-                           urlDecode s = Just s
+||| OWED: Decoding a string of unreserved characters is the identity.
+||| Operationally true because `urlDecode`'s inner `go` recurses on the
+||| char list, and every non-`%`-non-`+` char hits the wildcard branch
+||| `go (c :: rest) = Just (c :: ...)`. Combined with the
+||| `pack . unpack = id` round-trip this gives `urlDecode s = Just s`.
+||| Held back by Idris2 0.8.0 not reducing `unpack`/`pack` (String FFI
+||| opacity) and not reducing the per-element `isAlphaNum` premise to
+||| make the case analysis on `go` definitional. Discharge once String
+||| FFI reduction and a `Data.Char` reflective tactic are available.
+export
+0 decodeUnreservedIdentity : (s : String) ->
+                             all isAlphaNum (unpack s) = True ->
+                             urlDecode s = Just s
 
-||| URL-encode then decode round-trips to the original string
-encodeDecodeIdentity : (s : String) ->
-                       urlDecode (urlEncode s) = Just s
+||| OWED: URL-encode then URL-decode round-trips to the original
+||| string. Operationally true by case-analysis on each character of
+||| `unpack s`: unreserved chars round-trip via `singleton`/wildcard
+||| branch; reserved chars round-trip via `"%" ++ toHex (ord c)` →
+||| `decodePercent`. Held back by Idris2 0.8.0 not reducing `unpack` /
+||| `pack` / `concat` (String FFI opacity), `Data.Char.chr`/`ord`
+||| (Char FFI), and the arithmetic identity
+||| `chr (hi * 16 + lo) = c` given `hi = ord c \`div\` 16`,
+||| `lo = ord c \`mod\` 16`. Same blocker family as proof-of-work I7
+||| (FFI-correctness assumption). Discharge once String/Char FFI
+||| reduction is available, or via a property-test + trusted-extraction
+||| validation campaign (see boj-server backend-assurance harness).
+export
+0 encodeDecodeIdentity : (s : String) ->
+                         urlDecode (urlEncode s) = Just s
 
 --------------------------------------------------------------------------------
 -- Query String Properties
@@ -74,47 +116,117 @@ public export
 parseEmptyQuery : parseQueryString "" = []
 parseEmptyQuery = Refl
 
-||| Empty query builder builds empty string.
-||| Depends on joinWith/map/formatPair where-clause reduction which is
-||| opaque to the type checker.
+||| OWED: Empty query builder builds the empty string.
+||| `buildQueryString emptyQuery` reduces to `joinWith "&" (map
+||| formatPair [])` = `joinWith "&" []` = `""`. Held back by Idris2
+||| 0.8.0 not reducing `Data.String.joinWith` past its inner
+||| `where`-block `go`, which threads through `++` on `String` (String
+||| FFI opacity). Same blocker family as SafeHeader `renderedHeaderSafe`.
+||| Discharge once `joinWith`/`++` on `String` are type-level reducible,
+||| or refactor `buildQueryString` to expose the empty-list base case
+||| at the top.
 export
-emptyBuilderEmpty : buildQueryString Query.emptyQuery = ""
+0 emptyBuilderEmpty : buildQueryString Query.emptyQuery = ""
 
-||| Adding a parameter increases count.
-||| Depends on length (xs ++ [x]) = S (length xs) which requires
-||| induction on xs; Refl cannot close this for an abstract qb.
+||| OWED: Adding a parameter increases the parameter count by one.
+||| `addParam key val qb` is defined as `MkQueryBuilder (qb.params ++
+||| [(key, val)])`, so the claim reduces to
+||| `length (qb.params ++ [(key, val)]) = S (length qb.params)`. This
+||| is a standard list-folding identity (`length (xs ++ [x]) = S (length
+||| xs)`) but requires induction on `xs` — `Refl` cannot close it for an
+||| abstract `qb.params`. Held back by Idris2 0.8.0's stdlib not
+||| exposing this lemma as a `%reducible` rewrite. Same family as
+||| SafeFile read/write tracking proofs. Discharge by importing /
+||| proving `lengthSnoc : (xs : List a) -> (x : a) -> length (xs ++ [x])
+||| = S (length xs)` and rewriting.
 export
-addParamIncreasesCount : (key, val : String) -> (qb : QueryBuilder) ->
-                         paramCount (addParam key val qb).params =
-                         S (paramCount qb.params)
+0 addParamIncreasesCount : (key, val : String) -> (qb : QueryBuilder) ->
+                           paramCount (addParam key val qb).params =
+                           S (paramCount qb.params)
 
-||| Getting a parameter just set by key returns that value
-setGetIdentity : (key, val : String) -> (qs : QueryString) ->
-                 getParam key (setParam key val qs) = Just val
+||| OWED: Getting a parameter just set by key returns that value.
+||| Operationally true by case analysis on `hasParam key qs`: in the
+||| `True` branch, `setParam` `map`-replaces every key-matching entry
+||| with `val`, and `getParam = lookup` returns the first match; in the
+||| `False` branch, `setParam` appends `(key, val)` to the end, and
+||| `lookup` falls through to that appended pair (since no earlier
+||| entry matches). Held back by Idris2 0.8.0 not type-level reducing
+||| `String` equality `==` (routes through `prim__eqString` FFI), so the
+||| `if k == key` branches in `setParam` and the `if k == key` branches
+||| in `lookup` cannot be evaluated by `Refl`. Same blocker family as
+||| SafeChecksum Luhn/ISBN (String FFI opacity). Discharge once String
+||| equality is type-level reducible, or via a property-test campaign.
+export
+0 setGetIdentity : (key, val : String) -> (qs : QueryString) ->
+                   getParam key (setParam key val qs) = Just val
 
-||| After removing all instances of a key, hasParam returns False
-removeHasNot : (key : String) -> (qs : QueryString) ->
-               hasParam key (removeAllParams key qs) = False
+||| OWED: After removing all instances of a key, `hasParam` returns
+||| False. `removeAllParams key = filter (\(k, _) => k /= key)`, so the
+||| filtered list contains no entry with key `k = key`; therefore
+||| `lookup key (removeAllParams key qs) = Nothing`, hence `isJust …
+||| = False`. Held back by Idris2 0.8.0 not type-level reducing
+||| `String` `/=` / `==` (`prim__eqString` FFI), so the per-element
+||| `filter` predicate's truth value is opaque to `Refl`, blocking
+||| induction over `qs`. Discharge once String equality is type-level
+||| reducible. Same blocker family as `setGetIdentity`.
+export
+0 removeHasNot : (key : String) -> (qs : QueryString) ->
+                 hasParam key (removeAllParams key qs) = False
 
-||| filterParams keeps only entries whose keys are in the given list
-filterPreservesOnly : (keys : List String) -> (qs : QueryString) ->
-                      all (\(k, _) => k `elem` keys) (filterParams keys qs) = True
+||| OWED: `filterParams` keeps only entries whose keys are in the given
+||| list — equivalently, every entry surviving `filter (\(k, _) => k
+||| \`elem\` keys)` satisfies that predicate. This is the standard
+||| `Data.List` lemma `filterAll : (p : a -> Bool) -> (xs : List a) ->
+||| all p (filter p xs) = True` instantiated at our predicate. Held
+||| back by Idris2 0.8.0's `Data.List` not exposing `filterAll` as a
+||| `%reducible` rewrite, AND by `elem` on `String` routing through
+||| `prim__eqString` FFI (per-element opacity). Discharge by importing
+||| / proving the `filterAll` lemma and rewriting, once String equality
+||| is type-level reducible.
+export
+0 filterPreservesOnly : (keys : List String) -> (qs : QueryString) ->
+                        all (\(k, _) => k `elem` keys) (filterParams keys qs) = True
 
 --------------------------------------------------------------------------------
 -- Query Parameter Parsing Properties
 --------------------------------------------------------------------------------
 
-||| Parsing integer "42" from a matching key yields Just 42
-parseIntValid : (key : String) ->
-                getIntParam key [(key, "42")] = Just 42
+||| OWED: Parsing integer `"42"` from a matching key yields `Just 42`.
+||| `getIntParam key [(key, "42")] = getParam key [(key, "42")] >>=
+||| parseInteger`, which should reduce to `Just "42" >>= parseInteger
+||| = parseInteger "42" = Just 42`. Held back by Idris2 0.8.0 not
+||| type-level reducing `String` equality in `lookup`'s inner `if k ==
+||| key`, and not reducing `parseInteger`'s `strM`/`unpack`/`all
+||| isDigit`/`foldl` String+Char FFI chain. Same blocker family as
+||| SafeChecksum Luhn (FFI-correctness assumption — `parseInteger
+||| "42" = Just 42` is operationally true but opaque). Discharge via
+||| property-test + trusted-extraction validation.
+export
+0 parseIntValid : (key : String) ->
+                  getIntParam key [(key, "42")] = Just 42
 
-||| Parsing bool "true" from a matching key yields Just True
-parseBoolTrue : (key : String) ->
-                getBoolParam key [(key, "true")] = Just True
+||| OWED: Parsing bool `"true"` from a matching key yields `Just True`.
+||| `getBoolParam key [(key, "true")] = lookup key [(key, "true")] >>=
+||| parseBool`, and the inner `parseBool "true"` matches the literal
+||| `"true" => Just True` arm of its `case toLower s of …` after
+||| `toLower "true" = "true"`. Held back by Idris2 0.8.0 not type-level
+||| reducing `String` equality in `lookup` (`prim__eqString`) and the
+||| `case toLower s of "true" => …` String-literal match (also
+||| `prim__eqString`-routed). Same blocker family as `parseIntValid`.
+||| Discharge once String equality is type-level reducible, or via
+||| property-test campaign.
+export
+0 parseBoolTrue : (key : String) ->
+                  getBoolParam key [(key, "true")] = Just True
 
-||| Parsing bool "false" from a matching key yields Just False
-parseBoolFalse : (key : String) ->
-                 getBoolParam key [(key, "false")] = Just False
+||| OWED: Parsing bool `"false"` from a matching key yields `Just
+||| False`. Symmetric to `parseBoolTrue` — operationally the
+||| `"false" => Just False` arm of `parseBool`'s `case toLower s of …`.
+||| Held back by the same Idris2 0.8.0 String-literal-match
+||| (`prim__eqString` FFI) opacity. Discharge with `parseBoolTrue`.
+export
+0 parseBoolFalse : (key : String) ->
+                   getBoolParam key [(key, "false")] = Just False
 
 --------------------------------------------------------------------------------
 -- Query String Merge Properties
@@ -126,24 +238,47 @@ mergeEmptyRight : (qs : QueryString) ->
                   mergeQueryStrings qs [] = qs
 mergeEmptyRight qs = Refl
 
-||| Merging empty into a query string yields that query string
-mergeEmptyLeft : (qs : QueryString) ->
-                 mergeQueryStrings [] qs = qs
+||| OWED: Merging empty (left) into a query string yields that query
+||| string. `mergeQueryStrings [] qs = foldl (\q, (k, v) => setParam k v
+||| q) [] qs`, i.e. fold starting from `[]` over all pairs in `qs`,
+||| each step calling `setParam k v` which (since the accumulator never
+||| already contains `k`) appends `[(k, v)]`. The final accumulator
+||| equals `qs`. Held back by Idris2 0.8.0 not reducing the per-step
+||| `hasParam k acc` check (`String` `==` via `prim__eqString` FFI),
+||| which would let us see the accumulator collapse to a snoc chain;
+||| also requires `lengthSnoc`-style induction on `qs`. Same blocker
+||| family as `setGetIdentity` and `addParamIncreasesCount`. Discharge
+||| once String equality is type-level reducible and the snoc-length
+||| lemma is `%reducible`.
+export
+0 mergeEmptyLeft : (qs : QueryString) ->
+                   mergeQueryStrings [] qs = qs
 
-||| Query string append is associative (by list append associativity)
-appendAssociative : (qs1, qs2, qs3 : QueryString) ->
-                    appendQueryStrings (appendQueryStrings qs1 qs2) qs3 =
-                    appendQueryStrings qs1 (appendQueryStrings qs2 qs3)
+||| OWED: Query string append is associative — inherited from
+||| `Data.List.appendAssociative` since `appendQueryStrings = (++)` on
+||| `QueryString = List (String, String)`. Held back by Idris2 0.8.0's
+||| `Data.List` not exposing `appendAssociative` as a `%reducible`
+||| rewrite (the proof exists in Prelude but requires induction on
+||| `qs1`, and `Refl` cannot close it for abstract `qs1`). Discharge
+||| by importing `Data.List.appendAssociative` and rewriting (the
+||| proof is in-Idris2 — this is a stdlib-plumbing OWED, not a
+||| fundamental gap).
+export
+0 appendAssociative : (qs1, qs2, qs3 : QueryString) ->
+                      appendQueryStrings (appendQueryStrings qs1 qs2) qs3 =
+                      appendQueryStrings qs1 (appendQueryStrings qs2 qs3)
 
 --------------------------------------------------------------------------------
 -- URL Security Properties
 --------------------------------------------------------------------------------
 
-||| Data type for safe URLs (no javascript: scheme)
+||| Data type for safe URLs (no javascript: scheme).
+||| The non-javascript proof is stored at erased multiplicity (`0`)
+||| because `isSafeSchemeNotJavascript` is OWED — see below.
 public export
 data SafeURL : ParsedURL -> Type where
   MkSafeURL : (url : ParsedURL) ->
-              Not (url.scheme = Just (Custom "javascript")) ->
+              (0 _ : Not (url.scheme = Just (Custom "javascript"))) ->
               SafeURL url
 
 ||| Check if URL has safe scheme
@@ -155,9 +290,20 @@ isSafeScheme url = case url.scheme of
   Just (Custom "vbscript") => False
   _ => True
 
-||| If isSafeScheme holds, the scheme is not javascript (for MkSafeURL)
-isSafeSchemeNotJavascript : (url : ParsedURL) -> isSafeScheme url = True ->
-                            Not (url.scheme = Just (Custom "javascript"))
+||| OWED: If `isSafeScheme url = True`, then `url.scheme` is not
+||| `Just (Custom "javascript")`. By contraposition on `isSafeScheme`'s
+||| case-analysis: if the scheme were `Just (Custom "javascript")`, the
+||| first arm would fire and return `False`, contradicting the
+||| hypothesis `isSafeScheme url = True`. Held back by Idris2 0.8.0
+||| not type-level reducing `String` equality (`Custom "javascript" =
+||| Custom "javascript"` routes through `prim__eqString` for the
+||| payload) — without that, the case-equality required to derive the
+||| contradiction is opaque to `Refl`. Same blocker family as
+||| `setGetIdentity`. Discharge once String equality is type-level
+||| reducible. Used by `validateSafe` to construct `MkSafeURL`.
+export
+0 isSafeSchemeNotJavascript : (url : ParsedURL) -> isSafeScheme url = True ->
+                              Not (url.scheme = Just (Custom "javascript"))
 
 ||| Validate URL is safe
 public export
@@ -178,13 +324,26 @@ data ValidIPv4 : Host -> Type where
                 LTE a 255 -> LTE b 255 -> LTE c 255 -> LTE d 255 ->
                 ValidIPv4 (IPv4 a b c d)
 
-||| Port number is bounded
+||| Port number is bounded.
+||| The `LTE p 65535` proof is stored at erased multiplicity (`0`)
+||| because `lteFrom65535Check` is OWED — see below.
 public export
 data ValidPort : Nat -> Type where
-  MkValidPort : (p : Nat) -> LTE p 65535 -> ValidPort p
+  MkValidPort : (p : Nat) -> (0 _ : LTE p 65535) -> ValidPort p
 
-||| Runtime comparison p <= 65535 implies the LTE proof witness
-lteFrom65535Check : (p : Nat) -> (p <= 65535 = True) -> LTE p 65535
+||| OWED: Runtime comparison `p <= 65535 = True` implies the `LTE p
+||| 65535` proof witness. Operationally this is the well-known
+||| reflective lemma `Data.Nat.lteReflectsLTE : (n, m : Nat) -> n <= m
+||| = True -> LTE n m`. Held back by Idris2 0.8.0's `Data.Nat` not
+||| exposing this as a definitional/`%reducible` rewrite — the stdlib
+||| proof exists (`Decidable.Order.fromLte`-family) but the chain
+||| through `Ord Nat`'s `<=` implementation does not reduce via `Refl`
+||| for an abstract `p`. Discharge by importing the existing stdlib
+||| lemma and rewriting (this is a stdlib-plumbing OWED, not a
+||| fundamental gap). Consumed by `validatePort` to construct
+||| `MkValidPort`'s erased proof argument.
+export
+0 lteFrom65535Check : (p : Nat) -> (p <= 65535 = True) -> LTE p 65535
 
 ||| Validate port is in range
 public export

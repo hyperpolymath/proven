@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Trustfile validation — enforces security spec from Trustfile.a2ml
 name: Trustfile Validation
 
@@ -91,13 +91,13 @@ jobs:
 
       - name: Check SPDX license compliance
         run: |
-          # All source files must use PMPL-1.0-or-later
+          # All source files must use MPL-2.0
           WRONG_LICENSE=$(grep -rl "SPDX-License-Identifier:" src/ ffi/ bindings/ 2>/dev/null | \
-                         xargs grep -L "PMPL-1.0-or-later" 2>/dev/null | wc -l)
+                         xargs grep -L "MPL-2.0" 2>/dev/null | wc -l)
           if [ "$WRONG_LICENSE" -gt 0 ]; then
             echo "ERROR: $WRONG_LICENSE files have incorrect SPDX license headers"
             grep -rl "SPDX-License-Identifier:" src/ ffi/ bindings/ 2>/dev/null | \
-              xargs grep -L "PMPL-1.0-or-later" 2>/dev/null | head -20
+              xargs grep -L "MPL-2.0" 2>/dev/null | head -20
             exit 1
           fi
           echo "License compliance: PASS"

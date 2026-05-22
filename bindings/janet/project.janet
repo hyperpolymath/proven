@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # project.janet - Package configuration for proven-janet.
@@ -9,7 +9,7 @@
   :name "proven"
   :description "Janet FFI bindings for libproven - formally verified safety library"
   :author "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
-  :license "PMPL-1.0-or-later"
+  :license "MPL-2.0"
   :url "https://github.com/hyperpolymath/proven"
   :repo "git+https://github.com/hyperpolymath/proven.git"
   :version "0.9.0"

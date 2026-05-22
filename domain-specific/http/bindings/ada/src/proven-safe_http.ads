@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 --  Proven.Safe_HTTP - Formally Verified HTTP Utilities
---  SPDX-License-Identifier: PMPL-1.0-or-later
+--  SPDX-License-Identifier: MPL-2.0
 --
 --  Ada bindings for formally verified HTTP operations.
 --  Verification chain: Idris2 → Zig FFI → Ada

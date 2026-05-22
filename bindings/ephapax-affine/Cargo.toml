@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 [package]
@@ -6,7 +6,7 @@ name = "ephapax-proven-affine"
 version = "0.1.0"
 edition = "2021"
 authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
-license = "PMPL-1.0-or-later"
+license = "MPL-2.0"
 description = "Affine type variant of Ephapax bindings for the proven library (values consumed at most once)"
 repository = "https://github.com/hyperpolymath/proven"
 keywords = ["formal-verification", "affine-types", "proven", "safe-ffi", "ephapax"]

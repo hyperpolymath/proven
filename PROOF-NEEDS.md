@@ -1,5 +1,16 @@
 # PROOF-NEEDS.md — proven
 
+> **Re-audit update 2026-05-20.** The 39 "carried forward, pending Proofs.idr
+> re-audit" directories have now been re-audited (hyperpolymath/standards#158
+> Fork A). Net finding: of those 39, **6 are clean** (no bodyless decls;
+> SafeChecksum, SafeBuffer, SafeBloom, SafeCryptoAccel, SafeHKDF, SafeFPGA —
+> these set the OWED convention), **28 carried bodyless decls** which have
+> now been annotated as `||| OWED:` + `0 ` erased-multiplicity per the
+> convention (PRs hyperpolymath/proven#37-64, all DRAFT pending estate CI
+> clear; 8 locally idris2-0.8.0-verified). Total: 250 bodyless decls
+> surfaced and made discoverable. See the new "OWED-with-justification
+> convention" section below and `.machine_readable/6a2/META.a2ml` ADR-001.
+>
 > **Honesty refresh 2026-05-18.** `proven` is the estate trust root, so this
 > ledger must not overclaim. The prior edition asserted "the most complete
 > Idris2 proof infrastructure in the ecosystem" and "~30 modules lack proof
@@ -137,7 +148,55 @@ Each line: module — verbatim doc claim — why it is owed.
 > `Prevents:|formally verified|cannot crash|guarantee|no false negative|
 > traversal|injection|attack` without a discharged theorem is OWED.
 
-## Honestly proven (carried forward, pending Proofs.idr re-audit)
+## OWED-with-justification convention (adopted 2026-05-20)
+
+Bodyless type signatures in `Proofs.idr` files are *implicit postulates* —
+Idris2 parses them as axioms with no proof body. To make the trust posture
+visible (to readers and to grep), each bodyless declaration carries:
+
+```idris
+||| OWED: <one-sentence statement of what's claimed>
+||| Held back by <specific Idris2 0.8.0 blocker>. Discharge once
+||| <what would unblock it>.
+0 declarationName : Type
+```
+
+Three parts: triple-pipe doc-comment with claim+blocker+discharge condition;
+leading `0` (Idris2 quantitative-type-theory erased-multiplicity marker —
+runtime-erased); original bare type signature.
+
+**Do NOT use the `postulate` keyword.** Zero `Proofs.idr` files in `proven`
+use it. The OWED+`0`+bare-sig pattern is chosen so that the reason each
+obligation exists is discoverable, and erasure means proof gaps cannot
+silently affect runtime behaviour.
+
+Canonical example: `src/Proven/SafeChecksum/Proofs.idr` (L24-100). Also see
+SafeBuffer, SafeBloom, SafeCryptoAccel, SafeHKDF, SafeFPGA — these landed
+2026-05-20 and set the convention.
+
+### Blocker families surfaced in the 2026-05-20 audit
+
+| Family | Typical shape | Discharge route |
+|--------|---------------|-----------------|
+| String FFI opacity | claims about `unpack`/`pack`/`ord`/`toLower`/`prim__eq_String` | Typed String/Char primitive layer, or Class-J axiom set parallel to gossamer/boj-server |
+| Numeric-literal Refl gaps | `Bits32`/`Bits64`/large-`Nat` literal equality | `Data.Bits` reflective tactic or `Integer`-backed bound |
+| Covering-not-total reduction | e.g. `gcd n 0 = n` under `Data.Nat.gcd` declared `covering` (cf. SafeMath PR#46) | Upstream Idris2 stdlib promoting to `total`, or local total reimplementation |
+| Foldl-predicate gaps | claims about `Data.List.all`/`any` on abstract lists | Cons-distribution lemmas inline (cf. proof-of-work PR#60) |
+| Structurally OWED | e.g. SafeJWT `validatedJWTFromValidation` (record type lacks provenance proof field) | Type-side widening, not just FFI seam |
+
+### Fork A scope vs. Fork B scope
+
+Fork A (this campaign) = make every bodyless decl explicit with a justified
+OWED note. Surfacing, not discharging. **Complete 2026-05-20** via PRs
+hyperpolymath/proven#37-64.
+
+Fork B (per-module discharge triage) is the next layer — selectively
+proving the dischargeable subset. Quick-win candidates surfaced in the
+audit: SafeCrypto `modernIsSecure`/`standardIsSecure` (3-line `isSecure`
+refactor), SafePath already-Refl-able pairs (already done in PR#57). Other
+modules require deeper triage.
+
+## Honestly proven (carried forward, Proofs.idr re-audited 2026-05-20)
 
 39 directories: SafeAPIKey, SafeArgs, SafeBase64, SafeCORS, SafeCSP, SafeCSRF,
 SafeCSV, SafeContentType, SafeCookie, SafeCrypto, SafeEmail, SafeEnv, SafeFile,
@@ -145,8 +204,11 @@ SafeHSTS, SafeHTTP, SafeHeader, SafeHtml, SafeJWT, SafeJson, SafeMath,
 SafeNetwork, SafeOTP, SafePassword, SafePath, SafeRBAC, SafeRateLimiter,
 SafeRecord, SafeRedirect, SafeRegex, SafeSQL, SafeSRI, SafeSSRF, SafeSemVer,
 SafeShell, SafeString, SafeTOML, SafeUrl, SafeXML, SafeYAML — **plus**
-SafeOrdering (single-file, one discharged theorem). These are *claimed*
-proven; their `Proofs.idr` bodies are not re-verified by this pass.
+SafeOrdering (single-file, one discharged theorem). Their `Proofs.idr` bodies
+were re-audited 2026-05-20 under standards#158 Fork A: of the 39 directory-form
+modules, 6 are clean (zero bodyless decls), 28 had bodyless decls now
+annotated as explicit OWED, 5 had only fully-discharged proofs already. No
+silent postulates remain.
 
 ## Stubs — proof absence disguised as presence (CRITICAL) — *now empty*
 

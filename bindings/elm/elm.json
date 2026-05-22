@@ -2,7 +2,7 @@
     "type": "package",
     "name": "hyperpolymath/proven",
     "summary": "FFI bindings to libproven via Elm ports (formally verified safety primitives)",
-    "license": "PMPL-1.0-or-later",
+    "license": "MPL-2.0",
     "version": "0.9.0",
     "exposed-modules": [
         "Proven",

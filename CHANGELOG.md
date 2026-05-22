@@ -25,7 +25,7 @@ This release addresses findings from an honest audit of the codebase.
 ### Fixed — Architecture Compliance
 - All language bindings now call Idris2 via Zig FFI (no reimplemented logic)
 - 31 missing bindings created and wired to FFI layer
-- Rust binding license corrected from Apache-2.0 to PMPL-1.0-or-later
+- Rust binding license corrected from Apache-2.0 to MPL-2.0
 - Containerfile converted from Docker-style to OCI-compliant Containerfile
 - RefC compilation pipeline built (`scripts/build-refc.sh`)
 
@@ -34,7 +34,7 @@ This release addresses findings from an honest audit of the codebase.
 - `.github/CODEOWNERS` — Code ownership for PR review routing
 - `MAINTAINERS.adoc` — Project maintainer documentation
 - `.well-known/security.txt` — RFC 9116 security contact (securitytxt.org)
-- `.editorconfig` SPDX header fixed from PMPL-1.0-or-later to PMPL-1.0-or-later
+- `.editorconfig` SPDX header fixed from MPL-2.0 to MPL-2.0
 
 ### Changed — Honest Documentation
 - `STATE.scm` updated with accurate completion percentages (55%, not 100%)
@@ -58,7 +58,7 @@ This release addresses findings from an honest audit of the codebase.
 - ipkg: removed duplicate module entries
 
 ### Changed
-- SPDX license headers standardised to PMPL-1.0-or-later across all 245+ source files
+- SPDX license headers standardised to MPL-2.0 across all 245+ source files
 - Copyright lines updated to "Jonathan D.A. Jewell (hyperpolymath)" format
 - All TODO stubs in SafeDigest and SafeRegistry converted to documentation notes
 - pack.toml version, license, and author fields corrected

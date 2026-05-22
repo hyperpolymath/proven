@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven HTTP - Formally Verified HTTP Utilities
 :toc: macro
@@ -287,7 +287,7 @@ end Build_Registry_URL;
 
 == License
 
-**PMPL-1.0-or-later** (Palimpsest Mozilla Public License)
+**MPL-2.0** (Palimpsest Mozilla Public License)
 
 Based on MPL-2.0 with ethical use and provenance extensions.
 

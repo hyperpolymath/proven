@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = ReScript Bindings for Proven
 
 image::https://img.shields.io/badge/Idris-Inside-5E5086?style=flat&logo=idris&logoColor=white[Idris Inside]
-image::https://img.shields.io/badge/License-PMPL--1.0--or--later-blue.svg[License: PMPL-1.0-or-later]
+image::https://img.shields.io/badge/License-PMPL--1.0--or--later-blue.svg[License: MPL-2.0]
 
 Type-safe ReScript bindings to the link:https://github.com/hyperpolymath/proven[proven] formally verified library.
 
@@ -182,7 +182,7 @@ let routes = Router.define([
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0
 
 == Author
 

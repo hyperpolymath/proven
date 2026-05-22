@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven Squirrel Binding
 
-<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 <!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk> -->
 
 FFI binding for the link:http://squirrel-lang.org/[Squirrel] scripting language,
@@ -215,4 +215,4 @@ if (result == null) {
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

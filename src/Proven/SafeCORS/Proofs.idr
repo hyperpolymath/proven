@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Proofs for SafeCORS operations
 |||
@@ -78,13 +78,30 @@ noneAlwaysSafe policy prf = rewrite prf in Refl
 -- Header Generation Safety
 --------------------------------------------------------------------------------
 
-||| Misconfigured policies produce no headers.
-||| If validatePolicy returns non-empty errors, generateHeaders returns Nothing.
+||| OWED: When `isUnsafeConfiguration policy = True`, `generateHeaders
+||| policy origin` returns `Nothing`. Held back by Idris2 0.8.0 not
+||| reducing the chained `validatePolicy` / `generateHeaders` guard
+||| under a single `Refl`: `generateHeaders` branches on `not (isNil
+||| (validatePolicy policy))`, and `validatePolicy` itself is `if
+||| isUnsafeConfiguration policy then [WildcardWithCredentials] else
+||| [] ++ (if isNil allowMethods && not (isNil allowHeaders) then
+||| [EmptyMethodList] else [])`. Rewriting by the hypothesis pushes
+||| the inner `if` to the `True` arm, but the surrounding `++` /
+||| `isNil` / `not` chain does not normalise to `True` definitionally
+||| because the right operand of `++` is an opaque conditional over
+||| `policy.allowMethods` / `policy.allowHeaders`. Discharge once
+||| `validatePolicy` is refactored to expose a top-level disjunctive
+||| case on `isUnsafeConfiguration` (or once a `cong`-style proof is
+||| written by-hand routing through `appendNilLeftNeutral` / `isNil
+||| (x :: xs) = False`). Same blocker family as the FFI-bound
+||| `validateLuhn` / `validateISBN*` OWED items in
+||| `Proven.SafeChecksum.Proofs` — opaque-spine list reduction under
+||| Idris2 0.8.0.
 export
-misconfiguredNoHeaders : (policy : CORSPolicy) ->
-                         (origin : Origin) ->
-                         isUnsafeConfiguration policy = True ->
-                         generateHeaders policy origin = Nothing
+0 misconfiguredNoHeaders : (policy : CORSPolicy) ->
+                           (origin : Origin) ->
+                           isUnsafeConfiguration policy = True ->
+                           generateHeaders policy origin = Nothing
 
 --------------------------------------------------------------------------------
 -- Origin Matching Properties

@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
 -- Thin FFI binding to libproven shared library.
@@ -12,7 +12,7 @@ synopsis:           Haskell FFI bindings to libproven (formally verified safety 
 description:        Thin FFI wrapper calling libproven shared library via Haskell's
                     Foreign Function Interface. All safety proofs and computation
                     live in the Idris 2 core; this package only marshals data.
-license:            LicenseRef-PMPL-1.0-or-later
+license:            LicenseRef-MPL-2.0
 license-file:       LICENSE
 author:             Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 maintainer:         j.d.a.jewell@open.ac.uk

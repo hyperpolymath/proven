@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! Pure Zig implementation of LRU cache
 //! Exports C-compatible ABI for Ephapax FFI
 

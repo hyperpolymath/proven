@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 = Maintainers
@@ -74,4 +74,4 @@ The following bots operate on this repository under human oversight:
 
 == License
 
-This project is licensed under PMPL-1.0-or-later (Palimpsest License).
+This project is licensed under MPL-2.0 (Palimpsest License).

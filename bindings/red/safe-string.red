@@ -3,12 +3,12 @@ Red [
     Description: "Safe string operations via libproven FFI"
     Author:      "Jonathan D.A. Jewell (hyperpolymath)"
     Email:       "j.d.a.jewell@open.ac.uk"
-    License:     "PMPL-1.0-or-later"
+    License:     "MPL-2.0"
     Version:     0.5.0
     File:        %safe-string.red
     Needs:       'proven
     Notes: {
-        SPDX-License-Identifier: PMPL-1.0-or-later
+        SPDX-License-Identifier: MPL-2.0
         Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
         Safe string operations that prevent injection attacks.

@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Safety proofs for HTTP header operations
 |||
@@ -35,22 +35,37 @@ crlfCheckPreventsInjection : (value : String) ->
                              ()
 crlfCheckPreventsInjection value hasCrlf = ()
 
-||| Postulate: A validated HeaderValue was constructed with a proof that
-||| CRLF characters are absent. The constructor invariant guarantees this.
+||| OWED: A validated `HeaderValue` was constructed under the constructor
+||| invariant that `not (hasCRLF v.value) = True`. Held back by Idris2
+||| 0.8.0 not type-level reducing `hasCRLF`, which expands to
+||| `isInfixOf "\r" s || isInfixOf "\n" s` — both `isInfixOf` and the
+||| underlying `unpack` are FFI-bound `String` primitives and do not
+||| compute for an abstract `v.value`. Same blocker family as
+||| SafeChecksum's FFI-bound `String` postulates. Discharge once a
+||| `Data.String` reflective tactic for `isInfixOf` is available, or
+||| once `HeaderValue` carries an erased `NoCRLF` proof field that this
+||| lemma can simply project.
 export
-headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
+0 headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
 
-||| Postulate: Concatenating a CRLF-free header name, the literal ": ",
-||| and a CRLF-free header value produces a CRLF-free string.
-||| Depends on: headerValueNoCRLF, HeaderName validation, and ": " containing no CRLF.
 ||| Helper: render a header to its wire format
 public export
 renderHeader : Header -> String
 renderHeader h = h.name.originalCase ++ ": " ++ h.value.value
 
+||| OWED: Concatenating a CRLF-free header name, the literal `": "`, and
+||| a CRLF-free header value produces a CRLF-free wire-format string.
+||| Follows operationally from `headerValueNoCRLF`, the `HeaderName`
+||| token-validation invariant, and `": "` containing no CRLF. Held
+||| back by Idris2 0.8.0 not type-level reducing `hasCRLF` over
+||| `String` concatenation (`++` and `isInfixOf` are FFI-bound, so
+||| `hasCRLF (a ++ b ++ c)` does not decompose to a disjunction over
+||| the parts by `Refl`). Discharge once a `Data.String` reflective
+||| tactic supplies `isInfixOf_append : isInfixOf p (a ++ b) = isInfixOf p a || isInfixOf p b`,
+||| or via per-character induction on `unpack (renderHeader h)`.
 export
-renderedHeaderSafe : (h : Header) ->
-                     not (hasCRLF (renderHeader h)) = True
+0 renderedHeaderSafe : (h : Header) ->
+                       not (hasCRLF (renderHeader h)) = True
 
 --------------------------------------------------------------------------------
 -- Name Validation Proofs
@@ -120,13 +135,26 @@ totalSizePrevents : (opts : HeaderOptions) ->
                     ()
 totalSizePrevents opts size tooLarge = ()
 
-||| Postulate: A header's total rendered size (name + ": " + value) is bounded
-||| by maxNameLength + 2 + maxValueLength. Follows from headerNameBounded and
-||| headerValueBounded: name <= maxNameLength, value <= maxValueLength.
+||| OWED: A header's total rendered size (name + `": "` + value) is
+||| bounded by `maxNameLength + 2 + maxValueLength`. Follows directly
+||| from the erased record-field invariants
+||| `HeaderName.bounded : length (unpack name) <= maxNameLength = True`
+||| and `HeaderValue.bounded : length (unpack value) <= maxValueLength = True`
+||| together with `Nat` `<=` being congruent under `+`. Held back by
+||| Idris2 0.8.0 in two stacked ways: (1) `unpack` is an FFI-bound
+||| `String` primitive that does not type-level reduce over abstract
+||| string values; (2) `length (unpack x) + 2` and `maxNameLength + 2`
+||| do not unify by `Refl` because `Nat` `+` does not reduce when the
+||| left operand is a stuck application — i.e. the `lteAddCongL` /
+||| `lteAddMonotone` chain needs an explicit rewrite. Same blocker
+||| family as SafeChecksum's `Integral Nat` `mod` non-reduction.
+||| Discharge once `Data.Nat` exposes a reflective tactic, or by
+||| hand-rewriting via `plusLteMonotone` over the two `.bounded`
+||| projections.
 export
-singleHeaderBounded : (h : Header) ->
-                      length (unpack h.name.originalCase) + 2 + length (unpack h.value.value) <=
-                      maxNameLength + 2 + maxValueLength = True
+0 singleHeaderBounded : (h : Header) ->
+                        length (unpack h.name.originalCase) + 2 + length (unpack h.value.value) <=
+                        maxNameLength + 2 + maxValueLength = True
 
 --------------------------------------------------------------------------------
 -- Dangerous Header Proofs
@@ -205,12 +233,23 @@ strictBlocksDangerous = Refl
 -- Well-Known Header Proofs
 --------------------------------------------------------------------------------
 
-||| Postulate: All WellKnownHeader values produce valid RFC 7230 tokens
-||| when shown. Each well-known header name (e.g., "content-type") consists
-||| only of lowercase ASCII letters and hyphens, which are valid token chars.
+||| OWED: All `WellKnownHeader` values produce valid RFC 7230 tokens
+||| when shown. Each well-known constructor's `show` returns a literal
+||| containing only lowercase ASCII letters and hyphens — all of which
+||| are valid token characters per RFC 7230. Held back by Idris2 0.8.0
+||| in two ways: (1) `isValidToken s = not (null (unpack s)) && all isTokenChar (unpack s)`
+||| threads through `unpack`, an FFI-bound `String` primitive that does
+||| not type-level reduce; (2) discharging by case-analysis over
+||| `WellKnownHeader` would still require ~60 per-constructor `Refl`
+||| proofs which each get stuck on `unpack` of a literal. Same blocker
+||| family as SafeChecksum's FFI-bound `String` postulates. Discharge
+||| once a `Data.String` reflective tactic for `unpack` of string
+||| literals is available, or via a refactor of `show` to return a
+||| pre-validated `HeaderName` (so the proof becomes a projection of
+||| the constructor invariant).
 export
-wellKnownNamesValid : (h : WellKnownHeader) ->
-                      isValidToken (show h) = True
+0 wellKnownNamesValid : (h : WellKnownHeader) ->
+                        isValidToken (show h) = True
 
 ||| Theorem: Security headers are categorized correctly
 export

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 // Temporary C stub implementations for testing FFI
 // TODO: Replace with actual Idris2-compiled proven library
 

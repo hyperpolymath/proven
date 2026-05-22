@@ -1,4 +1,4 @@
-;;;; SPDX-License-Identifier: PMPL-1.0-or-later
+;;;; SPDX-License-Identifier: MPL-2.0
 ;;;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ;;;;
 ;;;; Proven - Thin CFFI wrapper around libproven (formally verified safety library)
@@ -8,7 +8,7 @@
 (asdf:defsystem #:proven
   :description "Thin CFFI wrapper around libproven (formally verified safety library)"
   :author "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
-  :license "PMPL-1.0-or-later"
+  :license "MPL-2.0"
   :version "1.0.0"
   :depends-on (#:cffi)
   :serial t

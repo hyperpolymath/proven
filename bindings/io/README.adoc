@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven Io Binding
 
-<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 <!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk> -->
 
 FFI binding for the link:https://iolanguage.org/[Io] programming language,
@@ -200,4 +200,4 @@ All actual method implementations are in the native C addon (`src/IoProven.c`).
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

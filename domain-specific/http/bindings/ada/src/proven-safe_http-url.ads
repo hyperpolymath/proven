@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 --  Proven.Safe_HTTP.URL - URL Encoding Operations
---  SPDX-License-Identifier: PMPL-1.0-or-later
+--  SPDX-License-Identifier: MPL-2.0
 --
 --  RFC 3986 percent encoding for URL query parameters and paths.
 --  Formally verified via the Idris2 Proven.SafeHTTP module; this is only

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = proven: Formally Verified Safety via Idris2
 :toc: macro
@@ -10,7 +10,7 @@
 
 image:https://img.shields.io/badge/OpenSSF-Best_Practices-green?logo=opensourcesecurity[OpenSSF Best Practices,link="https://www.bestpractices.dev/en/projects/new?repo_url=https://github.com/hyperpolymath/proven"]
 image:https://img.shields.io/badge/version-1.2.0-blue[Version 1.2.0]
-image:https://img.shields.io/badge/License-PMPL_1.0--or--later-blue.svg[PMPL-1.0-or-later,link="https://github.com/hyperpolymath/proven/blob/main/LICENSE"]
+image:https://img.shields.io/badge/License-PMPL_1.0--or--later-blue.svg[MPL-2.0,link="https://github.com/hyperpolymath/proven/blob/main/LICENSE"]
 image:https://img.shields.io/badge/modules-104-blue[104 Modules]
 image:https://img.shields.io/badge/bindings-120+_targets-orange[120+ Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
@@ -20,7 +20,7 @@ image:https://api.thegreenwebfoundation.org/greencheckimage/jewell.nexus[Green H
 
 == License
 
-This project is licensed under **PMPL-1.0-or-later**. See link:LICENSE[LICENSE].
+This project is licensed under **MPL-2.0**. See link:LICENSE[LICENSE].
 
 == What Makes proven Different?
 
@@ -1915,7 +1915,7 @@ Crashes are a choice. Choose otherwise.
 
 * ✅ 104 core modules with dependent type proofs (expanded from 74 in v1.0.0)
 * ✅ 14 new FFI exports for Zig bridge layer
-* ✅ SPDX headers standardised to PMPL-1.0-or-later across all files
+* ✅ SPDX headers standardised to MPL-2.0 across all files
 * ✅ Proof fixes: SafeCapability, ECHIDNA/Soundness, SafeFloat
 * ✅ SafeCert FFI hostname matching aligned with source module
 * ✅ SafeML FFI parsePositive replaced with scalar building blocks
@@ -1990,7 +1990,7 @@ Especially needed:
 
 == License
 
-This project is licensed under PMPL-1.0-or-later. See link:LICENSE[LICENSE].
+This project is licensed under MPL-2.0. See link:LICENSE[LICENSE].
 
 == Security
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven - Lean 4 FFI Bindings
 
@@ -91,7 +91,7 @@ All fallible operations return `Except E T` where `E` carries a
 
 == License
 
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)
 <j.d.a.jewell@open.ac.uk>

@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Proofs for SafeAPIKey operations
 |||
@@ -80,14 +80,25 @@ fullMaskFormat key = Refl
 -- Format Matching Properties
 --------------------------------------------------------------------------------
 
-||| mkAPIKeyWithFormat rejects format mismatches.
-||| If detectFormat gives a different format than expected, returns Nothing.
-export
-formatMismatchRejected : (expected : KeyFormat) -> (s : String) ->
-                         (key : APIKey) ->
-                         mkAPIKey s = Just key ->
-                         Not (key.format = expected) ->
-                         mkAPIKeyWithFormat expected s = Nothing
+||| OWED: when `mkAPIKey s = Just key` and `key.format ≠ expected`
+||| propositionally, `mkAPIKeyWithFormat expected s = Nothing`. Held
+||| back by Idris2 0.8.0 not bridging the `Bool`-level decision
+||| `key.format == expected` (used inside `mkAPIKeyWithFormat`'s `if`)
+||| with the propositional `Not (key.format = expected)` hypothesis —
+||| the `Eq KeyFormat` derived instance is not exposed as a
+||| `DecEq`-style reflective equivalence by Refl alone. Compounded by
+||| `mkAPIKey`'s `with (choose (length s >= MinKeyLength))` block,
+||| which threads through `String.length`/`>=` FFI primitives that
+||| Idris2 0.8.0 cannot type-level reduce. Same blocker family as the
+||| `SafeChecksum` Luhn/ISBN OWED items (opaque String/Bool FFI).
+||| Discharge once a `DecEq KeyFormat` instance is exposed alongside a
+||| Bool-Prop reflection lemma for `==`, or once `mkAPIKeyWithFormat`
+||| is refactored to case-split on `decEq key.format expected`.
+0 formatMismatchRejected : (expected : KeyFormat) -> (s : String) ->
+                           (key : APIKey) ->
+                           mkAPIKey s = Just key ->
+                           Not (key.format = expected) ->
+                           mkAPIKeyWithFormat expected s = Nothing
 
 --------------------------------------------------------------------------------
 -- Leak Detection Properties

@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = proven-janet - Janet Bindings for libproven
 
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 Janet bindings for *libproven*, a formally verified safety library.
 All computation is performed in Idris 2 via the Zig FFI layer. These
@@ -110,4 +110,4 @@ Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

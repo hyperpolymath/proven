@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 plugins {
@@ -41,7 +41,7 @@ publishing {
                 url.set("https://github.com/hyperpolymath/proven")
                 licenses {
                     license {
-                        name.set("PMPL-1.0-or-later")
+                        name.set("MPL-2.0")
                         url.set("https://github.com/hyperpolymath/proven/blob/main/LICENSE")
                     }
                 }

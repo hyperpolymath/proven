@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven C# Bindings
 
-<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 <!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk> -->
 
 C# P/Invoke bindings for *libproven*, the formally verified safety library.
@@ -92,4 +92,4 @@ LibProven.proven_deinit();
 
 == Licence
 
-PMPL-1.0-or-later
+MPL-2.0

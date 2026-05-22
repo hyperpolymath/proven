@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Proofs for SafeOTP operations
 |||
@@ -31,16 +31,41 @@ digits8Divisor = Refl
 -- Constant-Time Comparison Properties
 --------------------------------------------------------------------------------
 
-||| Constant-time comparison is reflexive.
-||| Postulated: requires showing (c == c) = True for all Char
-||| and that the accumulated && folds to True, which involves
-||| Char primitives not reducible in Idris 2.
+||| OWED: `constantTimeCompare` is reflexive — `constantTimeCompare s s
+||| = True` for every `String s`. Witnessed operationally by the
+||| implementation: the `length as /= length bs` guard collapses to
+||| `False`, then the inner `go` helper folds `(acc && x == y)` over
+||| the unpacked list with `x == y` true at every position.
+|||
+||| Held back by Idris2 0.8.0 not reducing two stacked String/Char
+||| primitives at the type level: (1) `unpack` is FFI-bound, so
+||| `unpack s = unpack s` does not type-level normalise for abstract
+||| `s` (same blocker family as SafeChecksum's String-FFI OWED set);
+||| (2) `(==) : Char -> Char -> Bool` is a primitive whose `c == c =
+||| True` lemma is not exposed as a definitional Refl in Idris2 0.8.0
+||| (same blocker family as `Boj.SafetyLemmas.charEqSym` in boj-server,
+||| where it is discharged as a class-(J) axiom `%unsafe believe_me`).
+||| Discharge once a `Data.String` / `Data.Char` reflective tactic is
+||| available, or by introducing a class-(J) `charEqRefl` axiom and a
+||| per-list induction lemma over `go`.
 export
-constantTimeCompareRefl : (s : String) -> constantTimeCompare s s = True
+0 constantTimeCompareRefl : (s : String) -> constantTimeCompare s s = True
 
-||| Constant-time comparison is symmetric.
+||| OWED: `constantTimeCompare` is symmetric —
+||| `constantTimeCompare a b = constantTimeCompare b a` for all
+||| Strings. Witnessed operationally by the implementation: both the
+||| `length as /= length bs` guard and the per-position `x == y`
+||| comparison in `go` are themselves symmetric (length equality is
+||| symmetric; `Char` equality is symmetric).
+|||
+||| Held back by Idris2 0.8.0 not reducing `unpack` at the type level
+||| (FFI-bound primitive), and by `prim__eq_Char` not exposing a
+||| `charEqSym : (x, y : Char) -> (x == y) = (y == x)` Refl lemma.
+||| Same blocker family as `constantTimeCompareRefl`. Discharge once a
+||| `Data.String` reflective tactic is available, or via a class-(J)
+||| `charEqSym` axiom paired with a per-list induction over `go`.
 export
-constantTimeCompareSym : (a, b : String) -> constantTimeCompare a b = constantTimeCompare b a
+0 constantTimeCompareSym : (a, b : String) -> constantTimeCompare a b = constantTimeCompare b a
 
 ||| Empty strings compare equal.
 public export
@@ -51,22 +76,53 @@ emptyStringsEqual = Refl
 -- TOTP Validation Properties
 --------------------------------------------------------------------------------
 
-||| An OTP code validates against a list containing itself.
-||| Follows from constantTimeCompareRefl.
+||| OWED: an OTP code validates against a singleton list containing
+||| itself — `validateTOTPCode code [code] = True`. By definitional
+||| unfolding, `validateTOTPCode code [code]` reduces to
+||| `any (\e => constantTimeCompare code.code e.code) [code]` and
+||| then to `constantTimeCompare code.code code.code || False`, which
+||| is `True` iff `constantTimeCompare` is reflexive.
+|||
+||| Held back by the same blockers as `constantTimeCompareRefl`
+||| (String/Char primitive opacity in Idris2 0.8.0): this claim is a
+||| direct downstream corollary and cannot be discharged until
+||| `constantTimeCompareRefl` is. Discharge follows immediately once
+||| `constantTimeCompareRefl` is in scope, by `rewrite` on the head of
+||| the `||`.
 export
-codeValidatesAgainstSelf : (code : OTPCode) -> validateTOTPCode code [code] = True
+0 codeValidatesAgainstSelf : (code : OTPCode) -> validateTOTPCode code [code] = True
 
-||| An OTP code validates against a list if it appears anywhere in the list.
-||| TOTP validation checks all valid time windows (any returns True
-||| if at least one match exists).
+||| OWED: TOTP validation accepts a code if it matches anywhere in
+||| the candidate list. By definition `validateTOTPCode code codes =
+||| any (\e => constantTimeCompare code.code e.code) codes`, so this
+||| is literally the hypothesis — a statement of the function's
+||| extensional equality with its body.
+|||
+||| Held back by Idris2 0.8.0 not eta-reducing the lambda inside `any`
+||| at the type level for an abstract `codes : List OTPCode` —
+||| `any p xs = True` does not normalise to its body without case
+||| analysis on `xs`. Compounded by the same String-FFI opacity in
+||| `constantTimeCompare` underneath. Discharge by induction on
+||| `codes` (a one-line `Refl` for the `[]` impossibility plus a
+||| `rewrite` step for `_ :: _`), once a `Data.List.any` extensionality
+||| lemma is in `contrib` — or inline the induction here.
 export
-codeInListValidates : (code : OTPCode) -> (codes : List OTPCode) ->
-                      any (\e => constantTimeCompare code.code e.code) codes = True ->
-                      validateTOTPCode code codes = True
+0 codeInListValidates : (code : OTPCode) -> (codes : List OTPCode) ->
+                        any (\e => constantTimeCompare code.code e.code) codes = True ->
+                        validateTOTPCode code codes = True
 
-||| HOTP validation of identical codes succeeds.
+||| OWED: HOTP validation of identical codes succeeds —
+||| `validateHOTPCode code code = True`. By definition
+||| `validateHOTPCode submitted expected = constantTimeCompare
+||| submitted.code expected.code`, so identical inputs reduce to
+||| `constantTimeCompare code.code code.code`, which is `True` by
+||| `constantTimeCompareRefl`.
+|||
+||| Held back by the same blockers as `constantTimeCompareRefl`
+||| (String/Char primitive opacity in Idris2 0.8.0). Discharge
+||| follows immediately once `constantTimeCompareRefl` is in scope.
 export
-identicalHOTPValid : (code : OTPCode) -> validateHOTPCode code code = True
+0 identicalHOTPValid : (code : OTPCode) -> validateHOTPCode code code = True
 
 ||| Validation against empty list always fails.
 public export

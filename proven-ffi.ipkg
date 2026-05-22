@@ -1,10 +1,10 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2025 Jonathan D.A. Jewell
 package proven-ffi
 
 version = 0.1.0
 authors = "Hyperpolymath"
-license = "PMPL-1.0-or-later"
+license = "MPL-2.0"
 brief = "Proven FFI-only build (SafePath/Json/Network/Url)"
 readme = "README.adoc"
 homepage = "https://github.com/hyperpolymath/proven"

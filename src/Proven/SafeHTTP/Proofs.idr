@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Proofs for SafeHTTP operations
 |||
@@ -90,20 +90,43 @@ parseEmptyMethodFails = Refl
 -- HTTP Status Code Properties
 --------------------------------------------------------------------------------
 
-||| Success status codes are not errors.
-||| If isSuccess returns True, isError must return False.
-||| Proved by contradiction: if code >= 200 && code < 300, then code < 400.
+||| OWED: success status codes are not errors. If `isSuccess sc = True`
+||| (i.e. `sc.code >= 200 && sc.code < 300`), then `isError sc = False`
+||| (i.e. `sc.code >= 400` is false). Held back by Idris2 0.8.0 not
+||| reducing the comparison-chain `>=`/`<` on the abstract `Nat`
+||| `sc.code` to literal `True`/`False` by `Refl` alone — `sc.code` is
+||| existentially bound by `MkStatusCode` and only carries the range
+||| witness `So (code >= 100 && code <= 599)`, not a concrete value.
+||| Same blocker family as SafeChecksum's `Nat`-mod reductions.
+||| Discharge once a `Data.Nat` linear-arithmetic reflective tactic
+||| is available, or by deriving via `boolAnd`/`boolNot` case-split on
+||| the `So` witness plus `lteTransitive` (200 <= sc.code < 300 < 400).
 export
-successNotError : (sc : StatusCode) -> isSuccess sc = True -> isError sc = False
+0 successNotError : (sc : StatusCode) -> isSuccess sc = True -> isError sc = False
 
-||| Error status codes are not successes.
+||| OWED: error status codes are not successes. If `isError sc = True`
+||| (i.e. `sc.code >= 400`), then `isSuccess sc = False` (i.e.
+||| `sc.code >= 200 && sc.code < 300` is false because `sc.code < 300`
+||| contradicts `sc.code >= 400`). Held back by Idris2 0.8.0 not
+||| reducing `Nat` order comparisons on the abstract record-projected
+||| `sc.code` by `Refl`. Same blocker family as `successNotError`.
+||| Discharge once a `Data.Nat` linear-arithmetic reflective tactic
+||| is available, or by case-split on `>=`/`<` with `lteTransitive`.
 export
-errorNotSuccess : (sc : StatusCode) -> isError sc = True -> isSuccess sc = False
+0 errorNotSuccess : (sc : StatusCode) -> isError sc = True -> isSuccess sc = False
 
-||| Retryable status codes are errors.
-||| 429, 502, 503, 504 are all >= 400.
+||| OWED: retryable status codes are errors. 429, 502, 503, 504 are
+||| each `>= 400`, so `isRetryable sc = True` implies `isError sc =
+||| True`. Held back by Idris2 0.8.0 not reducing the four-way `||`
+||| equality-disjunction (`sc.code == 429 || ... || sc.code == 504`)
+||| into a definite value of `sc.code >= 400` by `Refl` — the `Nat`
+||| equality primitives on the abstract record field do not unfold.
+||| Same blocker family as `successNotError`. Discharge once a
+||| `Data.Nat` reflective tactic is available, or by four-arm case
+||| analysis on the `||` chain with literal `lteSucc`-derived proofs
+||| `429 >= 400`, `502 >= 400`, `503 >= 400`, `504 >= 400`.
 export
-retryableIsError : (sc : StatusCode) -> isRetryable sc = True -> isError sc = True
+0 retryableIsError : (sc : StatusCode) -> isRetryable sc = True -> isError sc = True
 
 --------------------------------------------------------------------------------
 -- Header Injection Prevention Properties

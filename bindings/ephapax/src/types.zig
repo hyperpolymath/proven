@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! Shared type definitions for Ephapax ↔ Proven FFI
 
 const std = @import("std");

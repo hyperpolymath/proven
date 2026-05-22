@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 <!-- LLM warmup context — DEVELOPER level (<400 lines) -->
 <!-- Feed this to an LLM before doing development work on proven -->
 
@@ -176,6 +176,6 @@ In bindings:
 
 ## License
 
-PMPL-1.0-or-later throughout.
+MPL-2.0 throughout.
 Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 Git: 6759885+hyperpolymath@users.noreply.github.com

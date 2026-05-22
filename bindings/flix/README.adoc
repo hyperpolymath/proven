@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = proven -- Flix Bindings
 
@@ -107,4 +107,4 @@ in the type signature.
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

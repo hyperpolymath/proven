@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 <!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk> -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -17,7 +17,7 @@
 
     <licenses>
         <license>
-            <name>PMPL-1.0-or-later</name>
+            <name>MPL-2.0</name>
             <url>https://github.com/hyperpolymath/proven/blob/main/LICENSE</url>
         </license>
     </licenses>

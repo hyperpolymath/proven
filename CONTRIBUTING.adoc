@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 = Contributing to proven
 
 Thank you for your interest in contributing!
@@ -103,4 +103,4 @@ Questions? Reach out at j.d.a.jewell@open.ac.uk or open a GitHub issue.
 
 == License
 
-By contributing, you agree that your contributions will be licensed under PMPL-1.0-or-later.
+By contributing, you agree that your contributions will be licensed under MPL-2.0.

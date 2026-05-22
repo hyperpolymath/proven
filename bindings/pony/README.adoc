@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven - Pony Binding
 
@@ -135,4 +135,4 @@ Pony actor  -->  @proven_*link:args[T]  -->  libproven.so
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0
