@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = proven-ffi: Self-hosted Idris 2 FFI binding for libproven
 
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 Self-hosted Idris 2 binding that calls the precompiled `libproven` shared
 library via `%foreign "C"` FFI declarations. This allows users to consume
@@ -115,4 +115,4 @@ pointer interface for these cases.
 
 == Licence
 
-PMPL-1.0-or-later. Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath).
+MPL-2.0. Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath).

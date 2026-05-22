@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2024-2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 [package]
@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2024"
 authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
 description = "Terminal UI for exploring and using Proven safety primitives"
-license = "PMPL-1.0-or-later"
+license = "MPL-2.0"
 repository = "https://github.com/hyperpolymath/proven-tui"
 keywords = ["tui", "safety", "verified", "formal-methods", "terminal"]
 categories = ["command-line-interface", "development-tools"]

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven - BetLang Bindings
 
@@ -85,4 +85,4 @@ bet fn main() -> odds<Unit, ProvenError> =
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

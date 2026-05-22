@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = proven-affinescript
 
@@ -102,4 +102,4 @@ affinescript build src/proven.afs --link-lib=proven
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

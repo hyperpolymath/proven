@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 """
@@ -84,7 +84,7 @@ setup(
     author="Jonathan D.A. Jewell",
     author_email="j.d.a.jewell@open.ac.uk",
     url="https://github.com/hyperpolymath/proven",
-    license="PMPL-1.0-or-later",
+    license="MPL-2.0",
     ext_modules=extensions,
     packages=["proven"],
     package_data={"proven": ["*.pxd", "*.pyx"]},

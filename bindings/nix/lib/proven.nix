@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 # proven.nix -- Top-level Nix helper library for the proven safety library.
@@ -48,7 +48,7 @@ in {
   meta = {
     description = "Proven safety library -- Nix bindings via CLI";
     homepage = "https://github.com/hyperpolymath/proven";
-    license = "PMPL-1.0-or-later";
+    license = "MPL-2.0";
     maintainer = "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>";
     moduleCount = 41;
     cliRequired = true;

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 # koka.yaml -- Package configuration for the proven Koka bindings.
@@ -11,7 +11,7 @@ version: 0.9.0
 description: >
   Formally verified safety library bindings for Koka.
   Wraps libproven via C FFI -- all computation happens in Idris 2.
-license: PMPL-1.0-or-later
+license: MPL-2.0
 author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 homepage: https://github.com/hyperpolymath/proven
 repository: https://github.com/hyperpolymath/proven

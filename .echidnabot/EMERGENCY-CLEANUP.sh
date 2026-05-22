@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # EMERGENCY: Delete ALL reimplementation files from bindings
 #
 # This is a one-time nuclear cleanup. After this, proven-cleaner.sh will

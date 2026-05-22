@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Architecture Enforcement: Idris2 ONLY for logic, Zig for FFI, bindings for wrappers
 name: Architecture Enforcement
 

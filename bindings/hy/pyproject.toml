@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 [build-system]
@@ -10,7 +10,7 @@ name = "proven-hy"
 version = "1.0.0"
 description = "Hy (Lisp-on-Python) bindings for libproven - code that cannot crash"
 readme = "README.md"
-license = {text = "PMPL-1.0-or-later"}
+license = {text = "MPL-2.0"}
 requires-python = ">=3.9"
 authors = [
     {name = "Jonathan D.A. Jewell", email = "j.d.a.jewell@open.ac.uk"}

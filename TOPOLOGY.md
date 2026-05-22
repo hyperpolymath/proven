@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 <!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk> -->
 <!-- TOPOLOGY.md — Project architecture map and completion dashboard -->
 <!-- Last updated: 2026-02-22 -->
@@ -143,7 +143,7 @@ TESTING
   Benchmarks                       █░░░░░░░░░   6%    6/104 modules benchmarked
 
 RSR COMPLIANCE
-  SPDX Headers                     ██████████ 100%    PMPL-1.0-or-later everywhere
+  SPDX Headers                     ██████████ 100%    MPL-2.0 everywhere
   .editorconfig                    ██████████ 100%    Fixed 2026-02-22
   0-AI-MANIFEST.a2ml               ██████████ 100%    Created 2026-02-22
   CODEOWNERS                       ██████████ 100%    Created 2026-02-22

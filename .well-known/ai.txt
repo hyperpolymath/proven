@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # ai.txt — AI agent guidance for proven repository
 # See also: 0-AI-MANIFEST.a2ml (canonical AI entry point)
 
@@ -6,7 +6,7 @@ User-agent: *
 Allow: /
 
 # Repository: proven — Formally Verified Safety Library
-# License: PMPL-1.0-or-later
+# License: MPL-2.0
 # Author: Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 # AI agents MUST read 0-AI-MANIFEST.a2ml before modifying this repository.

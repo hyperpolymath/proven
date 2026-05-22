@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = proven-eclexia
 
@@ -39,7 +39,7 @@ budgets (`@requires: energy < NJ`) track computational cost of FFI operations.
 
 [source,eclexia]
 ----
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 fn main() {
     // Initialise the runtime
@@ -102,4 +102,4 @@ eclexia build src/lib.ecl --link-lib=proven
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

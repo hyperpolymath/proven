@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: PMPL-1.0-or-later -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 <!-- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk> -->
 
 <!--
@@ -26,7 +26,7 @@
     <Authors>Jonathan D.A. Jewell</Authors>
     <Company>hyperpolymath</Company>
     <Description>C# bindings for libproven - formally verified safety library. Provides safe arithmetic, string escaping, email/URL/IP validation, JSON validation, cryptographic primitives, and date/time handling. All operations are backed by Idris 2 proofs via P/Invoke.</Description>
-    <PackageLicenseExpression>PMPL-1.0-or-later</PackageLicenseExpression>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/hyperpolymath/proven</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hyperpolymath/proven</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

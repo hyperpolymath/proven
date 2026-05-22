@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 # meson.build -- Build configuration for Proven Vala bindings.
@@ -22,7 +22,7 @@ project(
     'proven-vala',
     'vala', 'c',
     version : '0.9.0',
-    license : 'PMPL-1.0-or-later',
+    license : 'MPL-2.0',
     meson_version : '>= 0.62.0',
     default_options : [
         'warning_level=2',

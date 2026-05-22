@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = proven-cljs
 
@@ -102,4 +102,4 @@ This is consistent with Clojure's nil-punning idiom:
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

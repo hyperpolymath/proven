@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
+-- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 package = "proven"
@@ -16,7 +16,7 @@ description = {
       is a thin FFI wrapper that never reimplements any logic.
    ]],
    homepage = "https://github.com/hyperpolymath/proven",
-   license = "PMPL-1.0-or-later"
+   license = "MPL-2.0"
 }
 dependencies = {
    "lua >= 5.1"

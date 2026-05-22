@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 = Proven-Swift
 
@@ -131,4 +131,4 @@ let distance = SafeGeo.haversine(from: nyc, to: la)  // ~3935 km
 
 == License
 
-PMPL-1.0-or-later
+MPL-2.0

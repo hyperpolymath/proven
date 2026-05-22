@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # humans.txt — https://humanstxt.org/
 
 /* TEAM */
@@ -10,5 +10,5 @@ Location: United Kingdom
 /* SITE */
 Last update: 2026-03-02
 Language: English
-Standards: Idris2, Zig, PMPL-1.0-or-later
+Standards: Idris2, Zig, MPL-2.0
 Software: proven — formally verified safety library
