@@ -15,7 +15,7 @@
     (version "1.0.0")
     (project "proven")
     (last-updated "2026-05-26")
-    (entries 129)
+    (entries 150)
     (status "active"))
 
   (classification
@@ -792,4 +792,161 @@
     (classification "legitimate-ffi")
     (audit "audits/audit-ffi-bindings-2026-05-26.md §ephapax-affine")
     (rationale "FFI binding to libproven via Zig — every unsafe block is an extern \"C\" call or raw-pointer→Rust-ref transition; the underlying logic is in formally-verified Idris2."))
-)
+
+  ;; ─── PA009 HardcodedSecret — Idris2 protocol type identifiers ────────────
+  ;; All flagged sites are Idris2 module headers / type definitions where
+  ;; identifier names ("password", "secret", "token") match the detector's
+  ;; pattern. None of these files contain credential literals.
+
+  (classification
+    (file "src/Proven/SafePassword/Strength.idr")
+    (category "HardcodedSecret")
+    (classification "protocol-type-identifier")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §HardcodedSecret")
+    (rationale "Idris2 module on password-strength validation; identifier name 'password' triggers the secret detector. No literal credentials."))
+
+  (classification
+    (file "apps/proven-socks/src/SOCKS/Types.idr")
+    (category "HardcodedSecret")
+    (classification "protocol-type-identifier")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §HardcodedSecret")
+    (rationale "SOCKS protocol type definitions; field names match the secret detector's pattern set."))
+
+  (classification
+    (file "apps/proven-ssh-bastion/src/SSH/Auth.idr")
+    (category "HardcodedSecret")
+    (classification "protocol-type-identifier")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §HardcodedSecret")
+    (rationale "SSH protocol auth method names (authMethodFromString \"password\" = Password); the literal 'password' is the SSH method name, not a credential."))
+
+  (classification
+    (file "apps/proven-kms/src/KMS/Types.idr")
+    (category "HardcodedSecret")
+    (classification "protocol-type-identifier")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §HardcodedSecret")
+    (rationale "KMS protocol type definitions; key/secret field names trigger the secret detector. No credential literals."))
+
+  (classification
+    (file "apps/proven-radius/src/RADIUS/Types.idr")
+    (category "HardcodedSecret")
+    (classification "protocol-type-identifier")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §HardcodedSecret")
+    (rationale "RADIUS protocol type definitions; password attribute name triggers the secret detector."))
+
+  (classification
+    (file "apps/proven-authserver/src/Authserver/Types.idr")
+    (category "HardcodedSecret")
+    (classification "protocol-type-identifier")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §HardcodedSecret")
+    (rationale "Authserver protocol type definitions; identifier names trigger the secret detector. No credential literals."))
+
+  ;; ─── PA003 CommandInjection — binding wrapper naming patterns ─────────────
+  ;; All flagged sites are *names* in safe-wrapper modules (escape_shell as a
+  ;; function name, "system foreign" as a Guile module-path component, eval as
+  ;; a libproven calculator method name). No actual command execution occurs
+  ;; outside the libproven sanitisation boundary.
+
+  (classification
+    (file "bindings/bash/proven.sh")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "bash binding wrapper calls libproven's calculator 'eval' method as a sanitised libproven call (_proven_call calculator eval); 'eval' here is a libproven method name, not bash eval."))
+
+  (classification
+    (file "bindings/guile/proven/safe-path.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; 'system' is a Guile module-path component, not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-string.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-email.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-uuid.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-json.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-phone.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-currency.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-crypto.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-url.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-math.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-network.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-hex.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/guile/proven/safe-datetime.scm")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Guile use-module (system foreign) for FFI declaration; not a system() call."))
+
+  (classification
+    (file "bindings/prolog/safe_string.pl")
+    (category "CommandInjection")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
+    (rationale "Prolog binding exports an escape_shell/2 sanitisation function; 'escape_shell' is a function NAME (the sanitiser), not a shell-execution call.")))

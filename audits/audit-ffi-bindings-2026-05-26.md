@@ -57,3 +57,26 @@ Locally on this branch: `panic-attack assail . --headless` reports `UnsafeCode: 
 - `SupplyChain`, `UnsafeTypeCoercion`, `UncheckedAllocation`, `PanicPath` — separate triage.
 
 Refs hyperpolymath/panic-attack#32.
+
+## §HardcodedSecret — Idris2 protocol type identifiers (6 entries)
+
+panic-attack PA009 also fires on **identifier names** that match the secret-detection pattern set. Six Idris2 modules trip this detector because they declare types or string-match patterns for protocols that *talk about* passwords / keys / tokens:
+
+- `src/Proven/SafePassword/Strength.idr` — password-strength validation module.
+- `apps/proven-socks/src/SOCKS/Types.idr` — SOCKS protocol type definitions.
+- `apps/proven-ssh-bastion/src/SSH/Auth.idr` — `authMethodFromString "password" = Password`: the string `"password"` is the SSH protocol's `auth-method` name, not a credential.
+- `apps/proven-kms/src/KMS/Types.idr` — KMS protocol type definitions.
+- `apps/proven-radius/src/RADIUS/Types.idr` — RADIUS attribute names (password attribute is part of the protocol).
+- `apps/proven-authserver/src/Authserver/Types.idr` — authserver protocol type definitions.
+
+None of these files contain credential literals — they declare or reference protocol-defined names. Classification: `protocol-type-identifier`.
+
+## §CommandInjection — binding-wrapper naming patterns (15 entries)
+
+PA003 fires on identifiers/keywords whose names overlap with shell-execution primitives:
+
+- `bindings/bash/proven.sh` calls `_proven_call calculator eval "$1"` — `eval` here is the **libproven calculator's method name**, not bash `eval`. The actual call goes through `_proven_call`, which sanitises via libproven.
+- `bindings/guile/proven/safe-*.scm` (13 files) — every Guile safe-wrapper declares `#:use-module (system foreign)`. `system` is a **Guile module path component** (the foreign-function module lives under `system`), not a `system()` call.
+- `bindings/prolog/safe_string.pl` — exports an `escape_shell/2` **sanitisation predicate**. The name describes its purpose (escape for shell consumption); it does not execute anything.
+
+Classification: `binding-wrapper-naming`.
