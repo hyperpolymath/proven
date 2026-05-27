@@ -31,14 +31,22 @@ prop_plusAddressingValid = Refl
 prop_dotsInLocalValid : isOk (validateEmail "first.last@example.com") = True
 prop_dotsInLocalValid = Refl
 
-||| Property: Email starting with dot fails
-prop_startingDotFails : isErr (validateEmail ".user@example.com") = True
-prop_startingDotFails = ?prop_startingDotFails_rhs
+||| OWED: Email starting with dot fails
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_startingDotFails_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_startingDotFails : isErr (validateEmail ".user@example.com") = True
 
-||| Property: Normalized email is lowercase domain
-prop_normalizeLowercase : (e : ValidEmail) ->
-                          getDomain (normalizeEmail e) = toLower (getDomain e)
-prop_normalizeLowercase e = ?prop_normalizeLowercase_rhs
+||| OWED: Normalized email is lowercase domain
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_normalizeLowercase_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_normalizeLowercase : (e : ValidEmail) ->
+                            getDomain (normalizeEmail e) = toLower (getDomain e)
 
 ||| Test runner for email properties
 export

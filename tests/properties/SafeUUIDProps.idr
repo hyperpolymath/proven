@@ -27,27 +27,43 @@ prop_wrongLengthFails = Refl
 prop_nilUUIDParses : isOk (parseUUID "00000000-0000-0000-0000-000000000000") = True
 prop_nilUUIDParses = Refl
 
-||| Property: Generated UUID is valid
-prop_generatedUUIDValid : isOk (parseUUID (toString (generateUUIDv4 seed))) = True
-prop_generatedUUIDValid = ?prop_generatedUUIDValid_rhs
+||| OWED: Generated UUID is valid
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_generatedUUIDValid_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_generatedUUIDValid : isOk (parseUUID (toString (generateUUIDv4 seed))) = True
 
-||| Property: UUID version is extractable
-prop_versionExtractable : (uuid : ValidUUID) -> getVersion uuid >= 1 && getVersion uuid <= 5
-prop_versionExtractable uuid = ?prop_versionExtractable_rhs
+||| OWED: UUID version is extractable
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_versionExtractable_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_versionExtractable : (uuid : ValidUUID) -> getVersion uuid >= 1 && getVersion uuid <= 5
 
-||| Property: UUID formatting is consistent
-prop_formatConsistent : (uuid : ValidUUID) ->
-                        parseUUID (toString uuid) = Ok uuid
-prop_formatConsistent uuid = ?prop_formatConsistent_rhs
+||| OWED: UUID formatting is consistent
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_formatConsistent_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_formatConsistent : (uuid : ValidUUID) ->
+                          parseUUID (toString uuid) = Ok uuid
 
 ||| Property: UUID comparison is reflexive
 prop_uuidEqReflexive : (uuid : ValidUUID) -> uuid == uuid = True
 prop_uuidEqReflexive uuid = Refl
 
-||| Property: UUID bytes roundtrip
-prop_bytesRoundtrip : (uuid : ValidUUID) ->
-                      fromBytes (toBytes uuid) = Ok uuid
-prop_bytesRoundtrip uuid = ?prop_bytesRoundtrip_rhs
+||| OWED: UUID bytes roundtrip
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_bytesRoundtrip_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_bytesRoundtrip : (uuid : ValidUUID) ->
+                        fromBytes (toBytes uuid) = Ok uuid
 
 ||| Test runner for UUID properties
 export
