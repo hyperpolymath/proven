@@ -70,8 +70,17 @@ rejects the bad case. Real verified `Proofs.idr` files now exist
 
 Still owed (single-file, witness-type-only, "Prevents" doc claim
 undischarged — honest ledger): SafeMCP, SafeOAuth, SafeWebAuthn,
-SafeWebSocket, SafeWebhook, SafeCapability, SafeAttestation, SafeJWK,
-SafeSecretShare.
+SafeWebSocket, SafeWebhook, SafeCapability, SafeJWK, SafeSecretShare.
+
+`SafeAttestation` was previously listed here but its companion
+`src/Proven/SafeAttestation/Proofs.idr` (189 ln, `idris2 --check` exit 0,
+"Zero `believe_me` / `idris_crash`, zero OWED") discharges enum
+self-equality, parser rejection of unknown / weak algorithms, and
+record-projection anchors. The remaining hash-recomputation claim is
+OWED at the FFI seam (the actual hash computation happens in
+`Proven.SafeCrypto`); the module header was softened in proven#76 to
+reflect this. It therefore belongs in the "Security-critical decidable
+proofs landed" section above, not in this still-owed list.
 
 Companion `Proofs.idr` content was *not* re-verified theorem-by-theorem in this
 pass; the 39 non-stub directories are carried forward as claimed-proven pending
