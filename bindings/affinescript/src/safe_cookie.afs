@@ -1,0 +1,88 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeCookie -- Affine wrappers around libproven RFC 6265 cookie FFI.
+///
+/// All validation and header construction delegate to the formally
+/// verified Idris 2 implementation via the Zig FFI layer. Results are
+/// affine (consumed at most once); string results from FFI are owned
+/// and freed correctly.
+///
+/// PORT-CHECK: assumes the Zig FFI exports `proven_cookie_has_injection`,
+/// `proven_cookie_validate_name`, `proven_cookie_validate_value`, and
+/// `proven_cookie_build_delete`. Confirm against ffi/zig/src/main.zig.
+
+module Proven.SafeCookie
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_cookie_has_injection")
+fn extern_proven_cookie_has_injection(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+@extern("C", "proven_cookie_validate_name")
+fn extern_proven_cookie_validate_name(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+@extern("C", "proven_cookie_validate_value")
+fn extern_proven_cookie_validate_value(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+@extern("C", "proven_cookie_build_delete")
+fn extern_proven_cookie_build_delete(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+fn bool_result_to_result(result: BoolResult) -> Result[Bool, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value != 0)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+fn string_result_to_result(result: own StringResult) -> Result[String, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    let s = string_from_raw(result.ptr, result.len);
+    extern_proven_free_string(result.ptr);
+    Ok(s)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Check whether a cookie value contains characters that would allow
+/// header injection. Delegates to proven_cookie_has_injection via FFI.
+fn has_injection(value: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(value);
+  bool_result_to_result(extern_proven_cookie_has_injection(ptr, len))
+}
+
+/// Validate a cookie name per RFC 6265.
+/// Delegates to proven_cookie_validate_name via FFI.
+fn validate_name(name: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(name);
+  bool_result_to_result(extern_proven_cookie_validate_name(ptr, len))
+}
+
+/// Validate a cookie value per RFC 6265.
+/// Delegates to proven_cookie_validate_value via FFI.
+fn validate_value(value: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(value);
+  bool_result_to_result(extern_proven_cookie_validate_value(ptr, len))
+}
+
+/// Build a Set-Cookie header that deletes (expires) the named cookie.
+/// Delegates to proven_cookie_build_delete via FFI.
+fn build_delete(name: ref String) -> Result[String, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(name);
+  string_result_to_result(extern_proven_cookie_build_delete(ptr, len))
+}

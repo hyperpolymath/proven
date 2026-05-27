@@ -1,0 +1,164 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeRetry -- Affine wrappers around libproven retry-with-backoff FFI.
+///
+/// All delay-calculation is delegated to the formally verified Idris 2
+/// implementation via the Zig FFI layer. No backoff arithmetic is
+/// reimplemented here.
+///
+/// Provides:
+///   - `calculate_delay`: pure delay computation for a given attempt.
+///   - `retry`: synchronous retry loop (FFI-driven).
+///   - Preset configurations (quick / standard / aggressive / gentle).
+
+module Proven.SafeRetry
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// Retry strategy enumeration. Maps to FFI integer codes.
+type RetryStrategy =
+  | Fixed
+  | Linear
+  | Exponential
+
+/// Retry configuration. C-compatible layout for FFI marshalling.
+@repr("C")
+type RetryConfig = {
+  max_attempts: Int,
+  strategy: Int,
+  base_delay_ms: Int,
+  max_delay_ms: Option[Int],
+  jitter_factor: Option[Float64],
+  multiplier: Option[Float64]
+}
+
+/// Retry result. Affine -- consumed at most once.
+type RetryResult[T] = own {
+  ok: Bool,
+  value: Option[T],
+  error: Option[own ProvenError],
+  attempts: Int,
+  total_delay_ms: Float64
+}
+
+// ---------------------------------------------------------------------------
+// Strategy <-> integer code conversions
+// ---------------------------------------------------------------------------
+
+/// Map a strategy variant to the FFI integer code expected by libproven.
+// PORT-CHECK: integer codes mirror the Zig `RetryStrategy` enum
+// (0=Fixed, 1=Linear, 2=Exponential). Confirm before linking.
+fn strategy_to_int(s: RetryStrategy) -> Int / Pure {
+  match s {
+    Fixed       => 0,
+    Linear      => 1,
+    Exponential => 2
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// PORT-CHECK: the Zig FFI layer does not yet export these symbols
+// (verified 2026-05-27). The signatures below reflect the contract the
+// bindings rely on; libproven must export the matching symbols before this
+// module links.
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_retry_calculate_delay")
+fn extern_proven_retry_calculate_delay(config: ref RetryConfig, attempt: Int) -> Float64 / Pure
+
+// PORT-CHECK: passing an AffineScript closure across the C ABI is not
+// portable. The real FFI is expected to take a function pointer plus an
+// opaque user-data pointer; the wrapper below treats `op` as opaque
+// (caller-supplied trampoline). Revisit when the SafeRetry Zig surface
+// is defined.
+@extern("C", "proven_retry_run")
+fn extern_proven_retry_run(
+  config: ref RetryConfig,
+  op: ref RawPtr[Byte],
+  user_data: mut RawPtr[Byte]
+) -> own RawPtr[Byte] / IO
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Compute the delay for a given retry attempt (0-based).
+/// Delegates to proven_retry_calculate_delay via FFI.
+fn calculate_delay(config: ref RetryConfig, attempt: Int) -> Float64 / Pure {
+  extern_proven_retry_calculate_delay(config, attempt)
+}
+
+/// Retry a synchronous operation with the configured backoff.
+/// Delegates to proven_retry_run via FFI.
+///
+// PORT-CHECK: caller must produce a C-callable trampoline pointer for
+// `op`; the AffineScript-to-C bridge for closures is module-private and
+// not finalised. See FFI declaration above.
+fn retry[T](
+  op: ref RawPtr[Byte],
+  user_data: mut RawPtr[Byte],
+  config: ref RetryConfig
+) -> own RawPtr[Byte] / IO {
+  extern_proven_retry_run(config, op, user_data)
+}
+
+// ---------------------------------------------------------------------------
+// Presets -- preserve the ReScript surface (presetQuick / presetStandard /
+// presetAggressive / presetGentle) one-for-one.
+// ---------------------------------------------------------------------------
+
+/// Quick retries for local operations.
+fn preset_quick() -> RetryConfig / Pure {
+  RetryConfig {
+    max_attempts: 3,
+    strategy: strategy_to_int(Fixed),
+    base_delay_ms: 100,
+    max_delay_ms: None,
+    jitter_factor: Some(0.0),
+    multiplier: None
+  }
+}
+
+/// Standard exponential backoff for network operations.
+fn preset_standard() -> RetryConfig / Pure {
+  RetryConfig {
+    max_attempts: 5,
+    strategy: strategy_to_int(Exponential),
+    base_delay_ms: 1000,
+    max_delay_ms: Some(30000),
+    jitter_factor: Some(0.1),
+    multiplier: Some(2.0)
+  }
+}
+
+/// Aggressive retries for critical operations.
+fn preset_aggressive() -> RetryConfig / Pure {
+  RetryConfig {
+    max_attempts: 10,
+    strategy: strategy_to_int(Exponential),
+    base_delay_ms: 500,
+    max_delay_ms: Some(60000),
+    jitter_factor: Some(0.2),
+    multiplier: Some(2.0)
+  }
+}
+
+/// Gentle retries for rate-limited APIs.
+fn preset_gentle() -> RetryConfig / Pure {
+  RetryConfig {
+    max_attempts: 5,
+    strategy: strategy_to_int(Linear),
+    base_delay_ms: 5000,
+    max_delay_ms: Some(60000),
+    jitter_factor: Some(0.1),
+    multiplier: Some(1.0)
+  }
+}

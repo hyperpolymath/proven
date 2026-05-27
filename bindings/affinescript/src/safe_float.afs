@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeFloat -- Affine wrappers around libproven floating-point FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. The FFI declarations themselves live in
+/// `Proven.FFI` and are re-exported as thin wrappers here so the public
+/// API mirrors the .res surface (div / isFinite / isNaN / sqrt / ln).
+///
+/// Results are affine (consumed at most once). Errors map to the shared
+/// `ProvenError` type via `status_to_error`.
+
+module Proven.SafeFloat
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI FloatResult into a Result[Float64, ProvenError].
+fn float_result_to_result(result: FloatResult) -> Result[Float64, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Safe floating-point division. Errors on division-by-zero / NaN.
+/// Delegates to proven_float_div via FFI.
+fn safe_div(a: Float64, b: Float64) -> Result[Float64, own ProvenError] / Pure {
+  float_result_to_result(extern_proven_float_div(a, b))
+}
+
+/// Whether `x` is finite (i.e. not NaN, not Infinity).
+/// Delegates to proven_float_is_finite via FFI.
+fn is_finite(x: Float64) -> Bool / Pure {
+  extern_proven_float_is_finite(x)
+}
+
+/// Whether `x` is NaN.
+/// Delegates to proven_float_is_nan via FFI.
+fn is_nan(x: Float64) -> Bool / Pure {
+  extern_proven_float_is_nan(x)
+}
+
+/// Safe square root. Errors on negative input.
+/// Delegates to proven_float_sqrt via FFI.
+fn safe_sqrt(x: Float64) -> Result[Float64, own ProvenError] / Pure {
+  float_result_to_result(extern_proven_float_sqrt(x))
+}
+
+/// Safe natural logarithm. Errors on non-positive input.
+/// Delegates to proven_float_ln via FFI.
+fn safe_ln(x: Float64) -> Result[Float64, own ProvenError] / Pure {
+  float_result_to_result(extern_proven_float_ln(x))
+}

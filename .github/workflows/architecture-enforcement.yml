@@ -44,14 +44,21 @@ jobs:
 
       - name: Block non-FFI Zig code
         run: |
-          # Zig code should ONLY be in ffi/zig/, not in bindings
-          if find bindings/*/src -name "*.zig" -type f | grep -v ffi/zig; then
-            echo "❌ ERROR: Zig files found outside ffi/zig/"
-            echo "Zig is ONLY for the FFI bridge layer"
-            find bindings/*/src -name "*.zig" -type f
+          # Zig is allowed in three places only:
+          #   1. ffi/zig/                  — the FFI bridge layer
+          #   2. bindings/zig/             — the Zig language binding (necessarily Zig)
+          #   3. bindings/ephapax/         — the ephapax FFI bridge (Zig adapter layer)
+          # Anywhere else under bindings/*/src is a violation.
+          STRAY=$(find bindings/*/src -name "*.zig" -type f 2>/dev/null \
+                   | grep -vE '^bindings/(zig|ephapax)/' \
+                   || true)
+          if [ -n "$STRAY" ]; then
+            echo "❌ ERROR: Zig files found outside ffi/zig/, bindings/zig/, bindings/ephapax/"
+            echo "Zig is restricted to the FFI bridge, the Zig binding, and the ephapax adapter."
+            echo "$STRAY"
             exit 1
           fi
-          echo "✅ Zig code correctly limited to ffi/zig/"
+          echo "✅ Zig code correctly limited to ffi/zig/, bindings/zig/, bindings/ephapax/"
 
       - name: Verify Idris modules exist for claimed features
         run: |
@@ -70,58 +77,24 @@ jobs:
             exit 1
           fi
 
-          # ReScript: getExn, Obj.magic
-          if grep -r "getExn\|Obj\.magic" bindings/rescript/src/ 2>/dev/null; then
-            echo "❌ Found unsafe patterns in ReScript bindings"
-            exit 1
-          fi
+          # AffineScript: previously this checked bindings/rescript/src/ for
+          # ReScript-specific panic idioms (getExn, Obj.magic). ReScript was
+          # banned 2026-04-30 (estate-wide migration to AffineScript) and
+          # the binding was ported to bindings/affinescript/src/ with .afs
+          # files using the Zig FFI directly (no JS-FFI ReScript scaffolding).
+          # The remaining panic-prone-pattern catches are handled by the
+          # cross-binding "No panic-prone patterns in bindings" step in
+          # e2e.yml (Aspect — Safety Invariants).
 
           echo "✅ No unsafe patterns found in bindings"
 
-  hypatia-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout proven
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
-      - name: Checkout hypatia
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: hyperpolymath/hypatia
-          path: hypatia
-          fetch-depth: 1
-
-      - name: Setup Elixir (for hypatia scanner)
-        uses: erlef/setup-beam@b9c58b0450cd832ccdb3c17cc156a47065d2114f # v1.18.2
-        with:
-          elixir-version: '1.18.0'
-          otp-version: '27.0'
-
-      - name: Build hypatia scanner
-        working-directory: hypatia/elixir-scanner
-        run: |
-          mix local.hex --force
-          mix local.rebar --force
-          mix deps.get
-          mix escript.build
-
-      - name: Scan bindings for security issues
-        working-directory: hypatia/elixir-scanner
-        run: |
-          ./hypatia "${GITHUB_WORKSPACE}/bindings" --severity=critical --severity=high --exclude=tests > scan.json
-
-          # Parse results
-          critical=$(jq '.findings[] | select(.severity == "critical")' scan.json | wc -l)
-          high=$(jq '.findings[] | select(.severity == "high")' scan.json | wc -l)
-
-          if [ "$critical" -gt 0 ] || [ "$high" -gt 0 ]; then
-            echo "❌ Security issues found: $critical critical, $high high"
-            echo "Bindings must have ZERO critical/high severity issues"
-            jq '.findings[] | select(.severity == "critical" or .severity == "high")' scan.json
-            exit 1
-          fi
-
-          echo "✅ No critical/high security issues in bindings"
+  # The legacy `hypatia-scan` job that bootstrapped its own checkout of
+  # hyperpolymath/hypatia and built the Elixir scanner has been removed —
+  # see `.github/workflows/hypatia-scan.yml`, which is the canonical wrapper
+  # around hyperpolymath/standards's `hypatia-scan-reusable.yml`. The legacy
+  # job broke after hypatia's `elixir-scanner/` directory was relocated, and
+  # maintaining two parallel scanner invocations created drift; the reusable
+  # is the single source of truth.
 
   verify-idris-build:
     runs-on: ubuntu-latest

@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeUnit -- Affine wrappers around libproven unit-conversion FFI.
+///
+/// All conversion arithmetic is delegated to the formally verified Idris 2
+/// implementation via the Zig FFI layer. No conversion factors are
+/// reimplemented here.
+///
+/// Provides length and temperature conversions.
+
+module Proven.SafeUnit
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// Length unit enumeration (maps to FFI integer codes).
+type LengthUnit =
+  | Meter
+  | Kilometer
+  | Centimeter
+  | Millimeter
+  | Mile
+  | Yard
+  | Foot
+  | Inch
+
+/// Temperature unit enumeration (maps to FFI integer codes).
+type TemperatureUnit =
+  | Celsius
+  | Fahrenheit
+  | Kelvin
+
+// ---------------------------------------------------------------------------
+// Unit <-> integer code conversions
+// ---------------------------------------------------------------------------
+
+/// Map a length unit to the FFI integer code expected by libproven.
+// PORT-CHECK: integer codes mirror the Zig `LengthUnit` enum
+// (0=Meter, 1=Kilometer, ..., 7=Inch). Confirm before linking.
+fn length_unit_to_int(unit: LengthUnit) -> Int / Pure {
+  match unit {
+    Meter      => 0,
+    Kilometer  => 1,
+    Centimeter => 2,
+    Millimeter => 3,
+    Mile       => 4,
+    Yard       => 5,
+    Foot       => 6,
+    Inch       => 7
+  }
+}
+
+/// Map a temperature unit to the FFI integer code expected by libproven.
+// PORT-CHECK: integer codes mirror the Zig `TemperatureUnit` enum
+// (0=Celsius, 1=Fahrenheit, 2=Kelvin). Confirm before linking.
+fn temp_unit_to_int(unit: TemperatureUnit) -> Int / Pure {
+  match unit {
+    Celsius    => 0,
+    Fahrenheit => 1,
+    Kelvin     => 2
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// PORT-CHECK: BEAM NIF references `proven_unit_convert_length` and
+// `proven_unit_convert_temp` (ffi/beam/src/proven_nif.zig) but the
+// corresponding `export fn` is not yet visible in ffi/zig/src/main.zig
+// (verified 2026-05-27). Signatures below mirror the BEAM-NIF use site.
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_unit_convert_length")
+fn extern_proven_unit_convert_length(value: Float64, from: Int, to: Int) -> FloatResult / Pure
+
+@extern("C", "proven_unit_convert_temp")
+fn extern_proven_unit_convert_temp(value: Float64, from: Int, to: Int) -> FloatResult / Pure
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI FloatResult into a Result[Float64, ProvenError].
+fn float_result_to_result(result: FloatResult) -> Result[Float64, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API -- preserves the ReScript surface (convertLength / convertTemp)
+// ---------------------------------------------------------------------------
+
+/// Convert a length value between units.
+/// Delegates to proven_unit_convert_length via FFI.
+fn convert_length(
+  value: Float64,
+  from: LengthUnit,
+  to: LengthUnit
+) -> Result[Float64, own ProvenError] / Pure {
+  float_result_to_result(
+    extern_proven_unit_convert_length(value, length_unit_to_int(from), length_unit_to_int(to))
+  )
+}
+
+/// Convert a temperature value between units.
+/// Delegates to proven_unit_convert_temp via FFI.
+fn convert_temp(
+  value: Float64,
+  from: TemperatureUnit,
+  to: TemperatureUnit
+) -> Result[Float64, own ProvenError] / Pure {
+  float_result_to_result(
+    extern_proven_unit_convert_temp(value, temp_unit_to_int(from), temp_unit_to_int(to))
+  )
+}

@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeDateTime -- Affine wrappers around libproven datetime FFI.
+///
+/// All calculations delegate to the formally verified Idris 2
+/// implementation via the Zig FFI layer. These two operations are
+/// total functions and never return error results.
+///
+/// PORT-CHECK: The .res surface declared `isLeapYear: int => bool` and
+/// `daysInMonth: (int, int) => int` as plain (non-result-bearing) FFI
+/// returns. The Zig exports are assumed to be infallible with the
+/// signatures used below. Confirm against ffi/zig/src/main.zig.
+
+module Proven.SafeDateTime
+
+import Proven.FFI
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_datetime_is_leap_year")
+fn extern_proven_datetime_is_leap_year(year: Int) -> Bool / Pure
+
+@extern("C", "proven_datetime_days_in_month")
+fn extern_proven_datetime_days_in_month(year: Int, month: Int) -> Int / Pure
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Check whether a year is a leap year.
+/// Delegates to proven_datetime_is_leap_year via FFI.
+fn is_leap_year(year: Int) -> Bool / Pure {
+  extern_proven_datetime_is_leap_year(year)
+}
+
+/// Number of days in `month` of `year`. `month` is 1..12.
+/// Returns 0 for an out-of-range month (matches Zig contract).
+/// Delegates to proven_datetime_days_in_month via FFI.
+fn days_in_month(year: Int, month: Int) -> Int / Pure {
+  extern_proven_datetime_days_in_month(year, month)
+}

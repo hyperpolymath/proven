@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeBloom -- Affine wrappers around libproven bloom-filter FFI.
+///
+/// All computation is delegated to the formally verified Idris 2
+/// implementation via the Zig FFI layer (`proven_bloom_*`). The bloom
+/// filter handle is held as an affine `own` resource.
+///
+/// NOTE: the legacy ReScript `ProvenSafeBloom` module also exposed a
+/// `CountingBloomFilter` type. That variant existed only in the JavaScript
+/// shim layer -- libproven has no FFI symbol for it -- so it is omitted
+/// from this port. If counting bloom filters become available in Idris+Zig,
+/// add a `Counting` submodule mirroring the `BloomFilter` surface.
+///
+/// PORT-CHECK: confirm dropping `CountingBloomFilter` is acceptable. Any
+/// downstream consumer of the legacy ReScript counting variant will need
+/// to migrate to the regular (non-counting) filter.
+
+module Proven.SafeBloom
+
+import Proven.FFI
+
+// ---------------------------------------------------------------------------
+// Public type
+// ---------------------------------------------------------------------------
+
+/// Affine handle to a libproven bloom filter.
+/// Must be consumed exactly once -- either by repeated borrowed `add`/`contains`
+/// calls followed by `free`, or by passing ownership elsewhere.
+type Bloom = own RawPtr[BloomFilter]
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Create a new bloom filter sized for the given expected element count and
+/// target false-positive rate (e.g. `0.01` for 1%).
+/// Delegates to `proven_bloom_create` via FFI.
+///
+/// PORT-CHECK: `proven_bloom_create` returns a raw `*mut BloomFilter` with no
+/// status code. The Rust binding treats a null return as failure. Confirm the
+/// AffineScript binding's null-pointer convention here -- if `null_ptr()`
+/// detection is needed, wrap this call in a `Result` like `SafeBuffer.create`.
+fn create(expected_items: Int, false_positive_rate: Float64) -> Bloom / IO {
+  extern_proven_bloom_create(expected_items, false_positive_rate)
+}
+
+/// Add a byte slice to the bloom filter.
+/// Delegates to `proven_bloom_add` via FFI.
+fn add(filter: mut Bloom, data: ref [Byte]) -> () / IO {
+  let (ptr, len) = bytes_to_raw(data);
+  extern_proven_bloom_add(filter, ptr, len)
+}
+
+/// Probabilistically test whether a byte slice may be present in the filter.
+/// Returns `true` for "possibly present" (with the filter's nominal
+/// false-positive rate) and `false` for "definitely absent".
+/// Delegates to `proven_bloom_contains` via FFI.
+fn contains(filter: mut Bloom, data: ref [Byte]) -> Bool / IO {
+  let (ptr, len) = bytes_to_raw(data);
+  extern_proven_bloom_contains(filter, ptr, len)
+}
+
+/// Release the bloom-filter handle.
+/// Delegates to `proven_bloom_free` via FFI.
+fn free(filter: Bloom) -> () / IO {
+  extern_proven_bloom_free(filter)
+}
+
+// ---------------------------------------------------------------------------
+// Legacy compatibility alias
+// ---------------------------------------------------------------------------
+
+/// Backwards-compatible name for `create`, mirroring the legacy ReScript
+/// `ProvenSafeBloom.create` entry point.
+fn create_bloom(expected_items: Int, false_positive_rate: Float64) -> Bloom / IO {
+  create(expected_items, false_positive_rate)
+}

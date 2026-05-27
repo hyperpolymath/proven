@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeLRU -- Affine wrappers around libproven LRU cache FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Cache handles are affine (consumed at most once);
+/// they expose linear ownership of the underlying native allocation.
+///
+/// Ported from bindings/rescript/src/ProvenSafeLru.res. The ReScript
+/// version dispatched through bindings/javascript/src/safe_lru.js
+/// (JS classes LRUCache / TTLLRUCache). This AffineScript port bypasses
+/// the JS layer and calls the Zig FFI directly.
+
+module Proven.SafeLRU
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+//
+// Opaque handles wrap raw pointers returned by the Zig FFI. They are affine,
+// so callers must consume them exactly once (e.g. by passing to a destroy
+// function once the matching FFI symbols land).
+// ---------------------------------------------------------------------------
+
+// PORT-CHECK: LRU cache handles are modelled as `own RawPtr[Byte]`; an opaque
+// nominal type would be nicer once a destroy-FFI is exposed.
+type LruCache = own {
+  handle: own RawPtr[Byte]
+}
+
+type TtlLruCache = own {
+  handle: own RawPtr[Byte]
+}
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// No SafeLRU symbols are exported by ffi/zig/src/main.zig today (2026-05-27).
+// The signatures below are predicted from JS scope names in
+// bindings/javascript/src/safe_lru.js and must be added to Zig before these
+// wrappers will link.
+// ---------------------------------------------------------------------------
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_lru_create")
+fn extern_proven_lru_create(capacity: Int) -> own RawPtr[Byte] / IO
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_lru_create_with_ttl")
+fn extern_proven_lru_create_with_ttl(capacity: Int, ttl_ms: Int) -> own RawPtr[Byte] / IO
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Create a new LRU cache.
+///
+/// `capacity` is the maximum number of entries. Returns an affine handle
+/// that must be consumed at most once.
+fn create(capacity: Int) -> own LruCache / IO {
+  LruCache { handle: extern_proven_lru_create(capacity) }
+}
+
+/// Create a new LRU cache with TTL support.
+///
+/// `capacity` is the maximum number of entries; `ttl_ms` is the per-entry
+/// time-to-live in milliseconds. Returns an affine handle.
+fn create_with_ttl(capacity: Int, ttl_ms: Int) -> own TtlLruCache / IO {
+  TtlLruCache { handle: extern_proven_lru_create_with_ttl(capacity, ttl_ms) }
+}

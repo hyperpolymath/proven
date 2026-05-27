@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// Proven.Bitwise -- Compatibility shims for ReScript-style bitwise names.
+///
+/// The legacy `Proven_Bitwise` ReScript module existed only because ReScript
+/// lacked OCaml's `lsl`/`lsr`/`asr`/`land`/`lor`/`lxor`/`lnot` operators and
+/// had to expose them via `%raw` JavaScript stubs. AffineScript has native
+/// bitwise operators (`<<`, `>>`, `>>>`, `&`, `|`, `^`, `~`) and uses them
+/// throughout the existing safe wrappers, so no FFI hop is needed.
+///
+/// This module exposes the legacy names as thin pure wrappers so downstream
+/// code that imports `Proven_Bitwise.{lsl, lsr, ...}` can compile against
+/// the AffineScript binding by swapping the import to `Proven.Bitwise`.
+/// No JavaScript runtime is involved.
+
+module Proven.Bitwise
+
+// PORT-CHECK: AffineScript bitwise operator syntax. The legacy ReScript
+// helpers operated on `int` (32-bit semantics under JS). The mappings
+// below assume AffineScript provides:
+//   `<<`  logical/arithmetic shift left
+//   `>>`  arithmetic shift right (signed)
+//   `>>>` logical shift right (unsigned)
+//   `&`   bitwise AND
+//   `|`   bitwise OR
+//   `^`   bitwise XOR
+//   `~`   bitwise NOT
+// If any of those tokens differ in AffineScript (e.g. `bsl`/`bsr`), update
+// the bodies below -- the API signatures are stable.
+
+/// Logical shift left: `a << b`.
+fn lsl(a: Int, b: Int) -> Int / Pure {
+  a << b
+}
+
+/// Logical shift right (unsigned): `a >>> b`.
+fn lsr(a: Int, b: Int) -> Int / Pure {
+  a >>> b
+}
+
+/// Arithmetic shift right (signed): `a >> b`.
+fn asr(a: Int, b: Int) -> Int / Pure {
+  a >> b
+}
+
+/// Bitwise AND: `a & b`.
+fn land(a: Int, b: Int) -> Int / Pure {
+  a & b
+}
+
+/// Bitwise OR: `a | b`.
+fn lor(a: Int, b: Int) -> Int / Pure {
+  a | b
+}
+
+/// Bitwise XOR: `a ^ b`.
+fn lxor(a: Int, b: Int) -> Int / Pure {
+  a ^ b
+}
+
+/// Bitwise NOT: `~a`.
+fn lnot(a: Int) -> Int / Pure {
+  ~a
+}

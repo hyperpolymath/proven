@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeRateLimiter -- Affine wrappers around libproven rate-limiter FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Handles are affine (owned, freed via the
+/// corresponding `proven_*_free` extern). No rate-limiting logic is
+/// reimplemented here.
+///
+/// Provides five limiter flavours backed by libproven:
+///   - TokenBucket
+///   - SlidingWindowLimiter
+///   - FixedWindowLimiter
+///   - LeakyBucket
+///   - ConcurrencyLimiter
+
+module Proven.SafeRateLimiter
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// Rate-limit decision returned by all limiter `try_acquire` operations.
+/// Affine -- inspect or discard exactly once.
+@repr("C")
+type RateLimitResult = own {
+  allowed: Bool,
+  remaining: Int,
+  reset_at: Float64,
+  retry_after: Option[Float64]
+}
+
+// ---------------------------------------------------------------------------
+// Opaque handle types -- affine, freed exactly once
+// ---------------------------------------------------------------------------
+
+/// Opaque handle to a libproven TokenBucket. Owned.
+// PORT-CHECK: handle representation matches Zig `*TokenBucket` opaque pointer.
+type TokenBucket = own RawPtr[Byte]
+
+/// Opaque handle to a libproven SlidingWindowLimiter. Owned.
+// PORT-CHECK: handle representation matches Zig `*SlidingWindowLimiter` opaque pointer.
+type SlidingWindowLimiter = own RawPtr[Byte]
+
+/// Opaque handle to a libproven FixedWindowLimiter. Owned.
+// PORT-CHECK: handle representation matches Zig `*FixedWindowLimiter` opaque pointer.
+type FixedWindowLimiter = own RawPtr[Byte]
+
+/// Opaque handle to a libproven LeakyBucket. Owned.
+// PORT-CHECK: handle representation matches Zig `*LeakyBucket` opaque pointer.
+type LeakyBucket = own RawPtr[Byte]
+
+/// Opaque handle to a libproven ConcurrencyLimiter. Owned.
+// PORT-CHECK: handle representation matches Zig `*ConcurrencyLimiter` opaque pointer.
+type ConcurrencyLimiter = own RawPtr[Byte]
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// PORT-CHECK: the Zig FFI layer does not yet export these symbols
+// (verified 2026-05-27). The signatures below reflect the contract the
+// bindings rely on; libproven must export the matching symbols before this
+// module links.
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_rate_token_bucket_create")
+fn extern_proven_rate_token_bucket_create(capacity: Int, refill_rate: Float64) -> own RawPtr[Byte] / IO
+
+@extern("C", "proven_rate_sliding_window_create")
+fn extern_proven_rate_sliding_window_create(max_requests: Int, window_ms: Int) -> own RawPtr[Byte] / IO
+
+@extern("C", "proven_rate_fixed_window_create")
+fn extern_proven_rate_fixed_window_create(max_requests: Int, window_ms: Int) -> own RawPtr[Byte] / IO
+
+@extern("C", "proven_rate_leaky_bucket_create")
+fn extern_proven_rate_leaky_bucket_create(capacity: Int, leak_rate: Float64) -> own RawPtr[Byte] / IO
+
+@extern("C", "proven_rate_concurrency_create")
+fn extern_proven_rate_concurrency_create(max_concurrent: Int) -> own RawPtr[Byte] / IO
+
+// ---------------------------------------------------------------------------
+// Public API -- preserves the ReScript surface (createTokenBucket /
+// createSlidingWindow / createFixedWindow / createLeakyBucket /
+// createConcurrencyLimiter) one-for-one.
+// ---------------------------------------------------------------------------
+
+/// Create a token-bucket rate limiter.
+/// Delegates to proven_rate_token_bucket_create via FFI.
+fn create_token_bucket(capacity: Int, refill_rate: Float64) -> TokenBucket / IO {
+  extern_proven_rate_token_bucket_create(capacity, refill_rate)
+}
+
+/// Create a sliding-window rate limiter.
+/// Delegates to proven_rate_sliding_window_create via FFI.
+fn create_sliding_window(max_requests: Int, window_ms: Int) -> SlidingWindowLimiter / IO {
+  extern_proven_rate_sliding_window_create(max_requests, window_ms)
+}
+
+/// Create a fixed-window rate limiter.
+/// Delegates to proven_rate_fixed_window_create via FFI.
+fn create_fixed_window(max_requests: Int, window_ms: Int) -> FixedWindowLimiter / IO {
+  extern_proven_rate_fixed_window_create(max_requests, window_ms)
+}
+
+/// Create a leaky-bucket rate limiter.
+/// Delegates to proven_rate_leaky_bucket_create via FFI.
+fn create_leaky_bucket(capacity: Int, leak_rate: Float64) -> LeakyBucket / IO {
+  extern_proven_rate_leaky_bucket_create(capacity, leak_rate)
+}
+
+/// Create a concurrency limiter.
+/// Delegates to proven_rate_concurrency_create via FFI.
+fn create_concurrency_limiter(max_concurrent: Int) -> ConcurrencyLimiter / IO {
+  extern_proven_rate_concurrency_create(max_concurrent)
+}

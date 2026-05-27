@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeProbability -- Affine wrappers around libproven probability FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Probabilities are always clamped to [0, 1] by
+/// the verified implementation; no domain checks need be repeated here.
+///
+/// Ported from bindings/rescript/src/ProvenSafeProbability.res. The
+/// ReScript version dispatched through
+/// bindings/javascript/src/safe_probability.js. This AffineScript port
+/// bypasses the JS layer and calls the Zig FFI directly.
+
+module Proven.SafeProbability
+
+import Proven.FFI
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// No SafeProbability symbols are exported by ffi/zig/src/main.zig today
+// (2026-05-27). The signatures below are predicted from JS scope names in
+// bindings/javascript/src/safe_probability.js and must be added to Zig
+// before these wrappers will link.
+// ---------------------------------------------------------------------------
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_probability_create")
+fn extern_proven_probability_create(value: Float64) -> Float64 / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_probability_and")
+fn extern_proven_probability_and(a: Float64, b: Float64) -> Float64 / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_probability_or_exclusive")
+fn extern_proven_probability_or_exclusive(a: Float64, b: Float64) -> Float64 / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_probability_not")
+fn extern_proven_probability_not(p: Float64) -> Float64 / Pure
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Construct a probability value clamped to [0, 1].
+/// Delegates to proven_probability_create via FFI.
+fn create(value: Float64) -> Float64 / Pure {
+  extern_proven_probability_create(value)
+}
+
+/// Joint probability of two independent events: P(A and B) = P(A) * P(B).
+/// Delegates to proven_probability_and via FFI.
+fn and_(a: Float64, b: Float64) -> Float64 / Pure {
+  extern_proven_probability_and(a, b)
+}
+
+/// Exclusive-or probability: P(A xor B).
+/// Delegates to proven_probability_or_exclusive via FFI.
+fn or_exclusive(a: Float64, b: Float64) -> Float64 / Pure {
+  extern_proven_probability_or_exclusive(a, b)
+}
+
+/// Complement probability: 1 - P.
+/// Delegates to proven_probability_not via FFI.
+fn not(p: Float64) -> Float64 / Pure {
+  extern_proven_probability_not(p)
+}

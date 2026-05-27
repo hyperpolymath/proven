@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeAngle -- Affine wrappers around libproven angle-conversion FFI.
+///
+/// All computation is delegated to the formally verified Idris 2
+/// implementation via the Zig FFI layer (`proven_angle_*`). The wrappers
+/// are pure -- angle conversion never fails -- so no Result is returned.
+
+module Proven.SafeAngle
+
+import Proven.FFI
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Convert degrees to radians.
+/// Delegates to `proven_angle_deg_to_rad` via FFI.
+fn deg_to_rad(degrees: Float64) -> Float64 / Pure {
+  extern_proven_angle_deg_to_rad(degrees)
+}
+
+/// Convert radians to degrees.
+/// Delegates to `proven_angle_rad_to_deg` via FFI.
+fn rad_to_deg(radians: Float64) -> Float64 / Pure {
+  extern_proven_angle_rad_to_deg(radians)
+}
+
+/// Normalize an angle in degrees to `[0, 360)`.
+/// Delegates to `proven_angle_normalize_degrees` via FFI.
+fn normalize_degrees(degrees: Float64) -> Float64 / Pure {
+  extern_proven_angle_normalize_degrees(degrees)
+}
+
+/// Normalize an angle in radians to `[0, 2*pi)`.
+/// Delegates to `proven_angle_normalize_radians` via FFI.
+fn normalize_radians(radians: Float64) -> Float64 / Pure {
+  extern_proven_angle_normalize_radians(radians)
+}

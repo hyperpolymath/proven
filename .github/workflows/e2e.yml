@@ -67,13 +67,19 @@ jobs:
 
       - name: No dangerous Idris2 patterns
         run: |
-          DANGEROUS=$(grep -rn 'believe_me\|assert_total\|really_believe_me' src/ 2>/dev/null | grep -v test || true)
+          # Match actual usage, not doc-comment mentions. The matched line
+          # must (a) contain the pattern, (b) not start (after whitespace)
+          # with `|||` (Idris doc comment) or `--` (regular comment).
+          DANGEROUS=$(grep -rn 'believe_me\|assert_total\|really_believe_me' src/ 2>/dev/null \
+                       | grep -v test \
+                       | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(\|\|\||--)' \
+                       || true)
           if [ -n "$DANGEROUS" ]; then
-            echo "FAIL: Dangerous patterns found in src/"
+            echo "FAIL: Dangerous patterns found in src/ (excluding comments)"
             echo "$DANGEROUS"
             exit 1
           fi
-          echo "PASS: No believe_me/assert_total in src/"
+          echo "PASS: No believe_me/assert_total in src/ (comments OK)"
 
       - name: No @panic in Zig production code
         run: |
@@ -85,17 +91,43 @@ jobs:
           fi
           echo "PASS: No @panic in Zig production code"
 
-      - name: No unsafe patterns in bindings
+      - name: No panic-prone patterns in bindings
         run: |
+          # NB: the bare `unsafe` keyword is NOT a violation — it is required
+          # by Rust to call FFI (e.g. `unsafe { ffi::proven_safe_add(...) }`).
+          # What IS forbidden is anything that can crash on bad input:
+          #
+          #   * Rust:     .unwrap()  .expect(  panic!(  unreachable!(  todo!(  unimplemented!(
+          #   * ReScript: getExn      Obj.magic
+          #   * Haskell:  unsafePerformIO  unsafeCoerce
+          #
+          # Notes:
+          #   * The Haskell `error "..."` partial function and `undefined` are
+          #     intentionally NOT listed here — they collide with the English
+          #     word "error" and the ECMAScript `undefined` literal, producing
+          #     too many false positives. They are caught by per-language
+          #     linters (HLint, etc.) in their own CI.
+          #   * Restricted to source extensions; READMEs, JSON manifests, and
+          #     docs are not scanned (mentions in docs are not code usage).
+          #   * Test code excluded.
           if [ -d "bindings" ]; then
-            UNSAFE=$(grep -rn 'unsafe\|unwrap()\|getExn\|unsafeCoerce' bindings/ 2>/dev/null | grep -v test || true)
+            UNSAFE=$(find bindings -type f \
+                       \( -name '*.rs' -o -name '*.res' -o -name '*.resi' \
+                          -o -name '*.hs' -o -name '*.lhs' \
+                          -o -name '*.ml' -o -name '*.mli' \
+                          -o -name '*.idr' \) \
+                       -not -path '*/test/*' -not -path '*/tests/*' \
+                       -print0 2>/dev/null \
+                     | xargs -0 grep -nE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(|unimplemented!\(|getExn|Obj\.magic|unsafePerformIO|unsafeCoerce' 2>/dev/null \
+                     | grep -vE ':[0-9]+:[[:space:]]*(--|//|\(\*|\*[^/]|///)' \
+                     || true)
             if [ -n "$UNSAFE" ]; then
-              echo "FAIL: Unsafe patterns in bindings"
-              echo "$UNSAFE" | head -10
+              echo "FAIL: Panic-prone patterns in bindings (excluding comments and tests)"
+              echo "$UNSAFE" | head -20
               exit 1
             fi
           fi
-          echo "PASS: No unsafe patterns in bindings"
+          echo "PASS: No panic-prone patterns in bindings (FFI 'unsafe { }' blocks are allowed)"
 
       - name: SPDX headers present
         run: |

@@ -200,3 +200,103 @@ fn extern_proven_hex_encode(ptr: ref RawPtr[Byte], len: Int, uppercase: Bool) ->
 
 @extern("C", "proven_hex_decode")
 fn extern_proven_hex_decode(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure
+
+// ---------------------------------------------------------------------------
+// SafeAngle
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_angle_deg_to_rad")
+fn extern_proven_angle_deg_to_rad(degrees: Float64) -> Float64 / Pure
+
+@extern("C", "proven_angle_rad_to_deg")
+fn extern_proven_angle_rad_to_deg(radians: Float64) -> Float64 / Pure
+
+@extern("C", "proven_angle_normalize_degrees")
+fn extern_proven_angle_normalize_degrees(degrees: Float64) -> Float64 / Pure
+
+@extern("C", "proven_angle_normalize_radians")
+fn extern_proven_angle_normalize_radians(radians: Float64) -> Float64 / Pure
+
+// ---------------------------------------------------------------------------
+// SafeChecksum
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_checksum_crc32")
+fn extern_proven_checksum_crc32(ptr: ref RawPtr[Byte], len: Int) -> IntResult / Pure
+
+@extern("C", "proven_checksum_verify_crc32")
+fn extern_proven_checksum_verify_crc32(
+  ptr: ref RawPtr[Byte], len: Int, expected: UInt32
+) -> BoolResult / Pure
+
+// ---------------------------------------------------------------------------
+// SafeBuffer (BoundedBuffer only -- RingBuffer / GrowableBuffer have no
+// libproven backing and were JS-only conveniences in the legacy binding.)
+// ---------------------------------------------------------------------------
+
+/// Opaque handle to a libproven-allocated bounded buffer.
+@repr("C")
+type BoundedBuffer = opaque
+
+/// Result returned by `proven_buffer_create`.
+@repr("C")
+type BufferResult = {
+  status: Int,
+  buffer: own RawPtr[BoundedBuffer]
+}
+
+@extern("C", "proven_buffer_create")
+fn extern_proven_buffer_create(capacity: Int) -> BufferResult / IO
+
+@extern("C", "proven_buffer_append")
+fn extern_proven_buffer_append(
+  buffer: mut RawPtr[BoundedBuffer],
+  ptr: ref RawPtr[Byte],
+  len: Int
+) -> Int / IO
+
+// PORT-CHECK: `proven_buffer_get` returns the buffer contents via out-pointers
+// (`out_ptr: **u8`, `out_len: *usize`). The wrapper below threads them as
+// mutable references. Confirm AffineScript's representation of `**u8` matches
+// `mut RawPtr[RawPtr[Byte]]`.
+@extern("C", "proven_buffer_get")
+fn extern_proven_buffer_get(
+  buffer: mut RawPtr[BoundedBuffer],
+  out_ptr: mut RawPtr[RawPtr[Byte]],
+  out_len: mut RawPtr[Int]
+) -> Int / IO
+
+@extern("C", "proven_buffer_free")
+fn extern_proven_buffer_free(buffer: own RawPtr[BoundedBuffer]) -> () / IO
+
+// ---------------------------------------------------------------------------
+// SafeBloom (BloomFilter only -- CountingBloomFilter has no libproven
+// backing and was a JS-only convenience in the legacy binding.)
+// ---------------------------------------------------------------------------
+
+/// Opaque handle to a libproven-allocated bloom filter.
+@repr("C")
+type BloomFilter = opaque
+
+@extern("C", "proven_bloom_create")
+fn extern_proven_bloom_create(
+  expected_elements: Int,
+  false_positive_rate: Float64
+) -> own RawPtr[BloomFilter] / IO
+
+@extern("C", "proven_bloom_add")
+fn extern_proven_bloom_add(
+  filter: mut RawPtr[BloomFilter],
+  ptr: ref RawPtr[Byte],
+  len: Int
+) -> () / IO
+
+@extern("C", "proven_bloom_contains")
+fn extern_proven_bloom_contains(
+  filter: mut RawPtr[BloomFilter],
+  ptr: ref RawPtr[Byte],
+  len: Int
+) -> Bool / IO
+
+@extern("C", "proven_bloom_free")
+fn extern_proven_bloom_free(filter: own RawPtr[BloomFilter]) -> () / IO

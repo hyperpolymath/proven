@@ -318,11 +318,15 @@ All Proven Malbolge operations provide:
 
 | File | Purpose |
 |------|---------|
-| `README.md` | This documentation |
-| `safe_malbolge.py` | Python reference interpreter with all safety primitives |
+| `README.adoc` | This documentation |
 | `malbolge.zig` | Zig FFI bridge for core operations |
-| `compiler.py` | Proven-to-Malbolge compiler (conceptual) |
-| `modules.mb` | Conceptual Malbolge "source" for all 38 modules |
+
+NOTE: Earlier revisions of this binding shipped `safe_malbolge.py` (a Python reference
+interpreter) and `compiler.py` (a conceptual Proven-to-Malbolge compiler). Both were
+deleted on 2026-05-27 in line with the estate-wide Python ban (see
+`hyperpolymath/standards` language policy). The Zig bridge remains the canonical entry
+point. Some examples below still use Python pseudocode to illustrate the conceptual
+mapping; treat them as commentary, not as a runnable artefact in this binding.
 
 == FAQ
 

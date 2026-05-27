@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeStateMachine -- Affine wrappers around libproven finite-state-machine FFI.
+///
+/// All transition logic is delegated to the formally verified Idris 2
+/// implementation via the Zig FFI layer. Handles are affine (owned, freed
+/// via the corresponding `proven_*_free` extern). No state-machine logic
+/// is reimplemented here.
+
+module Proven.SafeStateMachine
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// Transition result returned by `try_transition`. Affine -- consumed
+/// at most once.
+type TransitionResult = own {
+  success: Bool,
+  previous_state: String,
+  current_state: String,
+  error: Option[own ProvenError]
+}
+
+// ---------------------------------------------------------------------------
+// Opaque handle types -- affine, freed exactly once
+// ---------------------------------------------------------------------------
+
+/// Opaque handle to a libproven StateMachine. Owned.
+// PORT-CHECK: handle representation matches Zig `*StateMachine` opaque pointer.
+type StateMachine = own RawPtr[Byte]
+
+/// Opaque handle to a libproven StateMachineBuilder. Owned.
+// PORT-CHECK: handle representation matches Zig `*StateMachineBuilder` opaque pointer.
+type StateMachineBuilder = own RawPtr[Byte]
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// PORT-CHECK: the Zig FFI layer does not yet export these symbols
+// (verified 2026-05-27). The signature below reflects the contract the
+// bindings rely on; libproven must export the matching symbol before this
+// module links.
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_state_machine_builder_create")
+fn extern_proven_state_machine_builder_create() -> own RawPtr[Byte] / IO
+
+// ---------------------------------------------------------------------------
+// Public API -- preserves the ReScript surface (createBuilder)
+// ---------------------------------------------------------------------------
+
+/// Create a new state-machine builder for fluent configuration.
+/// Delegates to proven_state_machine_builder_create via FFI.
+fn create_builder() -> StateMachineBuilder / IO {
+  extern_proven_state_machine_builder_create()
+}

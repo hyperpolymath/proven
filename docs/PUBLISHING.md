@@ -33,22 +33,7 @@ Configure these secrets in your repository settings (Settings → Secrets → Ac
 
 ### OIDC Authentication (No Tokens Required)
 
-**PyPI** and **JSR** use OIDC trusted publishing - no tokens needed:
-
-- **PyPI**: Configure trusted publishing in your PyPI project settings
-- **JSR**: Automatically authenticates via GitHub Actions OIDC
-
-### PyPI Trusted Publishing
-
-PyPI uses OIDC trusted publishing - no token needed. Configure it:
-
-1. Go to [pypi.org](https://pypi.org) → Your Projects → proven
-2. Click "Publishing" → "Add a new publisher"
-3. Configure:
-   - **Owner**: hyperpolymath
-   - **Repository**: proven
-   - **Workflow**: publish-pypi.yml
-   - **Environment**: pypi (optional)
+**JSR** uses OIDC trusted publishing - no token needed; it authenticates automatically via GitHub Actions OIDC. (The PyPI publish path was removed on 2026-05-27 along with the Python bindings; see the estate Python ban in `hyperpolymath/standards`.)
 
 ### JSR OIDC Authentication
 
@@ -70,18 +55,6 @@ repository = "https://github.com/hyperpolymath/proven"
 description = "Formally verified safety library - code that cannot crash"
 keywords = ["safety", "verification", "idris", "dependent-types"]
 categories = ["no-std", "parsing", "encoding"]
-```
-
-### PyPI (Python)
-
-Location: `bindings/python/pyproject.toml`
-
-```toml
-[project]
-name = "proven"
-version = "0.9.0"
-description = "Formally verified safety library"
-license = {text = "MPL-2.0"}
 ```
 
 ### npm (JavaScript/TypeScript)
@@ -115,7 +88,6 @@ Before releasing, ensure all packages have the same version:
 ```bash
 # Check current versions
 grep '^version' bindings/rust/Cargo.toml
-grep '^version' bindings/python/pyproject.toml
 jq '.version' bindings/deno/deno.json
 jq '.version' bindings/javascript/package.json
 jq '.version' bindings/typescript/package.json
@@ -145,13 +117,6 @@ The crate name is taken. Either:
 
 Ensure your npm token has publish permissions and the scope is correct.
 
-### PyPI: "Invalid OIDC claim"
-
-Check the trusted publisher configuration matches exactly:
-- Repository owner (case-sensitive)
-- Repository name (case-sensitive)
-- Workflow filename
-
 ### JSR: "Package not found"
 
 First-time publish requires creating the package:
@@ -168,9 +133,6 @@ For manual publishing (not recommended):
 ```bash
 # Rust
 cd bindings/rust && cargo publish
-
-# Python
-cd bindings/python && python -m build && twine upload dist/*
 
 # npm
 cd bindings/javascript && npm publish --access public
