@@ -197,26 +197,37 @@ fully read and each site individually classified.
 
 | Module | OWED | Dominant family | Default disposition | Tier | Status |
 |---|---:|---|---|---|---|
-| **SafeBase64** / Proofs.idr | 22 | 1 (String FFI) + 6 (Integral) | PROPERTY-TEST (alphabet) + DISCHARGE (length math) | A | [ ] |
-| **SafeRegex** / Proofs.idr | 26 | 1 + 3 (covering) | DISCHARGE-after-totality + PROPERTY-TEST | B | [ ] |
-| **SafePassword** / Proofs.idr | 25 | 1 + 2 (Char) + 3 (covering on analyzeStrength) | PROPERTY-TEST (policy) + DISCHARGE (Char predicates) | A | [ ] |
-| **SafePath** / Proofs.idr | 23 | 1 (splitOn/isInfixOf) | PROPERTY-TEST (path-traversal) + DISCHARGE (root cases) | A | [ ] |
-| **SafeEmail** / Proofs.idr | 20 | 1 + 5 (record projection) + 7 (enum Eq) | DISCHARGE (record + enum) + PROPERTY-TEST (parser) | A | [ ] |
-| **SafeUrl** / Proofs.idr | 16 | 1 | PROPERTY-TEST | A | [ ] |
-| **SafeCrypto** / Proofs.idr | 16 | 4 (Argon2/bcrypt/scrypt) | OWED-AXIOM | C | [ ] |
-| **SafeJson** / Proofs.idr | 13 | 1 + 3 (covering on parseVal) | DISCHARGE-after-totality | B | [ ] |
-| **SafeXML** / Proofs.idr | 9 | 1 | PROPERTY-TEST | A | [ ] |
-| **SafeString** / Proofs.idr | 7 | 1 | PROPERTY-TEST | A | [ ] |
-| **SafeEnv** / Proofs.idr | 7 | 1 | PROPERTY-TEST | A | [ ] |
-| **SafeCSRF** / Proofs.idr | 7 | 4 (RNG-bound) | OWED-AXIOM | C | [ ] |
-| **SafeChecksum** / Proofs.idr | 7 | 1 + 6 (mod arithmetic) | DISCHARGE | A | [ ] |
-| **SafeArchive** / Proofs.idr | 7 | 1 (path-traversal predicate) | PROPERTY-TEST + DISCHARGE | A | [ ] |
-| **SafeTOML** / Proofs.idr | 5 | 1 + 3 | PROPERTY-TEST | B | [ ] |
-| (remaining 29 OWED-bearing modules) | ~75 | mixed | per-module read in Phase 2 | — | [ ] |
+| **SafeBase64** / Proofs.idr | 22 | 1 (String FFI) + 6 (Integral) | PROPERTY-TEST (alphabet) + DISCHARGE (length math) | A | [x] |
+| **SafeRegex** / Proofs.idr | 26 | 1 + 3 (covering) | DISCHARGE-after-totality + PROPERTY-TEST | A | [x] |
+| **SafePassword** / Proofs.idr | 25 | 1 + 2 (Char) + 3 (covering on analyzeStrength) | PROPERTY-TEST (policy) + DISCHARGE (Char predicates) | A | [x] |
+| **SafePath** / Proofs.idr | 23 | 1 (splitOn/isInfixOf) | PROPERTY-TEST (path-traversal) | A | [x] |
+| **SafeEmail** / Proofs.idr | 20 | 1 + 5 (record projection) + 7 (enum Eq) | DISCHARGE (record + enum) + PROPERTY-TEST (parser) | A | [x] |
+| **SafeUrl** / Proofs.idr | 16 | 1 | PROPERTY-TEST + DISCHARGE | A | [x] |
+| **SafeCrypto** / Proofs.idr | 16 | 6 (Data.Bits) + 4 (FFI entropy) | OWED-AXIOM (mostly) | A | [x] |
+| **SafeJson** / Proofs.idr | 13 | 1 + 3 (covering on getPath/matchesType) | DISCHARGE-after-totality + PROPERTY-TEST | A | [x] |
+| **SafeXML** / Proofs.idr | 9 | 1 | PROPERTY-TEST | A | [x] |
+| **SafeString** / Proofs.idr | 7 | 1 | PROPERTY-TEST | A | [x] |
+| **SafeEnv** / Proofs.idr | 7 | 1 | PROPERTY-TEST | A | [x] |
+| **SafeCSRF** / Proofs.idr | 7 | 1 + 4 (RNG-bound) | OWED-AXIOM | A | [x] |
+| **SafeChecksum** / Proofs.idr | 7 | 1 + 6 (mod arithmetic) | PROPERTY-TEST + OWED-AXIOM | A | [x] |
+| **SafeArchive** / Proofs.idr | 6 | — (Nat literals) + 1 (path-traversal) | PROPERTY-TEST + OWED-AXIOM | A | [x] |
+| **SafeTOML** / Proofs.idr | 5 | 1 + 4 | OWED-AXIOM | A | [x] |
+| (remaining 29 OWED-bearing modules) | ~70 | mixed | per-module read in Phase 2 Days 11-14 | — | [ ] |
 
-**Coverage of the table:** 15 of 44 modules accounting for 210/280 OWED sites
-(75%). The 29-module tail covers 70 sites averaging 2–3 OWED each — those land
-in Phase 2 alongside the per-site reads of the head.
+**Coverage of the table:** 15 of 44 modules accounting for ~209 of 280 OWED
+sites (75%). The 29-module tail covers ~70 sites averaging 2–3 OWED each —
+those land in Phase 2 alongside Tier B totality refactors (Days 11–14).
+
+**Tier A per-site classification (Days 3–10, complete 2026-05-27):** the
+full per-site disposition tables for all 15 Tier A modules live in
+[`proof-debt-triage-tier-a.md`](proof-debt-triage-tier-a.md). Aggregate
+result: **~59 DISCHARGE** (28%, ~30h to clear) + **~7 DISCHARGE-after-totality**
+(3%, blocked) + **~66 PROPERTY-TEST** (31%, ~22h) + **~79 OWED-AXIOM** (38%,
+permanent or until-Idris2-upgrade). The DISCHARGE backlog is concentrated:
+SafeRegex (20) + SafeBase64 (10) + SafeEmail (10) account for ~70% of all
+immediate-DISCHARGE work. Recommended Phase 3 sequencing: SafeUrl (3
+DISCHARGE, ~1.5h) as warm-up, then SafeRegex (20 DISCHARGE, ~7.5h) as the
+highest-leverage single module.
 
 ---
 
