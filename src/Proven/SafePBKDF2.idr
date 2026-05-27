@@ -2,8 +2,11 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| SafePBKDF2 - Password-Based Key Derivation Function 2 parameter validation
 |||
-||| Validates PBKDF2 parameters per RFC 8018 / NIST SP 800-132.
-||| Prevents: low iteration counts, short salts, weak derived key lengths.
+||| Validates PBKDF2 parameters per RFC 8018 / NIST SP 800-132 via `Bool`
+||| predicates. Soundness theorems for the "aims to prevent" list below
+||| are OWED — see `PROOF-NEEDS.md`.
+||| Aims to prevent: low iteration counts, short salts, weak derived key
+||| lengths.
 ||| Actual PBKDF2 computation requires FFI.
 module Proven.SafePBKDF2
 

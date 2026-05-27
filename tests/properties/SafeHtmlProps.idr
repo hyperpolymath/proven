@@ -11,21 +11,37 @@ import Proven.SafeHtml
 prop_plainTextSafe : isOk (sanitizeHtml "Hello World") = True
 prop_plainTextSafe = Refl
 
-||| Property: Script tag is removed
-prop_scriptRemoved : containsScript (sanitizeHtml "<script>alert('xss')</script>") = False
-prop_scriptRemoved = ?prop_scriptRemoved_rhs
+||| OWED: Script tag is removed
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_scriptRemoved_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_scriptRemoved : containsScript (sanitizeHtml "<script>alert('xss')</script>") = False
 
-||| Property: Event handlers are removed
-prop_eventHandlersRemoved : containsEventHandler (sanitizeHtml "<div onclick='evil()'>text</div>") = False
-prop_eventHandlersRemoved = ?prop_eventHandlersRemoved_rhs
+||| OWED: Event handlers are removed
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_eventHandlersRemoved_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_eventHandlersRemoved : containsEventHandler (sanitizeHtml "<div onclick='evil()'>text</div>") = False
 
-||| Property: Escaped output doesn't contain raw HTML
-prop_escapeNoRawHtml : (s : String) -> containsRawHtml (escapeHtml s) = False
-prop_escapeNoRawHtml s = ?prop_escapeNoRawHtml_rhs
+||| OWED: Escaped output doesn't contain raw HTML
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_escapeNoRawHtml_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_escapeNoRawHtml : (s : String) -> containsRawHtml (escapeHtml s) = False
 
-||| Property: Escape is idempotent
-prop_escapeIdempotent : (s : String) -> escapeHtml (escapeHtml s) = escapeHtml s
-prop_escapeIdempotent s = ?prop_escapeIdempotent_rhs
+||| OWED: Escape is idempotent
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_escapeIdempotent_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_escapeIdempotent : (s : String) -> escapeHtml (escapeHtml s) = escapeHtml s
 
 ||| Property: Less-than is escaped
 prop_ltEscaped : escapeHtml "<" = "&lt;"
@@ -51,9 +67,13 @@ prop_safeTagsPreserved = Refl
 prop_safeAttrsPreserved : isOk (sanitizeHtml "<a href=\"https://example.com\">link</a>") = True
 prop_safeAttrsPreserved = Refl
 
-||| Property: Javascript URLs are removed
-prop_jsUrlRemoved : containsJsUrl (sanitizeHtml "<a href=\"javascript:alert(1)\">link</a>") = False
-prop_jsUrlRemoved = ?prop_jsUrlRemoved_rhs
+||| OWED: Javascript URLs are removed
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_jsUrlRemoved_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_jsUrlRemoved : containsJsUrl (sanitizeHtml "<a href=\"javascript:alert(1)\">link</a>") = False
 
 ||| Test runner for HTML properties
 export

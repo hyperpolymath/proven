@@ -7,7 +7,8 @@
 ||| - Origin binding
 ||| - Signature counter monotonicity
 ||| - Attestation type validation
-||| Prevents: replay attacks, origin spoofing, cloned authenticators.
+||| Aims to prevent (via `Bool` predicates; soundness theorems OWED — see
+||| `PROOF-NEEDS.md`): replay attacks, origin spoofing, cloned authenticators.
 module Proven.SafeWebAuthn
 
 import Data.String

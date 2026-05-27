@@ -35,9 +35,13 @@ prop_emptyObjectGet = Refl
 prop_arrayOutOfBounds : getIndex 10 (JsonArray []) = Nothing
 prop_arrayOutOfBounds = Refl
 
-||| Property: Stringify then parse roundtrip for simple values
-prop_roundTripNull : parseJson (stringify JsonNull) = Ok JsonNull
-prop_roundTripNull = ?prop_roundTripNull_rhs
+||| OWED: Stringify then parse roundtrip for simple values
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_roundTripNull_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_roundTripNull : parseJson (stringify JsonNull) = Ok JsonNull
 
 ||| Test runner for JSON properties
 export

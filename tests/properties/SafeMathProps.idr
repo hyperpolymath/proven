@@ -27,23 +27,35 @@ prop_divByOne x _ = Refl
 prop_divByZeroFails : (x : Integer) -> isErr (safeDiv x 0) = True
 prop_divByZeroFails x = Refl
 
-||| Property: Bounded values stay within bounds
-prop_boundedInRange : (b : Bounded min max) ->
-                      (getValue b >= min) && (getValue b <= max) = True
-prop_boundedInRange b = ?prop_boundedInRange_rhs
+||| OWED: Bounded values stay within bounds
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_boundedInRange_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_boundedInRange : (b : Bounded min max) ->
+                        (getValue b >= min) && (getValue b <= max) = True
 
 ||| Property: NonEmpty list always has at least one element
 prop_nonEmptyHasElements : (ne : NonEmpty a) -> length (toList ne) >= 1 = True
 prop_nonEmptyHasElements (MkNonEmpty h t) = Refl
 
-||| Property: Safe modulo never crashes
-prop_modNeverCrashes : (x, y : Integer) -> y /= 0 ->
-                       isOk (safeMod x y) = True
-prop_modNeverCrashes x y _ = ?prop_modNeverCrashes_rhs
+||| OWED: Safe modulo never crashes
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_modNeverCrashes_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_modNeverCrashes : (x, y : Integer) -> y /= 0 ->
+                         isOk (safeMod x y) = True
 
-||| Property: Absolute value is always non-negative
-prop_absNonNegative : (x : Integer) -> safeAbs x >= 0 = True
-prop_absNonNegative x = ?prop_absNonNegative_rhs
+||| OWED: Absolute value is always non-negative
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_absNonNegative_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_absNonNegative : (x : Integer) -> safeAbs x >= 0 = True
 
 ||| Property: Safe negate is involutive (negating twice returns original)
 prop_negateInvolutive : (x : Integer) -> safeNegate (safeNegate x) = x

@@ -2,8 +2,9 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| SafeMCP - Model Context Protocol with prompt injection detection
 |||
-||| Provides type-safe MCP message handling that detects and prevents
-||| prompt injection attacks in tool inputs and outputs.
+||| Provides type-safe MCP message handling with detectors aimed at
+||| preventing prompt injection in tool inputs and outputs. Detection
+||| soundness theorems are OWED — see `PROOF-NEEDS.md`.
 module Proven.SafeMCP
 
 import Data.String

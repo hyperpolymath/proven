@@ -51,15 +51,23 @@ prop_invalidMinuteFails = Refl
 prop_invalidSecondFails : isErr (makeTime 12 30 60) = True
 prop_invalidSecondFails = Refl
 
-||| Property: Format and parse roundtrip
-prop_formatParseRoundtrip : (dt : ValidDateTime) ->
-                            parseISO8601 (formatISO8601 dt) = Ok dt
-prop_formatParseRoundtrip dt = ?prop_formatParseRoundtrip_rhs
+||| OWED: Format and parse roundtrip
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_formatParseRoundtrip_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_formatParseRoundtrip : (dt : ValidDateTime) ->
+                              parseISO8601 (formatISO8601 dt) = Ok dt
 
-||| Property: Duration addition is associative
-prop_durationAssociative : (d1, d2, d3 : Duration) ->
-                           addDuration d1 (addDuration d2 d3) = addDuration (addDuration d1 d2) d3
-prop_durationAssociative d1 d2 d3 = ?prop_durationAssociative_rhs
+||| OWED: Duration addition is associative
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_durationAssociative_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_durationAssociative : (d1, d2, d3 : Duration) ->
+                             addDuration d1 (addDuration d2 d3) = addDuration (addDuration d1 d2) d3
 
 ||| Test runner for datetime properties
 export

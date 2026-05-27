@@ -4,7 +4,8 @@
 |||
 ||| Provides type-safe CBOR data model and validation.
 ||| CBOR is used in COSE, WebAuthn, FIDO2, and IoT protocols.
-||| Prevents: integer overflow, indefinite-length bombs, tag confusion.
+||| Aims to prevent (via `Bool` predicates; soundness theorems OWED — see
+||| `PROOF-NEEDS.md`): integer overflow, indefinite-length bombs, tag confusion.
 module Proven.SafeCBOR
 
 import Data.String

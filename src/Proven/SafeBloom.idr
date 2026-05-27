@@ -1,9 +1,12 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeBloom - Safe Bloom filter implementation
+||| SafeBloom - Bloom filter implementation
 |||
-||| This module provides a probabilistic set membership data structure
-||| with guaranteed no false negatives.
+||| This module provides a probabilistic set membership data structure.
+||| Structural invariants (size / numHashes preservation across `clear` /
+||| `insert` / `union` / `intersection`) are discharged in `Proofs.idr`.
+||| The headline "no false negatives" property is currently OWED — see
+||| `Proofs.idr` § "items NOT covered here" and `PROOF-NEEDS.md`.
 module Proven.SafeBloom
 import Data.String
 import Data.List

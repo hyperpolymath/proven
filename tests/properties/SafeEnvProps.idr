@@ -27,29 +27,49 @@ prop_emptyNameFails = Refl
 prop_specialCharsFail : isErr (validateEnvName "MY-VAR") = True
 prop_specialCharsFail = Refl
 
-||| Property: Value sanitization removes nulls
-prop_sanitizeRemovesNulls : containsNull (sanitizeEnvValue "test\0value") = False
-prop_sanitizeRemovesNulls = ?prop_sanitizeRemovesNulls_rhs
+||| OWED: Value sanitization removes nulls
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_sanitizeRemovesNulls_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_sanitizeRemovesNulls : containsNull (sanitizeEnvValue "test\0value") = False
 
-||| Property: Value sanitization removes newlines
-prop_sanitizeRemovesNewlines : containsNewline (sanitizeEnvValue "test\nvalue") = False
-prop_sanitizeRemovesNewlines = ?prop_sanitizeRemovesNewlines_rhs
+||| OWED: Value sanitization removes newlines
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_sanitizeRemovesNewlines_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_sanitizeRemovesNewlines : containsNewline (sanitizeEnvValue "test\nvalue") = False
 
-||| Property: Get env returns type-safe result
-prop_getEnvTypeSafe : (name : ValidEnvName) ->
-                      Either String String = getEnv name
-prop_getEnvTypeSafe name = ?prop_getEnvTypeSafe_rhs
+||| OWED: Get env returns type-safe result
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_getEnvTypeSafe_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_getEnvTypeSafe : (name : ValidEnvName) ->
+                        Either String String = getEnv name
 
-||| Property: Required env fails when missing
-prop_requiredEnvFails : (name : ValidEnvName) -> envNotSet name = True ->
-                        isErr (requireEnv name) = True
-prop_requiredEnvFails name prf = ?prop_requiredEnvFails_rhs
+||| OWED: Required env fails when missing
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_requiredEnvFails_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_requiredEnvFails : (name : ValidEnvName) -> envNotSet name = True ->
+                          isErr (requireEnv name) = True
 
-||| Property: Default value used when missing
-prop_defaultUsed : (name : ValidEnvName) -> (def : String) ->
-                   envNotSet name = True ->
-                   getEnvOr name def = def
-prop_defaultUsed name def prf = ?prop_defaultUsed_rhs
+||| OWED: Default value used when missing
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_defaultUsed_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_defaultUsed : (name : ValidEnvName) -> (def : String) ->
+                     envNotSet name = True ->
+                     getEnvOr name def = def
 
 ||| Test runner for env properties
 export

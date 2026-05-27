@@ -9,13 +9,17 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'tests/**'
       - 'proven.ipkg'
+      - 'tests.ipkg'
       - '.github/workflows/idris2-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'src/**'
+      - 'tests/**'
       - 'proven.ipkg'
+      - 'tests.ipkg'
       - '.github/workflows/idris2-ci.yml'
   workflow_dispatch:
 
@@ -57,6 +61,12 @@ jobs:
 
       - name: Build proven library
         run: idris2 --build proven.ipkg
+
+      - name: Install proven library (required for tests.ipkg)
+        run: idris2 --install proven.ipkg
+
+      - name: Build property-test suite (tests.ipkg)
+        run: idris2 --build tests.ipkg
 
       - name: Type check all modules
         run: |

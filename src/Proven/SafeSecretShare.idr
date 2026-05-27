@@ -3,7 +3,9 @@
 ||| SafeSecretShare - Shamir's Secret Sharing with threshold proofs
 |||
 ||| Type-safe implementation of Shamir's (t,n)-threshold scheme over
-||| GF(p). Suitable for Agda cross-verification (algebraic proofs):
+||| GF(p). Suitable for Agda cross-verification of the following algebraic
+||| properties (verification not yet executed; theorems OWED — see
+||| `PROOF-NEEDS.md`):
 ||| - Threshold correctness: t shares reconstruct, t-1 don't
 ||| - Share independence: any t-1 shares reveal nothing
 ||| - Reconstruction uniqueness: polynomial interpolation is unique

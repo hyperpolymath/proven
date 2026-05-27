@@ -1,9 +1,10 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeRational - Safe rational number arithmetic with exact precision
+||| SafeRational - Rational number arithmetic with exact precision
 |||
 ||| This module provides rational numbers (fractions) with automatic
-||| normalization and safe operations that cannot crash.
+||| normalization. Non-crash invariants and gcd-correctness theorems are
+||| OWED — see `PROOF-NEEDS.md`.
 module Proven.SafeRational
 import Data.String
 import Data.List

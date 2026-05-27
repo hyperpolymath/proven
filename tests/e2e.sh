@@ -167,19 +167,21 @@ echo ""
 # ═══════════════════════════════════════════════════════════════════════
 bold "Section 4: Property tests"
 
-if $HAS_IDRIS2 && [ -f "tests/Main.idr" ]; then
-    PROP_COUNT=$(find tests/properties/ -name "*.idr" 2>/dev/null | wc -l)
+if $HAS_IDRIS2 && [ -f "tests.ipkg" ]; then
+    PROP_COUNT=$(find tests/properties/ -name "*.idr" -not -name "Main.idr" 2>/dev/null | wc -l)
     if [ "$PROP_COUNT" -gt 0 ]; then
         pass "Found $PROP_COUNT property test modules"
     fi
 
-    if timeout 120 idris2 --check tests/Main.idr >/dev/null 2>&1; then
-        pass "Property test suite type-checks"
+    # Install proven first (tests.ipkg depends on it), then build the test suite.
+    if timeout 60 idris2 --install proven.ipkg >/dev/null 2>&1 \
+       && timeout 120 idris2 --build tests.ipkg >/dev/null 2>&1; then
+        pass "Property test suite builds via tests.ipkg"
     else
-        skip_test "Property tests" "type-check failed or timed out"
+        skip_test "Property tests" "build failed or timed out"
     fi
 else
-    skip_test "Property tests" "idris2 not available or tests/Main.idr missing"
+    skip_test "Property tests" "idris2 not available or tests.ipkg missing"
 fi
 echo ""
 

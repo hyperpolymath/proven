@@ -5,7 +5,7 @@ package proven
 version = 1.1.0
 authors = "Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>"
 license = "MPL-2.0"
-brief = "Verified safe operations - code that cannot crash"
+brief = "Safe-operations library with proof companions (see PROOF-NEEDS.md for discharge status)"
 readme = "README.adoc"
 homepage = "https://github.com/hyperpolymath/proven"
 sourceloc = "https://github.com/hyperpolymath/proven"

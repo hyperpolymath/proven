@@ -2,9 +2,10 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| SafeWebSocket - Type-safe WebSocket protocol primitives
 |||
-||| Provides verified WebSocket frame types, close codes (RFC 6455),
-||| message size validation, and safe frame construction.
-||| Prevents: invalid close codes, oversized frames, protocol confusion.
+||| Provides type-safe WebSocket frame types, close codes (RFC 6455),
+||| message size validation, and frame construction. Aims to prevent (via
+||| `Bool` predicates; soundness theorems OWED — see `PROOF-NEEDS.md`):
+||| invalid close codes, oversized frames, protocol confusion.
 module Proven.SafeWebSocket
 
 import Data.String

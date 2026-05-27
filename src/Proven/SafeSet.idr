@@ -1,9 +1,10 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeSet - Safe set operations that cannot crash
+||| SafeSet - Set operations over sorted lists
 |||
-||| This module provides type-safe set operations using sorted lists
-||| for guaranteed correctness and deterministic behavior.
+||| This module provides type-safe set operations using sorted lists for
+||| deterministic behaviour. Non-crash and correctness invariant theorems
+||| are OWED — see `PROOF-NEEDS.md`.
 module Proven.SafeSet
 import Data.String
 import Data.List
