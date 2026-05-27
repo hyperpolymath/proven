@@ -17,11 +17,11 @@ The README makes claims. This file backs them up.
 
 === Claim 2: "120+ binding targets across 4 computing paradigms without reimplementing logic"
 
-**How it works:** Bindings follow a strict FFI-only pattern (ADR-008 in `.machine_readable/6a2/META.a2ml`). Language-specific bindings (Rust, Python, ReScript, etc.) in `bindings/<lang>/` are thin wrappers that: (1) accept user input in the target language, (2) marshal to C types, (3) call the Zig FFI (`ffi/zig/`), (4) unmarshal results back. No safety logic lives in bindings—only data conversion. This enables 120+ targets without 120+ reimplementations. A breaking change to SafeMath is fixed once in Idris2, recompiled to Zig, and all bindings immediately use the fixed code.
+**How it works:** Bindings follow a strict FFI-only pattern (ADR-008 in `.machine_readable/6a2/META.a2ml`). Language-specific bindings (Rust, Zig, Deno, etc.) in `bindings/<lang>/` are thin wrappers that: (1) accept user input in the target language, (2) marshal to C types, (3) call the Zig FFI (`ffi/zig/`), (4) unmarshal results back. No safety logic lives in bindings—only data conversion. This enables many targets without N reimplementations. A breaking change to SafeMath is fixed once in Idris2, recompiled to Zig, and all bindings immediately use the fixed code.
 
-**Caveat:** Bindings are scaffolded (18 complete, 102 partially implemented). Incomplete bindings may lack support for all SafeMath operations or all 104 modules. For production, focus on Rust, Python, ReScript, C first; others are aspirational. Pre-submission hypatia scans enforce 0 HIGH/CRITICAL findings before publishing to opam, crates.io, Hex.pm.
+**Caveat:** Bindings are scaffolded — most languages are partially implemented. Incomplete bindings may lack support for all SafeMath operations or all 104 modules. Production focus: Rust, Zig, C first; others are aspirational. Pre-submission hypatia scans enforce 0 HIGH/CRITICAL findings before publishing to opam, crates.io, Hex.pm. Python/Cython bindings were deleted 2026-05-27 in line with the estate-wide Python ban (see `hyperpolymath/standards` language policy).
 
-**Evidence:** `bindings/rust/safe_math.rs` calls proven FFI via `unsafe { proven_ffi_safe_add(...) }`; `bindings/python/proven/__init__.py` wraps Zig FFI via ctypes; `.machine_readable/6a2/META.a2ml` documents ADR-008; `hypatia-v2 . --severity critical --severity high` confirms 0 findings.
+**Evidence:** `bindings/rust/safe_math.rs` calls proven FFI via `unsafe { proven_ffi_safe_add(...) }`; `bindings/zig/src/safe_math.zig` wraps the same FFI directly; `.machine_readable/6a2/META.a2ml` documents ADR-008; `hypatia-v2 . --severity critical --severity high` confirms 0 findings.
 
 == Technology Choices
 
@@ -57,7 +57,7 @@ The README makes claims. This file backs them up.
 | `bindings/` | Language-specific thin wrappers (18 complete, 102 scaffolded)
 | `bindings/rust/` | Rust bindings: safe_*.rs files call proven FFI via unsafe { }
 | `bindings/rust/safe_math.rs` | Wraps proven_ffi_safe_add, proven_ffi_safe_mul, etc.
-| `bindings/python/` | Python ctypes wrappers for FFI calls
+| `bindings/zig/src/` | Zig language binding (calls FFI directly; necessarily Zig)
 | `bindings/rescript/` | ReScript FFI bindings, zero-cost JS compilation
 | `bindings/c/` | C header files and static library linking instructions
 | `bindings/<lang>/tests/` | Language-specific test harnesses (call FFI, verify results)

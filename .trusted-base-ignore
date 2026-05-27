@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# Trusted-base reduction policy exemptions for proven.
+# Format: one path-fragment substring per line; lines starting with `#`
+# are comments. See:
+#   https://github.com/hyperpolymath/standards/blob/main/docs/TRUSTED-BASE-REDUCTION-POLICY.adoc
+#   hyperpolymath/standards/scripts/check-trusted-base.sh (parser)
+#
+# Each entry must explain WHY the escape hatch is acceptable.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI entry-point `partial` on `main : IO ()`
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Why exempted:
+#   The Idris2 standard-library `IO` primitives (`putStrLn`, `getLine`,
+#   file-handle ops) are not declared `total` upstream, so a top-level
+#   `main : IO ()` that uses them cannot be marked `total` without
+#   rewriting the entire IO surface. The escape hatch is confined to
+#   the outermost CLI shell, which performs no proof work — every call
+#   into the library proper goes through the totality-checked `Proven.*`
+#   API. This is the canonical "partial top, total interior" pattern.
+#
+# Audit invariants for each exempted file:
+#   - `partial` appears on the line immediately preceding `main : IO ()`.
+#   - The body of `main` calls only `IO` primitives and `Proven.*` exports.
+#   - No `believe_me`, no `idris_crash`, no `%unsafe` inside `main`.
+#
+# Path fragment (substring match): covers every app's CLI entry point.
+apps/proven-backup/src/Main.idr
+apps/proven-chat/src/Main.idr
+apps/proven-container/src/Main.idr
+apps/proven-graphdb/src/Main.idr
+apps/proven-ldp/src/Main.idr
+apps/proven-media/src/Main.idr
+apps/proven-semweb/src/Main.idr
+apps/proven-sparql/src/Main.idr
+apps/proven-triplestore/src/Main.idr
+apps/proven-virt/src/Main.idr

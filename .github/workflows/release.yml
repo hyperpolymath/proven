@@ -17,11 +17,6 @@ on:
         required: false
         default: true
         type: boolean
-      publish_pypi:
-        description: 'Publish to PyPI'
-        required: false
-        default: true
-        type: boolean
       publish_npm:
         description: 'Publish to npm'
         required: false
@@ -67,10 +62,6 @@ jobs:
           RUST_VERSION=$(grep '^version' bindings/rust/Cargo.toml | head -1 | cut -d'"' -f2)
           echo "Rust: $RUST_VERSION"
 
-          # Check Python
-          PYTHON_VERSION=$(grep '^version' bindings/python/pyproject.toml | head -1 | cut -d'"' -f2)
-          echo "Python: $PYTHON_VERSION"
-
           # Check Deno
           DENO_VERSION=$(jq -r '.version' bindings/deno/deno.json)
           echo "Deno: $DENO_VERSION"
@@ -104,29 +95,21 @@ jobs:
           body: |
             ## proven v${{ needs.validate.outputs.version }}
 
-            Formally verified safety library with bindings for 40 programming languages.
+            Formally verified safety library with bindings for the allowed-language set.
 
             ### Install
 
             **Rust**: `cargo add proven`
-            **Python**: `pip install proven`
             **Deno**: `deno add @hyperpolymath/proven`
             **npm**: `npm install @proven/javascript`
 
-            See [documentation](https://github.com/hyperpolymath/proven#readme) for all 40 language bindings.
+            See [documentation](https://github.com/hyperpolymath/proven#readme) for the full binding set.
 
   publish-crates:
     name: Publish to crates.io
     needs: [validate, create-release]
     if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_crates)
     uses: ./.github/workflows/publish-crates.yml
-    secrets: inherit
-
-  publish-pypi:
-    name: Publish to PyPI
-    needs: [validate, create-release]
-    if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_pypi)
-    uses: ./.github/workflows/publish-pypi.yml
     secrets: inherit
 
   publish-npm:
@@ -145,7 +128,7 @@ jobs:
 
   summary:
     name: Release summary
-    needs: [validate, publish-crates, publish-pypi, publish-npm, publish-jsr]
+    needs: [validate, publish-crates, publish-npm, publish-jsr]
     if: always()
     runs-on: ubuntu-latest
 
@@ -157,6 +140,5 @@ jobs:
           echo "| Registry | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| crates.io | ${{ needs.publish-crates.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| PyPI | ${{ needs.publish-pypi.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| npm | ${{ needs.publish-npm.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| JSR | ${{ needs.publish-jsr.result }} |" >> $GITHUB_STEP_SUMMARY

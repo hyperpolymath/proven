@@ -67,13 +67,19 @@ jobs:
 
       - name: No dangerous Idris2 patterns
         run: |
-          DANGEROUS=$(grep -rn 'believe_me\|assert_total\|really_believe_me' src/ 2>/dev/null | grep -v test || true)
+          # Match actual usage, not doc-comment mentions. The matched line
+          # must (a) contain the pattern, (b) not start (after whitespace)
+          # with `|||` (Idris doc comment) or `--` (regular comment).
+          DANGEROUS=$(grep -rn 'believe_me\|assert_total\|really_believe_me' src/ 2>/dev/null \
+                       | grep -v test \
+                       | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(\|\|\||--)' \
+                       || true)
           if [ -n "$DANGEROUS" ]; then
-            echo "FAIL: Dangerous patterns found in src/"
+            echo "FAIL: Dangerous patterns found in src/ (excluding comments)"
             echo "$DANGEROUS"
             exit 1
           fi
-          echo "PASS: No believe_me/assert_total in src/"
+          echo "PASS: No believe_me/assert_total in src/ (comments OK)"
 
       - name: No @panic in Zig production code
         run: |

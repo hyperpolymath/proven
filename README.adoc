@@ -1933,7 +1933,7 @@ Crashes are a choice. Choose otherwise.
 
 === Next (Q2 2026)
 
-* ❏ Registry publishing (crates.io, PyPI, npm, JSR)
+* ❏ Registry publishing (crates.io, npm, JSR)
 * ❏ Post-quantum crypto (Dilithium, Kyber)
 * ❏ WebAssembly browser bundle
 * ❏ IDE plugins (VS Code, IntelliJ)

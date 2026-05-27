@@ -11,8 +11,9 @@
 ## What You MUST NOT Do
 
 ❌ **NEVER write language binding code that reimplements logic**
-- Bindings in `bindings/rust/`, `bindings/rescript/`, `bindings/python/`, etc.
+- Bindings in `bindings/rust/`, `bindings/zig/`, `bindings/deno/`, etc.
 - These must ONLY wrap Idris FFI calls, NOT reimplement algorithms
+- **Python/Cython bindings deleted 2026-05-27** (estate Python ban; no exceptions)
 
 ❌ **NEVER use unsafe patterns in bindings**
 - Rust: No `unwrap()`, `expect()`, `panic!()`
@@ -62,9 +63,10 @@ proven/
 │   └── build.zig           # Compiles Idris + Zig to C ABI
 ├── bindings/               # Language-specific thin wrappers
 │   ├── rust/               # Calls ffi/zig via FFI
-│   ├── rescript/           # Calls ffi/zig via FFI
-│   ├── python/             # Calls ffi/zig via FFI
-│   └── ...                 # All 89 targets
+│   ├── zig/                # Zig language binding (necessarily Zig)
+│   ├── deno/               # Calls ffi/zig via FFI
+│   └── ...                 # Allowed-language set per estate policy
+│                           # (no Python, no Cython, no TypeScript — see standards CLAUDE.md)
 └── docs/                   # Documentation
 ```
 
