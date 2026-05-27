@@ -9,14 +9,8 @@
     },
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.12"
-    },
     "ghcr.io/devcontainers/features/rust:1": {
       "version": "stable"
-    },
-    "ghcr.io/devcontainers/features/go:1": {
-      "version": "latest"
     }
   },
 
@@ -29,9 +23,6 @@
         "ziglang.vscode-zig",
         "denoland.vscode-deno",
         "rust-lang.rust-analyzer",
-        "ms-python.python",
-        "ms-python.black-formatter",
-        "golang.go",
         "asciidoctor.asciidoctor-vscode",
         "editorconfig.editorconfig",
         "redhat.vscode-yaml",
