@@ -74,7 +74,9 @@ public export
 ||| available — symmetric to the `Boj.SafetyLemmas.charEqSym` class-J
 ||| axiom already shipped in boj-server. Until then, recording this
 ||| as a stated OWED (parallel to the `SafeChecksum` String-FFI set)
-||| keeps the obligation discoverable rather than silent.
+||| keeps the obligation discoverable rather than silent. Specifically
+||| awaits a `Data.Char.eqCharSym` reflective lemma symmetric to
+||| `Boj.SafetyLemmas.charEqSym`.
 public export
 0 constantTimeEqSym : (a, b : String) -> constantTimeEqual a b = constantTimeEqual b a
 

@@ -1,9 +1,10 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeRegistry - Safe OCI registry reference parsing and validation
+||| SafeRegistry - OCI registry reference parsing and validation
 |||
-||| This module provides formally verified parsing of OCI/Docker image references
-||| with guarantees of correctness and termination.
+||| This module provides parsing of OCI/Docker image references via
+||| Bool predicate validators. Correctness and termination theorems are
+||| OWED — see `PROOF-NEEDS.md`.
 |||
 ||| Format: [registry/]repository[:tag][@digest]
 |||
