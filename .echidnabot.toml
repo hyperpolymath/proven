@@ -27,9 +27,9 @@ forbidden_patterns = [
     # Rust reimplementations
     "bindings/rust/src/safe_*.rs",
 
-    # ReScript reimplementations with unsafe patterns
-    "bindings/rescript/src/**/getExn",
-    "bindings/rescript/src/**/Obj.magic",
+    # AffineScript escape hatches (ReScript was banned 2026-04-30; the
+    # binding migrated to bindings/affinescript/ with .afs files).
+    "bindings/affinescript/src/**/.unwrap",
 
     # Any logic files in bindings (should only have FFI wrappers)
     "bindings/*/src/**/{safe,Safe,Proven}*",
