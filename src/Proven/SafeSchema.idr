@@ -1,13 +1,15 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
--- SafeSchema: Formally verified schema evolution and migration
+-- SafeSchema: Schema evolution and migration framework.
+-- Compatibility / correctness theorems are OWED — see PROOF-NEEDS.md.
 --
 -- Provides:
 -- - Type-safe schema definitions
--- - Migration with forward/backward compatibility proofs
+-- - Migration with forward/backward compatibility checks (compatibility
+--   theorems pending)
 -- - Schema versioning with semver semantics
--- - Data transformation correctness guarantees
+-- - Data transformation records (transformation-correctness theorems pending)
 
 module Proven.SafeSchema
 import Data.String

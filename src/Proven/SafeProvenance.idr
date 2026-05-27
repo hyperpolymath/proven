@@ -1,13 +1,14 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
--- SafeProvenance: Formally verified change tracking and audit trails
+-- SafeProvenance: Change tracking and audit trail records.
+-- Integrity / verification theorems are OWED — see PROOF-NEEDS.md.
 --
 -- Provides:
--- - Change tracking with causality
--- - Audit trail integrity proofs
--- - Data lineage verification
--- - Tamper detection
+-- - Change tracking with causality (causality-correctness theorem pending)
+-- - Audit trail integrity records (integrity theorem pending)
+-- - Data lineage records (lineage-correctness theorem pending)
+-- - Tamper-detection predicates (tamper-detection soundness theorem pending)
 
 module Proven.SafeProvenance
 

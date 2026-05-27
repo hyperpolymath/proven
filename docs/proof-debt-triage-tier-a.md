@@ -159,7 +159,7 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 | constantTimeRefl | 209–210 | hash XOR self = True | 6 | DISCHARGE | ~40 min | `Bits8` self-xor; needs `Data.Bits.xor_self` or hand-rolled |
 | constantTimeSym | 220–221 | CTC symmetric | 6 | DISCHARGE | ~40 min | xor commutativity on `Bits8`; inline algebraic lemma |
 | differentLengthNoMatch | 236–238 | different length ⇒ no match | 7 | DISCHARGE | ~30 min | `Nat /=` reflection from guard via Bool-Prop bridge |
-| strengthScoreBounded | 257–258 | score ≤ 100 | 3 | DISCHARGE-after-totality | ~60 min | analyzeStrength covering; needs `detectDatePattern.windows` total |
+| strengthScoreBounded | 257–258 | score ≤ 100 | 3 | DISCHARGE-after-totality | ~60 min | analyzeStrength covering; needs `detectDatePattern.windows` total — tracked in **#80** |
 | entropyNonNegative | 273–274 | entropy ≥ 0 | 3+? | OWED-AXIOM | 0 | analyzeStrength covering + Double non-neg missing from stdlib |
 | longerHigherEntropy | 290–292 | longer ⇒ ≥ entropy | 1+2+3 | OWED-AXIOM | 0 | triple stack: String FFI + Char FFI + covering |
 | veryStrongMax | 305 | VeryStrong is max | 7 | DISCHARGE | ~35 min | 5-constructor enum; one Refl per arm |
@@ -171,8 +171,8 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 | builderProducesPolicy | 407 | builder empty = default | 5 | DISCHARGE | ~20 min | `MkPolicyBuilder` newtype unwrap; `%inline` or definitional split |
 | withMinLengthCorrect | 419–420 | withMinLength sets field | 5 | DISCHARGE | ~25 min | record-update through newtype |
 | chainedBuildersCompose | 434–435 | chained updates compose | 5 | DISCHARGE | ~25 min | reduces to withMinLengthCorrect after one update-norm step |
-| higherImpliesLower | 454–458 | higher req ⇒ lower req | 3+7 | DISCHARGE-after-totality | ~50 min | `meetsRequirement`/`quickStrengthCheck` covering + custom Ord |
-| veryStrongSatisfiesAll | 471–474 | VeryStrong ⇒ all reqs | 3+7 | DISCHARGE-after-totality | ~40 min | reduces to veryStrongMax + strengthScoreBounded after totality |
+| higherImpliesLower | 454–458 | higher req ⇒ lower req | 3+7 | DISCHARGE-after-totality | ~50 min | `meetsRequirement`/`quickStrengthCheck` covering + custom Ord — tracked in **#80** |
+| veryStrongSatisfiesAll | 471–474 | VeryStrong ⇒ all reqs | 3+7 | DISCHARGE-after-totality | ~40 min | reduces to veryStrongMax + strengthScoreBounded after totality — tracked in **#80** |
 | argon2ParamsValid | 144–148 | Argon2 fields in bounds | 4 | OWED-AXIOM | 0 | if-chain over abstract Argon2Params; external lib correctness |
 | bcryptCostBounded | 158–160 | bcrypt cost in [10,31] | 4 | OWED-AXIOM | 0 | if-chain over abstract BcryptParams |
 | defaultArgon2Valid | 175 | defaultArgon2Params valid | 4 | OWED-AXIOM | 0 | Nat-literal `<`-comparison in if-chain |
@@ -284,8 +284,8 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 |---|---:|---|---|---|---|---|
 | constantTimeRefl | 58 | `digestEq d d = True` | 6 | OWED-AXIOM | 0 | `Data.Bits xor x x = 0` not exposed |
 | constantTimeSym | 69 | `digestEq d1 d2 = digestEq d2 d1` | 6 | OWED-AXIOM | 0 | `Data.Bits xor` commutativity not exposed |
-| modernIsSecure | 138 | `securityLevel alg = Modern ⇒ isSecure alg = True` | 3 | DISCHARGE-after-totality | ~30 min | `case` not eta-expanded under rewrite; doable after 0.9.0 |
-| standardIsSecure | 148 | `securityLevel alg = Standard ⇒ isSecure alg = True` | 3 | DISCHARGE-after-totality | ~30 min | symmetric to modernIsSecure |
+| modernIsSecure | 138 | `securityLevel alg = Modern ⇒ isSecure alg = True` | (Idris2 0.9.0 dep, not Family 3) | DISCHARGE-after-Idris2-upgrade | ~30 min | `case` not eta-expanded under rewrite; tracked in **#83** |
+| standardIsSecure | 148 | `securityLevel alg = Standard ⇒ isSecure alg = True` | (Idris2 0.9.0 dep, not Family 3) | DISCHARGE-after-Idris2-upgrade | ~30 min | symmetric to modernIsSecure; tracked in **#83** |
 | digestEqRefl | 162 | duplicate of constantTimeRefl | 6 | OWED-AXIOM | 0 | same xor blocker |
 | digestEqSym | 168 | duplicate of constantTimeSym | 6 | OWED-AXIOM | 0 | same |
 | differentDigestsUnequal | 180 | `Not (d1 = d2) ⇒ digestEq d1 d2 = False` | 6 | OWED-AXIOM | 0 | xor injectivity not exposed |
@@ -309,14 +309,14 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 | setHasKey | 139 | `isObject obj ⇒ hasKey k (set k v obj) = True` | 1 | OWED-AXIOM | 0 | same `prim__eq_String` blocker |
 | removeNotHasKey | 157 | `hasKey k (remove k obj) = False` | 1 | OWED-AXIOM | 0 | String `!=` on pairs + filter |
 | appendLengthInc | 197 | `length (arr ++ [v]) = length arr + 1` | — | DISCHARGE | ~40 min | `lengthAppend` + `plusZeroRightNeutral` + S congruence |
-| singleKeyPath | 228 | `getPath [Key k] (JsonObject obj) = lookup k obj` | 3 | DISCHARGE-after-totality | ~50 min | getPath is `covering`; mutually-recursive metric |
+| singleKeyPath | 228 | `getPath [Key k] (JsonObject obj) = lookup k obj` | 3 | DISCHARGE-after-totality | ~50 min | getPath is `covering`; mutually-recursive metric — tracked in **#81** |
 | parseNullCorrect | 258 | `parseJson "null" = Just JsonNull` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseTrueCorrect | 264 | `parseJson "true" = Just (JsonBool True)` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseFalseCorrect | 270 | `parseJson "false" = Just (JsonBool False)` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseEmptyFails | 279 | `parseJson "" = Nothing` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseEmptyArray | 287 | `parseJson "[]" = Just (JsonArray [])` | 1 | PROPERTY-TEST | ~10 min | two-char lookahead via strSubstr |
 | parseEmptyObject | 294 | `parseJson "{}" = Just (JsonObject [])` | 1 | PROPERTY-TEST | ~10 min | same lookahead pattern |
-| anyMatchesTAny | 339 | `matchesType v TAny = True` for all `v` | 3 | DISCHARGE-after-totality | ~50 min | matchesType is `covering`; six-arm split after totality |
+| anyMatchesTAny | 339 | `matchesType v TAny = True` for all `v` | 3 | DISCHARGE-after-totality | ~50 min | matchesType is `covering`; six-arm split after totality — tracked in **#81** |
 
 **Module summary:** 1 DISCHARGE + 2 DISCHARGE-after-totality + 6 PROPERTY-TEST + 4 OWED-AXIOM. Cost: ~3-4h (2h if totality lands). Half the module is concrete-input PROPERTY-TEST (parser tests); covering-function gap is the second-largest blocker after String FFI.
 

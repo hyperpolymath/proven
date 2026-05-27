@@ -390,3 +390,110 @@ This file is regenerated, not edited line-by-line, when:
 The grep recipes are pinned in §1 so any maintainer can re-run the inventory
 and check this file's counts have not drifted. If they have, update §1 and
 §4 in the same PR; do not let this file's numbers contradict the live grep.
+
+---
+
+## 11. Phase 2 completion (2026-05-27)
+
+Phase 2 Days 1–21 landed across PRs #76 / #77 (the latter independent;
+#76 bundles four pieces via in-branch merges of #78 / #79 plus the
+follow-on commit that includes this section). Summary of outcomes per
+day-band:
+
+### Day 1 — Test wireup
+- `tests.ipkg` + `idris2-ci.yml` install/build steps + Justfile +
+  `tests/e2e.sh` + `docs/TESTING.md` updated.
+- Orphan `tests/properties/` (29 files, 606 prop declarations) now
+  CI-checked.
+- 87 `prop_X = ?prop_X_rhs` holes converted to Fork A OWED stubs
+  (`0 prop_X : Type` + `||| OWED:` doc).
+
+### Day 2 — SafeDigest `@ Assumed:` migration
+- 4 `@ Assumed:` tags migrated to Fork A `||| OWED:` + `0` form in #77.
+
+### Days 3–10 — Tier A per-site reads (15 modules, ~209 OWED sites)
+- Per-site disposition tables for all 15 Tier A modules in
+  [`proof-debt-triage-tier-a.md`](proof-debt-triage-tier-a.md).
+- Aggregate: ~59 DISCHARGE + ~7 DISCHARGE-after-totality + ~66
+  PROPERTY-TEST + ~79 OWED-AXIOM.
+- DISCHARGE backlog concentrated: SafeRegex (20) + SafeBase64 (10) +
+  SafeEmail (10) = ~70% of immediate-discharge work.
+
+### Days 11–14 — Tier B totality refactor tickets
+- **proven#80** — SafePassword.Strength `windows`/`detectPatterns`/
+  `analyzeStrength` covering→total refactor. Discharges 3 OWED sites
+  (`strengthScoreBounded`, `higherImpliesLower`, `veryStrongSatisfiesAll`).
+- **proven#81** — SafeJson.Access `%default covering` → per-function
+  `total` refactor. Discharges 2 OWED sites (`singleKeyPath`,
+  `anyMatchesTAny`).
+- **proven#83** — SafeCrypto `modernIsSecure`/`standardIsSecure` Idris2
+  0.9.0 dependency tracker (NOT a totality issue; case-rewrite
+  eta-expansion in elaborator). Discharges 2 OWED sites once 0.9.0 lands.
+- Cross-references added to tier-a doc rows for the 7 sites tracked
+  across these 3 issues.
+
+### Days 15–18 — Tier C OWED-AXIOM library/version audit
+- All **79/79 OWED-AXIOM sites** in Tier A modules **pass audit**: each
+  doc comment names its library (Idris2 0.8.0 + specific dependencies),
+  pins a version, and gives an actionable discharge condition.
+- One minor doc-comment clarification landed: `SafeCSRF/Proofs.idr:79`
+  `constantTimeEqSym` now explicitly names `Data.Char.eqCharSym` as the
+  awaited reflective lemma.
+
+### Days 19–21 — Witness-only long-tail enumeration
+- Adversarial-grep + per-module inspection of the 133 single-file
+  `src/Proven/Safe*.idr` modules surfaced **6 additional confirmed
+  overclaim modules** beyond the 13 already enumerated in
+  `PROOF-NEEDS.md`:
+  - **SafeSupplyChain** (HIGH — SLSA tamper-prevention)
+  - **SafePBKDF2** (HIGH — KDF parameter validation)
+  - **SafeProvenance** (MEDIUM — change tracking)
+  - **SafePolicy** (MEDIUM — policy enforcement)
+  - **SafeRegistry** (MEDIUM — OCI parsing)
+  - **SafeSchema** (MEDIUM — schema evolution)
+- 2 modules re-classified as **actually proven** (NOT overclaims):
+  SafeTrust (`satisfiesMonotone` discharged) + SafeOrdering (already
+  noted in PROOF-NEEDS.md adversarial sample).
+- Headers softened for all 6 new overclaim modules in this PR (same
+  pattern as the 22 softenings in #76).
+- `PROOF-NEEDS.md` patched to add the 6 new entries to §"Owed" and to
+  document the 3 cross-cutting overclaim patterns for batch-fix in
+  Phase 3.
+
+### Long-tail still extrapolated
+
+The Days 19–21 enumeration was partial — Bash permission boundaries on
+the audit sub-agent prevented full read-through of all 76 claim-bearing
+single-file modules. On the order of **~54 modules remain extrapolated**
+as overclaim candidates per the original 3% genuinely-proven sample
+rate. These represent the residual Phase 2 work that would close the
+extrapolation entirely. Three batch-fix templates in PROOF-NEEDS.md
+let Phase 3 (or a follow-up Phase 2 session) process the long tail
+mechanically.
+
+### What remains uncovered by Phase 2
+
+- The **29 OWED-bearing modules** outside the Tier A 15 (~70 OWED
+  sites) listed in §4 as "(remaining 29 OWED-bearing modules)" did NOT
+  receive per-site reads. These could be picked up as a Phase 2-bis
+  pass or rolled into Phase 3 sequencing. The triage doc's original
+  estimate of 70 sites across this tail (averaging 2-3 OWED per module)
+  is unchanged.
+- **Discharge** — no proof was actually discharged in Phase 2. Phase 3
+  is the discharge campaign; sequencing recommendation in
+  `proof-debt-triage-tier-a.md` § Cross-module observations.
+
+### Net visible debt after Phase 2
+
+- **280** Fork A OWED annotations in `src/Proven/*/Proofs.idr`
+- **87** Fork A OWED stubs in `tests/properties/*Props.idr`
+- **19** enumerated overclaim modules in PROOF-NEEDS.md (was 13;
+  +6 from Days 19-21)
+- **~54** long-tail single-file modules still extrapolated as
+  overclaim candidates
+- **3** GitHub issues open for Phase 3 unblocking (#80, #81, #83)
+
+Total visible, grep-discoverable debt entries: **~386** (280 + 87 + 19).
+The estate-wide trust-root ledger is now honest about every entry it
+names; the residual ~54 extrapolated modules are honestly tagged as
+extrapolated.

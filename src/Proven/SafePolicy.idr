@@ -1,12 +1,13 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
--- SafePolicy: Formally verified policy enforcement
+-- SafePolicy: AST-level policy enforcement framework.
+-- Enforcement soundness theorems are OWED — see PROOF-NEEDS.md.
 --
 -- Provides:
--- - AST-level policy enforcement with zone classification
--- - Rule composition with conflict detection
--- - Policy evaluation with audit trails
+-- - AST-level policy enforcement via zone-classification predicates
+-- - Rule composition with conflict-detection predicates
+-- - Policy evaluation with audit-trail records
 -- - Zone boundaries (mutable/immutable/hybrid)
 
 module Proven.SafePolicy
