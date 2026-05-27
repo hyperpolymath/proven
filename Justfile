@@ -112,12 +112,19 @@ test-idris:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "[proven] Running Idris2 tests..."
-    if [ -f test-simple.ipkg ]; then
-        idris2 --build test-simple.ipkg
-        echo "[proven] Idris2 build test passed"
-    elif [ -f tests.ipkg ]; then
+    if [ -f tests.ipkg ]; then
+        echo "[proven] Installing proven library (required for tests)..."
+        idris2 --install proven.ipkg
+        echo "[proven] Building property-test suite..."
         idris2 --build tests.ipkg
-    else
+        echo "[proven] Property tests passed"
+    fi
+    if [ -f test-simple.ipkg ]; then
+        echo "[proven] Building FFI smoke test..."
+        idris2 --build test-simple.ipkg
+        echo "[proven] FFI smoke test passed"
+    fi
+    if [ ! -f tests.ipkg ] && [ ! -f test-simple.ipkg ]; then
         echo "[proven] No Idris2 test suite found. Skipping."
     fi
 

@@ -61,7 +61,7 @@ idris2 --check src/Proven.idr
 
 ### Test Suite Structure
 
-**Location:** `tests/Main.idr`, `tests/properties/`
+**Location:** `tests.ipkg` (build manifest), `tests/properties/Main.idr` (runner), `tests/properties/*Props.idr` (29 per-module suites)
 
 **Test Modules (29):**
 
@@ -557,8 +557,10 @@ jobs:
           # Install Idris2 ${{ matrix.idris-version }}
       - name: Build proven
         run: idris2 --build proven.ipkg
-      - name: Run tests
-        run: idris2 --exec main tests/Main.idr
+      - name: Install proven (required for tests.ipkg)
+        run: idris2 --install proven.ipkg
+      - name: Build property-test suite
+        run: idris2 --build tests.ipkg
 ```
 
 **Status:** ✓ **CI configured**, ⚠ **need execution results**
