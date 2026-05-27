@@ -1,13 +1,15 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
--- SafeCapability: Formally verified capability-based security
+-- SafeCapability: Capability-based security implementation.
+-- Correctness theorems (delegation soundness, confinement) are OWED —
+-- see PROOF-NEEDS.md and the 5 OWED items in Proofs.idr.
 --
 -- Provides:
--- - Type-safe capabilities with delegation proofs
+-- - Type-safe capability witness types (delegation-proof discharge pending)
 -- - Permission hierarchies with attenuation
--- - Revocation with temporal validity
--- - Confinement guarantees
+-- - Revocation with temporal validity (validity-respect theorem pending)
+-- - Confinement (confinement-guarantee theorem pending)
 
 module Proven.SafeCapability
 import Data.String

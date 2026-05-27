@@ -1,12 +1,15 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
--- SafeConsensus: Formally verified distributed consensus algorithms
+-- SafeConsensus: Distributed consensus algorithm implementation.
+-- Correctness theorems (agreement, safety, log-matching) are OWED —
+-- see PROOF-NEEDS.md. Companion Proofs.idr discharges structural
+-- record-projection anchors only.
 --
 -- Provides:
 -- - Type-safe Raft consensus protocol primitives
--- - Leader election with quorum proofs
--- - Log replication with consistency guarantees
+-- - Leader election (quorum-proof theorems pending)
+-- - Log replication (consistency-guarantee theorems pending)
 -- - Paxos-style proposals
 
 module Proven.SafeConsensus

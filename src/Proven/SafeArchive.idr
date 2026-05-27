@@ -1,8 +1,11 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeArchive - Archive handling with Zip Slip prevention
+||| SafeArchive - Archive handling with Zip Slip detection
 |||
-||| Provides type-safe archive member validation that prevents:
+||| Provides type-safe archive member validation. The validators ship as
+||| `Bool` predicates (e.g. `hasPathTraversal`) aimed at preventing the
+||| following classes; soundness theorems (e.g. "no non-flagged entry
+||| traverses") are OWED — see `PROOF-NEEDS.md`:
 ||| - Zip Slip (path traversal via "../" in archive entries)
 ||| - Symlink attacks
 ||| - Zip bombs (excessive compression ratios)

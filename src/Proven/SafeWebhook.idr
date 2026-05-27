@@ -3,7 +3,9 @@
 ||| SafeWebhook - Webhook handling with signature verification
 |||
 ||| Provides type-safe webhook payload validation, signature verification,
-||| replay prevention, and idempotency tracking.
+||| replay-prevention checks, and idempotency tracking. Soundness theorems
+||| (signature-correctness, replay-detection, idempotency) are OWED — see
+||| `PROOF-NEEDS.md`.
 module Proven.SafeWebhook
 
 import Data.String

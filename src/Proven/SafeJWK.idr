@@ -7,7 +7,8 @@
 ||| - Algorithm allowlisting
 ||| - Minimum key strength enforcement
 ||| - Key rotation safety checks
-||| Prevents: weak keys, algorithm confusion, key misuse.
+||| Aims to prevent (via `Bool` predicates; soundness theorems OWED — see
+||| `PROOF-NEEDS.md`): weak keys, algorithm confusion, key misuse.
 module Proven.SafeJWK
 
 import Data.String

@@ -2,8 +2,13 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| SafeDigest - Cryptographically safe digest operations
 |||
-||| This module provides formally verified digest parsing, validation,
-||| and constant-time comparison to prevent timing attacks.
+||| This module provides digest parsing, validation, and constant-time
+||| comparison aimed at preventing timing attacks.
+|||
+||| Proof status: `parseAlgorithmRoundtrip` discharged in `Proofs.idr`.
+||| The `constantTimeReflexive` / `constantTimeSymmetric` / `verifyTransitive`
+||| claims are currently `@ Assumed:` (see `PROOF-NEEDS.md`); the previous
+||| header phrase "formally verified" overstated this and has been removed.
 |||
 ||| Supported algorithms: sha256, sha384, sha512, blake3
 module Proven.SafeDigest

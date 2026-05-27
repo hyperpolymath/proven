@@ -1,16 +1,22 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 --
--- SafeAttestation — Verified a2ml attestation types.
+-- SafeAttestation — a2ml attestation type definitions.
 --
 -- Defines the structure and invariants for a2ml attestation records
 -- used across the hyperpolymath ecosystem. Attestations provide
 -- content-addressable audit records for decisions (routing, access,
 -- policy evaluation).
 --
--- Key invariant: an attestation's hash is computed from its payload,
--- making it self-verifying. This module defines the types that
--- ensure attestation records are well-formed.
+-- Proof status: companion Proofs.idr (zero believe_me, zero OWED) discharges
+-- enum self-equality, parser rejection of unknown/weak algorithms, and
+-- record-projection anchors. The "hash is computed from its payload"
+-- self-verification claim is asserted by construction in the FFI layer —
+-- the corresponding hash-recomputation theorem is OWED (see PROOF-NEEDS.md).
+--
+-- Key construction invariant: an attestation's hash is intended to be
+-- computed from its payload, making it self-verifying. This module defines
+-- the types that ensure attestation records are well-formed.
 --
 -- Extracted from: cadre-router, hybrid-automation-router,
 --                 http-capability-gateway optimisation work.
