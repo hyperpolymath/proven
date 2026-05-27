@@ -54,16 +54,8 @@
       "problemMatcher": []
     },
     {
-      "label": "Test Python Bindings",
-      "type": "shell",
-      "command": "python",
-      "args": ["-m", "pytest", "bindings/python/tests/"],
-      "group": "test",
-      "problemMatcher": []
-    },
-    {
       "label": "Test All",
-      "dependsOn": ["Test Idris 2", "Test Zig", "Test Python Bindings"],
+      "dependsOn": ["Test Idris 2", "Test Zig"],
       "group": {
         "kind": "test",
         "isDefault": true

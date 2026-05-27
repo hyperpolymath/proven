@@ -28,8 +28,5 @@ echo 'export PATH="$HOME/.pack/bin:$PATH"' >> ~/.zshrc
 export PATH="$HOME/.pack/bin:$PATH"
 pack install-deps
 
-echo "==> Installing Python dependencies..."
-pip install --user pytest cffi black mypy
-
 echo "==> Setup complete!"
 echo "    Restart your terminal or run: source ~/.zshrc"

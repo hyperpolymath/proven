@@ -29,12 +29,6 @@
     "editor.formatOnSave": true
   },
 
-  "[python]": {
-    "editor.tabSize": 4,
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "ms-python.black-formatter"
-  },
-
   "[rust]": {
     "editor.tabSize": 4,
     "editor.formatOnSave": true,
@@ -57,7 +51,6 @@
     "**/zig-cache": true,
     "**/.zig-cache": true,
     "**/node_modules": true,
-    "**/__pycache__": true,
     "**/target": true
   }
 }
