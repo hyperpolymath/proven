@@ -8,8 +8,8 @@
 *.ex    text eol=lf diff=elixir
 *.exs   text eol=lf diff=elixir
 *.jl    text eol=lf
-*.res   text eol=lf
-*.resi  text eol=lf
+*.affine text eol=lf
+*.afs   text eol=lf
 *.ada   text eol=lf diff=ada
 *.adb   text eol=lf diff=ada
 *.ads   text eol=lf diff=ada
