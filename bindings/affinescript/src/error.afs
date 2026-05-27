@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// Proven.Error -- Status codes and structured error type for the Proven FFI.
+///
+/// Mirrors the integer status codes exposed by libproven (Idris 2 + Zig).
+/// No logic is reimplemented here -- this module only provides the variant
+/// type, the integer<->variant conversion and a human-readable description
+/// helper. The canonical affine `ProvenError` record lives in the top-level
+/// `Proven` module (see `proven.afs`); this module supplements it with the
+/// structured `ProvenStatus` ADT that the legacy ReScript binding exposed.
+
+module Proven.Error
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Status variant (mirrors ProvenError.res `provenStatus`)
+// ---------------------------------------------------------------------------
+
+/// Status codes from Proven FFI operations, as a closed sum type.
+type ProvenStatus =
+  | StatusOk
+  | StatusNullPointer
+  | StatusInvalidArgument
+  | StatusOverflow
+  | StatusUnderflow
+  | StatusDivisionByZero
+  | StatusParseFailure
+  | StatusValidationFailed
+  | StatusOutOfBounds
+  | StatusEncodingError
+  | StatusAllocationFailed
+  | StatusNotImplemented
+
+/// Map a raw integer status code from libproven to a ProvenStatus variant.
+/// Mirrors `ProvenError.statusFromCode`. Pure.
+fn status_from_code(code: Int) -> ProvenStatus / Pure {
+  match code {
+    0   => StatusOk,
+    -1  => StatusNullPointer,
+    -2  => StatusInvalidArgument,
+    -3  => StatusOverflow,
+    -4  => StatusUnderflow,
+    -5  => StatusDivisionByZero,
+    -6  => StatusParseFailure,
+    -7  => StatusValidationFailed,
+    -8  => StatusOutOfBounds,
+    -9  => StatusEncodingError,
+    -10 => StatusAllocationFailed,
+    -99 => StatusNotImplemented,
+    _   => StatusInvalidArgument
+  }
+}
+
+/// Convert a ProvenStatus variant back to its libproven integer code.
+fn status_to_code(status: ProvenStatus) -> Int / Pure {
+  match status {
+    StatusOk               => 0,
+    StatusNullPointer      => -1,
+    StatusInvalidArgument  => -2,
+    StatusOverflow         => -3,
+    StatusUnderflow        => -4,
+    StatusDivisionByZero   => -5,
+    StatusParseFailure     => -6,
+    StatusValidationFailed => -7,
+    StatusOutOfBounds      => -8,
+    StatusEncodingError    => -9,
+    StatusAllocationFailed => -10,
+    StatusNotImplemented   => -99
+  }
+}
+
+/// Human-readable description of a ProvenStatus.
+/// Mirrors `ProvenError.statusToMessage`.
+fn status_to_message(status: ProvenStatus) -> String / Pure {
+  match status {
+    StatusOk               => "Operation succeeded",
+    StatusNullPointer      => "Null pointer passed to function",
+    StatusInvalidArgument  => "Invalid argument",
+    StatusOverflow         => "Integer overflow",
+    StatusUnderflow        => "Integer underflow",
+    StatusDivisionByZero   => "Division by zero",
+    StatusParseFailure     => "Parse failure",
+    StatusValidationFailed => "Validation failed",
+    StatusOutOfBounds      => "Index out of bounds",
+    StatusEncodingError    => "Encoding error",
+    StatusAllocationFailed => "Memory allocation failed",
+    StatusNotImplemented   => "Not implemented"
+  }
+}
+
+/// Build a full `ProvenError` from a structured status variant.
+/// Convenience bridge between the variant form (this module) and the
+/// affine record form (top-level `Proven` module).
+fn error_from_status(status: ProvenStatus) -> own ProvenError / Pure {
+  ProvenError {
+    code: status_to_code(status),
+    message: status_to_message(status)
+  }
+}

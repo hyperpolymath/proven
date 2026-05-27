@@ -1,0 +1,142 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeHeader -- Affine wrappers around libproven HTTP header FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Results are affine (consumed at most once).
+/// Prevents CRLF injection and dangerous header use.
+///
+/// Ported from bindings/rescript/src/ProvenSafeHeader.res. The ReScript
+/// version dispatched through bindings/javascript/src/safe_header.js
+/// (a JS FFI scope). This AffineScript port bypasses the JS layer and
+/// calls the Zig FFI directly.
+
+module Proven.SafeHeader
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// Only `proven_header_has_crlf` is exported by ffi/zig/src/main.zig today
+// (2026-05-27). The remaining symbols are predicted from JS FFI scope names
+// in bindings/javascript/src/safe_header.js and must be added to Zig before
+// these wrappers will link.
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_header_has_crlf")
+fn extern_proven_header_has_crlf(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_header_is_valid_name")
+fn extern_proven_header_is_valid_name(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_header_is_dangerous")
+fn extern_proven_header_is_dangerous(ptr: ref RawPtr[Byte], len: Int) -> BoolResult / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_header_render")
+fn extern_proven_header_render(
+  name_ptr: ref RawPtr[Byte], name_len: Int,
+  value_ptr: ref RawPtr[Byte], value_len: Int
+) -> StringResult / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_header_build_csp")
+fn extern_proven_header_build_csp(ptr: ref RawPtr[Byte], len: Int) -> StringResult / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+// PORT-CHECK: includeSubDomains/preload marshalled as Bool -> Int (0/1) per C ABI convention.
+@extern("C", "proven_header_build_hsts")
+fn extern_proven_header_build_hsts(
+  max_age: Int,
+  include_subdomains: Int,
+  preload: Int
+) -> StringResult / Pure
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI BoolResult into a Result[Bool, ProvenError].
+fn bool_result_to_result(result: BoolResult) -> Result[Bool, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value != 0)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Convert an FFI StringResult into a Result[String, ProvenError].
+/// Owns the FFI-allocated string pointer and frees it after copying.
+fn string_result_to_result(result: own StringResult) -> Result[String, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    let s = string_from_raw(result.ptr, result.len);
+    extern_proven_free_string(result.ptr);
+    Ok(s)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Marshal a Bool into the 0/1 Int convention used by C ABI.
+fn bool_to_int(b: Bool) -> Int / Pure {
+  if b { 1 } else { 0 }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Check if a header value contains CRLF injection.
+/// Delegates to proven_header_has_crlf via FFI.
+fn has_crlf(value: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(value);
+  bool_result_to_result(extern_proven_header_has_crlf(ptr, len))
+}
+
+/// Check if a header name is valid per HTTP specification.
+/// Delegates to proven_header_is_valid_name via FFI.
+fn is_valid_name(name: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(name);
+  bool_result_to_result(extern_proven_header_is_valid_name(ptr, len))
+}
+
+/// Check if a header name is on the dangerous-header list.
+/// Delegates to proven_header_is_dangerous via FFI.
+fn is_dangerous(name: ref String) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(name);
+  bool_result_to_result(extern_proven_header_is_dangerous(ptr, len))
+}
+
+/// Render a header name-value pair safely.
+/// Delegates to proven_header_render via FFI.
+fn render(name: ref String, value: ref String) -> Result[String, own ProvenError] / Pure {
+  let (n_ptr, n_len) = string_to_raw(name);
+  let (v_ptr, v_len) = string_to_raw(value);
+  string_result_to_result(extern_proven_header_render(n_ptr, n_len, v_ptr, v_len))
+}
+
+/// Build a Content-Security-Policy header.
+/// Delegates to proven_header_build_csp via FFI.
+fn build_csp(policy: ref String) -> Result[String, own ProvenError] / Pure {
+  let (ptr, len) = string_to_raw(policy);
+  string_result_to_result(extern_proven_header_build_csp(ptr, len))
+}
+
+/// Build a Strict-Transport-Security header.
+/// Delegates to proven_header_build_hsts via FFI.
+fn build_hsts(
+  max_age: Int,
+  include_subdomains: Bool,
+  preload: Bool
+) -> Result[String, own ProvenError] / Pure {
+  string_result_to_result(extern_proven_header_build_hsts(
+    max_age,
+    bool_to_int(include_subdomains),
+    bool_to_int(preload)
+  ))
+}

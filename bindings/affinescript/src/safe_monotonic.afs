@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeMonotonic -- Affine wrappers around libproven monotonic counter FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Handles are affine (consumed at most once); they
+/// expose linear ownership of the underlying native allocation.
+///
+/// Ported from bindings/rescript/src/ProvenSafeMonotonic.res. The ReScript
+/// version dispatched to JavaScript classes (MonotonicCounter,
+/// MonotonicTimestamp, MonotonicID, MonotonicSequence, MonotonicVersion).
+/// This AffineScript port bypasses the JS layer and calls the Zig FFI
+/// directly.
+
+module Proven.SafeMonotonic
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+//
+// Each handle wraps a raw pointer returned by the Zig FFI constructor and
+// must be consumed at most once.
+// ---------------------------------------------------------------------------
+
+// PORT-CHECK: handles modelled as `own RawPtr[Byte]`; an opaque nominal type
+// would be nicer once destroy-FFI symbols land.
+type MonotonicCounter   = own { handle: own RawPtr[Byte] }
+type MonotonicTimestamp = own { handle: own RawPtr[Byte] }
+type MonotonicId        = own { handle: own RawPtr[Byte] }
+type MonotonicSequence  = own { handle: own RawPtr[Byte] }
+type MonotonicVersion   = own { handle: own RawPtr[Byte] }
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// No SafeMonotonic symbols are exported by ffi/zig/src/main.zig today
+// (2026-05-27). The signatures below are predicted from JS class
+// constructors in bindings/javascript/src/safe_monotonic.js and must be
+// added to Zig before these wrappers will link.
+// ---------------------------------------------------------------------------
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_monotonic_counter_create")
+fn extern_proven_monotonic_counter_create(initial: Int, max: Int) -> own RawPtr[Byte] / IO
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_monotonic_timestamp_create")
+fn extern_proven_monotonic_timestamp_create() -> own RawPtr[Byte] / IO
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_monotonic_id_create")
+fn extern_proven_monotonic_id_create(machine_id: Int) -> own RawPtr[Byte] / IO
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_monotonic_sequence_create")
+fn extern_proven_monotonic_sequence_create(
+  start: Int,
+  step: Int,
+  max: Int
+) -> own RawPtr[Byte] / IO
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_monotonic_version_create")
+fn extern_proven_monotonic_version_create(
+  major: Int,
+  minor: Int,
+  patch: Int
+) -> own RawPtr[Byte] / IO
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Create a new monotonic counter with `initial` value and `max` ceiling.
+fn create_counter(initial: Int, max: Int) -> own MonotonicCounter / IO {
+  MonotonicCounter { handle: extern_proven_monotonic_counter_create(initial, max) }
+}
+
+/// Create a new monotonic timestamp source.
+fn create_timestamp() -> own MonotonicTimestamp / IO {
+  MonotonicTimestamp { handle: extern_proven_monotonic_timestamp_create() }
+}
+
+/// Create a new monotonic ID generator scoped to `machine_id`.
+fn create_id(machine_id: Int) -> own MonotonicId / IO {
+  MonotonicId { handle: extern_proven_monotonic_id_create(machine_id) }
+}
+
+/// Create a new monotonic sequence (start, step, max).
+fn create_sequence(start: Int, step: Int, max: Int) -> own MonotonicSequence / IO {
+  MonotonicSequence { handle: extern_proven_monotonic_sequence_create(start, step, max) }
+}
+
+/// Create a new monotonic version triple (major.minor.patch).
+fn create_version(major: Int, minor: Int, patch: Int) -> own MonotonicVersion / IO {
+  MonotonicVersion { handle: extern_proven_monotonic_version_create(major, minor, patch) }
+}

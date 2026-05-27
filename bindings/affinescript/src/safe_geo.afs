@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeGeo -- Affine wrappers around libproven geographic-coordinate FFI.
+///
+/// Coordinate validation delegates to the formally verified Idris 2
+/// implementation via the Zig FFI layer. Coordinates are plain
+/// @repr("C") records and consumed-at-most-once results.
+///
+/// PORT-CHECK: assumes the Zig export `proven_geo_validate` takes two
+/// Float64 arguments and returns a `CoordinateResult` with a status
+/// field and an embedded `Coordinate`. Confirm against
+/// ffi/zig/src/main.zig.
+
+module Proven.SafeGeo
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// Geographic coordinate. Latitude -90..90, longitude -180..180.
+@repr("C")
+type Coordinate = {
+  lat: Float64,
+  lon: Float64
+}
+
+/// FFI result wrapping a validated Coordinate.
+@repr("C")
+type CoordinateResult = {
+  status: Int,
+  value: Coordinate
+}
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_geo_validate")
+fn extern_proven_geo_validate(lat: Float64, lon: Float64) -> CoordinateResult / Pure
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Validate a (lat, lon) pair. Returns Ok on success, an error otherwise.
+/// Delegates to proven_geo_validate via FFI.
+fn validate(lat: Float64, lon: Float64) -> Result[Coordinate, own ProvenError] / Pure {
+  let result = extern_proven_geo_validate(lat, lon);
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}

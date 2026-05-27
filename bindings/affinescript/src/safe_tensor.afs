@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeTensor -- Affine wrappers around libproven vector/matrix FFI.
+///
+/// All bounds checking and tensor arithmetic is delegated to the formally
+/// verified Idris 2 implementation via the Zig FFI layer. Handles are
+/// affine (owned, freed via the corresponding `proven_*_free` extern).
+/// No tensor logic is reimplemented here.
+
+module Proven.SafeTensor
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Opaque handle types -- affine, freed exactly once
+// ---------------------------------------------------------------------------
+
+/// Opaque handle to a libproven Vector. Owned.
+// PORT-CHECK: handle representation matches Zig `*Vector` opaque pointer.
+type Vector = own RawPtr[Byte]
+
+/// Opaque handle to a libproven Matrix. Owned.
+// PORT-CHECK: handle representation matches Zig `*Matrix` opaque pointer.
+type Matrix = own RawPtr[Byte]
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// PORT-CHECK: the Zig FFI layer does not yet export these symbols
+// (verified 2026-05-27). The signatures below reflect the contract the
+// bindings rely on; libproven must export the matching symbols before this
+// module links.
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_tensor_vector_create")
+fn extern_proven_tensor_vector_create(ptr: ref RawPtr[Float64], len: Int) -> own RawPtr[Byte] / IO
+
+@extern("C", "proven_tensor_matrix_create")
+fn extern_proven_tensor_matrix_create(rows: Int, cols: Int) -> own RawPtr[Byte] / IO
+
+// ---------------------------------------------------------------------------
+// Public API -- preserves the ReScript surface (createVector / createMatrix)
+// ---------------------------------------------------------------------------
+
+/// Create a new Vector from an array of floats.
+/// Delegates to proven_tensor_vector_create via FFI.
+fn create_vector(data: ref [Float64]) -> Vector / IO {
+  let (ptr, len) = floats_to_raw(data);
+  extern_proven_tensor_vector_create(ptr, len)
+}
+
+/// Create a new Matrix with the given dimensions.
+/// Delegates to proven_tensor_matrix_create via FFI.
+fn create_matrix(rows: Int, cols: Int) -> Matrix / IO {
+  extern_proven_tensor_matrix_create(rows, cols)
+}

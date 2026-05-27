@@ -387,7 +387,7 @@ tour:
     echo "   120+ language targets. Each is a thin wrapper that calls"
     echo "   libproven via FFI. Bindings NEVER reimplement algorithms."
     echo "     bindings/rust/          - Rust crate"
-    echo "     bindings/rescript/      - ReScript package"
+    echo "     bindings/affinescript/  - AffineScript package (replaces former ReScript binding)"
     echo "     bindings/ocaml/         - OCaml opam package"
     echo ""
     echo "4. BUILD SYSTEM:"

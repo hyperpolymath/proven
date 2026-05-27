@@ -24,17 +24,58 @@ declarations that map directly to the C ABI symbols exported by libproven.
 
 == Modules
 
-| Module | File | Description |
-|--------|------|-------------|
-| `Proven` | `src/proven.afs` | Main entry point, lifecycle, error types |
-| `Proven.FFI` | `src/ffi.afs` | Raw extern "C" declarations |
-| `Proven.SafeMath` | `src/safe_math.afs` | Arithmetic without overflow/underflow |
-| `Proven.SafeString` | `src/safe_string.afs` | UTF-8 validation and escaping |
-| `Proven.SafePath` | `src/safe_path.afs` | Path traversal prevention |
-| `Proven.SafeEmail` | `src/safe_email.afs` | Email validation |
-| `Proven.SafeUrl` | `src/safe_url.afs` | URL parsing |
-| `Proven.SafeCrypto` | `src/safe_crypto.afs` | Cryptographic primitives |
-| `Proven.SafeJson` | `src/safe_json.afs` | JSON validation |
+38 source files. The 9 marked "verified" below were written against the
+existing affinescript binding template and are expected to be sound. The
+remaining 29 were ported from the prior `bindings/rescript/` binding on
+2026-05-27 (ReScript banned 2026-04-30, estate-wide migration to
+AffineScript). The 29 ported files carry `// PORT-CHECK:` markers on
+decisions that need human verification before downstream consumers cut
+over — typically Zig FFI symbol names that have to be confirmed (or
+added) on the Zig side. The architectural transformations are sound;
+the open question is the exact ABI surface.
+
+|===
+| Module | File | Description | Source
+
+| `Proven` | `src/proven.afs` | Main entry point, lifecycle, error types | verified
+| `Proven.FFI` | `src/ffi.afs` | Raw extern "C" declarations | verified
+| `Proven.SafeMath` | `src/safe_math.afs` | Arithmetic without overflow/underflow | verified
+| `Proven.SafeString` | `src/safe_string.afs` | UTF-8 validation and escaping | verified
+| `Proven.SafePath` | `src/safe_path.afs` | Path traversal prevention | verified
+| `Proven.SafeEmail` | `src/safe_email.afs` | Email validation | verified
+| `Proven.SafeUrl` | `src/safe_url.afs` | URL parsing | verified
+| `Proven.SafeCrypto` | `src/safe_crypto.afs` | Cryptographic primitives | verified
+| `Proven.SafeJson` | `src/safe_json.afs` | JSON validation | verified
+| `Proven.Error` | `src/error.afs` | Error type + status-code mapping | ported 2026-05-27
+| `Proven.Result` | `src/result.afs` | Result-type adapters | ported 2026-05-27
+| `Proven.Bitwise` | `src/bitwise.afs` | Bitwise op shim | ported 2026-05-27
+| `Proven.SafeAngle` | `src/safe_angle.afs` | Angle math | ported 2026-05-27
+| `Proven.SafeBloom` | `src/safe_bloom.afs` | Bloom filter | ported 2026-05-27
+| `Proven.SafeBuffer` | `src/safe_buffer.afs` | Memory buffer | ported 2026-05-27
+| `Proven.SafeChecksum` | `src/safe_checksum.afs` | CRC32 / integrity hashes | ported 2026-05-27
+| `Proven.SafeCircuitBreaker` | `src/safe_circuit_breaker.afs` | Circuit breaker pattern | ported 2026-05-27
+| `Proven.SafeColor` | `src/safe_color.afs` | Color spaces | ported 2026-05-27
+| `Proven.SafeContentType` | `src/safe_content_type.afs` | MIME type parsing | ported 2026-05-27
+| `Proven.SafeCookie` | `src/safe_cookie.afs` | RFC 6265 cookie handling | ported 2026-05-27
+| `Proven.SafeDatetime` | `src/safe_datetime.afs` | Date/time validation | ported 2026-05-27
+| `Proven.SafeFloat` | `src/safe_float.afs` | NaN/infinity-safe floats | ported 2026-05-27
+| `Proven.SafeGeo` | `src/safe_geo.afs` | Geographic coordinates | ported 2026-05-27
+| `Proven.SafeGraph` | `src/safe_graph.afs` | Graph data structure | ported 2026-05-27
+| `Proven.SafeHeader` | `src/safe_header.afs` | HTTP header validation | ported 2026-05-27
+| `Proven.SafeLru` | `src/safe_lru.afs` | LRU cache | ported 2026-05-27
+| `Proven.SafeMl` | `src/safe_ml.afs` | ML primitives | ported 2026-05-27
+| `Proven.SafeMonotonic` | `src/safe_monotonic.afs` | Monotonic clock | ported 2026-05-27
+| `Proven.SafeNetwork` | `src/safe_network.afs` | IP/network validation | ported 2026-05-27
+| `Proven.SafePassword` | `src/safe_password.afs` | Password validation | ported 2026-05-27
+| `Proven.SafeProbability` | `src/safe_probability.afs` | Probability ops | ported 2026-05-27
+| `Proven.SafeQueue` | `src/safe_queue.afs` | Bounded queue | ported 2026-05-27
+| `Proven.SafeRateLimiter` | `src/safe_rate_limiter.afs` | Rate limiter | ported 2026-05-27
+| `Proven.SafeRetry` | `src/safe_retry.afs` | Retry with backoff | ported 2026-05-27
+| `Proven.SafeStateMachine` | `src/safe_state_machine.afs` | FSM | ported 2026-05-27
+| `Proven.SafeTensor` | `src/safe_tensor.afs` | Tensor ops | ported 2026-05-27
+| `Proven.SafeUnit` | `src/safe_unit.afs` | Unit conversion | ported 2026-05-27
+| `Proven.SafeVersion` | `src/safe_version.afs` | SemVer parsing | ported 2026-05-27
+|===
 
 == Usage
 

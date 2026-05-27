@@ -1,0 +1,106 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeCircuitBreaker -- Affine wrappers around libproven circuit-breaker FFI.
+///
+/// All state transitions delegate to the formally verified Idris 2
+/// implementation via the Zig FFI layer. Handles are affine (consumed
+/// at most once); a breaker is destroyed exactly once via
+/// extern_proven_circuit_breaker_free.
+///
+/// PORT-CHECK: The .res template exposes opaque JS-class handles
+/// (CircuitBreaker / CircuitBreakerGroup) constructed via `@new`. The
+/// AffineScript port models these as `own` raw handles returned by
+/// `extern_proven_circuit_breaker_*` FFI calls; the exact Zig signatures
+/// MUST be confirmed against ffi/zig/src/main.zig before flipping any
+/// downstream consumer over.
+
+module Proven.SafeCircuitBreaker
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// Circuit-breaker state.
+type CircuitState =
+  | Closed
+  | Open
+  | HalfOpen
+
+/// Configuration for a circuit breaker.
+@repr("C")
+type CircuitBreakerConfig = {
+  failure_threshold: Int,
+  success_threshold: Int,
+  timeout_ms: Int,
+  half_open_max_calls: Int  // PORT-CHECK: .res used Option[Int]; C ABI uses sentinel 0 = unbounded.
+}
+
+/// Opaque, affine handle to a libproven CircuitBreaker.
+/// Must be released exactly once via `free_breaker`.
+type CircuitBreaker = own RawPtr[Byte]
+
+/// Opaque, affine handle to a libproven CircuitBreakerGroup.
+/// Must be released exactly once via `free_group`.
+type CircuitBreakerGroup = own RawPtr[Byte]
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+// ---------------------------------------------------------------------------
+// PORT-CHECK: these extern symbol names follow the
+// `proven_circuit_breaker_*` convention used by the rest of ffi/zig;
+// confirm the exact Zig exports before publication.
+
+@extern("C", "proven_circuit_breaker_new")
+fn extern_proven_circuit_breaker_new(config: ref CircuitBreakerConfig) -> own RawPtr[Byte] / Pure
+
+@extern("C", "proven_circuit_breaker_free")
+fn extern_proven_circuit_breaker_free(handle: own RawPtr[Byte]) -> () / Pure
+
+@extern("C", "proven_circuit_breaker_group_new")
+fn extern_proven_circuit_breaker_group_new(config: ref CircuitBreakerConfig) -> own RawPtr[Byte] / Pure
+
+@extern("C", "proven_circuit_breaker_group_free")
+fn extern_proven_circuit_breaker_group_free(handle: own RawPtr[Byte]) -> () / Pure
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Create a new circuit breaker.
+/// Returns an affine handle that must be released exactly once.
+fn create_breaker(config: ref CircuitBreakerConfig) -> CircuitBreaker / Pure {
+  extern_proven_circuit_breaker_new(config)
+}
+
+/// Create a new circuit-breaker group sharing one configuration.
+/// Returns an affine handle that must be released exactly once.
+fn create_group(config: ref CircuitBreakerConfig) -> CircuitBreakerGroup / Pure {
+  extern_proven_circuit_breaker_group_new(config)
+}
+
+/// Release a circuit-breaker handle. Consumes the affine handle.
+fn free_breaker(handle: own CircuitBreaker) -> () / Pure {
+  extern_proven_circuit_breaker_free(handle)
+}
+
+/// Release a circuit-breaker-group handle. Consumes the affine handle.
+fn free_group(handle: own CircuitBreakerGroup) -> () / Pure {
+  extern_proven_circuit_breaker_group_free(handle)
+}
+
+/// Create a circuit breaker with default settings:
+/// failure_threshold=5, success_threshold=2, timeout_ms=30000,
+/// half_open_max_calls=1.
+fn with_defaults() -> CircuitBreaker / Pure {
+  let config = CircuitBreakerConfig {
+    failure_threshold: 5,
+    success_threshold: 2,
+    timeout_ms: 30000,
+    half_open_max_calls: 1
+  };
+  create_breaker(config)
+}

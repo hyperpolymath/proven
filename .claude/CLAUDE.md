@@ -17,7 +17,8 @@
 
 ❌ **NEVER use unsafe patterns in bindings**
 - Rust: No `unwrap()`, `expect()`, `panic!()`
-- ReScript: No `getExn`, `Obj.magic`
+- AffineScript: No `getExn`-style escape hatches
+- (ReScript banned 2026-04-30; binding migrated to `bindings/affinescript/`.)
 - Any pattern hypatia scanner flags as HIGH or CRITICAL
 
 ❌ **NEVER claim code is "verified" or "proven safe" if it doesn't call Idris**
@@ -99,16 +100,13 @@ pub fn safe_add(a: i32, b: i32) -> Result<i32> {
 }
 ```
 
-### Mistake 2: Using unwrap/getExn
-```rescript
-// ❌ WRONG: Can crash
-let fields = Belt.Array.getExn(parts, 0)
+### Mistake 2: Using unwrap/getExn-style escape hatches
+```rust
+// ❌ WRONG: Can crash on bad input
+let result = some_fallible_op().unwrap();
 
-// ✅ CORRECT: Safe pattern matching
-switch parts {
-| [field1, field2, ...] => // Handle
-| _ => Error(InvalidInput)
-}
+// ✅ CORRECT: Propagate as Result
+let result = some_fallible_op().map_err(|e| Error::FfiFailure(e))?;
 ```
 
 ### Mistake 3: Submitting without validation

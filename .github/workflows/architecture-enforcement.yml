@@ -77,11 +77,14 @@ jobs:
             exit 1
           fi
 
-          # ReScript: getExn, Obj.magic
-          if grep -r "getExn\|Obj\.magic" bindings/rescript/src/ 2>/dev/null; then
-            echo "❌ Found unsafe patterns in ReScript bindings"
-            exit 1
-          fi
+          # AffineScript: previously this checked bindings/rescript/src/ for
+          # ReScript-specific panic idioms (getExn, Obj.magic). ReScript was
+          # banned 2026-04-30 (estate-wide migration to AffineScript) and
+          # the binding was ported to bindings/affinescript/src/ with .afs
+          # files using the Zig FFI directly (no JS-FFI ReScript scaffolding).
+          # The remaining panic-prone-pattern catches are handled by the
+          # cross-binding "No panic-prone patterns in bindings" step in
+          # e2e.yml (Aspect — Safety Invariants).
 
           echo "✅ No unsafe patterns found in bindings"
 

@@ -1,0 +1,78 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// Proven.Result -- Compatibility shims around AffineScript's native
+/// `Result[T, E]` for consumers migrating from the legacy ReScript binding.
+///
+/// The legacy ReScript `Proven_FFI.fromJs` / `Proven_FFI.toJs` helpers
+/// converted between a JavaScript `{ok, value, error}` shape and ReScript's
+/// `result<'value, string>` because every call went through a JS FFI hop.
+/// The AffineScript bindings call the Zig FFI directly and so there is no
+/// JS-shape to convert. This module therefore exposes:
+///
+///   * A native re-export of the canonical Result helpers so downstream
+///     code can `import Proven.Result` without having to learn the new
+///     module layout in one step.
+///   * `error_to_string` / `result_to_string_result` adapters for callers
+///     that used the legacy `result<'value, string>` shape (string-typed
+///     error) and want to keep that surface while gradually migrating to
+///     the structured `ProvenError` form.
+
+module Proven.Result
+
+import Proven (ProvenError)
+import Proven.Error (status_from_code, status_to_message)
+
+// ---------------------------------------------------------------------------
+// String-error compatibility surface
+// ---------------------------------------------------------------------------
+
+/// Render a structured ProvenError as a human-readable string.
+/// Convenience for callers porting from `result<'value, string>` shape.
+fn error_to_string(error: own ProvenError) -> String / Pure {
+  // PORT-CHECK: assumes ProvenError record fields `code` and `message` may
+  // be read while consuming the affine value. If the field projection
+  // requires explicit destructuring, this needs to switch to a `match`.
+  let { code, message } = error;
+  message ++ " (code " ++ intToString(code) ++ ")"
+}
+
+/// Convert a `Result[T, ProvenError]` into a `Result[T, String]`.
+/// Mirrors the surface area of the legacy `ProvenResult.fromJs` helper for
+/// consumers that have not yet migrated to the structured error type.
+fn result_to_string_result(r: Result[Int64, own ProvenError]) -> Result[Int64, String] / Pure {
+  match r {
+    Ok(v)  => Ok(v),
+    Err(e) => Err(error_to_string(e))
+  }
+}
+
+/// String-error variant for boolean results.
+fn bool_result_to_string_result(r: Result[Bool, own ProvenError]) -> Result[Bool, String] / Pure {
+  match r {
+    Ok(v)  => Ok(v),
+    Err(e) => Err(error_to_string(e))
+  }
+}
+
+/// String-error variant for string results.
+fn string_result_to_string_result(r: Result[String, own ProvenError]) -> Result[String, String] / Pure {
+  match r {
+    Ok(v)  => Ok(v),
+    Err(e) => Err(error_to_string(e))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status-code adapter
+// ---------------------------------------------------------------------------
+
+/// Convert a raw libproven status code into a `Result[(), String]`.
+/// Status 0 (OK) becomes `Ok(())`; any other code becomes `Err(message)`.
+fn status_code_to_string_result(code: Int) -> Result[(), String] / Pure {
+  if code == 0 {
+    Ok(())
+  } else {
+    Err(status_to_message(status_from_code(code)))
+  }
+}

@@ -32,7 +32,7 @@ The README makes claims. This file backs them up.
 | **Idris2** | Dependent types, `%default total`, totality checking (core proofs)
 | **Zig** | C ABI bridge, FFI compilation, zero-cost abstractions
 | **RefC** | Idris2 reference compiler (compiles to C)
-| **104 Target Languages** | C, Rust, Python, Go, JavaScript, ReScript, Gleam, Erlang, Ada, etc.
+| **104 Target Languages** | C, Rust, AffineScript, Deno, Gleam, Erlang, Ada, Idris2, Zig, etc. (Python and ReScript bindings were removed per estate language policy — see `hyperpolymath/standards`.)
 |===
 
 == File Map
@@ -58,7 +58,7 @@ The README makes claims. This file backs them up.
 | `bindings/rust/` | Rust bindings: safe_*.rs files call proven FFI via unsafe { }
 | `bindings/rust/safe_math.rs` | Wraps proven_ffi_safe_add, proven_ffi_safe_mul, etc.
 | `bindings/zig/src/` | Zig language binding (calls FFI directly; necessarily Zig)
-| `bindings/rescript/` | ReScript FFI bindings, zero-cost JS compilation
+| `bindings/affinescript/src/` | AffineScript binding (`.afs` files; replaces former ReScript binding 2026-05-27)
 | `bindings/c/` | C header files and static library linking instructions
 | `bindings/<lang>/tests/` | Language-specific test harnesses (call FFI, verify results)
 | `docs/` | Architecture diagrams, ADRs, FFI safety guarantees

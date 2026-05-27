@@ -1,0 +1,122 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeColor -- Affine wrappers around libproven colour-manipulation FFI.
+///
+/// All parsing and conversion delegate to the formally verified Idris 2
+/// implementation via the Zig FFI layer. Colour values are plain @repr("C")
+/// records; string results from FFI are owned and freed correctly.
+///
+/// PORT-CHECK: The .res template exposed opaque JS handles (`rgb`, `rgba`,
+/// `hsl`). The AffineScript port replaces those with concrete @repr("C")
+/// records matching the existing Zig colour struct layout. Confirm against
+/// ffi/zig/src/main.zig before downstream cutover.
+
+module Proven.SafeColor
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// RGB colour, 0..=255 per channel.
+@repr("C")
+type Rgb = {
+  r: Int,
+  g: Int,
+  b: Int
+}
+
+/// RGBA colour, 0..=255 per channel, alpha 0..=255.
+@repr("C")
+type Rgba = {
+  r: Int,
+  g: Int,
+  b: Int,
+  a: Int
+}
+
+/// HSL colour. Hue 0..360, saturation/lightness 0..100.
+@repr("C")
+type Hsl = {
+  h: Float64,
+  s: Float64,
+  l: Float64
+}
+
+/// FFI result wrapping an RGB value.
+@repr("C")
+type RgbResult = {
+  status: Int,
+  value: Rgb
+}
+
+/// FFI result wrapping an HSL value.
+@repr("C")
+type HslResult = {
+  status: Int,
+  value: Hsl
+}
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_color_parse_hex")
+fn extern_proven_color_parse_hex(ptr: ref RawPtr[Byte], len: Int) -> RgbResult / Pure
+
+@extern("C", "proven_color_to_hex")
+fn extern_proven_color_to_hex(color: ref Rgb) -> StringResult / Pure
+
+@extern("C", "proven_color_rgb_to_hsl")
+fn extern_proven_color_rgb_to_hsl(color: ref Rgb) -> HslResult / Pure
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert a StringResult into an owned String, freeing the FFI buffer.
+fn string_result_to_result(result: own StringResult) -> Result[String, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    let s = string_from_raw(result.ptr, result.len);
+    extern_proven_free_string(result.ptr);
+    Ok(s)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Parse a hex colour string (e.g. "#ff0000" or "ff0000").
+/// Delegates to proven_color_parse_hex via FFI.
+fn parse_hex(hex: ref String) -> Option[Rgb] / Pure {
+  let (ptr, len) = string_to_raw(hex);
+  let result = extern_proven_color_parse_hex(ptr, len);
+  if result.status == STATUS_OK {
+    Some(result.value)
+  } else {
+    None
+  }
+}
+
+/// Convert an RGB colour to a hex string (e.g. "#ff0000").
+/// Delegates to proven_color_to_hex via FFI.
+fn to_hex(color: ref Rgb) -> Result[String, own ProvenError] / Pure {
+  string_result_to_result(extern_proven_color_to_hex(color))
+}
+
+/// Convert an RGB colour to its HSL representation.
+/// Delegates to proven_color_rgb_to_hsl via FFI.
+fn rgb_to_hsl(color: ref Rgb) -> Result[Hsl, own ProvenError] / Pure {
+  let result = extern_proven_color_rgb_to_hsl(color);
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}

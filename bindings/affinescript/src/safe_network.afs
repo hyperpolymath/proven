@@ -1,0 +1,105 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeNetwork -- Affine wrappers around libproven network parsing FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Parsed IPv4 results are returned as affine
+/// values that must be consumed at most once.
+///
+/// Ported from bindings/rescript/src/ProvenSafeNetwork.res. The ReScript
+/// version dispatched through bindings/javascript/src/safe_network.js.
+/// This AffineScript port bypasses the JS layer and calls the Zig FFI
+/// directly.
+
+module Proven.SafeNetwork
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// A parsed IPv4 address. Affine -- consumed at most once.
+type Ipv4 = own {
+  o1: Int,
+  o2: Int,
+  o3: Int,
+  o4: Int
+}
+
+// PORT-CHECK: Ipv4Result shape predicted; the matching `@repr("C")` struct
+// must be defined in ffi/zig/src/main.zig along with the parse_ipv4 export.
+@repr("C")
+type Ipv4Result = {
+  status: Int,
+  o1: Int,
+  o2: Int,
+  o3: Int,
+  o4: Int
+}
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// No SafeNetwork symbols are exported by ffi/zig/src/main.zig today
+// (2026-05-27). The signatures below are predicted from JS scope names in
+// bindings/javascript/src/safe_network.js and must be added to Zig before
+// these wrappers will link.
+// ---------------------------------------------------------------------------
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_network_parse_ipv4")
+fn extern_proven_network_parse_ipv4(ptr: ref RawPtr[Byte], len: Int) -> Ipv4Result / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_network_ipv4_is_valid")
+fn extern_proven_network_ipv4_is_valid(ptr: ref RawPtr[Byte], len: Int) -> Bool / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_network_ipv4_is_private")
+fn extern_proven_network_ipv4_is_private(ptr: ref RawPtr[Byte], len: Int) -> Bool / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_network_ipv4_is_loopback")
+fn extern_proven_network_ipv4_is_loopback(ptr: ref RawPtr[Byte], len: Int) -> Bool / Pure
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Parse an IPv4 address string into its four octets.
+/// Delegates to proven_network_parse_ipv4 via FFI.
+///
+/// Returns an affine Ipv4 on success that must be consumed at most once.
+fn parse_ipv4(address: ref String) -> Option[own Ipv4] / Pure {
+  let (ptr, len) = string_to_raw(address);
+  let result = extern_proven_network_parse_ipv4(ptr, len);
+  if result.status == STATUS_OK {
+    Some(Ipv4 { o1: result.o1, o2: result.o2, o3: result.o3, o4: result.o4 })
+  } else {
+    None
+  }
+}
+
+/// Check whether a string is a valid IPv4 address.
+/// Delegates to proven_network_ipv4_is_valid via FFI.
+fn is_valid_ipv4(address: ref String) -> Bool / Pure {
+  let (ptr, len) = string_to_raw(address);
+  extern_proven_network_ipv4_is_valid(ptr, len)
+}
+
+/// Check whether an IPv4 address is in a private range (RFC 1918).
+/// Delegates to proven_network_ipv4_is_private via FFI.
+fn is_private(address: ref String) -> Bool / Pure {
+  let (ptr, len) = string_to_raw(address);
+  extern_proven_network_ipv4_is_private(ptr, len)
+}
+
+/// Check whether an IPv4 address is a loopback address (127.0.0.0/8).
+/// Delegates to proven_network_ipv4_is_loopback via FFI.
+fn is_loopback(address: ref String) -> Bool / Pure {
+  let (ptr, len) = string_to_raw(address);
+  extern_proven_network_ipv4_is_loopback(ptr, len)
+}

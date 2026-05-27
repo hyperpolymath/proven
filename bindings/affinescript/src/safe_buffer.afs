@@ -1,0 +1,88 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeBuffer -- Affine wrappers around libproven bounded-buffer FFI.
+///
+/// All computation is delegated to the formally verified Idris 2
+/// implementation via the Zig FFI layer (`proven_buffer_*`). The buffer
+/// handle is held as an affine `own` resource: the destructor calls
+/// `proven_buffer_free` so the libproven allocator stays balanced.
+///
+/// NOTE: the legacy ReScript `ProvenSafeBuffer` module also exposed
+/// `RingBuffer` and `GrowableBuffer`. Those variants existed only in the
+/// JavaScript shim layer -- libproven has no FFI symbols for them -- so
+/// they are deliberately omitted from this port. If/when the Idris/Zig
+/// layers gain ring and growable variants, file a follow-up to wrap them.
+///
+/// PORT-CHECK: confirm the omission of RingBuffer / GrowableBuffer is the
+/// desired behaviour. If consumers depend on the legacy three-variant
+/// surface, they should be migrated to BoundedBuffer rather than the
+/// JS-only types resurrected here.
+
+module Proven.SafeBuffer
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Public type
+// ---------------------------------------------------------------------------
+
+/// Affine handle to a libproven bounded buffer.
+/// Must be consumed exactly once -- either by `get` (which extracts the
+/// contents and frees the handle) or by `free`.
+type Buffer = own RawPtr[BoundedBuffer]
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Create a new bounded buffer with the given capacity (in bytes).
+/// Delegates to `proven_buffer_create` via FFI.
+fn create(capacity: Int) -> Result[Buffer, own ProvenError] / IO {
+  let result = extern_proven_buffer_create(capacity);
+  if result.status == STATUS_OK {
+    Ok(result.buffer)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Append a byte slice to the buffer.
+/// Delegates to `proven_buffer_append` via FFI.
+///
+/// The buffer handle is borrowed mutably and returned to the caller via the
+/// affine borrow protocol -- it remains owned by the caller across the call.
+fn append(buffer: mut Buffer, data: ref [Byte]) -> Result[(), own ProvenError] / IO {
+  let (ptr, len) = bytes_to_raw(data);
+  let status = extern_proven_buffer_append(buffer, ptr, len);
+  if status == STATUS_OK {
+    Ok(())
+  } else {
+    Err(status_to_error(status))
+  }
+}
+
+/// Read the buffer contents as a borrowed byte slice.
+/// Delegates to `proven_buffer_get` via FFI.
+///
+/// PORT-CHECK: the underlying `proven_buffer_get` returns a borrowed pointer
+/// owned by libproven -- callers must NOT free it. The wrapper materialises
+/// it as a borrowed `ref [Byte]`. Confirm AffineScript's borrow checker can
+/// thread that lifetime against the parent buffer handle.
+fn get(buffer: mut Buffer) -> Result[ref [Byte], own ProvenError] / IO {
+  let mut out_ptr: RawPtr[Byte] = null_ptr();
+  let mut out_len: Int = 0;
+  let status = extern_proven_buffer_get(buffer, mut out_ptr, mut out_len);
+  if status == STATUS_OK {
+    Ok(bytes_borrow_from_raw(out_ptr, out_len))
+  } else {
+    Err(status_to_error(status))
+  }
+}
+
+/// Release the buffer handle.
+/// Delegates to `proven_buffer_free` via FFI.
+fn free(buffer: Buffer) -> () / IO {
+  extern_proven_buffer_free(buffer)
+}

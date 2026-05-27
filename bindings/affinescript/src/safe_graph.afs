@@ -1,0 +1,92 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeGraph -- Affine wrappers around libproven graph FFI.
+///
+/// Graph construction and mutation delegate to the formally verified
+/// Idris 2 implementation via the Zig FFI layer. Handles are affine
+/// (consumed at most once); each graph is released exactly once via
+/// the corresponding free function.
+///
+/// PORT-CHECK: The .res template used opaque JS classes
+/// (`DirectedGraph` / `UndirectedGraph`) with static `forStrings` /
+/// `forNumbers` constructors. The AffineScript port models these as
+/// `own` raw handles produced by `extern_proven_graph_*_new_*` factory
+/// functions, parameterised by node-key kind. The exact Zig export names
+/// MUST be verified against ffi/zig/src/main.zig.
+///
+/// PORT-CHECK: This file only ports the constructors visible in the .res
+/// template. Edge insertion / traversal / shortest-path remain to be added
+/// alongside their Zig exports (the original .res file did not surface them
+/// either, so this is no regression).
+
+module Proven.SafeGraph
+
+import Proven.FFI
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/// Opaque, affine handle to a libproven DirectedGraph.
+/// Must be released exactly once via `free_directed`.
+type DirectedGraph = own RawPtr[Byte]
+
+/// Opaque, affine handle to a libproven UndirectedGraph.
+/// Must be released exactly once via `free_undirected`.
+type UndirectedGraph = own RawPtr[Byte]
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+// ---------------------------------------------------------------------------
+
+@extern("C", "proven_graph_directed_new_strings")
+fn extern_proven_graph_directed_new_strings() -> own RawPtr[Byte] / Pure
+
+@extern("C", "proven_graph_directed_new_numbers")
+fn extern_proven_graph_directed_new_numbers() -> own RawPtr[Byte] / Pure
+
+@extern("C", "proven_graph_directed_free")
+fn extern_proven_graph_directed_free(handle: own RawPtr[Byte]) -> () / Pure
+
+@extern("C", "proven_graph_undirected_new_strings")
+fn extern_proven_graph_undirected_new_strings() -> own RawPtr[Byte] / Pure
+
+@extern("C", "proven_graph_undirected_free")
+fn extern_proven_graph_undirected_free(handle: own RawPtr[Byte]) -> () / Pure
+
+// ---------------------------------------------------------------------------
+// Public API -- directed graphs
+// ---------------------------------------------------------------------------
+
+/// Create a directed graph whose node keys are strings.
+/// Returns an affine handle that must be released exactly once.
+fn directed_for_strings() -> DirectedGraph / Pure {
+  extern_proven_graph_directed_new_strings()
+}
+
+/// Create a directed graph whose node keys are numbers.
+/// Returns an affine handle that must be released exactly once.
+fn directed_for_numbers() -> DirectedGraph / Pure {
+  extern_proven_graph_directed_new_numbers()
+}
+
+/// Release a directed-graph handle. Consumes the affine handle.
+fn free_directed(handle: own DirectedGraph) -> () / Pure {
+  extern_proven_graph_directed_free(handle)
+}
+
+// ---------------------------------------------------------------------------
+// Public API -- undirected graphs
+// ---------------------------------------------------------------------------
+
+/// Create an undirected graph whose node keys are strings.
+/// Returns an affine handle that must be released exactly once.
+fn undirected_for_strings() -> UndirectedGraph / Pure {
+  extern_proven_graph_undirected_new_strings()
+}
+
+/// Release an undirected-graph handle. Consumes the affine handle.
+fn free_undirected(handle: own UndirectedGraph) -> () / Pure {
+  extern_proven_graph_undirected_free(handle)
+}

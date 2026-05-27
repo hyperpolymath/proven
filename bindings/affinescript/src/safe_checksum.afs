@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeChecksum -- Affine wrappers around libproven hash/checksum FFI.
+///
+/// All computation is delegated to the formally verified Idris 2
+/// implementation via the Zig FFI layer (`proven_checksum_*`).
+///
+/// NOTE: this module is distinct from `Proven.SafeCrypto`. SafeCrypto covers
+/// constant-time comparison, CSPRNG, and hex encode/decode; SafeChecksum
+/// covers fast non-cryptographic checksums (CRC32) used for integrity rather
+/// than authentication.
+
+module Proven.SafeChecksum
+
+import Proven.FFI
+import Proven (ProvenError, status_to_error)
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/// Convert an FFI IntResult into a Result[Int64, ProvenError].
+fn int_result_to_result(result: IntResult) -> Result[Int64, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+/// Convert an FFI BoolResult into a Result[Bool, ProvenError].
+fn bool_result_to_result(result: BoolResult) -> Result[Bool, own ProvenError] / Pure {
+  if result.status == STATUS_OK {
+    Ok(result.value != 0)
+  } else {
+    Err(status_to_error(result.status))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Compute the CRC32 checksum of a byte buffer.
+/// Delegates to `proven_checksum_crc32` via FFI.
+///
+/// Returns the 32-bit checksum as an Int64 (zero-extended) on success.
+fn crc32(data: ref [Byte]) -> Result[Int64, own ProvenError] / Pure {
+  let (ptr, len) = bytes_to_raw(data);
+  int_result_to_result(extern_proven_checksum_crc32(ptr, len))
+}
+
+/// Verify that the CRC32 of `data` equals `expected`.
+/// Delegates to `proven_checksum_verify_crc32` via FFI.
+///
+/// PORT-CHECK: the legacy ReScript binding accepted the expected value as a
+/// plain `int`; the Zig FFI symbol expects a `u32`. The wrapper accepts an
+/// `Int` and casts at the FFI boundary. Confirm AffineScript's `Int -> UInt32`
+/// cast preserves bit-pattern semantics (it should for non-negative inputs
+/// <= 2^32 - 1; the FFI rejects out-of-range values via status).
+fn verify_crc32(data: ref [Byte], expected: Int) -> Result[Bool, own ProvenError] / Pure {
+  let (ptr, len) = bytes_to_raw(data);
+  let expected_u32: UInt32 = uint32_of_int(expected);
+  bool_result_to_result(extern_proven_checksum_verify_crc32(ptr, len, expected_u32))
+}

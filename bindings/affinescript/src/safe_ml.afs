@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+/// SafeML -- Affine wrappers around libproven ML activation FFI.
+///
+/// All operations delegate to the formally verified Idris 2 implementation
+/// via the Zig FFI layer. Activations are pure, total, numerically stable
+/// functions; no result allocation is required.
+///
+/// Ported from bindings/rescript/src/ProvenSafeMl.res. The ReScript
+/// version dispatched through bindings/javascript/src/safe_ml.js. This
+/// AffineScript port bypasses the JS layer and calls the Zig FFI directly.
+
+module Proven.SafeML
+
+import Proven.FFI
+
+// ---------------------------------------------------------------------------
+// FFI declarations
+//
+// No SafeML symbols are exported by ffi/zig/src/main.zig today (2026-05-27).
+// The signatures below are predicted from JS scope names in
+// bindings/javascript/src/safe_ml.js and must be added to Zig before these
+// wrappers will link.
+// ---------------------------------------------------------------------------
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_ml_sigmoid")
+fn extern_proven_ml_sigmoid(x: Float64) -> Float64 / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_ml_relu")
+fn extern_proven_ml_relu(x: Float64) -> Float64 / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+@extern("C", "proven_ml_leaky_relu")
+fn extern_proven_ml_leaky_relu(x: Float64, alpha: Float64) -> Float64 / Pure
+
+// PORT-CHECK: Zig FFI export not yet present in ffi/zig/src/main.zig.
+// PORT-CHECK: argument order matches the JS FFI: (x, lo, hi). Note that the
+// SafeMath integer clamp uses (lo, hi, value); pick a consistent ABI when
+// the Zig export is added.
+@extern("C", "proven_ml_clamp")
+fn extern_proven_ml_clamp(x: Float64, lo: Float64, hi: Float64) -> Float64 / Pure
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Sigmoid activation: 1 / (1 + exp(-x)). Always returns a value in (0, 1).
+/// Delegates to proven_ml_sigmoid via FFI.
+fn sigmoid(x: Float64) -> Float64 / Pure {
+  extern_proven_ml_sigmoid(x)
+}
+
+/// ReLU activation: max(0, x).
+/// Delegates to proven_ml_relu via FFI.
+fn relu(x: Float64) -> Float64 / Pure {
+  extern_proven_ml_relu(x)
+}
+
+/// Leaky ReLU activation: x if x > 0, alpha * x otherwise.
+/// Delegates to proven_ml_leaky_relu via FFI.
+fn leaky_relu(x: Float64, alpha: Float64) -> Float64 / Pure {
+  extern_proven_ml_leaky_relu(x, alpha)
+}
+
+/// Clamp a floating-point value to the inclusive range [lo, hi].
+/// Delegates to proven_ml_clamp via FFI.
+fn clamp(x: Float64, lo: Float64, hi: Float64) -> Float64 / Pure {
+  extern_proven_ml_clamp(x, lo, hi)
+}
