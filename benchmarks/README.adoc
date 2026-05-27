@@ -23,14 +23,6 @@ cd bindings/rust
 cargo bench
 ----
 
-=== Python Benchmarks
-
-[source,bash]
-----
-cd bindings/python
-python -m pytest benchmarks/ --benchmark-only
-----
-
 == Benchmark Results
 
 Last run: 2025-01-12
