@@ -35,13 +35,24 @@ the totals.
 | `@ Assumed:` postulate tags | **4** | `src/Proven/SafeDigest.idr:222,230,237,245` | **OWED-AXIOM (already)** — §5 |
 | `assert_smaller` in executable code | **1** | `src/Proven/SafeInput.idr:282` | Compiler-totality concession, not proof debt; out of scope (§6) |
 | Witness-only overclaim modules | **~70** | single-file `src/Proven/Safe*.idr` with `Prevents:` / `Guarantees:` / `formally verified` and no discharged theorem | **Separate track — §7** |
+| `tests/properties/` holes (orphan tests) | **87** | 26 of 29 `tests/properties/*Props.idr` files, body `?prop_X_rhs` | **Test-side OWED stubs — §8 Day 1** |
 | Runtime `believe_me` | **0** | — | clean |
-| Real `?`-holes in def bodies | **0** | — | clean |
+| Real `?`-holes in `src/` def bodies | **0** | — | clean |
 
-The 280 OWED + 4 Assumed + 1 assert + ~70 overclaim ≈ **355 distinct
-debt-bearing artefacts**. The seeding prompt's "372" appears to count an
-earlier snapshot before some of Fork A's discharges landed. The number to
-trust is the live grep, not any prior count.
+The 280 OWED + 4 Assumed + 1 assert + ~70 overclaim + 87 test holes ≈
+**~442 distinct debt-bearing artefacts**. The seeding prompt's "372" was
+in the same order of magnitude but missed the test-side holes entirely
+because the test dir is currently orphan (no `.ipkg` references it; CI
+never builds it). The number to trust is the live grep, not any prior count.
+
+> **Orphan-test discovery (2026-05-27 analysis pass):** `tests/properties/`
+> contains 29 `*Props.idr` files with 606 `prop_X` declarations (519
+> discharged inline `= Refl`, 87 stubbed as `= ?prop_X_rhs`). None of these
+> are listed in any `.ipkg`; `idris2-ci.yml` never type-checks them; the
+> Justfile `test-idris` recipe falls back to `test-simple.ipkg` (FFI smoke
+> only). The 87 holes therefore silently rot. Phase 2 Day 1 wires this dir
+> to CI and converts the holes to OWED stubs so the debt is discoverable —
+> see §8.
 
 ---
 
@@ -72,19 +83,28 @@ sites/day for the experienced prover, slower at first.
 ### PROPERTY-TEST
 
 **Definition.** The obligation is provable in principle but the discharge cost
-exceeds the value of a *type-level* proof, and a randomised or exhaustive
-runtime check at a `tests/` boundary gives equivalent assurance with strictly
-less mechanism. The OWED block stays in place as documentation; a new
-`tests/property/Test/Proven/<Module>.idr` (or `tests/spec/...`) file pins the
-property with `hedgehog`-style generators or exhaustive small-case enumeration.
+exceeds the value of a *type-level* proof, and a runtime check at a `tests/`
+boundary gives equivalent assurance with strictly less mechanism. The OWED
+block stays in place as documentation; a `tests/properties/<Module>Props.idr`
+entry pins the property as `prop_X : <claim> = <truth>` and discharges with
+`= Refl` where the runtime computation actually reduces.
+
+**Convention.** The existing repo pattern is **NOT** hedgehog-style
+randomised generators — it is **inline type-equality assertions with `Refl`
+witnesses**, e.g. `prop_emptyEncodesEmpty : encode "" = "" ; prop_... = Refl`.
+Concrete inputs (`"4111111111111111"` for Luhn) work where the runtime
+computation reduces against a literal input even though the universally-
+quantified version does not. Where `Refl` does not discharge, the entry
+becomes a documented OWED stub mirroring the Fork A convention on the source
+side (see §8 Day 1).
 
 **When to choose this over DISCHARGE.** The blocker is a String/Char FFI
 opacity wall (Families 1 and 2 below), the obligation is over **arbitrary
-strings** rather than the fixed alphabet you control, and a 1000-case generator
-gives ≥95% line coverage of the validator.
+strings** rather than the fixed alphabet you control, and a fixed set of
+concrete-input spot-checks gives sufficient assurance.
 
-**Cost model.** ~1 hour to author a generator and assertion per property;
-amortised across families because generators are reusable.
+**Cost model.** ~15–30 min per concrete-input spot-check; ~10 min per OWED
+stub conversion when `Refl` does not discharge.
 
 ### OWED-AXIOM
 
@@ -282,12 +302,22 @@ follow-up.
 **Goal:** every OWED site has a per-site disposition in §4 (status flips from
 `[ ]` to `[x]`), and the witness-only long tail in §7 is fully enumerated.
 
-**Day 1–2 (foundations).**
-- Stand up `tests/property/` directory with one `hedgehog` generator file per
-  Family 1 module (`Test/Proven/SafeBase64.idr`, `Test/Proven/SafePassword.idr`,
-  …). One generator authored = the PROPERTY-TEST disposition for every site
-  in that module is mechanical to fill in.
-- Migrate the four `@ Assumed:` tags in SafeDigest to Fork A form (§5).
+**Day 1 (test-infrastructure wireup — derisks all later PROPERTY-TEST work).**
+- Create `tests.ipkg` listing the 29 existing `tests/properties/*Props.idr`
+  files plus their `src/Proven/*` dependencies. (The directory already
+  exists with 606 `prop_X` declarations; 519 are discharged `= Refl`, 87
+  are holes `= ?prop_X_rhs`. None of this is currently CI-checked.)
+- Wire `idris2 --build tests.ipkg` into `idris2-ci.yml` as a required job.
+- Update `Justfile` `test-idris` recipe to prefer `tests.ipkg` over the
+  FFI-only `test-simple.ipkg` fallback.
+- Triage all 87 holes: where `= Refl` discharges, write it; where it does
+  not, convert to the OWED-stub form (`0 prop_X : <claim>` + `||| OWED:`
+  doc comment cross-referenced to the source-side OWED if one exists).
+  Land same PR as the wireup so CI is green from the start.
+
+**Day 2 (SafeDigest @ Assumed migration — done pre-Phase-2, see proven#77).**
+- Migrated the four `@ Assumed:` tags to Fork A `||| OWED:` + `0` form in
+  proven#77. No Day 2 work remaining on this item.
 
 **Day 3–10 (Tier A per-site reads — 210 sites).**
 - For each of the 15 Tier A modules in §4: read every OWED block, confirm

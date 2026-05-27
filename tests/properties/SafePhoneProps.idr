@@ -31,28 +31,44 @@ prop_tooLongFails = Refl
 prop_lettersFail : isErr (parsePhone "+1ABCDEFGHIJ") = True
 prop_lettersFail = Refl
 
-||| Property: Formatting to E.164 is consistent
-prop_formatE164Consistent : (p : ValidPhone) ->
-                            parsePhone (formatE164 p) = Ok p
-prop_formatE164Consistent p = ?prop_formatE164Consistent_rhs
+||| OWED: Formatting to E.164 is consistent
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_formatE164Consistent_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_formatE164Consistent : (p : ValidPhone) ->
+                              parsePhone (formatE164 p) = Ok p
 
-||| Property: Country code extractable
-prop_countryCodeExtractable : (p : ValidPhone) ->
-                              length (getCountryCode p) >= 1 && length (getCountryCode p) <= 3
-prop_countryCodeExtractable p = ?prop_countryCodeExtractable_rhs
+||| OWED: Country code extractable
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_countryCodeExtractable_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_countryCodeExtractable : (p : ValidPhone) ->
+                                length (getCountryCode p) >= 1 && length (getCountryCode p) <= 3
 
-||| Property: National number extractable
-prop_nationalNumberExtractable : (p : ValidPhone) ->
-                                 length (getNationalNumber p) >= 4
-prop_nationalNumberExtractable p = ?prop_nationalNumberExtractable_rhs
+||| OWED: National number extractable
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_nationalNumberExtractable_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_nationalNumberExtractable : (p : ValidPhone) ->
+                                   length (getNationalNumber p) >= 4
 
 ||| Property: Phone comparison is reflexive
 prop_phoneEqReflexive : (p : ValidPhone) -> p == p = True
 prop_phoneEqReflexive p = Refl
 
-||| Property: Different formats normalize to same
-prop_normalizationConsistent : formatE164 (parsePhone "(415) 555-1234") = formatE164 (parsePhone "4155551234")
-prop_normalizationConsistent = ?prop_normalizationConsistent_rhs
+||| OWED: Different formats normalize to same
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_normalizationConsistent_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_normalizationConsistent : formatE164 (parsePhone "(415) 555-1234") = formatE164 (parsePhone "4155551234")
 
 ||| Test runner for phone properties
 export

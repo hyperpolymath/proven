@@ -15,34 +15,58 @@ prop_strongPasswordValid = Refl
 prop_weakPasswordFails : isErr (validatePassword "weak") = True
 prop_weakPasswordFails = Refl
 
-||| Property: Password without uppercase fails
-prop_noUppercaseFails : isErr (validatePassword "lowercase123!") = True
-prop_noUppercaseFails = ?prop_noUppercaseFails_rhs
+||| OWED: Password without uppercase fails
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_noUppercaseFails_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_noUppercaseFails : isErr (validatePassword "lowercase123!") = True
 
-||| Property: Password without lowercase fails
-prop_noLowercaseFails : isErr (validatePassword "UPPERCASE123!") = True
-prop_noLowercaseFails = ?prop_noLowercaseFails_rhs
+||| OWED: Password without lowercase fails
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_noLowercaseFails_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_noLowercaseFails : isErr (validatePassword "UPPERCASE123!") = True
 
-||| Property: Password without digit fails
-prop_noDigitFails : isErr (validatePassword "NoDigitsHere!") = True
-prop_noDigitFails = ?prop_noDigitFails_rhs
+||| OWED: Password without digit fails
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_noDigitFails_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_noDigitFails : isErr (validatePassword "NoDigitsHere!") = True
 
-||| Property: Password without special char fails
-prop_noSpecialFails : isErr (validatePassword "NoSpecial123") = True
-prop_noSpecialFails = ?prop_noSpecialFails_rhs
+||| OWED: Password without special char fails
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_noSpecialFails_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_noSpecialFails : isErr (validatePassword "NoSpecial123") = True
 
-||| Property: Hash is not the original password
-prop_hashNotOriginal : (p : ValidPassword) -> hashPassword p /= getPasswordString p
-prop_hashNotOriginal p = ?prop_hashNotOriginal_rhs
+||| OWED: Hash is not the original password
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_hashNotOriginal_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_hashNotOriginal : (p : ValidPassword) -> hashPassword p /= getPasswordString p
 
 ||| Property: Same password produces same hash (deterministic with same salt)
 prop_hashDeterministic : (p : ValidPassword) -> (salt : String) ->
                          hashPasswordWithSalt p salt = hashPasswordWithSalt p salt
 prop_hashDeterministic p salt = Refl
 
-||| Property: Password strength is at least minimum when valid
-prop_minStrengthValid : (p : ValidPassword) -> getStrength p >= MinStrength
-prop_minStrengthValid p = ?prop_minStrengthValid_rhs
+||| OWED: Password strength is at least minimum when valid
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_minStrengthValid_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_minStrengthValid : (p : ValidPassword) -> getStrength p >= MinStrength
 
 ||| Test runner for password properties
 export

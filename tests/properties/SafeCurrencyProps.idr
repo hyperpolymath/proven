@@ -31,20 +31,28 @@ prop_negativeAmountParses = Refl
 prop_invalidAmountFails : isErr (parseAmount "not-a-number" USD) = True
 prop_invalidAmountFails = Refl
 
-||| Property: Addition preserves currency
-prop_additionPreservesCurrency : (a, b : Money) -> sameCurrency a b = True ->
-                                  getCurrency (add a b) = getCurrency a
-prop_additionPreservesCurrency a b prf = ?prop_additionPreservesCurrency_rhs
+||| OWED: Addition preserves currency
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_additionPreservesCurrency_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_additionPreservesCurrency : (a, b : Money) -> sameCurrency a b = True ->
+                                    getCurrency (add a b) = getCurrency a
 
 ||| Property: Different currencies cannot add
 prop_differentCurrenciesCannotAdd : (a : Money USD) -> (b : Money EUR) ->
                                     isErr (safeAdd a b) = True
 prop_differentCurrenciesCannotAdd a b = Refl
 
-||| Property: Formatting includes symbol
-prop_formatIncludesSymbol : (m : Money USD) ->
-                            containsChar '$' (format m) = True
-prop_formatIncludesSymbol m = ?prop_formatIncludesSymbol_rhs
+||| OWED: Formatting includes symbol
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_formatIncludesSymbol_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_formatIncludesSymbol : (m : Money USD) ->
+                              containsChar '$' (format m) = True
 
 ||| Property: Currency has correct decimal places
 prop_correctDecimalPlaces : decimalPlaces USD = 2
