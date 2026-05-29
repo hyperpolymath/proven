@@ -3,7 +3,9 @@
 ||| SafeOAuth - OAuth 2.0/OIDC with CSRF prevention
 |||
 ||| Provides type-safe OAuth 2.0 authorization code flow and OIDC validation.
-||| Prevents: CSRF attacks, open redirectors, token theft, replay attacks.
+||| Aims to prevent (via `Bool` predicates; soundness theorems OWED — see
+||| `PROOF-NEEDS.md`): CSRF attacks, open redirectors, token theft, replay
+||| attacks.
 module Proven.SafeOAuth
 
 import Data.String

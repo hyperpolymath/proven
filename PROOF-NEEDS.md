@@ -70,8 +70,17 @@ rejects the bad case. Real verified `Proofs.idr` files now exist
 
 Still owed (single-file, witness-type-only, "Prevents" doc claim
 undischarged — honest ledger): SafeMCP, SafeOAuth, SafeWebAuthn,
-SafeWebSocket, SafeWebhook, SafeCapability, SafeAttestation, SafeJWK,
-SafeSecretShare.
+SafeWebSocket, SafeWebhook, SafeCapability, SafeJWK, SafeSecretShare.
+
+`SafeAttestation` was previously listed here but its companion
+`src/Proven/SafeAttestation/Proofs.idr` (189 ln, `idris2 --check` exit 0,
+"Zero `believe_me` / `idris_crash`, zero OWED") discharges enum
+self-equality, parser rejection of unknown / weak algorithms, and
+record-projection anchors. The remaining hash-recomputation claim is
+OWED at the FFI seam (the actual hash computation happens in
+`Proven.SafeCrypto`); the module header was softened in proven#76 to
+reflect this. It therefore belongs in the "Security-critical decidable
+proofs landed" section above, not in this still-owed list.
 
 Companion `Proofs.idr` content was *not* re-verified theorem-by-theorem in this
 pass; the 39 non-stub directories are carried forward as claimed-proven pending
@@ -142,11 +151,65 @@ Each line: module — verbatim doc claim — why it is owed.
 - **SafeDecimal** ✗ — `:54` "Structurally decreasing on scale ensures
   totality" (relies on `%default total` only; no stated lemma)
 
-> The remaining ~60 single-file modules in the 76 carrying a doc claim are
-> owed on the same basis; the above are the audited exemplars. A full
-> enumeration is mechanical: every `src/Proven/Safe*.idr` matching
-> `Prevents:|formally verified|cannot crash|guarantee|no false negative|
-> traversal|injection|attack` without a discharged theorem is OWED.
+### Long-tail enumeration (Phase 2 Days 19-21, partial — 2026-05-27)
+
+Adversarial-grep + per-module inspection of the long tail surfaced **6
+additional confirmed single-file overclaims** beyond the 13 enumerated
+above. Headers softened in proven#76 (follow-on commit; see
+`docs/proof-debt-triage.md` §11):
+
+- **SafeSupplyChain** ✗ HIGH — `src/Proven/SafeSupplyChain.idr:7`
+  *"Prevents: tampered builds, unattested artifacts, provenance forgery."*
+  — SLSA attestation layer; tamper-prevention theorems OWED. Real-world
+  supply-chain blast radius.
+- **SafePBKDF2** ✗ HIGH — `src/Proven/SafePBKDF2.idr:6` *"Prevents: low
+  iteration counts, short salts, weak derived key lengths."* — crypto
+  parameter validator; prevention theorems OWED.
+- **SafeProvenance** ✗ MEDIUM — `src/Proven/SafeProvenance.idr:4`
+  *"Formally verified change tracking and audit trails"* — provides
+  records + predicates only; integrity/lineage theorems OWED.
+- **SafePolicy** ✗ MEDIUM — `src/Proven/SafePolicy.idr:4` *"Formally
+  verified policy enforcement"* — AST-level predicates only; enforcement
+  soundness theorems OWED.
+- **SafeRegistry** ✗ MEDIUM — `src/Proven/SafeRegistry.idr:5-6`
+  *"formally verified parsing of OCI/Docker image references with
+  guarantees of correctness and termination"* — parsers via Bool
+  validators; correctness/termination theorems OWED.
+- **SafeSchema** ✗ MEDIUM — `src/Proven/SafeSchema.idr:4-10` *"Formally
+  verified schema evolution"* + *"compatibility proofs"* +
+  *"correctness guarantees"* — type definitions + migration scaffolding;
+  compatibility/correctness theorems OWED.
+
+**Confirmed actually-proven** (re-classification, NOT in the OWED list):
+
+- **SafeTrust** — `src/Proven/SafeTrust.idr:296-303` `satisfiesMonotone`
+  discharged via exhaustive pattern-match + `Refl` per arm. The header's
+  "Formally verified" / "proven monotone" claim IS valid.
+- **SafeOrdering** — already noted in §"Adversarial sample" as the only
+  single-file module in that sample with a discharged theorem.
+
+### Long-tail still extrapolated
+
+The Phase 2 Days 19-21 audit surfaced 6 new instances but did NOT
+exhaustively read all 76 claim-bearing single-file modules (Bash
+permission boundaries on the audit sub-agent prevented full enumeration).
+On the order of **~54 single-file modules remain extrapolated** as
+overclaim candidates per the original 3% genuinely-proven sample rate.
+A full enumeration is mechanical: every `src/Proven/Safe*.idr` matching
+`Prevents:|formally verified|cannot crash|guarantee|no false negative|
+traversal|injection|attack` without a discharged theorem (no `Refl` /
+`Dec` / `impossible` / `absurd` / `with` block) is OWED. Phase 3 may
+batch-process these via the three cross-cutting overclaim patterns
+identified in the Days 19-21 audit:
+
+1. **"Formally verified" without evidence** — batch-fix template:
+   `formally verified X` → `X via Bool predicates; theorems OWED — see
+   PROOF-NEEDS.md`.
+2. **"Prevents: X" without prevention theorem** — batch-fix template:
+   `Prevents: X` → `Aims to prevent (via Bool predicates; soundness
+   theorems OWED — see PROOF-NEEDS.md): X`.
+3. **"guarantees" / "correctness" / "termination" prose claims** —
+   batch-fix template: remove adjectives + add OWED pointer.
 
 ## OWED-with-justification convention (adopted 2026-05-20)
 

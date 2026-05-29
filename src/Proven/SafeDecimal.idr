@@ -51,7 +51,8 @@ pow10 Z = 1
 pow10 (S n) = 10 * pow10 n
 
 ||| Normalize by removing trailing zeros (reduce scale)
-||| Structurally decreasing on scale (Nat) ensures totality.
+||| Structurally decreasing on scale (Nat); `%default total` relies on this —
+||| explicit termination lemma pending (see `PROOF-NEEDS.md`).
 normalize : Decimal -> Decimal
 normalize (MkDecimal m s) = go s m
   where

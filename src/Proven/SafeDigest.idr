@@ -2,8 +2,13 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| SafeDigest - Cryptographically safe digest operations
 |||
-||| This module provides formally verified digest parsing, validation,
-||| and constant-time comparison to prevent timing attacks.
+||| This module provides digest parsing, validation, and constant-time
+||| comparison aimed at preventing timing attacks.
+|||
+||| Proof status: `parseAlgorithmRoundtrip` discharged in `Proofs.idr`.
+||| The `constantTimeReflexive` / `constantTimeSymmetric` / `verifyTransitive`
+||| claims are currently `@ Assumed:` (see `PROOF-NEEDS.md`); the previous
+||| header phrase "formally verified" overstated this and has been removed.
 |||
 ||| Supported algorithms: sha256, sha384, sha512, blake3
 module Proven.SafeDigest
@@ -216,35 +221,53 @@ makeDigest alg hex =
 -- Proofs and Specifications
 --------------------------------------------------------------------------------
 
-||| Specification: Parsing and rendering are inverse operations
+||| OWED: parsing is a left inverse of rendering — for any valid `Digest d`,
+||| `parseDigest (toString d) = ValidDigest d`. Holds definitionally on any
+||| concrete `Digest` constructor, but the witness flows through opaque
+||| `String` primitives (`pack` / `unpack` / `break`).
 |||
-||| @ Property: For valid digest d, parseDigest (toString d) = ValidDigest d
-||| @ Assumed: Requires induction over string characters and reduction of break/pack.
-|||   String operations are opaque to the type checker; proof awaits a reflective string library.
-parseRenderInverse : (d : Digest) ->
+||| Held back by Idris2 0.8.0 not reducing `String.pack` / `unpack` / `break`
+||| over an abstract `String` at the type level — Family 1 (String FFI
+||| opacity), same as `SafeBase64.standardAlphabetValid`. Discharge once a
+||| `Data.String` reflective tactic is available, or by structural induction
+||| on the digest's hex representation once the `unpack`-reduction blocker
+||| is lifted.
+0 parseRenderInverse : (d : Digest) ->
   parseDigest (toString d) = ValidDigest d
 
-||| Specification: Constant-time comparison is reflexive
+||| OWED: `constantTimeCompare s s = True` for every `String s` — comparison
+||| is reflexive.
 |||
-||| @ Property: constantTimeCompare s s = True for all s
-||| @ Assumed: Follows from x == x for all Char, but requires unfolding of
-|||   unpack/zip/foldl over opaque String representation.
-constantTimeReflexive : (s : String) -> constantTimeCompare s s = True
+||| Held back by Idris2 0.8.0 not reducing the `unpack` / `zip` / `foldl`
+||| chain inside `constantTimeCompare` over an abstract `String` — Family 1
+||| (String FFI opacity) plus Family 2 (`Char.(==)` is FFI-bound). Discharge
+||| by lifting the obligation to `List Char` (where `x == x` follows by
+||| `Char` reflexivity) once the `unpack`-reduction blocker is lifted, or
+||| by a `Data.String` reflective tactic.
+0 constantTimeReflexive : (s : String) -> constantTimeCompare s s = True
 
-||| Specification: Constant-time comparison is symmetric
+||| OWED: `constantTimeCompare a b = constantTimeCompare b a` — comparison
+||| is symmetric.
 |||
-||| @ Property: constantTimeCompare a b = constantTimeCompare b a
-||| @ Assumed: Follows from commutativity of (==) on Char and commutativity of zip.
-|||   Requires unfolding opaque String operations.
-constantTimeSymmetric : (a : String) -> (b : String) ->
+||| Held back by Idris2 0.8.0 not unfolding the `unpack` / `zip` / `foldl`
+||| chain over abstract `String`s, plus the unproven commutativity of the
+||| FFI-bound `Char.(==)` — Family 1 + Family 2. Discharge by lifting the
+||| obligation to `List Char` (where the result follows from `zip`
+||| commutativity and `Char` equality symmetry) once those reduce by Refl.
+0 constantTimeSymmetric : (a : String) -> (b : String) ->
   constantTimeCompare a b = constantTimeCompare b a
 
-||| Specification: Digest verification is transitive
+||| OWED: `verifyDigest` is transitive — if `verifyDigest a b = True` and
+||| `verifyDigest b c = True`, then `verifyDigest a c = True`. Requires the
+||| same-algorithm constraint and transitivity of `constantTimeCompare` over
+||| the underlying string representation.
 |||
-||| @ Property: If verify a b and verify b c, then verify a c
-||| @ Assumed: Requires same algorithm constraint and transitivity of
-|||   constantTimeCompare over opaque String representation.
-verifyTransitive : (a : Digest) -> (b : Digest) -> (c : Digest) ->
+||| Held back by Idris2 0.8.0 not reducing `constantTimeCompare`'s `unpack`
+||| / `zip` / `foldl` chain — Family 1 (String FFI opacity). Transitively
+||| depends on `constantTimeReflexive` and `constantTimeSymmetric` being
+||| discharged. Discharge once a `Data.String` reflective tactic is
+||| available.
+0 verifyTransitive : (a : Digest) -> (b : Digest) -> (c : Digest) ->
   verifyDigest a b = True -> verifyDigest b c = True ->
   verifyDigest a c = True
 

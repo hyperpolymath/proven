@@ -1,9 +1,10 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeLRU - Safe Least Recently Used cache
+||| SafeLRU - Bounded Least Recently Used cache
 |||
-||| This module provides a bounded LRU cache with safe operations
-||| that cannot overflow or corrupt cache state.
+||| This module provides a bounded LRU cache. The non-overflow /
+||| non-corruption invariants are currently OWED (companion `Proofs.idr`
+||| discharges record-projection anchors only — see `PROOF-NEEDS.md`).
 module Proven.SafeLRU
 import Data.String
 import Data.List

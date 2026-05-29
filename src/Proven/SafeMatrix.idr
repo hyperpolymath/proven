@@ -1,9 +1,11 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeMatrix - Safe matrix operations that cannot crash
+||| SafeMatrix - Matrix operations with dimension checking
 |||
 ||| This module provides type-safe matrix operations with dimension checking.
 ||| Operations that could fail (like inversion) return Maybe/Either types.
+||| Non-crash invariant theorems are OWED (companion `Proofs.idr` discharges
+||| error-message and record-projection anchors only — see `PROOF-NEEDS.md`).
 module Proven.SafeMatrix
 import Data.String
 import Data.List

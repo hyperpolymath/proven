@@ -17,7 +17,8 @@ import public Proven.SafeFloat
 -- Probability Types
 --------------------------------------------------------------------------------
 
-||| A probability value guaranteed to be in [0, 1]
+||| A probability value intended to be in [0, 1] (smart-constructor
+||| refinement theorem pending — see `PROOF-NEEDS.md`).
 public export
 record Probability where
   constructor MkProb

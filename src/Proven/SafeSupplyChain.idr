@@ -4,7 +4,9 @@
 |||
 ||| Provides type-safe SLSA provenance, SBOM validation, and
 ||| attestation chain verification. Complements SafeSRI and SafeDigest.
-||| Prevents: tampered builds, unattested artifacts, provenance forgery.
+||| Aims to prevent (via `Bool` predicates; soundness theorems OWED — see
+||| `PROOF-NEEDS.md`): tampered builds, unattested artifacts, provenance
+||| forgery.
 module Proven.SafeSupplyChain
 
 import Data.String

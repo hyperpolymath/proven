@@ -194,7 +194,8 @@ edgesTo v g = filter (\e => e.target == v) g.edges
 
 ||| Find a path between two vertices using BFS
 ||| Returns Nothing if no path exists
-||| Bounded by fuel derived from vertex count to guarantee termination
+||| Bounded by fuel derived from vertex count; the bound is asserted by
+||| construction (explicit termination theorem pending — see `PROOF-NEEDS.md`).
 public export
 findPath : Eq v => v -> v -> Graph v w -> Maybe (List v)
 findPath start end g =

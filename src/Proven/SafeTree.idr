@@ -1,9 +1,10 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeTree - Safe tree data structure operations
+||| SafeTree - Tree data structure operations
 |||
-||| This module provides various tree structures with safe
-||| traversal and manipulation operations.
+||| This module provides various tree structures with type-safe
+||| traversal and manipulation operations. Traversal-safety theorems
+||| are OWED — see `PROOF-NEEDS.md`.
 module Proven.SafeTree
 import Data.String
 import Data.List

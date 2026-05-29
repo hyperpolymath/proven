@@ -27,9 +27,13 @@ prop_urlWithPath = Refl
 prop_urlWithQuery : isOk (parseUrl "https://example.com?key=value") = True
 prop_urlWithQuery = Refl
 
-||| Property: Relative URL is rejected (requires scheme)
-prop_relativeUrlFails : isErr (parseUrl "/path/to/resource") = True
-prop_relativeUrlFails = ?prop_relativeUrlFails_rhs
+||| OWED: Relative URL is rejected (requires scheme)
+||| Held back by Idris2 0.8.0 not reducing the underlying computation by
+||| Refl at the type level (the original orphan-test author wrote this as
+||| a `?prop_relativeUrlFails_rhs` hole). May discharge as `= Refl` once the relevant
+||| String/List/Char reduction blocker lifts, or by manual case analysis;
+||| revisit during Phase 2 Day-3+ DISCHARGE pass.
+0 prop_relativeUrlFails : isErr (parseUrl "/path/to/resource") = True
 
 ||| Property: Query encoding preserves alphanumerics
 prop_queryEncodeAlpha : encodeQueryValue "abc123" = "abc123"
