@@ -71,10 +71,21 @@ emptyFormatUnknown = Refl
 --------------------------------------------------------------------------------
 
 ||| fullMask never exposes any key characters.
-||| The output is "[REDACTED:N chars]" which contains no key material.
+|||
+||| The original formulation asked for `isPrefixOf "[REDACTED:"`
+||| (fullMask key) = True`, but Idris2 0.8.0 cannot reduce the
+||| `isPrefixOf` call through the `unpack`/`++` String-FFI chain when
+||| the right operand is universally quantified. Splitting the
+||| guarantee in two delivers the same safety property by structural
+||| equality (which `Refl` discharges) plus a derived prefix-lemma
+||| that any consumer can apply locally — see #95 for the bridge
+||| approach.
+|||
+||| The output is "[REDACTED:N chars]" — opaque length, no key bytes.
 public export
-fullMaskFormat : (key : APIKey) -> isPrefixOf "[REDACTED:" (fullMask key) = True
-fullMaskFormat key = Refl
+fullMaskStructure : (key : APIKey) ->
+                    fullMask key = "[REDACTED:" ++ show (length key.raw) ++ " chars]"
+fullMaskStructure _ = Refl
 
 --------------------------------------------------------------------------------
 -- Format Matching Properties

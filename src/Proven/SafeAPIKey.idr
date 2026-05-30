@@ -84,9 +84,17 @@ record APIKey where
 ||| Postulate: length check for key construction
 keyLengthOk : (s : String) -> {auto 0 _ : So (length s >= MinKeyLength)} -> So (length s >= MinKeyLength)
 
-||| Attempt to create an APIKey from a raw string
+||| Attempt to create an APIKey from a raw string.
+|||
+||| The empty-string fast-path is explicit so the proof
+||| `emptyKeyRejected` (in `Proofs.idr`) discharges by `Refl` without
+||| relying on the `prim__strLength`/`>=` FFI primitives to reduce at
+||| type-check time. Behaviour is identical to a single `with`-clause
+||| definition — empty strings fail the length check either way.
+||| See hyperpolymath/proven#95.
 public export
 mkAPIKey : String -> Maybe APIKey
+mkAPIKey ""  = Nothing
 mkAPIKey s with (choose (length s >= MinKeyLength))
   mkAPIKey s | Left prf  = Just (MkAPIKey s (detectFormat s) prf)
   mkAPIKey s | Right _   = Nothing
