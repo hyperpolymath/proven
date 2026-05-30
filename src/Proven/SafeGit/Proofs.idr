@@ -27,8 +27,13 @@ public export
 public export
 0 emptyRefNameInvalid : isValidRefName "" = False
 
-||| OWED: `refName (MkGitRef "main") = "main"` (record extraction
-||| pass-through). Blocked on auto-implicit elaboration.
+||| DISCHARGED: `refName (MkGitRef s) = s` (record extraction
+||| pass-through). `refName` is a direct pattern match
+||| `refName (MkGitRef name) = name` (SafeGit.idr L62-63), so the
+||| body reduces by Refl regardless of `s`. The auto-implicit
+||| `v : isValidRefName s = True` is irrelevant to the proof — it's
+||| an API precondition on `s` that doesn't enter the reduction.
 public export
-0 refNameExtracts : (s : String) -> {auto v : isValidRefName s = True}
-                 -> refName (MkGitRef s) = s
+refNameExtracts : (s : String) -> {auto v : isValidRefName s = True}
+               -> refName (MkGitRef s) = s
+refNameExtracts _ = Refl
