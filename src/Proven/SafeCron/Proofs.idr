@@ -25,44 +25,66 @@ anyShow = Refl
 -- bottom out in direct `MkCron` invocation reduce by Refl)
 --------------------------------------------------------------------------------
 
-||| OWED: `everyMinute = MkCron Any Any Any Any Any`. Blocked on
-||| `public export` body opacity at this call-site.
+||| DISCHARGED: `everyMinute = MkCron Any Any Any Any Any`. The smart
+||| constructor is `public export` with a concrete body in SafeCron.idr
+||| L166-168, so the elaborator unfolds it for `Refl`. Same pattern as
+||| `anyShow = Refl` above.
 public export
-0 everyMinuteDef : everyMinute = MkCron Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+everyMinuteDef : everyMinute = MkCron Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+everyMinuteDef = Refl
 
+||| DISCHARGED: same shape — `hourly` is `public export` (SafeCron.idr L171-173).
 public export
-0 hourlyDef : hourly = MkCron (Single 0) Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+hourlyDef : hourly = MkCron (Single 0) Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+hourlyDef = Refl
 
+||| DISCHARGED: same shape — `daily` is `public export` (SafeCron.idr L176-178).
 public export
-0 dailyDef : daily = MkCron (Single 0) (Single 0) Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+dailyDef : daily = MkCron (Single 0) (Single 0) Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+dailyDef = Refl
 
+||| DISCHARGED: same shape — `weekly` is `public export` (SafeCron.idr L186-188).
 public export
-0 weeklyDef : weekly = MkCron (Single 0) (Single 0) Proven.SafeCron.Any Proven.SafeCron.Any (Single 0)
+weeklyDef : weekly = MkCron (Single 0) (Single 0) Proven.SafeCron.Any Proven.SafeCron.Any (Single 0)
+weeklyDef = Refl
 
+||| DISCHARGED: same shape — `monthly` is `public export` (SafeCron.idr L191-193).
 public export
-0 monthlyDef : monthly = MkCron (Single 0) (Single 0) (Single 1) Proven.SafeCron.Any Proven.SafeCron.Any
+monthlyDef : monthly = MkCron (Single 0) (Single 0) (Single 1) Proven.SafeCron.Any Proven.SafeCron.Any
+monthlyDef = Refl
 
+||| DISCHARGED: `dailyAt h` is `public export` (SafeCron.idr L181-183) and
+||| its body `MkCron (Single 0) (Single h) Any Any Any` reduces for any `h`.
 public export
-0 dailyAtExpansion :
+dailyAtExpansion :
   (h : Nat) -> dailyAt h = MkCron (Single 0) (Single h) Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+dailyAtExpansion _ = Refl
 
+||| DISCHARGED: `everyNMinutes n` is `public export` (SafeCron.idr L196-198).
 public export
-0 everyNMinutesExpansion :
+everyNMinutesExpansion :
   (n : Nat) -> everyNMinutes n = MkCron (Step Proven.SafeCron.Any n) Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+everyNMinutesExpansion _ = Refl
 
+||| DISCHARGED: `everyNHours n` is `public export` (SafeCron.idr L201-203).
 public export
-0 everyNHoursExpansion :
+everyNHoursExpansion :
   (n : Nat) -> everyNHours n = MkCron (Single 0) (Step Proven.SafeCron.Any n) Proven.SafeCron.Any Proven.SafeCron.Any Proven.SafeCron.Any
+everyNHoursExpansion _ = Refl
 
+||| DISCHARGED: `weekdaysAt h m` is `public export` (SafeCron.idr L206-208).
 public export
-0 weekdaysAtExpansion :
+weekdaysAtExpansion :
   (h, m : Nat)
   -> weekdaysAt h m = MkCron (Single m) (Single h) Proven.SafeCron.Any Proven.SafeCron.Any (Range 1 5)
+weekdaysAtExpansion _ _ = Refl
 
+||| DISCHARGED: `weekendsAt h m` is `public export` (SafeCron.idr L211-213).
 public export
-0 weekendsAtExpansion :
+weekendsAtExpansion :
   (h, m : Nat)
   -> weekendsAt h m = MkCron (Single m) (Single h) Proven.SafeCron.Any Proven.SafeCron.Any (List [0, 6])
+weekendsAtExpansion _ _ = Refl
 
 --------------------------------------------------------------------------------
 -- `MkTime` record projections
