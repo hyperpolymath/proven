@@ -216,26 +216,24 @@ public export
 emptyPathIdentity : (v : JsonValue) -> getPath [] v = Just v
 emptyPathIdentity v = Refl
 
-||| OWED: a single-segment `Key k` path equals direct `lookup`:
+||| DISCHARGED: a single-segment `Key k` path equals direct `lookup`:
 ||| `getPath [Key k] (JsonObject obj) = lookup k obj`.
-||| `getPath` is defined in `Proven.SafeJson.Access` and dispatches
-||| through `getSegment` (mutually recursive across `PathSegment`
-||| constructors). Idris2 0.8.0 marks the family `covering` (not
-||| `total`) because the recursion is on `List PathSegment` paired
-||| with a `JsonValue` whose `JsonArray`/`JsonObject` arms recurse
-||| with new path-tails — same termination-witness shape as the
-||| `Proven.SafeJson.Access.deletePath` unreachable-clause warning
-||| already in this build. Covering functions do NOT reduce by
-||| `Refl` outside their pattern arms in Idris2 0.8.0, so this
-||| statement cannot be discharged without an external
-||| `assert_total`-style reduction lemma. Held back by the same
-||| Access-module covering/total gap that motivated removing
-||| `singleIndexPath` (L154 comment). Discharge once `getPath`
-||| can be re-stated as `total` via a structurally decreasing
-||| metric (path length is the obvious candidate).
+||| The OWED comment claimed `getPath`/`getSegment` are `covering`
+||| (which would block reduction), but inspection of the current
+||| `Proven.SafeJson.Access` source shows neither carries the
+||| annotation — they are total. Discharge proceeds:
+|||   getPath [Key k] (JsonObject obj)
+|||     = case getSegment (Key k) (JsonObject obj) of {Nothing => Nothing; Just v => getPath [] v}
+|||     = case lookup k obj of {Nothing => Nothing; Just v => Just v}
+||| `with`-pattern on `lookup k obj` discharges both arms by `Refl`
+||| (Maybe-identity). Empirically verified at
+||| `/tmp/charrefl/src/TestJsonPath.idr`.
 public export
-0 singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
+singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
                 getPath [Key k] (JsonObject obj) = lookup k obj
+singleKeyPath k obj with (lookup k obj)
+  singleKeyPath k obj | Nothing = Refl
+  singleKeyPath k obj | Just _  = Refl
 
 -- singleIndexPath: removed — where-clause in type signature is invalid
 -- in Idris2 0.8.0 and the index' helper conflicts with stdlib names.
@@ -326,26 +324,25 @@ public export
 stringMatchesTString : (s : String) -> matchesType (JsonString s) TString = True
 stringMatchesTString s = Refl
 
-||| OWED: every `JsonValue` matches `TAny`:
+||| DISCHARGED: every `JsonValue` matches `TAny`:
 ||| `matchesType v TAny = True` for all `v`.
 ||| Definitionally `matchesType _ TAny = True` (`SafeJson.idr` L353).
-||| The clause is a catch-all on the second argument and reduces by
-||| `Refl` for any concrete `v` constructor — but Idris2 0.8.0 will
-||| not reduce it for an abstract `v : JsonValue` because the
-||| preceding clauses (`JsonArray arr` / `JsonObject pairs` with
-||| `TArray`/`TObject`/`TOneOf` on the right) are *covering* (not
-||| total): `matchesType` mutually recurses through `all` over the
-||| array/object children. Covering definitions do not reduce on
-||| open variables in Idris2 0.8.0 — same blocker family as
-||| `singleKeyPath` above. The proof would normally close by a
-||| six-arm case-split on `v` (`JsonNull`/`JsonBool b`/`JsonNumber n`
-||| /`JsonString s`/`JsonArray arr`/`JsonObject pairs`), each with
-||| `Refl`. Held back by the covering-vs-total reduction policy.
-||| Discharge once `matchesType` is restated as `total` (e.g. by
-||| an explicit size metric over `JsonValue` + children), or with
-||| a manual six-arm split that elaborates per-arm `Refl`s.
+||| The OWED comment claimed the covering-vs-total policy blocks
+||| reduction on an abstract `v`, but in practice the manual
+||| six-arm case-split it suggested (`JsonNull` / `JsonBool b` /
+||| `JsonNumber n` / `JsonString s` / `JsonArray arr` /
+||| `JsonObject pairs`) works: each concrete-constructor arm
+||| reduces through the catch-all `matchesType _ TAny = True`
+||| clause by `Refl`. Empirically verified at
+||| `/tmp/charrefl/src/TestJson.idr`.
 public export
-0 anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
+anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
+anyMatchesTAny JsonNull       = Refl
+anyMatchesTAny (JsonBool _)   = Refl
+anyMatchesTAny (JsonNumber _) = Refl
+anyMatchesTAny (JsonString _) = Refl
+anyMatchesTAny (JsonArray _)  = Refl
+anyMatchesTAny (JsonObject _) = Refl
 
 --------------------------------------------------------------------------------
 -- Totality Proofs
