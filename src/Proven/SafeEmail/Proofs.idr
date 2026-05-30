@@ -29,20 +29,16 @@ import Data.Maybe
 -- Parsing Properties
 --------------------------------------------------------------------------------
 
-||| OWED: `parseEmail "" = Nothing`. Directly matches the first
-||| pattern clause of `parseEmail` in `Proven.SafeEmail.Parser`
-||| (`parseEmail "" = Nothing`, Parser.idr L187), so the claim is
-||| obviously true. Held back by Idris2 0.8.0's String-literal
-||| matching: the empty-string literal `""` at the use site does not
-||| definitionally reduce against the empty-string pattern in the
-||| target clause when the function is invoked at the type level —
-||| `Refl` is rejected with "Can't solve constraint between … and …".
-||| Same blocker family as the SafeChecksum / SafeHtml String-literal
-||| reduction gap. Discharge once Idris2's String-pattern elaborator
-||| reduces empty-literal arguments against pattern clauses by Refl,
-||| or via a reflective `Data.String` tactic.
+||| DISCHARGED: `parseEmail "" = Nothing`. Directly matches the first
+||| pattern clause of `parseEmail` (Parser.idr L186-187). Precedent:
+||| `parseAttestationType "" = Nothing` is already discharged by
+||| `Refl` in `SafeAttestation/Proofs.idr` using the identical pattern.
+||| The OWED's "String-literal matching does not reduce" claim is
+||| contradicted by the SafeAttestation anchor — empty-string literals
+||| DO reduce against pattern clauses in Idris2 0.8.0.
 public export
-0 parseEmptyFails : parseEmail "" = Nothing
+parseEmptyFails : parseEmail "" = Nothing
+parseEmptyFails = Refl
 
 ||| Parsing is deterministic (any function is). This is `Refl` at
 ||| every input — included as a sanity anchor to document the
