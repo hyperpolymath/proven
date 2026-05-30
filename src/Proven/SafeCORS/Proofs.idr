@@ -17,25 +17,34 @@ import Data.List
 -- Default Policy Properties
 --------------------------------------------------------------------------------
 
+-- NOTE: bare `defaultPolicy` in these type signatures is implicitly
+-- bound as a fresh lowercase variable by Idris2 0.8.0, shadowing
+-- `Proven.SafeCORS.defaultPolicy`. The `Refl` then cannot reduce
+-- because the type-level `defaultPolicy` is opaque. Qualifying with
+-- `Proven.SafeCORS.defaultPolicy` resolves the shadowing. See
+-- hyperpolymath/proven#92.
+
 ||| The default policy denies all origins.
 public export
-defaultPolicyDeniesAll : (origin : Origin) -> isOriginAllowed defaultPolicy origin = False
+defaultPolicyDeniesAll : (origin : Origin) ->
+                         isOriginAllowed Proven.SafeCORS.defaultPolicy origin = False
 defaultPolicyDeniesAll _ = Refl
 
 ||| The default policy is not an unsafe configuration.
 public export
-defaultPolicyIsSafe : isUnsafeConfiguration defaultPolicy = False
+defaultPolicyIsSafe : isUnsafeConfiguration Proven.SafeCORS.defaultPolicy = False
 defaultPolicyIsSafe = Refl
 
 ||| The default policy has no validation errors.
 public export
-defaultPolicyNoErrors : validatePolicy defaultPolicy = []
+defaultPolicyNoErrors : validatePolicy Proven.SafeCORS.defaultPolicy = []
 defaultPolicyNoErrors = Refl
 
 ||| The default policy does not generate headers (denies all).
 public export
-defaultPolicyNoHeaders : (origin : Origin) -> generateHeaders defaultPolicy origin = Nothing
-defaultPolicyNoHeaders origin = Refl
+defaultPolicyNoHeaders : (origin : Origin) ->
+                         generateHeaders Proven.SafeCORS.defaultPolicy origin = Nothing
+defaultPolicyNoHeaders _ = Refl
 
 --------------------------------------------------------------------------------
 -- Wildcard+Credentials Safety

@@ -236,6 +236,7 @@ modules = Proven
         , Proven.SafeHTTP
         , Proven.SafePromptInjection
         , Proven.SafeCORS
+        , Proven.SafeCORS.Proofs
         , Proven.SafeAPIKey
         , Proven.SafeWebSocket
         -- Security hardening modules (v1.2.0)
