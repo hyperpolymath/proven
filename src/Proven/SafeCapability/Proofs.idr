@@ -140,43 +140,52 @@ neverExpires now h r ps d = Refl
 -- Record-update functions
 --------------------------------------------------------------------------------
 
-||| OWED: `makeNonDelegatable` sets `capDelegatable = False`. Same
-||| `public export`-body-opacity blocker.
+||| DISCHARGED: `makeNonDelegatable` sets `capDelegatable = False`.
+||| `makeNonDelegatable` is `public export` with body
+||| `{ capDelegatable := False } cap` (SafeCapability.idr L171-172).
+||| Record-update projection reduces directly for `Refl`.
 public export
-0 makeNonDelegatableSetsFalse :
+makeNonDelegatableSetsFalse :
   (cap : Capability) -> (makeNonDelegatable cap).capDelegatable = False
+makeNonDelegatableSetsFalse _ = Refl
 
-||| OWED: `setExpiry t` sets `capExpiry = Just t`. Same blocker.
+||| DISCHARGED: `setExpiry t` sets `capExpiry = Just t`. `setExpiry`
+||| is `public export` (SafeCapability.idr L176-177) — same record-
+||| update projection pattern.
 public export
-0 setExpirySetsJust :
+setExpirySetsJust :
   (t : Nat) -> (cap : Capability) -> (setExpiry t cap).capExpiry = Just t
+setExpirySetsJust _ _ = Refl
 
 --------------------------------------------------------------------------------
 -- Store base cases
 --------------------------------------------------------------------------------
 
-||| OWED: `emptyStore` has no capabilities. Idris2 0.8.0 does not
-||| reduce record-projection through a `public export` definition
-||| body alone (would need `inline` or full-pattern unfolding).
+||| DISCHARGED: `emptyStore` has no capabilities. `emptyStore` is
+||| `public export` with body `MkCapabilityStore [] []`
+||| (SafeCapability.idr L188-189), so record projection reduces.
 public export
-0 emptyStoreNoCapabilities :
+emptyStoreNoCapabilities :
   (emptyStore).capabilities = []
+emptyStoreNoCapabilities = Refl
 
-||| OWED: `emptyStore` has no revoked entries. Same blocker.
+||| DISCHARGED: `emptyStore` has no revoked entries. Same anchor.
 public export
-0 emptyStoreNoRevoked :
+emptyStoreNoRevoked :
   (emptyStore).revoked = []
+emptyStoreNoRevoked = Refl
 
 --------------------------------------------------------------------------------
 -- `adminHierarchy`
 --------------------------------------------------------------------------------
 
-||| OWED: `adminHierarchy` declares Admin as the parent of [Read,
-||| Write, Execute, Delete]. Same `public export`-body-opacity
-||| blocker as `emptyStore`.
+||| DISCHARGED: `adminHierarchy` declares Admin as parent of [Read,
+||| Write, Execute, Delete]. `adminHierarchy` is `public export` with
+||| this exact body (SafeCapability.idr L258-259) — `Refl` closes.
 public export
-0 adminHierarchyDef :
+adminHierarchyDef :
   adminHierarchy = MkHierarchy Admin [Read, Write, Execute, Delete]
+adminHierarchyDef = Refl
 
 --------------------------------------------------------------------------------
 -- `readOnlyMembrane`
