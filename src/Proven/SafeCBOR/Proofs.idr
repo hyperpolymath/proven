@@ -217,6 +217,9 @@ emptyMapNoDupes = Refl
 -- OWED
 --------------------------------------------------------------------------------
 
-||| OWED: `MaxNestingDepth = 64`. Blocked on Nat-literal opacity.
+||| DISCHARGED: `MaxNestingDepth = 64`. `MaxNestingDepth` is `public
+||| export` with body `64` (SafeCBOR.idr L150-152). Both sides are
+||| the same `Nat` literal — `Refl` closes without unary expansion.
 public export
-0 maxNestingDepthAnchor : MaxNestingDepth = 64
+maxNestingDepthAnchor : MaxNestingDepth = 64
+maxNestingDepthAnchor = Refl
