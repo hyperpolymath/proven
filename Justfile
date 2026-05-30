@@ -153,6 +153,34 @@ test-ffi:
     echo "[proven] FFI tests passed."
 
 # ---------------------------------------------------------------------------
+# Chapel binding (detachable harness — see docs/adr/0001-binding-ci-template.md)
+#
+# These recipes are THIN FORWARDERS into bindings/chapel/.  Any Chapel-
+# specific logic lives in bindings/chapel/Justfile so that the harness
+# remains extractable to a standalone proven-chapel repo.  The forwarders
+# set PROVEN_LIB_PATH to the in-tree libproven.so before delegating.
+# ---------------------------------------------------------------------------
+
+# Forward to the Chapel binding's own check recipe (fast symbol audit).
+chapel-check: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/chapel --justfile bindings/chapel/Justfile check
+
+# Forward to the Chapel binding's own build recipe.
+chapel-build: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/chapel --justfile bindings/chapel/Justfile build
+
+# Forward to the Chapel binding's own test recipe.
+chapel-test: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/chapel --justfile bindings/chapel/Justfile test
+
+# Forward to the Chapel binding's own clean recipe.
+chapel-clean:
+    just -d bindings/chapel --justfile bindings/chapel/Justfile clean
+
+# ---------------------------------------------------------------------------
 # Cleaning
 # ---------------------------------------------------------------------------
 

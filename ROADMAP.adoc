@@ -164,6 +164,45 @@ proven aims to be the **definitive verified safety library** across all programm
 
 ---
 
+== Binding tier-1 standup (infrastructure, in-flight 2026)
+
+*Goal:* every promoted binding is backed by a strict CI signal proving
+it links against `libproven.so`, agrees with the documented C ABI, and
+behaves correctly on every PR. A binding catalogue is only credible if
+each entry has end-to-end CI; without it, "117 bindings" is marketing.
+
+The standup pattern is documented in `docs/adr/0001-binding-ci-template.adoc`
+(detachable-harness template). Each binding ships:
+
+* `bindings/<lang>/Justfile` — env-driven `check` / `build` / `test`
+* `bindings/<lang>/symbol-manifest.txt` — WIRED extern manifest
+* `bindings/<lang>/scripts/symbol-audit.sh` — nm diff vs manifest
+* `.github/workflows/<lang>-ci.yml` — strict, SHA-pinned actions, 6 jobs
+  (detachability-guard, build, symbol-audit, smoke, tests,
+  detachable-build)
+
+Status:
+
+* **Chapel — *PILOT*, IN-FLIGHT 2026-05-30**. See
+  `docs/adr/0002-chapel-binding-standup.adoc`. WIRED subset = 5 symbols
+  (path-traversal, header-CRLF, free-string, version, build-info).
+  The remainder of `bindings/chapel/src/Safe*.chpl` is declared per
+  `proven.h` but blocked on proven#88.
+* Crystal — REPLICATE NEXT, follow-up issue filed.
+* Nim — REPLICATE 3rd, follow-up issue filed.
+* OCaml — REPLICATE 4th, follow-up issue filed.
+* Haskell — REPLICATE 5th, follow-up issue filed.
+* Lua — REPLICATE 6th, follow-up issue filed.
+* The other ~110 bindings — applied in waves after the top-6 prove the
+  template generalises.
+
+Prerequisite ramp: every binding's WIRED coverage grows as proven#88
+lands missing Zig FFI exports. Until that ramp, each binding-tier-1
+PR ships with the same trimmed wired set (the path-traversal + CRLF
++ string-free + version-probe quintet).
+
+---
+
 == Future Roadmap (v1.1.0+)
 
 === v1.1.0 - Stabilization & Performance (Q2 2026)

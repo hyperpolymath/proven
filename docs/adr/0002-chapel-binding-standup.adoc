@@ -1,0 +1,131 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+= ADR-0002 — Chapel binding standup (binding-tier-1 pilot)
+:author: hyperpolymath
+:revdate: 2026-05-30
+:status: Accepted
+
+== Status
+
+Accepted (2026-05-30).
+
+== Context
+
+The Chapel binding at `bindings/chapel/` (797 LOC across 10 modules)
+shipped without:
+
+* CI signal (no workflow scanned `bindings/chapel/**`),
+* tests (no `tests/` directory existed),
+* end-to-end build verification (`chpl --library --dynamic` had never
+  been run against `libproven.so` in CI),
+* symbol-table audit (no nm-based check that the binding's externs
+  resolve against the actual shared object).
+
+Static audit found:
+
+* `proven_init` / `proven_deinit` / `proven_is_initialized` exist in
+  `proven.h` and were declared in `LibProven.chpl` against
+  `int32_t` / `void` / `bool` return types,
+* the actual Zig export in `ffi/zig/src/main.zig` returns
+  `?*Handle` (opaque pointer) — a different ABI shape,
+* the vast majority of `proven_math_*` / `proven_string_*` /
+  `proven_json_*` / `proven_url_*` / `proven_datetime_*` /
+  `proven_email_*` / `proven_crypto_*` / `proven_path_sanitize_*`
+  externs declared in `LibProven.chpl` have *no corresponding Zig
+  export* (proven#88 — "missing Zig FFI exports, blocks linking"),
+* only 3 of LibProven.chpl's externs are both exported AND
+  ABI-consistent with the Zig source: `proven_path_has_traversal`,
+  `proven_header_has_crlf` (not previously declared in LibProven.chpl),
+  and `proven_free_string`.
+
+The pilot brief required choosing between:
+
+. *Path (a)* — land proven#88's missing exports as a prerequisite,
+. *Path (b)* — trim the Chapel declarations to the symbols that DO
+  link, defer the rest to a follow-up.
+
+== Decision
+
+*Path (b).* The Chapel binding stands up CI against the verified-callable
+subset (the WIRED block in `LibProven.chpl`); the remaining externs
+are kept as the documented C ABI contract under a GATED block, marked
+as "not yet linkable — tracked at proven#88". This is the smallest
+honest end-state that delivers credible binding-tier-1 CI today,
+without scope-creeping into a multi-week proven#88 redesign.
+
+A new `SafeHeader.chpl` module is added to expose the second wired
+primitive (`hasCrlf`) via an idiomatic wrapper. The umbrella module
+`Proven.chpl` re-exports both WIRED and GATED safety modules; the
+GATED ones are kept visible so they remain part of the documented
+binding-tier surface (the C ABI in `proven.h` is the long-term
+target), but tests + smoke target only the WIRED subset.
+
+The CI harness follows xref:0001-binding-ci-template.adoc[ADR-0001]
+exactly: detachable file set, env-driven libproven location, root
+Justfile thin-forwarders, per-binding `Justfile`, sparse-checkout
+proof of detachability.
+
+== Consequences
+
+*Positive*:
+
+* `bindings/chapel/` now has the full strict-CI shape — 6 jobs,
+  every one load-bearing,
+* the symbol-audit gate makes drift between
+  `LibProven.chpl` and `libproven.so` a hard CI failure,
+* the differential test (`TestFfiContract.chpl`) catches any future
+  divergence between the Chapel wrapper and the raw C ABI call on
+  identical inputs,
+* the binding is extractable to a standalone `proven-chapel` repo
+  by copying the detachable set + dropping it into the
+  template-shape workflow,
+* the WIRED / GATED split is honest documentation: a user reading
+  `LibProven.chpl` sees exactly which calls work today.
+
+*Negative*:
+
+* `Proven.chpl`'s `public use Safe*` chain still pulls GATED modules
+  into the umbrella. A naive user calling `safeAdd(2, 3)` will hit a
+  linker error rather than a typecheck error. Mitigation: the
+  README's coverage matrix marks WIRED vs GATED explicitly, and a
+  follow-up issue (filed alongside this ADR) is to add a
+  Chapel-level `compileError` on GATED procs once we have a way to
+  gate this at chpl-compile time rather than chpl-link time.
+* The Mason.toml still pins `chplVersion = "1.31.0..2.3.0"`. The
+  CI workflow uses Chapel 2.3.0 (verified SHA-pinned .deb). If a
+  user has Chapel 1.31.0 locally, the WIRED subset is expected to
+  work — but this is not exercised by CI. Adding a 1.31.0 matrix
+  cell is a follow-up.
+
+== Replication queue
+
+ADR-0001's template will be applied next to:
+
+. *Crystal* (Crystal 1.x, native LLVM-backed; tractable C interop)
+. *Nim* (mature C FFI; smallest delta from Chapel shape)
+. *OCaml* (dune + opam; well-trodden binding shape)
+. *Haskell* (cabal-based; well-known FFI)
+. *Lua* (LuaRocks; smallest binding surface)
+
+Each replication issue is filed in this PR's accompanying tracking
+issue; see ROADMAP.adoc §Binding tier-1 standup.
+
+== Prerequisite ramp
+
+Wave 2's binding standups all hit the same proven#88 wall. Until
+that ramp lands, every binding-tier-1 PR will be stuck with the
+same trimmed WIRED subset (path-traversal + CRLF + string-free +
+version-probe). The replication value is still real — each binding
+gets credible CI today — but the *coverage* of each binding's
+WIRED block expands as proven#88 ramps the Zig FFI exports.
+
+== References
+
+* xref:0001-binding-ci-template.adoc[ADR-0001 — Binding CI:
+  detachable-harness template]
+* https://github.com/hyperpolymath/proven/issues/88[proven#88 — missing
+  Zig FFI exports, blocks linking]
+* https://github.com/hyperpolymath/proven/issues/86[proven#86 — FFI
+  parity audit, 76 PORT-CHECK markers]
+* `bindings/chapel/README.adoc` — user-facing standup

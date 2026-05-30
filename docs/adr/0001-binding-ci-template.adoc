@@ -1,0 +1,203 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+= ADR-0001 — Binding CI: detachable-harness template
+:author: hyperpolymath
+:revdate: 2026-05-30
+:status: Accepted
+
+== Status
+
+Accepted (2026-05-30). First instance: Chapel binding pilot
+(see xref:0002-chapel-binding-standup.adoc[ADR-0002]).
+
+== Context
+
+proven advertises 117 language bindings against `libproven.so`. Before
+this ADR, the vast majority of those bindings had:
+
+* zero CI signal (no workflow ran on PRs that touched them),
+* zero behavioural tests (no `assert` ever fired against the
+  binding-tier wrapper),
+* no symbol-audit gate (the Zig FFI exports could drift from the
+  C ABI header without anything noticing),
+* implicit reach into repo-root tooling (Justfile, tests/, audits/),
+  making each binding effectively un-extractable.
+
+A binding catalogue is only credible if each entry compiles, links,
+and verifies its wrapper against the C ABI on every PR. We need a
+template that scales to the long tail without inventing a new shape
+per binding.
+
+== Decision
+
+Every promoted binding ships a *detachable* CI harness with the
+following invariants.
+
+=== I-1. Detachable file set
+
+A binding's CI harness consists of *exactly*:
+
+* `bindings/<lang>/` — all sources, tests, scripts, manifest, README,
+  Mason.toml-equivalent, `Justfile`.
+* `bindings/c/include/proven.h` — C ABI header (vendored on
+  extraction).
+* `.github/workflows/<lang>-ci.yml` — workflow file.
+
+The CI workflow's path triggers reference no other paths. The
+workflow's checkout steps use `sparse-checkout` to pull only the
+detachable set. The detachable-build CI job (see I-5) proves this
+holds on every PR.
+
+=== I-2. Self-contained binding Justfile
+
+The actual build + test recipes live in `bindings/<lang>/Justfile`.
+They do NOT call the root Justfile, do NOT traverse into sibling
+binding trees, and do NOT contain absolute paths to proven repo
+layout. External dependencies are passed via environment variables.
+
+The required env contract:
+
+* `PROVEN_LIB_PATH` — directory containing `libproven.so`.
+* `PROVEN_INCLUDE_PATH` — directory containing `proven.h`. Defaults
+  to `<binding>/../c/include` for in-tree use; overridable for
+  installed / vendored layouts.
+
+=== I-3. Root Justfile as thin forwarder
+
+The root `Justfile` exposes `<lang>-check`, `<lang>-build`, `<lang>-test`,
+`<lang>-clean` as **one-line forwarders** that set `PROVEN_LIB_PATH` to
+the in-tree libproven and delegate to the binding's Justfile via
+`just -d bindings/<lang> --justfile bindings/<lang>/Justfile <sub>`.
+No `<lang>-specific` logic at root.
+
+=== I-4. Symbol manifest + audit
+
+Each binding maintains:
+
+* `bindings/<lang>/symbol-manifest.txt` — newline-separated list of
+  C symbols (`proven_*`) that the binding's WIRED externs depend on.
+* `bindings/<lang>/scripts/symbol-audit.sh` — fast (<5s) gate that
+  runs `nm -D $PROVEN_LIB_PATH/libproven.so` and verifies every
+  manifest entry is present. Exits non-zero on miss.
+
+The CI job that runs this script is *load-bearing* — its red status
+blocks the PR. This is the binding-tier soundness check: it shows
+the wrapper's view of the C ABI agrees with what `libproven.so`
+actually exports.
+
+=== I-5. Strict CI jobs
+
+`<lang>-ci.yml` exposes (minimum):
+
+. *detachability-guard* — fails if the workflow references paths
+  outside the allowed set (`bindings/<lang>/`, `ffi/zig/`,
+  `bindings/c/include/proven.h`, self).
+. *<lang>-build* — installs the pinned toolchain (URL + SHA-256),
+  builds `libproven.so`, typechecks every binding source module.
+. *<lang>-symbol-audit* — runs `scripts/symbol-audit.sh`.
+. *<lang>-smoke* — builds + runs the binding's smoke target.
+. *<lang>-tests* — builds + runs every `tests/Test*.<ext>` module.
+. *<lang>-detachable-build* — sparse-checkout proof; builds + tests
+  from the detachable set alone.
+
+All jobs are strict (no `continue-on-error`). All actions are
+SHA-pinned. The smoke + tests jobs use `working-directory:
+bindings/<lang>` and consume `libproven.so` via `PROVEN_LIB_PATH`.
+
+=== I-6. Toolchain pinning policy
+
+Each binding workflow pins its toolchain by *URL + SHA-256*, not by
+"latest" or by floating apt repositories. The pinned values live in
+the workflow's `env:` block at the top.
+
+If the upstream rotates the asset, the SHA mismatch fails the install
+step and the PR is blocked until the workflow's pin is updated. This
+is intentional — it ratchets reproducibility upward.
+
+=== I-7. What soundness this provides
+
+The detachable-harness CI proves:
+
+* the binding *links* against the documented C ABI,
+* the binding's WIRED extern declarations agree with the symbol
+  table of `libproven.so` (no drift),
+* the binding's wrappers preserve the C ABI contract bit-for-bit
+  (differential test, see e.g. `TestFfiContract.chpl`),
+* the harness itself is extractable.
+
+The detachable-harness CI does NOT re-prove the Idris2 safety layer.
+That responsibility stays with `.github/workflows/idris2-ci.yml`
+and `just verify-totality`.
+
+== Detachability contract
+
+A binding can be extracted to its own repo by copying *only* the
+detachable file set. Concretely:
+
+[source,bash]
+----
+mkdir -p proven-<lang>/.github/workflows
+cp -r proven/bindings/<lang>/  proven-<lang>/bindings/
+cp -r proven/bindings/c/       proven-<lang>/bindings/
+cp    proven/.github/workflows/<lang>-ci.yml \
+      proven-<lang>/.github/workflows/
+
+cd proven-<lang>/bindings/<lang>
+PROVEN_LIB_PATH=/opt/proven/lib  just test
+----
+
+After this, `just test` must succeed. The `chapel-detachable-build`
+job in `chapel-ci.yml` is the executable form of this contract for
+the Chapel pilot.
+
+== Replication: from Chapel pilot to next-5 bindings
+
+The replication recipe is search/replace on the workflow + binding
+shape:
+
+[cols="2,3", options="header"]
+|===
+| Token              | Replace per binding
+
+| `chapel`           | `crystal`, `nim`, `ocaml`, `haskell`, `lua`, ...
+| `Chapel`           | `Crystal`, `Nim`, `OCaml`, `Haskell`, `Lua`, ...
+| `chpl --version`   | toolchain-specific version probe
+| `2.3.0`            | toolchain release pin
+| `*.chpl`           | toolchain source extension
+| Mason.toml         | `shard.yml` / `*.nimble` / `dune-project` / `*.cabal` / `*.rockspec`
+|===
+
+The first replicate (likely Crystal — see ROADMAP §Binding tier-1
+standup) verifies the template generalises. Subsequent bindings
+follow the same skeleton.
+
+== Consequences
+
+*Positive*:
+
+* every binding-tier-1 PR has end-to-end CI signal,
+* binding-vs-libproven drift becomes a CI failure, not a runtime
+  surprise,
+* each binding is a candidate for extraction to its own repo without
+  multi-week surgery,
+* the next binding standup is search/replace, not redesign.
+
+*Negative*:
+
+* per-binding CI cost (runner minutes), partly offset by the
+  artefact-sharing pattern (`chapel-build` produces `libproven.so`
+  once; smoke / tests / detachable jobs all download the same
+  artefact),
+* manifest maintenance: every newly-WIRED extern must be added to
+  `symbol-manifest.txt` in the same PR,
+* the strict-mode posture means a flaky test blocks merges — but
+  this is the explicit aim.
+
+== References
+
+* xref:0002-chapel-binding-standup.adoc[ADR-0002 — Chapel binding
+  standup (the pilot)]
+* https://github.com/hyperpolymath/proven/issues/88[proven#88 — missing
+  Zig FFI exports]
+* `.github/workflows/chapel-ci.yml` — first instance of this template

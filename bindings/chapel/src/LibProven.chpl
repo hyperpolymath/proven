@@ -6,15 +6,33 @@
 // All computation is performed in the Idris 2 core via the Zig FFI bridge.
 // This module declares FFI types and functions; it does NOT reimplement
 // any logic.
+//
+// =============================================================================
+// WIRED SUBSET vs GATED EXTERNS
+// =============================================================================
+// libproven 0.9.0 exports only a subset of the declarations in
+// bindings/c/include/proven.h.  The C header is the documented ABI; the
+// Zig FFI implementation in ffi/zig/src/main.zig is being filled out
+// per proven#88.
+//
+// Externs in the WIRED block below are present in libproven.so and have
+// been verified by chapel-symbol-audit (.github/workflows/chapel-ci.yml).
+// Calling them links and runs.
+//
+// Externs in the GATED block below match the declared ABI in proven.h but
+// the underlying Zig export does NOT yet exist in libproven 0.9.0.  Calling
+// any GATED function from a Chapel program will produce a linker error.
+// They are kept here as the contract documentation; they will move into
+// the WIRED block as proven#88 lands each export.
+// =============================================================================
 
 module LibProven {
 
-  // Link against libproven shared or static library.
   require "proven.h";
   use CTypes;
 
   // ========================================================================
-  // Status codes
+  // Status codes (used by both WIRED and GATED results)
   // ========================================================================
 
   /** Status codes returned by Proven operations. */
@@ -107,27 +125,57 @@ module LibProven {
   }
 
   // ========================================================================
-  // Lifecycle functions
+  // WIRED: present in libproven 0.9.0 (verified by chapel-symbol-audit).
+  // Safe to call; smoke + tests target this subset.
   // ========================================================================
+
+  // ---------- Stateless safety primitives (pure functions; no init needed)
+
+  extern "proven_path_has_traversal"
+    proc provenPathHasTraversal(ptr: c_ptrConst(uint(8)), len: c_size_t): BoolResult;
+
+  extern "proven_header_has_crlf"
+    proc provenHeaderHasCrlf(ptr: c_ptrConst(uint(8)), len: c_size_t): BoolResult;
+
+  // ---------- Memory management for string results
+
+  extern "proven_free_string"
+    proc provenFreeString(ptr: c_ptrConst(c_char)): void;
+
+  // ---------- Build identification (string accessors; pure functions)
+
+  extern "proven_version"
+    proc provenVersion(): c_ptrConst(c_char);
+
+  extern "proven_build_info"
+    proc provenBuildInfo(): c_ptrConst(c_char);
+
+  // ========================================================================
+  // GATED: declared per proven.h but NOT yet exported from libproven 0.9.0.
+  // Tracked at proven#88 ("missing Zig FFI exports, blocks linking").
+  //
+  // Calling any of these from a Chapel program produces a linker error.
+  // They are kept as the binding's ABI contract; each will move to WIRED
+  // as the corresponding Zig export lands.  Do NOT call from smoke/tests
+  // until chapel-symbol-audit reports it PASS.
+  // ========================================================================
+
+  // ---------- Lifecycle (ABI shape per proven.h; current Zig impl uses
+  //            a Handle-pointer ABI that does not match this signature)
 
   extern "proven_init"           proc provenInit(): int(32);
   extern "proven_deinit"         proc provenDeinit(): void;
   extern "proven_is_initialized" proc provenIsInitialized(): bool;
+
+  // ---------- Version components
+
   extern "proven_ffi_abi_version" proc provenFfiAbiVersion(): uint(32);
   extern "proven_version_major"  proc provenVersionMajor(): uint(32);
   extern "proven_version_minor"  proc provenVersionMinor(): uint(32);
   extern "proven_version_patch"  proc provenVersionPatch(): uint(32);
   extern "proven_module_count"   proc provenModuleCount(): uint(32);
 
-  // ========================================================================
-  // Memory management
-  // ========================================================================
-
-  extern "proven_free_string" proc provenFreeString(ptr: c_ptrConst(c_char)): void;
-
-  // ========================================================================
-  // SafeMath
-  // ========================================================================
+  // ---------- SafeMath
 
   extern "proven_math_add_checked" proc provenMathAddChecked(a: int(64), b: int(64)): IntResult;
   extern "proven_math_sub_checked" proc provenMathSubChecked(a: int(64), b: int(64)): IntResult;
@@ -138,46 +186,34 @@ module LibProven {
   extern "proven_math_clamp"       proc provenMathClamp(lo: int(64), hi: int(64), value: int(64)): int(64);
   extern "proven_math_pow_checked" proc provenMathPowChecked(base: int(64), exp: uint(32)): IntResult;
 
-  // ========================================================================
-  // SafeString
-  // ========================================================================
+  // ---------- SafeString
 
   extern "proven_string_is_valid_utf8" proc provenStringIsValidUtf8(ptr: c_ptrConst(uint(8)), len: c_size_t): BoolResult;
   extern "proven_string_escape_sql"    proc provenStringEscapeSql(ptr: c_ptrConst(uint(8)), len: c_size_t): StringResult;
   extern "proven_string_escape_html"   proc provenStringEscapeHtml(ptr: c_ptrConst(uint(8)), len: c_size_t): StringResult;
   extern "proven_string_escape_js"     proc provenStringEscapeJs(ptr: c_ptrConst(uint(8)), len: c_size_t): StringResult;
 
-  // ========================================================================
-  // SafePath
-  // ========================================================================
+  // ---------- SafePath (sanitizer; hasTraversal moved to WIRED above)
 
-  extern "proven_path_has_traversal"       proc provenPathHasTraversal(ptr: c_ptrConst(uint(8)), len: c_size_t): BoolResult;
-  extern "proven_path_sanitize_filename"   proc provenPathSanitizeFilename(ptr: c_ptrConst(uint(8)), len: c_size_t): StringResult;
+  extern "proven_path_sanitize_filename"
+    proc provenPathSanitizeFilename(ptr: c_ptrConst(uint(8)), len: c_size_t): StringResult;
 
-  // ========================================================================
-  // SafeEmail
-  // ========================================================================
+  // ---------- SafeEmail
 
   extern "proven_email_is_valid" proc provenEmailIsValid(ptr: c_ptrConst(uint(8)), len: c_size_t): BoolResult;
 
-  // ========================================================================
-  // SafeUrl
-  // ========================================================================
+  // ---------- SafeUrl
 
   extern "proven_http_url_encode" proc provenHttpUrlEncode(ptr: c_ptrConst(uint(8)), len: c_size_t): StringResult;
   extern "proven_http_url_decode" proc provenHttpUrlDecode(ptr: c_ptrConst(uint(8)), len: c_size_t): StringResult;
 
-  // ========================================================================
-  // SafeNetwork
-  // ========================================================================
+  // ---------- SafeNetwork
 
   extern "proven_network_parse_ipv4"      proc provenNetworkParseIpv4(ptr: c_ptrConst(uint(8)), len: c_size_t): IPv4Result;
   extern "proven_network_ipv4_is_private"  proc provenNetworkIpv4IsPrivate(addr: IPv4Address): bool;
   extern "proven_network_ipv4_is_loopback" proc provenNetworkIpv4IsLoopback(addr: IPv4Address): bool;
 
-  // ========================================================================
-  // SafeCrypto
-  // ========================================================================
+  // ---------- SafeCrypto
 
   extern "proven_crypto_constant_time_eq" proc provenCryptoConstantTimeEq(
       ptr1: c_ptrConst(uint(8)), len1: c_size_t,
@@ -187,25 +223,19 @@ module LibProven {
       ptr: c_ptr(uint(8)), len: c_size_t
   ): int(32);
 
-  // ========================================================================
-  // SafeJson
-  // ========================================================================
+  // ---------- SafeJson
 
   extern "proven_json_is_valid" proc provenJsonIsValid(ptr: c_ptrConst(uint(8)), len: c_size_t): BoolResult;
   extern "proven_json_get_type" proc provenJsonGetType(ptr: c_ptrConst(uint(8)), len: c_size_t): int(32);
 
-  // ========================================================================
-  // SafeDateTime
-  // ========================================================================
+  // ---------- SafeDateTime
 
   extern "proven_datetime_parse"           proc provenDatetimeParse(ptr: c_ptrConst(uint(8)), len: c_size_t): DateTimeResult;
   extern "proven_datetime_format_iso8601"  proc provenDatetimeFormatIso8601(dt: DateTime): StringResult;
   extern "proven_datetime_is_leap_year"    proc provenDatetimeIsLeapYear(year: int(32)): bool;
   extern "proven_datetime_days_in_month"   proc provenDatetimeDaysInMonth(year: int(32), month: uint(8)): uint(8);
 
-  // ========================================================================
-  // SafeFloat
-  // ========================================================================
+  // ---------- SafeFloat
 
   extern "proven_float_div"       proc provenFloatDiv(a: real(64), b: real(64)): FloatResult;
   extern "proven_float_is_finite" proc provenFloatIsFinite(x: real(64)): bool;
@@ -213,32 +243,24 @@ module LibProven {
   extern "proven_float_sqrt"      proc provenFloatSqrt(x: real(64)): FloatResult;
   extern "proven_float_ln"        proc provenFloatLn(x: real(64)): FloatResult;
 
-  // ========================================================================
-  // SafeHex
-  // ========================================================================
+  // ---------- SafeHex
 
   extern "proven_hex_encode" proc provenHexEncode(
       ptr: c_ptrConst(uint(8)), len: c_size_t, uppercase: bool
   ): StringResult;
 
-  // ========================================================================
-  // SafeColor
-  // ========================================================================
+  // ---------- SafeColor
 
   extern "proven_color_to_hex" proc provenColorToHex(rgb: c_array(uint(8), 3)): StringResult;
 
-  // ========================================================================
-  // SafeAngle
-  // ========================================================================
+  // ---------- SafeAngle
 
   extern "proven_angle_deg_to_rad"          proc provenAngleDegToRad(degrees: real(64)): real(64);
   extern "proven_angle_rad_to_deg"          proc provenAngleRadToDeg(radians: real(64)): real(64);
   extern "proven_angle_normalize_degrees"   proc provenAngleNormalizeDegrees(degrees: real(64)): real(64);
   extern "proven_angle_normalize_radians"   proc provenAngleNormalizeRadians(radians: real(64)): real(64);
 
-  // ========================================================================
-  // SafeCalculator
-  // ========================================================================
+  // ---------- SafeCalculator
 
   extern "proven_calculator_eval" proc provenCalculatorEval(
       ptr: c_ptrConst(uint(8)), len: c_size_t
@@ -264,6 +286,22 @@ module LibProven {
     var s = string.createCopyingBuffer(r.value: c_ptrConst(c_char), r.length: int);
     provenFreeString(r.value);
     return s;
+  }
+
+  /** Read a NUL-terminated C string returned by libproven (no free required). */
+  proc cStringToChapel(p: c_ptrConst(c_char)): string {
+    if p == nil then return "";
+    return string.createCopyingBuffer(p);
+  }
+
+  /** Library version string from the loaded libproven. */
+  proc libraryVersion(): string {
+    return cStringToChapel(provenVersion());
+  }
+
+  /** Library build info string from the loaded libproven. */
+  proc libraryBuildInfo(): string {
+    return cStringToChapel(provenBuildInfo());
   }
 
 }
