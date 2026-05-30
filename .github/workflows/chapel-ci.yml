@@ -167,19 +167,25 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
-          # The Chapel .deb installs CHPL_HOME under /usr/share/chapel/<minor>.
-          # `chpl` reads CHPL_HOME from the env to locate bundled modules
-          # (ChapelSysCTypes lives there); without it the typecheck step
-          # fails with "Could not find bundled module 'ChapelSysCTypes'".
+          # The Chapel .deb installs CHPL_HOME under /usr/share/chapel/<minor>
+          # and ships a runtime built for ONE target tuple:
+          #   linux64/llvm/x86_64/cpu-none/loc-flat/comm-none/tasks-qthreads/...
+          # We pin CHPL_TARGET_CPU=none so chpl matches that prebuilt runtime;
+          # otherwise the host-CPU auto-probe picks `native` and chpl bails
+          # with "The runtime has not been built for this configuration".
           CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
-          # Probe a few canonical install layouts in case the symlink target
-          # is /usr/bin instead of /usr/share/chapel/<minor>/bin.
           if [ ! -d "$CHPL_HOME/modules" ]; then
               for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
                   if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
               done
           fi
-          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
+          {
+              echo "CHPL_HOME=$CHPL_HOME"
+              echo "CHPL_TARGET_PLATFORM=linux64"
+              echo "CHPL_TARGET_COMPILER=llvm"
+              echo "CHPL_TARGET_ARCH=x86_64"
+              echo "CHPL_TARGET_CPU=none"
+          } | tee -a "$GITHUB_ENV"
           chpl --version
           test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
@@ -276,7 +282,13 @@ jobs:
                   if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
               done
           fi
-          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
+          {
+              echo "CHPL_HOME=$CHPL_HOME"
+              echo "CHPL_TARGET_PLATFORM=linux64"
+              echo "CHPL_TARGET_COMPILER=llvm"
+              echo "CHPL_TARGET_ARCH=x86_64"
+              echo "CHPL_TARGET_CPU=none"
+          } | tee -a "$GITHUB_ENV"
           test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Install just
@@ -333,7 +345,13 @@ jobs:
                   if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
               done
           fi
-          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
+          {
+              echo "CHPL_HOME=$CHPL_HOME"
+              echo "CHPL_TARGET_PLATFORM=linux64"
+              echo "CHPL_TARGET_COMPILER=llvm"
+              echo "CHPL_TARGET_ARCH=x86_64"
+              echo "CHPL_TARGET_CPU=none"
+          } | tee -a "$GITHUB_ENV"
           test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Install just
@@ -402,7 +420,13 @@ jobs:
                   if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
               done
           fi
-          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
+          {
+              echo "CHPL_HOME=$CHPL_HOME"
+              echo "CHPL_TARGET_PLATFORM=linux64"
+              echo "CHPL_TARGET_COMPILER=llvm"
+              echo "CHPL_TARGET_ARCH=x86_64"
+              echo "CHPL_TARGET_CPU=none"
+          } | tee -a "$GITHUB_ENV"
           test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Install just
