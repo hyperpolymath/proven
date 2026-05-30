@@ -12,11 +12,15 @@ import Proven.SafeGit
 
 %default total
 
-||| OWED: spec anchor — 9 ref characters are forbidden by
-||| git-check-ref-format. Blocked on Char-list reduction.
+||| DISCHARGED: spec anchor — the 9 ref characters forbidden by
+||| git-check-ref-format. `forbiddenRefChars` is `public export` with
+||| this exact list literal as its body (SafeGit.idr L24-26), so the
+||| elaborator unfolds the LHS to the RHS for `Refl`. No "Char-list
+||| reduction" is needed — both sides are the same list literal.
 public export
-0 forbiddenRefCharsAnchor :
+forbiddenRefCharsAnchor :
   forbiddenRefChars = [' ', '~', '^', ':', '?', '*', '[', '\\', '\x7F']
+forbiddenRefCharsAnchor = Refl
 
 --------------------------------------------------------------------------------
 -- OWED postulates
