@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+[package]
+name = "proven-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
+description = "Cargo-fuzz harness for the proven Rust bindings FFI surface"
+license = "MPL-2.0"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.proven]
+path = ".."
+
+# Each fuzz target gets its own [[bin]] block. test = false / doc = false
+# are required by cargo-fuzz; bench = false silences warnings about the
+# absence of bench targets.
+
+[[bin]]
+name = "safe_url_parse"
+path = "fuzz_targets/safe_url_parse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "safe_email_is_valid"
+path = "fuzz_targets/safe_email_is_valid.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "safe_json_is_valid"
+path = "fuzz_targets/safe_json_is_valid.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "safe_path_has_traversal"
+path = "fuzz_targets/safe_path_has_traversal.rs"
+test = false
+doc = false
+bench = false
