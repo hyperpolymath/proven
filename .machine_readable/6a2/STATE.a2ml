@@ -4,7 +4,7 @@
 [metadata]
 project = "proven"
 version = "0.1.0"
-last-updated = "2026-05-20"
+last-updated = "2026-05-30"
 status = "active"
 
 [project-context]
@@ -13,21 +13,27 @@ completion-percentage = "stable"
 phase = "stable-library"
 
 [proof-coverage]
-# Counts as of 2026-05-20 audit (standards#158 Fork A).
-safe-modules-with-proofs-idr-directory = 41
+# Counts as of 2026-05-30 (Phase 3 discharge campaign in flight).
+safe-modules-with-proofs-idr-directory = 93
+# Up from 41 (2026-05-20) — the Fork A annotation campaign + ad-hoc
+# additions extended coverage to 93 Proven.Safe.* modules with their
+# own Proofs.idr file.
+
 safe-modules-clean = 6
-# Clean = zero bodyless decls. Modules: SafeChecksum, SafeBuffer, SafeBloom,
-# SafeCryptoAccel, SafeHKDF, SafeFPGA. These landed 2026-05-19/20 and set the
-# OWED convention.
+# Clean = zero bodyless decls. Original convention-setting set:
+# SafeChecksum, SafeBuffer, SafeBloom, SafeCryptoAccel, SafeHKDF,
+# SafeFPGA. Many more modules have partial discharge (DISCHARGED on
+# some lemmas, OWED on others) but still carry OWED entries.
 
-safe-modules-with-owed-annotation = 28
-# Annotated via PRs #37-64 under standards#158 Fork A (excl. #36 = CI bump).
-# Eight locally idris2-0.8.0-verified: #52 #54 #56 #57 #58 #60 #62 #63.
+bodyless-decls-total = 256
+# All annotated with ||| OWED: + 0 erased-multiplicity per the
+# SafeChecksum convention. See PROOF-NEEDS.md "OWED-with-justification
+# convention" and META.a2ml ADR-001.
 
-bodyless-decls-total = 250
-# All annotated with ||| OWED: + 0 erased-multiplicity per the SafeChecksum
-# convention. See PROOF-NEEDS.md "OWED-with-justification convention" and
-# META.a2ml ADR-001.
+discharged-decls = 34
+# DISCHARGED entries (OWED → proven Refl or contrib-lemma) landed
+# across Phase 3 PRs #97-124 (2026-05-30 session). Each PR converts
+# one OWED to a machine-checked theorem.
 
 [trust-posture]
 believe-me-uses = 0
@@ -37,11 +43,29 @@ postulate-keyword-uses = 0
 # explicit OWED declarations with named blocker + discharge condition.
 
 [active-campaigns]
-fork-a-annotation = "complete (28 DRAFT PRs filed, awaiting estate CI clear of concurrency-pool exhaustion)"
+fork-a-annotation = "complete"
+phase-3-discharge = "in flight — umbrella issue #90, sequencing SafeUrl → SafeRegex → SafeBase64 → SafeEmail. 34 DISCHARGED of ~209 Tier A sites (~16% as of 2026-05-30). PRs #97-124 landed this cycle."
 fork-b-discharge = "triage open — quick-wins flagged in PROOF-NEEDS.md (SafeCrypto isSecure refactor; SafePath already-Refl pairs)"
+
+[ci-infrastructure]
+# 2026-05-30 session — workflow hardening
+fuzzing = "ClusterFuzzLite + cargo-fuzz; 4 fuzz targets on FFI parse surface (safe_url_parse, safe_email_is_valid, safe_json_is_valid, safe_path_has_traversal). Per-PR + weekly batch; PR #121. Replaces prior broken setup (pointed at nonexistent dir + AGPL header)."
+concurrency-cancel = "added to architecture-enforcement.yml, idris2-ci.yml, zig-ffi.yml, trustfile.yml, boj-build.yml. PR #115."
+per-job-timeouts = "added to the same 4 workflows; budget proportional to expected runtime (5-45 min)."
+branch-protection-main = "6 safe settings active: dismiss_stale_reviews, required_linear_history, required_conversation_resolution, required_signatures, allow_force_pushes=false, allow_deletions=false. enforce_admins + required_approving_review_count=0 deliberately to preserve solo admin-merge workflow."
+
+[security-tab-state]
+# 2026-05-30 — Hypatia + CodeQL + Scorecard alert disposition
+csa-self-echo-dismissed = 29
+code-safety-fp-dismissed = 27
+workflow-audit-unknown-dismissed = 44
+codeql-actions-missing-permissions-source-fixed = "PR #120 (boj-build.yml restructure)"
+scorecard-binary-artifacts-source-fixed = "PR #120 (bindings/ephapax/test_ffi removed + gitignore extended)"
+scorecard-fuzzing-source-fixed = "PR #121 (real ClusterFuzzLite + cargo-fuzz)"
 
 [session-history]
 # Most recent first.
+"2026-05-30" = "Phase 3 discharge: PRs #97-124 land (~28 OWED→DISCHARGED conversions). Security tab cleanup: source-fixes for #2 / #296 / #299 + branch-protection safe-subset + 100 Hypatia FP alerts dismissed at API. Estate-wide CSA self-echo bulk-dismiss sweep (~9050 alerts) running in background."
 "2026-05-20" = "Fork A campaign complete: 250 bodyless decls across 28 of 41 modules annotated via OWED-with-justification convention (PRs #37-64, Refs standards#158); cross-prover audit confirms 0 Lean sorry / 0 Coq Admitted in first-party code (only echidnabot dogfood fixtures)"
 "2026-05-19" = "Six new modules merged with explicit OWED markers (SafeChecksum, SafeBuffer, SafeBloom, SafeCryptoAccel, SafeHKDF, SafeFPGA) — convention-setting"
 "2026-05-18" = "PROOF-NEEDS.md honesty refresh (standards#124); ~70 single-file overclaim modules surfaced separately from the Proofs.idr-directory audit"
