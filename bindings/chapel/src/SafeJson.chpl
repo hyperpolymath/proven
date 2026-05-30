@@ -3,46 +3,27 @@
 //
 // SafeJson - JSON validation and type detection via libproven FFI.
 //
-// All computation is performed in the Idris 2 core via the Zig FFI bridge.
-// This module is a thin wrapper; it does NOT reimplement any logic.
+// Status: GATED on proven#88.
 
 module SafeJson {
 
   public use LibProven;
 
-  /**
-   * Check if string is valid JSON.
-   *
-   * :arg s: Input string to validate.
-   * :returns: ``none`` on error, true if valid JSON, false otherwise.
-   */
-  proc isValid(s: string): bool? {
+  /** Check if string is valid JSON. */
+  proc isValid(s: string): Maybe(bool) {
     var (ptr, len) = toCBytes(s);
     var r = provenJsonIsValid(ptr, len);
-    if isOk(r.status) then return r.value;
-    return none;
+    if isOk(r.status) then return some(r.value);
+    return absent(bool);
   }
 
-  /**
-   * Get JSON value type at root level.
-   *
-   * :arg s: Input JSON string.
-   * :returns: JSON type code (see JSON_* constants in LibProven).
-   *           Returns JSON_INVALID (-1) for invalid JSON.
-   */
+  /** Get JSON value type at root level (see JSON_* constants in LibProven). */
   proc getType(s: string): int(32) {
     var (ptr, len) = toCBytes(s);
     return provenJsonGetType(ptr, len);
   }
 
-  /**
-   * Convert JSON type code to a human-readable name.
-   *
-   * This is a local convenience function; no FFI call is made.
-   *
-   * :arg typeCode: Integer type code from ``getType()``.
-   * :returns: Type name string.
-   */
+  /** Convert a JSON type code to a human-readable name (no FFI call). */
   proc typeName(typeCode: int(32)): string {
     select typeCode {
       when JSON_NULL    do return "null";

@@ -3,11 +3,8 @@
 //
 // hello_smoke.chpl - End-to-end "does the binding link and run" smoke test.
 //
-// Builds:
-//   chpl -o hello_smoke smoke/hello_smoke.chpl -M src/ -lproven
-//
 // Runs in well under 2s and is kept green by chapel-ci.yml even if larger
-// jobs go red.  This is the "the binding actually works" gate.
+// jobs go red.
 //
 // Calls the WIRED subset only.  Lifecycle (provenInit/Deinit) is GATED on
 // proven#88 because the Zig export ABI does not yet match the proven.h
@@ -16,34 +13,28 @@
 use Proven;
 
 proc main(): int {
-  // SafePath.hasTraversal — happy path (no traversal) and detection path.
-  const safePath = "/var/www/html/index.html";
-  const evilPath = "../../etc/passwd";
+  // SafePath.hasTraversal — happy + detection paths.
+  const okSafe = SafePath.hasTraversal("/var/www/html/index.html");
+  const okEvil = SafePath.hasTraversal("../../etc/passwd");
 
-  const okSafe = SafePath.hasTraversal(safePath);
-  const okEvil = SafePath.hasTraversal(evilPath);
-
-  if okSafe == none || okSafe! != false {
-    writeln("FAIL: SafePath.hasTraversal('", safePath, "') did not return some(false)");
+  if !okSafe.present || okSafe.value != false {
+    writeln("FAIL: SafePath.hasTraversal('/var/www/html/index.html') did not return some(false)");
     return 1;
   }
-  if okEvil == none || okEvil! != true {
-    writeln("FAIL: SafePath.hasTraversal('", evilPath, "') did not return some(true)");
+  if !okEvil.present || okEvil.value != true {
+    writeln("FAIL: SafePath.hasTraversal('../../etc/passwd') did not return some(true)");
     return 1;
   }
 
-  // SafeHeader.hasCrlf — happy path (no CRLF) and detection path.
-  const safeHeader = "application/json";
-  const evilHeader = "value\r\nX-Injected: hi";
+  // SafeHeader.hasCrlf — happy + detection paths.
+  const headerOkSafe = SafeHeader.hasCrlf("application/json");
+  const headerOkEvil = SafeHeader.hasCrlf("value\r\nX-Injected: hi");
 
-  const headerOkSafe = SafeHeader.hasCrlf(safeHeader);
-  const headerOkEvil = SafeHeader.hasCrlf(evilHeader);
-
-  if headerOkSafe == none || headerOkSafe! != false {
-    writeln("FAIL: SafeHeader.hasCrlf('", safeHeader, "') did not return some(false)");
+  if !headerOkSafe.present || headerOkSafe.value != false {
+    writeln("FAIL: SafeHeader.hasCrlf('application/json') did not return some(false)");
     return 1;
   }
-  if headerOkEvil == none || headerOkEvil! != true {
+  if !headerOkEvil.present || headerOkEvil.value != true {
     writeln("FAIL: SafeHeader.hasCrlf(<CRLF>) did not return some(true)");
     return 1;
   }

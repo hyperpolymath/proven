@@ -22,13 +22,14 @@ module SafeHeader {
    * begin a response body when user input is reflected into a header.
    *
    * :arg value: Candidate header value.
-   * :returns: ``none`` on FFI error, true if CRLF found, false if safe.
+   * :returns: ``absent(bool)`` on FFI error; otherwise ``some(true)`` if
+   *           CRLF found, ``some(false)`` if safe.
    */
-  proc hasCrlf(value: string): bool? {
+  proc hasCrlf(value: string): Maybe(bool) {
     var (ptr, len) = toCBytes(value);
     var r = provenHeaderHasCrlf(ptr, len);
-    if isOk(r.status) then return r.value;
-    return none;
+    if isOk(r.status) then return some(r.value);
+    return absent(bool);
   }
 
 }

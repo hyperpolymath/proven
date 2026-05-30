@@ -5,20 +5,18 @@
 // underlying extern C ABI call.
 //
 // For each WIRED safety primitive we exercise the same input via both
-// (a) the Chapel-idiomatic wrapper (T?-returning) and (b) the raw extern
-// proc returning the C ABI struct.  We assert the results agree on
-// status code and value bit-for-bit.
+// (a) the Chapel-idiomatic wrapper and (b) the raw extern proc returning
+// the C ABI struct, and assert the results agree on status code and
+// value bit-for-bit.
 //
-// This is the binding-tier soundness check described in the chapel pilot
-// brief: it shows the wrapper preserves the C ABI contract.  It does NOT
-// re-prove the Idris2 layer (that is the responsibility of idris2-ci.yml
-// and verify-totality).
+// This is the binding-tier soundness check described in the chapel
+// pilot brief: it shows the wrapper preserves the C ABI contract.  It
+// does NOT re-prove the Idris2 layer.
 
 use Proven;
 use CTypes;
 
 proc checkPath(input: string, expected: bool) {
-  // (a) raw extern call
   var (ptr, len) = toCBytes(input);
   const raw = provenPathHasTraversal(ptr, len);
   assert(isOk(raw.status),
@@ -27,16 +25,15 @@ proc checkPath(input: string, expected: bool) {
          "raw provenPathHasTraversal expected " + expected:string +
          " for input: " + input);
 
-  // (b) wrapper call
   const wrapped = SafePath.hasTraversal(input);
-  assert(wrapped != none,
-         "SafePath.hasTraversal returned none for input: " + input);
-  assert(wrapped! == expected,
+  assert(wrapped.present,
+         "SafePath.hasTraversal returned absent for input: " + input);
+  assert(wrapped.value == expected,
          "SafePath.hasTraversal expected " + expected:string +
          " for input: " + input);
 
-  // (c) raw vs wrapper agreement (the differential check)
-  assert(wrapped! == raw.value,
+  // Differential: wrapper vs raw must agree.
+  assert(wrapped.value == raw.value,
          "differential mismatch: SafePath.hasTraversal vs provenPathHasTraversal " +
          "for input: " + input);
 }
@@ -51,13 +48,13 @@ proc checkHeader(input: string, expected: bool) {
          " for input: " + input);
 
   const wrapped = SafeHeader.hasCrlf(input);
-  assert(wrapped != none,
-         "SafeHeader.hasCrlf returned none for input: " + input);
-  assert(wrapped! == expected,
+  assert(wrapped.present,
+         "SafeHeader.hasCrlf returned absent for input: " + input);
+  assert(wrapped.value == expected,
          "SafeHeader.hasCrlf expected " + expected:string +
          " for input: " + input);
 
-  assert(wrapped! == raw.value,
+  assert(wrapped.value == raw.value,
          "differential mismatch: SafeHeader.hasCrlf vs provenHeaderHasCrlf " +
          "for input: " + input);
 }
@@ -69,7 +66,7 @@ proc main(): int {
   checkPath("..",                        true);
   checkPath("../etc/passwd",             true);
   checkPath("/tmp/foo/../../root",       true);
-  checkPath("foo..bar",                  false);  // not a component
+  checkPath("foo..bar",                  false);
 
   // SafeHeader: cover safe + injection + boundary
   checkHeader("application/json",        false);

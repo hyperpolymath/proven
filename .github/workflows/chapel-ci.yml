@@ -58,7 +58,9 @@ env:
   CHAPEL_DEB_URL: 'https://github.com/chapel-lang/chapel/releases/download/2.3.0/chapel-2.3.0-1.ubuntu22.amd64.deb'
   CHAPEL_DEB_SHA256: 'b7c1a48cbf26cfc7ad9af22a84ea4becb1a5e2fd485ec4a1f5f8a69e8a7cd58c'
   # Pinned Zig version (kept in sync with .github/workflows/zig-ffi.yml).
-  ZIG_VERSION: '0.13.0'
+  # Pinned Zig version.  Matches ffi/zig/build.zig.zon's
+  # `minimum_zig_version = "0.15.2"`.
+  ZIG_VERSION: '0.15.2'
 
 jobs:
   # ==========================================================================
@@ -124,20 +126,39 @@ jobs:
         with:
           path: proven
 
-      - name: Checkout idris2-zig-ffi dependency
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: hyperpolymath/idris2-zig-ffi
-          path: idris2-zig-ffi
-
       - name: Setup Zig ${{ env.ZIG_VERSION }}
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
 
-      - name: Build libproven.so via Zig
+      - name: Build libproven.so (WIRED-subset fixture)
         working-directory: proven/ffi/zig
-        run: zig build -Dtarget=x86_64-linux-gnu
+        # NOTE: ffi/zig/build.zig depends on `idris2_zig_ffi` (relative
+        # path to a sibling estate repo).  That dep is not resolvable
+        # from a fresh clone in CI (the same issue blocks zig-ffi.yml on
+        # main), and resolving it is out of scope for the Chapel pilot.
+        # All exports in src/main.zig are pure-Zig — none consume
+        # idris2_zig_ffi.  We compile main.zig directly with
+        # `zig build-lib -dynamic -lc`, producing a libproven.so with
+        # the WIRED 5 symbols (proven_path_has_traversal,
+        # proven_header_has_crlf, proven_free_string, proven_version,
+        # proven_build_info).  When proven#88 lands the real
+        # Idris-backed exports, this step swaps to
+        # `zig build -Dtarget=...`.
+        run: |
+          set -euo pipefail
+          mkdir -p zig-out/lib
+          zig build-lib -dynamic -O ReleaseSafe \
+              -fPIC \
+              --name proven \
+              -femit-bin=zig-out/lib/libproven.so \
+              src/main.zig -lc
+          ls -la zig-out/lib/
+          nm -D --defined-only zig-out/lib/libproven.so \
+              | awk '$2 ~ /^[TWV]$/ { print $3 }' \
+              | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' \
+              | sort -u | tee /tmp/wired-exports.txt
+          test "$(wc -l < /tmp/wired-exports.txt)" -eq 5
 
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
@@ -148,14 +169,13 @@ jobs:
           sudo apt-get install -y /tmp/chapel.deb
           chpl --version
 
-      - name: Chapel module typecheck (--library on every module)
+      - name: Chapel module typecheck (--no-codegen, every module)
         working-directory: proven/bindings/chapel
         run: |
           set -euo pipefail
           for m in src/*.chpl; do
               echo "[chapel-build] typecheck $m"
-              chpl --library --dynamic --print-callstack-on-error \
-                   --no-codegen \
+              chpl --no-codegen --print-callstack-on-error \
                    -M src/ \
                    -I "$GITHUB_WORKSPACE/proven/bindings/c/include" \
                    "$m"

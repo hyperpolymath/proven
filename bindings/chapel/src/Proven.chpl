@@ -31,10 +31,15 @@ module Proven {
 
   // Core FFI declarations + helpers (extern types, WIRED externs,
   // GATED extern decls kept under a GATED banner inside LibProven).
+  // `use` brings procs into scope unqualified; `import` makes the
+  // module name itself visible as a qualifier.
   public use LibProven;
+  public import LibProven;
 
-  // WIRED safety modules (smoke + chapel-tests target these):
+  // WIRED safety modules (smoke + chapel-tests target these).
   public use SafePath;
+  public import SafePath;
   public use SafeHeader;
+  public import SafeHeader;
 
 }

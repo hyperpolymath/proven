@@ -3,24 +3,18 @@
 //
 // SafeEmail - Email validation via libproven FFI.
 //
-// All computation is performed in the Idris 2 core via the Zig FFI bridge.
-// This module is a thin wrapper; it does NOT reimplement any logic.
+// Status: GATED on proven#88.
 
 module SafeEmail {
 
   public use LibProven;
 
-  /**
-   * Validate email address (RFC 5321 simplified).
-   *
-   * :arg email: Email address string.
-   * :returns: ``none`` on error, true if valid, false otherwise.
-   */
-  proc isValid(email: string): bool? {
+  /** Validate email address (RFC 5321 simplified). */
+  proc isValid(email: string): Maybe(bool) {
     var (ptr, len) = toCBytes(email);
     var r = provenEmailIsValid(ptr, len);
-    if isOk(r.status) then return r.value;
-    return none;
+    if isOk(r.status) then return some(r.value);
+    return absent(bool);
   }
 
 }

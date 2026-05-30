@@ -3,46 +3,26 @@
 //
 // SafeUrl - URL encoding/decoding via libproven FFI.
 //
-// All computation is performed in the Idris 2 core via the Zig FFI bridge.
-// This module is a thin wrapper; it does NOT reimplement any logic.
+// Status: GATED on proven#88.
 
 module SafeUrl {
 
   public use LibProven;
 
-  /**
-   * URL-encode a string (RFC 3986 percent encoding).
-   *
-   * Unreserved characters (A-Za-z0-9-._~) pass through; all others
-   * become %XX.
-   *
-   * :arg s: Input string.
-   * :returns: ``none`` on error, otherwise the encoded string.
-   */
-  proc encode(s: string): string? {
+  /** URL-encode a string (RFC 3986 percent encoding). */
+  proc encode(s: string): Maybe(string) {
     var (ptr, len) = toCBytes(s);
     var r = provenHttpUrlEncode(ptr, len);
-    if isOk(r.status) {
-      var result = extractString(r);
-      return result;
-    }
-    return none;
+    if isOk(r.status) then return some(extractString(r));
+    return absent(string);
   }
 
-  /**
-   * URL-decode a percent-encoded string.
-   *
-   * :arg s: Percent-encoded input string.
-   * :returns: ``none`` on error, otherwise the decoded string.
-   */
-  proc decode(s: string): string? {
+  /** URL-decode a percent-encoded string. */
+  proc decode(s: string): Maybe(string) {
     var (ptr, len) = toCBytes(s);
     var r = provenHttpUrlDecode(ptr, len);
-    if isOk(r.status) {
-      var result = extractString(r);
-      return result;
-    }
-    return none;
+    if isOk(r.status) then return some(extractString(r));
+    return absent(string);
   }
 
 }

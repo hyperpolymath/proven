@@ -35,8 +35,14 @@ module LibProven {
   // Status codes (used by both WIRED and GATED results)
   // ========================================================================
 
-  /** Status codes returned by Proven operations. */
-  enum ProvenStatus : int(32) {
+  /** Status codes returned by Proven operations.
+   *
+   * Chapel 2.x removed the `enum X : int(32) { ... }` type-spec syntax;
+   * the C ABI's int32 status field is the source of truth, and this
+   * enum is for human-readable documentation.  Use `.toInt(32)` (or
+   * compare via the `isOk` helper) when interoperating with FFI.
+   */
+  enum ProvenStatus {
     OK                   =   0,
     ErrNullPointer       =  -1,
     ErrInvalidArgument   =  -2,
@@ -267,6 +273,37 @@ module LibProven {
   ): FloatResult;
 
   // ========================================================================
+  // Maybe(T) — Chapel-2.x-compatible optional-type pattern.
+  //
+  // Chapel's `T?` postfix is class-only; value-type wrappers
+  // (`bool?` / `int(64)?` / `string?`) do NOT compile.  Maybe(T) is a
+  // generic record with a `present` flag and a `value`.  `some(v)` and
+  // `none(T)` are the constructors; call sites pattern-match via
+  // `if r.present then r.value else fallback`.
+  // ========================================================================
+
+  /** Optional value-type carrier — see module-level note. */
+  record Maybe {
+    type T;
+    var present : bool;
+    var value   : T;
+  }
+
+  /** Wrap a value as a present Maybe(T). */
+  inline proc some(in v): Maybe(v.type) {
+    return new Maybe(v.type, true, v);
+  }
+
+  /** Construct an absent Maybe(T).  Pass the type explicitly:
+   * `return absent(bool)` / `absent(int(64))` / `absent(string)`.
+   *
+   * (Named `absent` because Chapel reserves `none` and `nothing`.) */
+  inline proc absent(type T): Maybe(T) {
+    var dflt : T;
+    return new Maybe(T, false, dflt);
+  }
+
+  // ========================================================================
   // Helper: convert Chapel string to C pointer + length.
   // ========================================================================
 
@@ -280,18 +317,27 @@ module LibProven {
     return status == 0;
   }
 
-  /** Extract a Chapel string from a StringResult and free the C memory. */
+  /** Extract a Chapel string from a StringResult and free the C memory.
+   *
+   * ``string.createCopyingBuffer`` is throwing; we use ``try!`` because
+   * the C ABI guarantees a valid UTF-8 buffer of declared length when
+   * status is OK.  An empty status / nil pointer short-circuits to "". */
   proc extractString(ref r: StringResult): string {
     if !isOk(r.status) || r.value == nil then return "";
-    var s = string.createCopyingBuffer(r.value: c_ptrConst(c_char), r.length: int);
+    var s = try! string.createCopyingBuffer(r.value: c_ptrConst(c_char),
+                                            r.length: int);
     provenFreeString(r.value);
     return s;
   }
 
-  /** Read a NUL-terminated C string returned by libproven (no free required). */
+  /** Read a NUL-terminated C string returned by libproven (no free required).
+   *
+   * Uses ``try!`` for the same reason as ``extractString``: libproven
+   * guarantees NUL-termination on the string accessors that call this
+   * (proven_version, proven_build_info). */
   proc cStringToChapel(p: c_ptrConst(c_char)): string {
     if p == nil then return "";
-    return string.createCopyingBuffer(p);
+    return try! string.createCopyingBuffer(p);
   }
 
   /** Library version string from the loaded libproven. */
