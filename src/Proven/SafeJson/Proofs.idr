@@ -9,7 +9,9 @@ module Proven.SafeJson.Proofs
 import Proven.Core
 import Proven.SafeJson
 import Data.List
+import Data.List.Equalities
 import Data.List.Quantifiers
+import Data.Nat
 
 %default total
 
@@ -193,10 +195,17 @@ prependLengthInc v arr = Refl
 ||| `Data.List.lengthAppendSingleton` lemma. Discharge by composing
 ||| `lengthAppend` + `plusZeroRightNeutral` + `S` congruence, or by
 ||| adding a direct singleton-append lemma to base.
+||| DISCHARGED: `append v (JsonArray arr) = JsonArray (arr ++ [v])`
+||| (SafeJson.idr L233-234), so the goal reduces to
+||| `Just (length (arr ++ [v])) = Just (length arr + 1)`. Apply
+||| `lengthSnoc arr v : length (arr ++ [v]) = S (length arr)`, then
+||| close the `S n` vs `n + 1` gap with `plusCommutative 1 n`.
 public export
-0 appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
-                            arrayLength (append v (JsonArray arr)) =
-                            Just (length arr + 1)
+appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
+                  arrayLength (append v (JsonArray arr)) =
+                  Just (length arr + 1)
+appendLengthInc v arr =
+  cong Just (trans (lengthSnoc arr v) (plusCommutative 1 (length arr)))
 
 --------------------------------------------------------------------------------
 -- Path Access Properties
