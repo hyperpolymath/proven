@@ -206,14 +206,20 @@ jobs:
           # exercises the same typechecker without the broken gen-path
           # resolution, AND additionally proves the binding links — which is
           # what we actually care about.
+          # --print-commands surfaces the linker invocation chpl synthesises;
+          # without it, link failures appear only as "error: Make Binary -
+          # Linking" with no actionable detail.
           chpl -o /tmp/_chapel_typecheck_driver \
               smoke/hello_smoke.chpl \
               -M src/ \
               -I "$PROVEN_INCLUDE_PATH" \
               -L "$PROVEN_LIB_PATH" -lproven \
               --ldflags "-Wl,-rpath,$PROVEN_LIB_PATH" \
+              --print-commands \
               --print-callstack-on-error
           ls -la /tmp/_chapel_typecheck_driver
+          # Sanity check: the binary actually runs against the test fixture.
+          LD_LIBRARY_PATH="$PROVEN_LIB_PATH" /tmp/_chapel_typecheck_driver
           echo "[chapel-build] typecheck via real link: OK"
 
       - name: Upload libproven.so artefact
