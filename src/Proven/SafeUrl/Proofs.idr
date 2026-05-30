@@ -257,13 +257,16 @@ export
 ||| `Data.List` not exposing `appendAssociative` as a `%reducible`
 ||| rewrite (the proof exists in Prelude but requires induction on
 ||| `qs1`, and `Refl` cannot close it for abstract `qs1`). Discharge
-||| by importing `Data.List.appendAssociative` and rewriting (the
-||| proof is in-Idris2 — this is a stdlib-plumbing OWED, not a
-||| fundamental gap).
-export
-0 appendAssociative : (qs1, qs2, qs3 : QueryString) ->
-                      appendQueryStrings (appendQueryStrings qs1 qs2) qs3 =
-                      appendQueryStrings qs1 (appendQueryStrings qs2 qs3)
+||| DISCHARGED via `Data.List.Equalities.appendAssociative` from
+||| contrib. `appendQueryStrings = (++)` (Query.idr L205-206), so the
+||| goal reduces to `(qs1 ++ qs2) ++ qs3 = qs1 ++ (qs2 ++ qs3)` —
+||| exactly the stdlib lemma. The OWED was a stdlib-plumbing residual,
+||| not a fundamental gap, as the comment noted.
+public export
+appendAssociative : (qs1, qs2, qs3 : QueryString) ->
+                    appendQueryStrings (appendQueryStrings qs1 qs2) qs3 =
+                    appendQueryStrings qs1 (appendQueryStrings qs2 qs3)
+appendAssociative qs1 qs2 qs3 = Data.List.Equalities.appendAssociative qs1 qs2 qs3
 
 --------------------------------------------------------------------------------
 -- URL Security Properties
