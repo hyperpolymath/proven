@@ -107,17 +107,24 @@ entryOKNotNullByteInPath = Refl
 -- Spec-anchor constants
 --------------------------------------------------------------------------------
 
-||| OWED: `maxCompressionRatio` is exactly 1000:1. Blocked on Nat-literal
-||| opacity (standards#128 "Nat literal opacity").
+||| DISCHARGED: `maxCompressionRatio = 1000`. `maxCompressionRatio` is
+||| `public export` with body `1000` (SafeArchive.idr L64-66). Both
+||| sides are the same `Nat` literal — Idris2 compares literals as
+||| their `Integer` representation without unary expansion, so `Refl`
+||| closes regardless of literal magnitude.
 public export
-0 maxCompressionRatioAnchor : maxCompressionRatio = 1000
+maxCompressionRatioAnchor : maxCompressionRatio = 1000
+maxCompressionRatioAnchor = Refl
 
-||| OWED: `maxTotalSize` is exactly 1 GiB (2^30 bytes = 1073741824).
-||| Idris2 0.8.0 cannot Refl-reduce large `Nat` literals (unary
-||| representation, standards#128 "Nat literal opacity"); needs a
-||| reflective tactic.
+||| DISCHARGED: `maxTotalSize = 1073741824` (1 GiB). Same literal-vs-
+||| literal pattern as `maxCompressionRatioAnchor` — `maxTotalSize` is
+||| `public export` with body `1073741824` (SafeArchive.idr L77-79).
+||| The "Nat literal opacity" blocker only applies to attempts to
+||| convert this value to a SMALLER literal — here both sides are the
+||| same literal so `Refl` closes.
 public export
-0 maxTotalSizeAnchor : maxTotalSize = 1073741824
+maxTotalSizeAnchor : maxTotalSize = 1073741824
+maxTotalSizeAnchor = Refl
 
 --------------------------------------------------------------------------------
 -- `isZipBomb` corner cases (compressedSize = 0)
