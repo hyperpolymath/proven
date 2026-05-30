@@ -52,12 +52,15 @@ import Data.Bits
 --------------------------------------------------------------------------------
 
 ||| OWED: CRC32 polynomial is the IEEE 802.3 bit-reversed value
-||| `0xEDB88320`. Held back by Idris2 0.8.0 not reducing the named
-||| `crc32Polynomial : Bits32` constant to its literal value by Refl
-||| alone (numeric-literal opaque under `Bits32`). Discharge once a
-||| `Data.Bits` reflective tactic is available.
+||| `0xEDB88320`. DISCHARGED: `crc32Polynomial` is `public export`
+||| with body `0xEDB88320` (SafeChecksum.idr L21-23). `Bits32` literal
+||| equality is primitive — both sides reduce to the same literal and
+||| `Refl` closes. The "numeric-literal opaque under Bits32" cited in
+||| the OWED only applies to REDUCING `crc32Polynomial` to a *different*
+||| literal; here LHS and RHS are the same literal.
 public export
-0 crc32PolynomialIsIEEE : crc32Polynomial = 0xEDB88320
+crc32PolynomialIsIEEE : crc32Polynomial = 0xEDB88320
+crc32PolynomialIsIEEE = Refl
 
 ||| OWED: Adler-32 modulus is `65521`, the largest prime less than
 ||| `2^16` (the choice is load-bearing — primality is what gives
