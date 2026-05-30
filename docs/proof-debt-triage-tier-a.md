@@ -258,7 +258,7 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 |---|---:|---|---|---|---|---|
 | parseEmptyFails | 45 | `parseEmail "" = Nothing` | 1 | PROPERTY-TEST | ~10 min | concrete input; String FFI literal match gap |
 | parseNoAtFails | 65 | `parseEmail "noatsign" = Nothing` | 1 | PROPERTY-TEST | ~10 min | concrete input; splitOnLast opaque |
-| validResultIsValid | 83 | `validResult.isValid = True` | 5 | DISCHARGE | ~20 min | record-projection on named constructor; case-split + Refl |
+| ~~validResultIsValid~~ | 83 | `validResult.isValid = True` | 5 | **DISCHARGED** | done 2026-05-30 | `Refl` — `validResult` is `public export`, elaborator unfolds field projection directly |
 | errorMakesInvalid | 99 | severity=Error ⇒ addIssue.isValid = False | 7 | DISCHARGE | ~30 min | enum Eq on ValidationSeverity; 3-arm split |
 | warningKeepsValid | 111 | severity=Warning ⇒ addIssue.isValid = True | 7 | DISCHARGE | ~30 min | enum Eq + record-projection combined |
 | combineValidValid | 128 | r1, r2 valid ⇒ combineResults valid | 5 | DISCHARGE | ~30 min | record-projection on universally-quantified records |
