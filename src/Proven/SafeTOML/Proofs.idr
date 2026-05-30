@@ -131,30 +131,28 @@ parsedTypesCorrect (TArray _) = Refl
 parsedTypesCorrect (TInlineTable _) = Refl
 parsedTypesCorrect (TTable _) = Refl
 
-||| OWED: `isScalar`, `isTable`, and `isArray` are pairwise disjoint on
-||| `TOMLValue` constructors. The seven scalar constructors (`TString`,
-||| `TInt`, `TFloat`, `TBool`, `TDateTime`, `TDate`, `TTime`) make
-||| `isScalar val = True`; the same constructors all make
-||| `isTable val = False` and `isArray val = False` (see
-||| `src/Proven/SafeTOML/Types.idr` L376-L393). The two propositions
-||| therefore agree by exhaustive case-split on `val`.
-|||
-||| Held back by Idris2 0.8.0 requiring an explicit ten-arm case-split
-||| on `val` to close the proof — for each scalar arm the
-||| `isScalar val = True` premise is already `Refl`, and the conclusion
-||| reduces to `not (False || False) = True` which is *also* `Refl`,
-||| but the three non-scalar arms (`TArray`, `TInlineTable`, `TTable`)
-||| make the premise `False = True`, requiring an `absurd`/`uninhabited`
-||| witness that the elaborator does not derive automatically from the
-||| `Bool` decision shape. Same shape as boj-server's class-J
-||| `Bool`-vs-`Prop` reflection gap (see SafetyLemmas `charEqSound`).
-||| Discharge once a reflective `Bool`-to-`Dec` lemma is wired up for
-||| derived enum-shaped predicates, or by hand-writing the ten-arm
-||| case-split with one `Refl` per arm and `absurd Refl` for the three
-||| `True = False` branches.
-0 isScalarCorrect : (val : TOMLValue) ->
-                    isScalar val = True ->
-                    not (isTable val || isArray val) = True
+||| DISCHARGED via 10-arm case-split: the 7 scalar arms (`TString`,
+||| `TInt`, `TFloat`, `TBool`, `TDateTime`, `TDate`, `TTime`) close by
+||| `Refl` since the goal `not (isTable val || isArray val) = True`
+||| reduces to `not (False || False) = True` = `Refl`. The 3 container
+||| arms (`TArray`, `TInlineTable`, `TTable`) have the premise
+||| `isScalar val = True` reduce to `False = True` which is uninhabited
+||| (`Refl impossible`). The OWED note correctly identified the
+||| ten-arm discharge shape — just hadn't executed.
+public export
+isScalarCorrect : (val : TOMLValue) ->
+                  isScalar val = True ->
+                  not (isTable val || isArray val) = True
+isScalarCorrect (TString _) _ = Refl
+isScalarCorrect (TInt _) _ = Refl
+isScalarCorrect (TFloat _) _ = Refl
+isScalarCorrect (TBool _) _ = Refl
+isScalarCorrect (TDateTime _) _ = Refl
+isScalarCorrect (TDate _) _ = Refl
+isScalarCorrect (TTime _) _ = Refl
+isScalarCorrect (TArray _) Refl impossible
+isScalarCorrect (TInlineTable _) Refl impossible
+isScalarCorrect (TTable _) Refl impossible
 
 ||| Theorem: Scalars cannot contain nested structures
 export
