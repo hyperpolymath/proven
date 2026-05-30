@@ -85,12 +85,20 @@ parseHexEmptyRejected = Refl
 -- OWED markers
 --------------------------------------------------------------------------------
 
-||| OWED: WCAG-AA threshold = 4.5. Blocked on Double-comparison opacity.
+||| DISCHARGED: WCAG-AA threshold = 4.5. `meetsWCAG_AA` is `public
+||| export` with body `contrastRatio c1 c2 >= 4.5` (SafeColor.idr
+||| L188-189), so the LHS unfolds directly to the RHS for `Refl`. No
+||| Double-comparison reduction is needed — both sides are literally
+||| the same expression.
 public export
-0 wcagAAThreshold :
+wcagAAThreshold :
   (c1, c2 : RGB) -> meetsWCAG_AA c1 c2 = (contrastRatio c1 c2 >= 4.5)
+wcagAAThreshold _ _ = Refl
 
-||| OWED: WCAG-AAA threshold = 7.0. Same blocker.
+||| DISCHARGED: WCAG-AAA threshold = 7.0. `meetsWCAG_AAA` is `public
+||| export` with body `contrastRatio c1 c2 >= 7.0` (SafeColor.idr
+||| L193-194) — same unfolding pattern as `wcagAAThreshold`.
 public export
-0 wcagAAAThreshold :
+wcagAAAThreshold :
   (c1, c2 : RGB) -> meetsWCAG_AAA c1 c2 = (contrastRatio c1 c2 >= 7.0)
+wcagAAAThreshold _ _ = Refl
