@@ -238,6 +238,7 @@ modules = Proven
         , Proven.SafeCORS
         , Proven.SafeCORS.Proofs
         , Proven.SafeAPIKey
+        , Proven.SafeAPIKey.Proofs
         , Proven.SafeWebSocket
         -- Security hardening modules (v1.2.0)
         , Proven.SafeCSRF
