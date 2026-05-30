@@ -53,7 +53,7 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 | smallInputAlwaysSafe | 206 | input length ≤ 50 safe for every safe-regex (50 = min maxSafeInputLength) | 1 | PROPERTY-TEST | ~25 min | `length : String → Nat` FFI-opaque; spot-check fixed inputs |
 | linearAllowsLargeInput | 220 | `Linear`-complexity accepts inputs up to 10M chars | 5 | DISCHARGE | ~20 min | record-projection through `case`; manual `rewrite` |
 | exponentialRestrictsInput | 229 | `Exponential`-complexity restricts inputs to 100 chars | 5 | DISCHARGE | ~20 min | same record-projection blocker |
-| anyMatchesNonNewline | 248 | `Any` matches every non-newline char | 2 | DISCHARGE | ~15 min | Char FFI on `prim__eq_Char`; exhaustive split or `Data.Char` bridge |
+| ~~anyMatchesNonNewline~~ | 248 | `Any` matches every non-newline char | 2 | **DISCHARGED** | done 2026-05-30 | premise pass-through after `matchesClass c Any` reduces to `c /= '\n'` — no Char FFI reduction needed |
 | digitOnlyDigits | 259 | `matchesClass c Digit = True` ⇒ `'0' <= c <= '9'` | 2 | DISCHARGE | ~20 min | Char FFI on `Ord Char`; `Data.Char` bridge + `andTrueSplit` |
 | negateInverts | 274 | `Negate` inverts match result — definitional unfolding | 2 | DISCHARGE | ~30 min | 10-arm case-split on `CharClass` with Refl per arm |
 | unionIsOr | 284 | `Union` is logical OR of two classes — definitional unfolding | 2 | DISCHARGE | ~40 min | 100-arm case-split on `(cls1, cls2)` (10×10) |

@@ -234,18 +234,17 @@ unboundedNeverSafe RelaxedSafety = Refl
 -- Character Class Proofs
 --------------------------------------------------------------------------------
 
-||| OWED: `Any` matches every non-newline character. Operationally
-||| true by the `Any` arm of `matchesClass` (`Types.idr` L48):
-|||   `matchesClass c Any = c /= '\n'`
-||| Held back by Idris2 0.8.0 Char FFI opacity: `(/=) : Char -> Char
-||| -> Bool` goes through the `Eq Char` instance, whose underlying
-||| primitive `prim__eq_Char` does not type-level reduce for an
-||| abstract `c`. Same blocker family as boj-server's `charEqSound`
-||| (class-J `prim__eq_Char` reflection). Discharge once a `Data.Char`
-||| reflective bridge for `(/=)` is available, or by reducing
-||| `matchesClass c Any` via the definitional unfolding plus the
-||| premise.
-0 anyMatchesNonNewline : (c : Char) -> (c /= '\n' = True) -> matchesClass c Any = True
+||| DISCHARGED: `Any` matches every non-newline character. The `Any`
+||| arm of `matchesClass` (`Types.idr` L48) is `matchesClass c Any =
+||| c /= '\n'`, so the goal `matchesClass c Any = True` reduces to
+||| `c /= '\n' = True`, which is exactly the premise. The previously-
+||| documented Char FFI opacity affects only attempts to *reduce*
+||| `c /= '\n'` to a concrete `Bool` — but here we don't reduce; we
+||| just pass the premise through after the `matchesClass`-side
+||| definitional unfolding.
+public export
+anyMatchesNonNewline : (c : Char) -> (c /= '\n' = True) -> matchesClass c Any = True
+anyMatchesNonNewline _ prf = prf
 
 ||| OWED: `matchesClass c Digit = True` implies `'0' <= c <= '9'`.
 ||| Operationally true by the `Digit` arm of `matchesClass`
