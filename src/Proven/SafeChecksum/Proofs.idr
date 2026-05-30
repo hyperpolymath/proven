@@ -62,15 +62,17 @@ public export
 crc32PolynomialIsIEEE : crc32Polynomial = 0xEDB88320
 crc32PolynomialIsIEEE = Refl
 
-||| OWED: Adler-32 modulus is `65521`, the largest prime less than
-||| `2^16` (the choice is load-bearing — primality is what gives
-||| Adler-32 its error-detection properties). Held back by Idris2
-||| 0.8.0 not reducing `65521 : Nat` to `S (S (S … 0))` by Refl alone
-||| (literal Nat normalisation). Discharge once a `Data.Nat`
-||| reflective tactic is available, or refactor `adler32Mod` to
-||| `Bits32` like `crc32Polynomial`.
+||| DISCHARGED: Adler-32 modulus is `65521`. `adler32Mod` is
+||| `public export = 65521 : Nat` (SafeChecksum.idr L55-56). Both
+||| sides are the same Nat literal — Idris2 compares Nat literals via
+||| Integer representation without unary expansion, so `Refl` closes.
+||| Empirical verification: `the Nat 1073741824 = 1073741824 = Refl`
+||| works (`reference_idris2_0_8_0_reduction_map.md`). Same pattern as
+||| SafeArchive `maxCompressionRatioAnchor` (#109) and SafeCBOR
+||| `maxNestingDepthAnchor` (#110).
 public export
-0 adler32ModIsLargestPrimeBelow2Pow16 : adler32Mod = 65521
+adler32ModIsLargestPrimeBelow2Pow16 : adler32Mod = 65521
+adler32ModIsLargestPrimeBelow2Pow16 = Refl
 
 --------------------------------------------------------------------------------
 -- `verifyX` is, by definition, `X == expected`
