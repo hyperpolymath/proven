@@ -172,25 +172,21 @@ public export
 ||| available, or refactor `defaultArgon2Params` to `Bits32`-typed
 ||| fields that reduce eagerly.
 public export
-0 defaultArgon2Valid : isRight (validateArgon2Params Hash.defaultArgon2Params) = True
+defaultArgon2Valid : isRight (validateArgon2Params Hash.defaultArgon2Params) = True
+defaultArgon2Valid = Refl
 
-||| OWED: `defaultBcryptParams` (`cost = 12`) clears
-||| `validateBcryptParams`. Same Nat-literal-normalisation blocker as
-||| `defaultArgon2Valid` (Family 4) — the `if 12 < 10 then … else if
-||| 12 > 31 then … else Right p` chain does not reduce by `Refl`
-||| despite both leaves being constant-folded. Discharge once a
-||| `Data.Nat` reflective tactic for `<` / `>` on literal `Nat`s is
-||| available.
+||| TENTATIVE DISCHARGE: `defaultBcryptParams` (`cost = 12`) clears
+||| `validateBcryptParams`. Concrete-literal if-chain.
 public export
-0 defaultBcryptValid : isRight (validateBcryptParams Hash.defaultBcryptParams) = True
+defaultBcryptValid : isRight (validateBcryptParams Hash.defaultBcryptParams) = True
+defaultBcryptValid = Refl
 
-||| OWED: `defaultScryptParams` (`n=16384, r=8, p=1, keyLength=32`)
-||| clears `validateScryptParams`. Same Nat-literal-normalisation
-||| blocker as `defaultArgon2Valid` / `defaultBcryptValid` (Family 4).
-||| Discharge once a `Data.Nat` reflective tactic for `<` on literal
-||| `Nat`s is available.
+||| TENTATIVE DISCHARGE: `defaultScryptParams` (`n=16384, r=8, p=1,
+||| keyLength=32`) clears `validateScryptParams`. Concrete-literal
+||| if-chain over 4 fields.
 public export
-0 defaultScryptValid : isRight (validateScryptParams Hash.defaultScryptParams) = True
+defaultScryptValid : isRight (validateScryptParams Hash.defaultScryptParams) = True
+defaultScryptValid = Refl
 
 --------------------------------------------------------------------------------
 -- Constant-Time Comparison Proofs
