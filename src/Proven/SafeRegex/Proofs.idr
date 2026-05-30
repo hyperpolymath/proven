@@ -259,29 +259,26 @@ anyMatchesNonNewline _ prf = prf
                     matchesClass c Digit = True ->
                     (c >= '0' = True, c <= '9' = True)
 
-||| OWED: `Negate` inverts the match result of the wrapped class.
-||| Operationally true by the `Negate` arm of `matchesClass`
-||| (`Types.idr` L49):
-|||   `matchesClass c (Negate cls) = not (matchesClass c cls)`
-||| — both sides are syntactically identical.
-||| Held back by Idris2 0.8.0 not auto-discharging an equation
-||| whose RHS is a definitional unfolding of the LHS when both sides
-||| involve an abstract `Char` and `CharClass`; the `matchesClass`
-||| pattern-match on `Negate` reduces but the equation `... = ...` is
-||| not picked up by Refl for arbitrary `cls`. Discharge via case-
-||| split on `cls` (10-arm) with `Refl` on each arm.
-0 negateInverts : (c : Char) -> (cls : CharClass) ->
-                  matchesClass c (Negate cls) = not (matchesClass c cls)
+||| DISCHARGED: The `Negate` arm of `matchesClass` (`Types.idr` L49)
+||| is `matchesClass c (Negate cls) = not (matchesClass c cls)` — both
+||| sides are syntactically identical after the `matchesClass` arm
+||| reduces on the known `Negate _` constructor. The `cls` argument
+||| stays abstract on both sides, so no case-split on `cls` is needed.
+public export
+negateInverts : (c : Char) -> (cls : CharClass) ->
+                matchesClass c (Negate cls) = not (matchesClass c cls)
+negateInverts _ _ = Refl
 
-||| OWED: `Union` is the logical OR of the two member classes.
-||| Operationally true by the `Union` arm of `matchesClass`
-||| (`Types.idr` L50):
-|||   `matchesClass c (Union cls1 cls2) = matchesClass c cls1 || matchesClass c cls2`
-||| Held back by the same definitional-equation blocker as
-||| `negateInverts`. Discharge identically (case-split on both
-||| `cls1` and `cls2`, `Refl` per arm).
-0 unionIsOr : (c : Char) -> (cls1 : CharClass) -> (cls2 : CharClass) ->
-              matchesClass c (Union cls1 cls2) = (matchesClass c cls1 || matchesClass c cls2)
+||| DISCHARGED: The `Union` arm of `matchesClass` (`Types.idr` L50)
+||| is `matchesClass c (Union cls1 cls2) = matchesClass c cls1 ||
+||| matchesClass c cls2` — both sides are syntactically identical
+||| after the `matchesClass` arm reduces on the known `Union _ _`
+||| constructor. The `cls1`/`cls2` arguments stay abstract on both
+||| sides, so no case-split is needed.
+public export
+unionIsOr : (c : Char) -> (cls1 : CharClass) -> (cls2 : CharClass) ->
+            matchesClass c (Union cls1 cls2) = (matchesClass c cls1 || matchesClass c cls2)
+unionIsOr _ _ _ = Refl
 
 --------------------------------------------------------------------------------
 -- Overlap Detection Proofs
