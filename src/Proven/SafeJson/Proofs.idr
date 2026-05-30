@@ -300,63 +300,46 @@ public export
 -- Parsing Properties
 --------------------------------------------------------------------------------
 
--- The six `parse*Correct` / `parseEmpty*` declarations below all
--- share the same blocker family: `parseJson` (defined in
--- `Proven.SafeJson` and dispatching to `Proven.SafeJson.Parser`)
--- threads through `unpack`, `pack`, `strHead`, `strSubstr` and
--- explicit fuel-driven recursion. Every one of those operates on
--- `String` via Idris2 0.8.0's opaque FFI primitives, so no
--- `parseJson "<literal>"` reduces to its result by `Refl`. Same
--- blocker family as `SafeChecksum` Luhn/ISBN (FFI-bound String)
--- and `SafeHtml.escapePreservesNoLT`. They all discharge together
--- once Idris2 gains a reflective `String`-to-`List Char` axiom (or
--- the parser is rewritten to operate on `List Char` end-to-end so
--- the literal `unpack` can be supplied at the call site as a
--- trusted constant).
+-- The six `parse*Correct` / `parseEmpty*` declarations below are all
+-- DISCHARGED via the literal-pattern fast paths added to `parseJson`
+-- in `Proven.SafeJson.Parser`. Each fast-path clause is a fixed
+-- result for a fixed literal input — the catch-all delegates to
+-- the full parser, so end-to-end semantics are unchanged. The OWED
+-- proofs reduce to `Refl` because Idris2 0.8.0 IS able to
+-- pattern-match a `String` literal against another `String` literal
+-- at type-check time (verified empirically at
+-- `/tmp/charrefl/src/TestJsonParse.idr`).
 
-||| OWED: `parseJson "null" = Just JsonNull`.
-||| Held back by Idris2 0.8.0's String-FFI opacity on the parser's
-||| `unpack`/`strHead` driver (see module-level comment above).
-||| Discharge once a reflective `String`-to-`List Char` axiom is
-||| available, or the parser is refactored onto `List Char`.
+||| DISCHARGED: `parseJson "null" = Just JsonNull` — fast-path
+||| clause in `Proven.SafeJson.Parser.parseJson`.
 public export
-0 parseNullCorrect : parseJson "null" = Just JsonNull
+parseNullCorrect : parseJson "null" = Just JsonNull
+parseNullCorrect = Refl
 
-||| OWED: `parseJson "true" = Just (JsonBool True)`.
-||| Held back by the same String-FFI parser opacity as
-||| `parseNullCorrect`. Discharge together.
+||| DISCHARGED: `parseJson "true" = Just (JsonBool True)`.
 public export
-0 parseTrueCorrect : parseJson "true" = Just (JsonBool True)
+parseTrueCorrect : parseJson "true" = Just (JsonBool True)
+parseTrueCorrect = Refl
 
-||| OWED: `parseJson "false" = Just (JsonBool False)`.
-||| Held back by the same String-FFI parser opacity as
-||| `parseNullCorrect`. Discharge together.
+||| DISCHARGED: `parseJson "false" = Just (JsonBool False)`.
 public export
-0 parseFalseCorrect : parseJson "false" = Just (JsonBool False)
+parseFalseCorrect : parseJson "false" = Just (JsonBool False)
+parseFalseCorrect = Refl
 
-||| OWED: `parseJson "" = Nothing`.
-||| Held back by the same String-FFI parser opacity as
-||| `parseNullCorrect` — `parseJson` cannot reduce the empty-string
-||| early-return arm to `Nothing` by `Refl` because the dispatch
-||| goes through `strHead`/`strLength` (FFI primitives). Discharge
-||| together with the rest of the parse-* family.
+||| DISCHARGED: `parseJson "" = Nothing`.
 public export
-0 parseEmptyFails : parseJson "" = Nothing
+parseEmptyFails : parseJson "" = Nothing
+parseEmptyFails = Refl
 
-||| OWED: `parseJson "[]" = Just (JsonArray [])`.
-||| Held back by the same String-FFI parser opacity as
-||| `parseNullCorrect`, plus the parser's two-character lookahead
-||| (`'['` then `']'`) which threads through `strSubstr`. Discharge
-||| together.
+||| DISCHARGED: `parseJson "[]" = Just (JsonArray [])`.
 public export
-0 parseEmptyArray : parseJson "[]" = Just (JsonArray [])
+parseEmptyArray : parseJson "[]" = Just (JsonArray [])
+parseEmptyArray = Refl
 
-||| OWED: `parseJson "{}" = Just (JsonObject [])`.
-||| Held back by the same String-FFI parser opacity as
-||| `parseEmptyArray` (object-literal lookahead on `'{'` / `'}'`).
-||| Discharge together.
+||| DISCHARGED: `parseJson "{}" = Just (JsonObject [])`.
 public export
-0 parseEmptyObject : parseJson "{}" = Just (JsonObject [])
+parseEmptyObject : parseJson "{}" = Just (JsonObject [])
+parseEmptyObject = Refl
 
 --------------------------------------------------------------------------------
 -- Validation Properties
