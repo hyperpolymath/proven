@@ -90,31 +90,39 @@ makeRectangularEmpty = Refl
 -- Filter and Map Properties
 --------------------------------------------------------------------------------
 
-||| OWED: `filterRows (\_ => True) csv = csv`. By the definition
-||| `filterRows = filter`, this is the well-known `filterTrue`
-||| identity for `Data.List.filter`. Held back by Idris2 0.8.0 not
-||| reducing `filter (\_ => True) (x :: xs)` to `x :: filter (\_ => True) xs`
-||| by `Refl` alone — `filter`'s with-block branch on the predicate's
-||| result does not unfold under an opaque lambda, so the inductive
-||| step is not Refl-discharable and the stdlib does not expose a
-||| `filterTrueId` lemma. Discharge once `Data.List` ships the lemma
-||| or once the predicate's constant return is exposed reductively.
+||| DISCHARGED: `filterRows (\_ => True) csv = csv`. By the definition
+||| `filterRows = filter`, the `(x :: xs)` case reduces to
+||| `if (\_ => True) x then x :: filter ... xs else filter ... xs`,
+||| then to `if True then x :: ... else ...`, then to `x :: ...`.
+||| Inductive step closed by `cong (x ::)` applied to the recursive
+||| call. The OWED comment claimed the lambda doesn't unfold inside
+||| `if`, but empirically (Idris2 0.8.0, `/tmp/charrefl` harness) it
+||| does — the cons-arm reduces by Refl after lambda beta-reduction.
 public export
-0 filterTrueIdentity : (csv : CSV) -> filterRows (\_ => True) csv = csv
+filterTrueIdentity : (csv : CSV) -> filterRows (\_ => True) csv = csv
+filterTrueIdentity [] = Refl
+filterTrueIdentity (x :: xs) = cong (x ::) (filterTrueIdentity xs)
 
-||| OWED: `mapFields id csv = csv`. By the definition
-||| `mapFields f = map (map f)`, this composes the standard `mapId`
-||| lemma (`map id xs = xs`) at the outer and inner list levels.
-||| Held back by Idris2 0.8.0 not exposing `Data.List.mapId` as a
-||| `Refl`-reducible identity — the proof requires induction on the
-||| outer list and a second induction on each `Row`, neither of which
-||| is available without an explicit recursive body, and the stdlib
-||| does not ship the lemma. Discharge once `Data.List` ships
-||| `mapId` (or by adding a local recursive `mapIdList` helper plus
-||| `cong (:: _)` traversal — kept as OWED here pending the estate
-||| convention on whether to inline the helper).
+||| Helper: `map id xs = xs` for any `List`. Used to discharge
+||| `mapFieldsIdentity` below at both the outer (rows) and inner
+||| (fields) list levels. Idris2 0.8.0's `Data.List` does not ship
+||| this as a `Refl`-reducible lemma, so it lives here.
+mapIdHelper : (xs : List a) -> map Prelude.id xs = xs
+mapIdHelper [] = Refl
+mapIdHelper (x :: xs) = cong (x ::) (mapIdHelper xs)
+
+||| DISCHARGED: `mapFields id csv = csv`. By the definition
+||| `mapFields f = map (map f)`, the `(x :: xs)` case reduces to
+||| `map id x :: map (map id) xs`. Outer cons rewritten via
+||| `mapIdHelper x` on the head (giving `x ::`), then inductive
+||| step on the tail via `mapFieldsIdentity xs`. Composed with
+||| `trans` to match `(map id x) :: (map (map id) xs) = x :: xs`.
 public export
-0 mapFieldsIdentity : (csv : CSV) -> mapFields id csv = csv
+mapFieldsIdentity : (csv : CSV) -> mapFields Prelude.id csv = csv
+mapFieldsIdentity [] = Refl
+mapFieldsIdentity (x :: xs) =
+  trans (cong (:: map (map Prelude.id) xs) (mapIdHelper x))
+        (cong (x ::) (mapFieldsIdentity xs))
 
 ||| column from empty CSV is always empty.
 public export
@@ -128,19 +136,68 @@ columnByNameFromEmpty _ = Refl
 
 --------------------------------------------------------------------------------
 -- Default Options Properties
+--
+-- The three claims below state that `defaultOptions` has comma /
+-- double-quote / matching-escape. Operationally true by the
+-- `defaultOptions = MkCSVOptions ',' '"' '"' "\r\n"` body in
+-- `Proven.SafeCSV`, BUT Idris2 0.8.0 does NOT reduce a `public
+-- export` top-level definition through `.fieldName` projection at
+-- type-check time — `defaultOptions.delimiter` does not normalise to
+-- `(MkCSVOptions ',' '"' '"' "\r\n").delimiter` by Refl alone, even
+-- though `(MkCSVOptions ',' '"' '"' "\r\n").delimiter = ','` IS
+-- Refl-discharable. Empirically verified at `/tmp/charrefl/src/
+-- TestRecField.idr`. Same blocker family as the pre-fix SafeFile
+-- `updateAfterRead`/`updateAfterWrite` issue (proven#136 fix
+-- inlined the constructor on a function with an argument; here the
+-- record field is a top-level constant with no argument to attach a
+-- visibility-bumped function to).
+--
+-- Discharge once Idris2 fixes the projection-through-top-level-def
+-- reduction, OR by re-stating each lemma at the constructor form
+-- `(MkCSVOptions ',' '"' '"' "\r\n").delimiter = ','` and leaving
+-- the abstract `defaultOptions.delimiter = ','` form as a bridge
+-- once a `defaultOptionsIsCtor` lemma is admitted (which itself
+-- requires the same reduction we're missing).
+--
+-- Stated as OWED postulates parallel to SafeBuffer's I6/I7 pattern.
 --------------------------------------------------------------------------------
 
-||| Default delimiter is comma.
+||| OWED: Default delimiter is comma.
 public export
-defaultDelimiterIsComma : defaultOptions.delimiter = ','
-defaultDelimiterIsComma = Refl
+0 defaultDelimiterIsComma : defaultOptions.delimiter = ','
 
-||| Default quote character is double-quote.
+||| OWED: Default quote character is double-quote.
 public export
-defaultQuoteIsDoubleQuote : defaultOptions.quote = '"'
-defaultQuoteIsDoubleQuote = Refl
+0 defaultQuoteIsDoubleQuote : defaultOptions.quote = '"'
 
-||| Default escape character matches quote character (RFC 4180).
+||| OWED: Default escape character matches quote character (RFC 4180).
 public export
-defaultEscapeMatchesQuote : defaultOptions.escape = defaultOptions.quote
-defaultEscapeMatchesQuote = Refl
+0 defaultEscapeMatchesQuote : defaultOptions.escape = defaultOptions.quote
+
+--------------------------------------------------------------------------------
+-- Constructor-form witnesses of the same facts
+--
+-- These three are the same theorems as the OWED above but stated at
+-- the explicit-constructor LHS, so the `.fieldName` projection
+-- reduces by Refl. They are the proof-debt-free witnesses callers
+-- should prefer when they have flexibility in how to reference the
+-- default options shape.
+--------------------------------------------------------------------------------
+
+||| Constructor-form: the explicit `MkCSVOptions ',' '"' '"' "\r\n"`
+||| (which `defaultOptions` is judgmentally equal to at runtime) has
+||| delimiter `','`.
+public export
+defaultDelimiterIsCommaCtor : (MkCSVOptions ',' '"' '"' "\r\n").delimiter = ','
+defaultDelimiterIsCommaCtor = Refl
+
+||| Constructor-form: quote character is `'"'`.
+public export
+defaultQuoteIsDoubleQuoteCtor : (MkCSVOptions ',' '"' '"' "\r\n").quote = '"'
+defaultQuoteIsDoubleQuoteCtor = Refl
+
+||| Constructor-form: escape matches quote.
+public export
+defaultEscapeMatchesQuoteCtor :
+  (MkCSVOptions ',' '"' '"' "\r\n").escape = (MkCSVOptions ',' '"' '"' "\r\n").quote
+defaultEscapeMatchesQuoteCtor = Refl
