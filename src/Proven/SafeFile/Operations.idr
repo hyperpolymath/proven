@@ -156,14 +156,25 @@ checkWritable h =
     else Err (InvalidOperation "write" h.mode)
 
 ||| Update handle after read
-export
+|||
+||| Inlined as explicit `MkSafeHandle` constructor (rather than
+||| record-update syntax) so that the field projection
+||| `(updateAfterRead h bytes).bytesRead` reduces definitionally to
+||| `h.bytesRead + bytes` at type-check time. Record-update sugar does
+||| not unfold under projection in Idris2 0.8.0; explicit constructor
+||| does. Runtime behaviour is identical.
+public export
 updateAfterRead : SafeHandle -> Nat -> SafeHandle
-updateAfterRead h bytes = { bytesRead := h.bytesRead + bytes } h
+updateAfterRead h bytes =
+  MkSafeHandle h.handleId h.mode h.path (h.bytesRead + bytes) h.bytesWritten
 
 ||| Update handle after write
-export
+|||
+||| See `updateAfterRead` for why this uses explicit-constructor form.
+public export
 updateAfterWrite : SafeHandle -> Nat -> SafeHandle
-updateAfterWrite h bytes = { bytesWritten := h.bytesWritten + bytes } h
+updateAfterWrite h bytes =
+  MkSafeHandle h.handleId h.mode h.path h.bytesRead (h.bytesWritten + bytes)
 
 ||| Create new handle (for simulation/testing)
 export
