@@ -68,19 +68,14 @@ parseDeterministic s = Refl
 -- Validation Properties
 --------------------------------------------------------------------------------
 
-||| OWED: `validResult.isValid = True`. By definition
-||| `validResult = MkValidationResult True []` (Validation.idr L62),
-||| so the record-field projection should reduce to `True` by Refl.
-||| Held back by Idris2 0.8.0 not auto-reducing record-field
-||| projections (`.isValid`) on named top-level constructor
-||| applications — the elaborator inlines `validResult` but does not
-||| commit `(MkValidationResult True []).isValid` to `True` without
-||| an explicit case-split or pattern match. Same family as the
-||| SafeBuffer / SafeCSV record-projection gap. Discharge by
-||| inlining `validResult` at the call site or by a reflective
-||| record-projection tactic.
+||| DISCHARGED: `validResult.isValid = True`. By definition
+||| `validResult = MkValidationResult True []` (Validation.idr L62)
+||| and `validResult` is `public export`, so the elaborator unfolds
+||| `validResult.isValid` to `(MkValidationResult True []).isValid =
+||| True` by direct record-projection reduction.
 public export
-0 validResultIsValid : validResult.isValid = True
+validResultIsValid : validResult.isValid = True
+validResultIsValid = Refl
 
 ||| OWED: adding an Error-severity issue makes the result invalid.
 ||| `addIssue` (Validation.idr L71-74) computes the new validity as
