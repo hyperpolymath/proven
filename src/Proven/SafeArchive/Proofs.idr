@@ -144,17 +144,23 @@ zeroCompressedNonZeroUncompressedIsZipBomb :
   isZipBomb (MkArchiveEntry "x" RegularFile 0 1 Nothing) = True
 zeroCompressedNonZeroUncompressedIsZipBomb = Refl
 
-||| OWED: A reasonably-compressed entry (ratio 100, well under 1000)
-||| is NOT a zip bomb. Blocked on Nat-literal opacity (standards#128).
+||| TENTATIVE DISCHARGE: ratio 100 (well under 1000) is NOT a zip
+||| bomb. With compressedSize=1, isZipBomb hits the `n` arm computing
+||| `div 100 1 > maxCompressionRatio` = `100 > 1000` = `False`. Whether
+||| Idris2 0.8.0 reduces `div 100 1` and the `>` comparison structurally
+||| on concrete Nat literals is the open question — if CI rejects,
+||| revert to OWED stub.
 public export
-0 modestRatioNotZipBomb :
+modestRatioNotZipBomb :
   isZipBomb (MkArchiveEntry "x" RegularFile 1 100 Nothing) = False
+modestRatioNotZipBomb = Refl
 
-||| OWED: An entry with compression ratio > 1000 IS a zip bomb. Same
-||| blocker.
+||| TENTATIVE DISCHARGE: ratio 1001 (above 1000) IS a zip bomb. Same
+||| `div`/`>`-reduces-on-concrete-Nat question.
 public export
-0 extremeRatioIsZipBomb :
+extremeRatioIsZipBomb :
   isZipBomb (MkArchiveEntry "x" RegularFile 1 1001 Nothing) = True
+extremeRatioIsZipBomb = Refl
 
 --------------------------------------------------------------------------------
 -- `isDangerousSymlink` requires Symlink entry type
