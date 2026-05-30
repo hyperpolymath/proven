@@ -10,9 +10,18 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded runs on the same ref so a rapid sequence of pushes
+# to a feature branch does not pile up jobs against the Pro-plan 40-job
+# concurrent ceiling. Each new push to a ref supersedes its predecessor.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   enforce-idris-only:
     runs-on: ubuntu-latest
+    # Fast grep checks; if this exceeds 5 minutes something is wrong.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
@@ -98,6 +107,10 @@ jobs:
 
   verify-idris-build:
     runs-on: ubuntu-latest
+    # Docker pull (snazzybucket/idris2) + Idris2 totality check across all
+    # Proven.Safe.* modules. Local oracle runs in ~8 minutes; 20-minute
+    # budget covers cold cache and the occasional Docker Hub slowdown.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 

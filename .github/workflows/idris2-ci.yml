@@ -23,9 +23,20 @@ on:
       - '.github/workflows/idris2-ci.yml'
   workflow_dispatch:
 
+# Cancel superseded runs on the same ref. Idris2 bootstrap + build is
+# ~20 minutes per run; without cancel-in-progress, a rapid PR-push
+# sequence saturates the Pro-plan 40-job concurrent ceiling within
+# minutes and blocks every other workflow estate-wide.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Idris2 bootstrap (cold cache) is ~10 min, build+typecheck ~12 min.
+    # 45-minute budget gives cold-cache + slow apt mirror headroom.
+    timeout-minutes: 45
     strategy:
       matrix:
         idris2-version: ['0.8.0']
@@ -87,7 +98,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main'
-
+    # Reuses Idris2 cache from build job; docs generation is fast (~5 min).
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
