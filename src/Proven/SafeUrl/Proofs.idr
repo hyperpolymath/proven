@@ -9,6 +9,7 @@ import Proven.Core
 import Proven.SafeUrl.Parser
 import Proven.SafeUrl.Query
 import Data.List
+import Data.List.Equalities
 import Decidable.Equality
 
 %default total
@@ -128,21 +129,17 @@ parseEmptyQuery = Refl
 export
 0 emptyBuilderEmpty : buildQueryString Query.emptyQuery = ""
 
-||| OWED: Adding a parameter increases the parameter count by one.
+||| DISCHARGED: Adding a parameter increases the parameter count by one.
 ||| `addParam key val qb` is defined as `MkQueryBuilder (qb.params ++
-||| [(key, val)])`, so the claim reduces to
-||| `length (qb.params ++ [(key, val)]) = S (length qb.params)`. This
-||| is a standard list-folding identity (`length (xs ++ [x]) = S (length
-||| xs)`) but requires induction on `xs` — `Refl` cannot close it for an
-||| abstract `qb.params`. Held back by Idris2 0.8.0's stdlib not
-||| exposing this lemma as a `%reducible` rewrite. Same family as
-||| SafeFile read/write tracking proofs. Discharge by importing /
-||| proving `lengthSnoc : (xs : List a) -> (x : a) -> length (xs ++ [x])
-||| = S (length xs)` and rewriting.
-export
-0 addParamIncreasesCount : (key, val : String) -> (qb : QueryBuilder) ->
-                           paramCount (addParam key val qb).params =
-                           S (paramCount qb.params)
+||| [(key, val)])`, so `(addParam key val qb).params` reduces to
+||| `qb.params ++ [(key, val)]` and the claim becomes
+||| `length (qb.params ++ [(key, val)]) = S (length qb.params)`.
+||| Discharged via `Data.List.Equalities.lengthSnoc` from `contrib`.
+public export
+addParamIncreasesCount : (key, val : String) -> (qb : QueryBuilder) ->
+                         paramCount (addParam key val qb).params =
+                         S (paramCount qb.params)
+addParamIncreasesCount key val qb = lengthSnoc qb.params (key, val)
 
 ||| OWED: Getting a parameter just set by key returns that value.
 ||| Operationally true by case analysis on `hasParam key qs`: in the

@@ -220,7 +220,7 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 | decodeUnreservedIdentity | 90–92 | `all isAlphaNum s ⇒ urlDecode s = Just s` | 2+1 | PROPERTY-TEST | ~25 min | same family |
 | encodeDecodeIdentity | 107–108 | `urlDecode (urlEncode s) = Just s` | 1+2 | OWED-AXIOM | 0 | unpack/pack/concat FFI + chr arithmetic; external-lib shape |
 | emptyBuilderEmpty | 129 | emptyQuery builder = `""` | 1 | PROPERTY-TEST | ~10 min | joinWith FFI on empty list; `""` literal by Refl |
-| addParamIncreasesCount | 143–145 | addParam increases count | 6 | DISCHARGE | ~30 min | list snoc-length lemma; `length (xs ++ [x]) = S (length xs)` |
+| ~~addParamIncreasesCount~~ | 143–145 | addParam increases count | 6 | **DISCHARGED** | done 2026-05-30 | `Data.List.Equalities.lengthSnoc` (contrib) — `addParamIncreasesCount key val qb = lengthSnoc qb.params (key, val)` |
 | setGetIdentity | 160–161 | `setParam k v; getParam k = Just v` | 1 | PROPERTY-TEST | ~25 min | String `==` FFI; concrete key-value pairs |
 | removeHasNot | 173–174 | after removeAllParams ⇒ not hasParam | 1 | PROPERTY-TEST | ~20 min | String `/=` FFI in filter; concrete keys |
 | filterPreservesOnly | 187–188 | filterParams preserves only given keys | 1 | PROPERTY-TEST | ~20 min | filterAll lemma + String elem FFI |
