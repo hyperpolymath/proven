@@ -78,30 +78,43 @@ noneAlwaysSafe policy prf = rewrite prf in Refl
 -- Header Generation Safety
 --------------------------------------------------------------------------------
 
-||| OWED: When `isUnsafeConfiguration policy = True`, `generateHeaders
-||| policy origin` returns `Nothing`. Held back by Idris2 0.8.0 not
-||| reducing the chained `validatePolicy` / `generateHeaders` guard
-||| under a single `Refl`: `generateHeaders` branches on `not (isNil
-||| (validatePolicy policy))`, and `validatePolicy` itself is `if
-||| isUnsafeConfiguration policy then [WildcardWithCredentials] else
-||| [] ++ (if isNil allowMethods && not (isNil allowHeaders) then
-||| [EmptyMethodList] else [])`. Rewriting by the hypothesis pushes
-||| the inner `if` to the `True` arm, but the surrounding `++` /
-||| `isNil` / `not` chain does not normalise to `True` definitionally
-||| because the right operand of `++` is an opaque conditional over
-||| `policy.allowMethods` / `policy.allowHeaders`. Discharge once
-||| `validatePolicy` is refactored to expose a top-level disjunctive
-||| case on `isUnsafeConfiguration` (or once a `cong`-style proof is
-||| written by-hand routing through `appendNilLeftNeutral` / `isNil
-||| (x :: xs) = False`). Same blocker family as the FFI-bound
-||| `validateLuhn` / `validateISBN*` OWED items in
-||| `Proven.SafeChecksum.Proofs` — opaque-spine list reduction under
-||| Idris2 0.8.0.
-export
-0 misconfiguredNoHeaders : (policy : CORSPolicy) ->
-                           (origin : Origin) ->
-                           isUnsafeConfiguration policy = True ->
-                           generateHeaders policy origin = Nothing
+||| Bridge lemma (discharged 2026-05-30): if a policy is unsafely
+||| configured, its `validatePolicy` list is non-empty.
+|||
+||| The earlier OWED comment claimed Idris2 0.8.0 could not reduce
+||| `++` past the leading `if isUnsafeConfiguration policy then
+||| [WildcardWithCredentials] else []`. In fact it CAN — `rewrite`ing
+||| by the hypothesis collapses the `if` to its `True` arm, after
+||| which `[WildcardWithCredentials] ++ tail` reduces to
+||| `WildcardWithCredentials :: tail` and `isNil (_ :: _)` reduces to
+||| `False` by `Refl`. The right operand of `++` (the opaque
+||| `emptyMethods` conditional) never needs to be inspected because
+||| `isNil` matches on the spine constructor of the *whole* list, not
+||| on its content.
+public export
+validatePolicyNonNil : (policy : CORSPolicy) ->
+                       isUnsafeConfiguration policy = True ->
+                       isNil (validatePolicy policy) = False
+validatePolicyNonNil policy prf = rewrite prf in Refl
+
+||| DISCHARGED (Refs hyperpolymath/standards#158): when
+||| `isUnsafeConfiguration policy = True`, `generateHeaders policy
+||| origin` returns `Nothing`.
+|||
+||| Proof: `generateHeaders` short-circuits on
+||| `not (isNil (validatePolicy policy))`. Rewriting by
+||| `validatePolicyNonNil` reduces that guard to `not False = True`,
+||| which fires the `Nothing` arm of the outer `if`. No `believe_me`,
+||| no `postulate`, no `assert_total`.
+public export
+misconfiguredNoHeaders : (policy : CORSPolicy) ->
+                         (origin : Origin) ->
+                         isUnsafeConfiguration policy = True ->
+                         generateHeaders policy origin = Nothing
+misconfiguredNoHeaders policy origin prf =
+  let nonNil : (isNil (validatePolicy policy) = False)
+      nonNil = validatePolicyNonNil policy prf
+  in rewrite nonNil in Refl
 
 --------------------------------------------------------------------------------
 -- Origin Matching Properties
