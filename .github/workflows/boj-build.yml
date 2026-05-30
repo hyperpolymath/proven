@@ -1,23 +1,41 @@
 # SPDX-License-Identifier: MPL-2.0
 name: BoJ Server Build Trigger
+
 on:
   push:
     branches: [main, master]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   trigger-boj:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-<<<<<<< HEAD
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-=======
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
->>>>>>> chore/cicd-optimizations
+
       - name: Trigger BoJ Server (Casket/ssg-mcp)
+        env:
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          # Send a secure trigger to boj-server to build this repository
-          curl -X POST "http://boj-server.local:7700/cartridges/ssg-mcp/invoke"             -H "Content-Type: application/json"             -d "{\"repo\": \"${{ github.repository }}\", \"branch\": \"${{ github.ref_name }}\", \"engine\": \"casket\\"}"}
+          # Send a secure trigger to boj-server to build this repository.
+          # Payload values are passed via env vars rather than ${{ }}
+          # interpolation to avoid shell-injection by branch name.
+          payload=$(jq -nc \
+            --arg repo "$REPO" \
+            --arg branch "$BRANCH" \
+            '{repo: $repo, branch: $branch, engine: "casket"}')
+          curl -X POST "https://boj-server.local:7700/cartridges/ssg-mcp/invoke" \
+            -H "Content-Type: application/json" \
+            -d "$payload"
         continue-on-error: true
-permissions:
-  contents: read

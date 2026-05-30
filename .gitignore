@@ -202,3 +202,14 @@ _build/
 deps/
 .elixir_ls/
 .cache/
+
+# Compiled binaries (test_ffi, etc.) — these were getting committed
+# from local FFI testing. The actual built artefacts live in build/ or
+# target/ and the C-ABI smoke binaries should never enter git.
+bindings/*/test_ffi
+bindings/*/test_*
+bindings/**/*.o
+bindings/**/*.so
+bindings/**/*.dylib
+bindings/**/*.dll
+bindings/**/a.out
