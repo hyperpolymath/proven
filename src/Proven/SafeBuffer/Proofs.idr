@@ -42,6 +42,7 @@ module Proven.SafeBuffer.Proofs
 
 import Proven.SafeBuffer
 import Data.List
+import Data.List.Equalities
 import Data.Vect
 
 %default total
@@ -142,16 +143,28 @@ emptyBufferSize (S k) d = cong S (emptyBufferSize k d)
 -- not silent.
 --------------------------------------------------------------------------------
 
-||| OWED: `write` extends content by exactly one. The structural fact is
-||| obvious; the proof is blocked on the cons-distribution lemma family.
+||| DISCHARGED: `write` extends content by exactly one. With-pattern
+||| on `isFull buf`: `True` arm has `Nothing = Just buf'` (impossible);
+||| `False` arm gives `buf' = MkDynBuffer cap (content ++ [x])`, so
+||| `dynLength buf' = length (content ++ [x]) = S (length content)`
+||| via `Data.List.Equalities.lengthSnoc` from contrib.
 public export
-0 writeAddsOne :
+writeAddsOne :
   (x : a) -> (buf : DynBuffer a) -> (buf' : DynBuffer a)
   -> write x buf = Just buf' -> dynLength buf' = S (dynLength buf)
+writeAddsOne x buf buf' prf with (isFull buf)
+  writeAddsOne x buf buf' prf | True  = case prf of Refl impossible
+  writeAddsOne x buf buf' prf | False = case prf of Refl => lengthSnoc buf.content x
 
-||| OWED: `writeMany` extends content by `length xs`. Same blocker as
-||| `writeAddsOne` (cons-distribution / append-length lemma).
+||| DISCHARGED: `writeMany` extends content by `length xs`. Same
+||| with-pattern on `length xs > remaining buf`. `False` arm gives
+||| `buf' = MkDynBuffer cap (content ++ xs)`, so
+||| `dynLength buf' = length (content ++ xs) = length content + length xs`
+||| via `Data.List.Equalities.lengthDistributesOverAppend` from contrib.
 public export
-0 writeManyAddsLength :
+writeManyAddsLength :
   (xs : List a) -> (buf : DynBuffer a) -> (buf' : DynBuffer a)
   -> writeMany xs buf = Just buf' -> dynLength buf' = dynLength buf + length xs
+writeManyAddsLength xs buf buf' prf with (length xs > remaining buf)
+  writeManyAddsLength xs buf buf' prf | True  = case prf of Refl impossible
+  writeManyAddsLength xs buf buf' prf | False = case prf of Refl => lengthDistributesOverAppend buf.content xs
