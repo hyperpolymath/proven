@@ -167,7 +167,21 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          # The Chapel .deb installs CHPL_HOME under /usr/share/chapel/<minor>.
+          # `chpl` reads CHPL_HOME from the env to locate bundled modules
+          # (ChapelSysCTypes lives there); without it the typecheck step
+          # fails with "Could not find bundled module 'ChapelSysCTypes'".
+          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
+          # Probe a few canonical install layouts in case the symlink target
+          # is /usr/bin instead of /usr/share/chapel/<minor>/bin.
+          if [ ! -d "$CHPL_HOME/modules" ]; then
+              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
+                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
+              done
+          fi
+          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
           chpl --version
+          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Chapel module typecheck (--no-codegen, every module)
         working-directory: proven/bindings/chapel
@@ -241,6 +255,14 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
+          if [ ! -d "$CHPL_HOME/modules" ]; then
+              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
+                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
+              done
+          fi
+          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
+          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
@@ -290,6 +312,14 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
+          if [ ! -d "$CHPL_HOME/modules" ]; then
+              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
+                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
+              done
+          fi
+          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
+          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
@@ -351,6 +381,14 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
+          if [ ! -d "$CHPL_HOME/modules" ]; then
+              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
+                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
+              done
+          fi
+          echo "CHPL_HOME=$CHPL_HOME" | tee -a "$GITHUB_ENV"
+          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
