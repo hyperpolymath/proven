@@ -217,15 +217,20 @@ angleDifferenceIsRadians a b = Refl
 -- the residual debt is visible.
 --------------------------------------------------------------------------------
 
-||| OWED: `fromDegrees` round-trips through `toDegrees`. Blocked on
-||| the absence of a numerical-equivalence tactic for `Double` literals
-||| in Idris2 0.8.0.
+||| DISCHARGED: `fromDegrees` round-trips through `toDegrees`.
+||| `fromDegrees d = MkAngle d Degrees` (SafeAngle.idr L108-110)
+||| then `toDegrees (MkAngle v Degrees) = v` (first clause, L86).
+||| No Double arithmetic enters — the `Degrees` unit constructor
+||| pattern-matches and the value passes through unchanged.
 public export
-0 fromToDegreesRoundtrip :
+fromToDegreesRoundtrip :
   (d : Double) -> toDegrees (fromDegrees d) = d
+fromToDegreesRoundtrip _ = Refl
 
-||| OWED: `fromRadians` round-trips through `toRadians`. Same blocker
-||| as `fromToDegreesRoundtrip`.
+||| DISCHARGED: `fromRadians` round-trips through `toRadians`. Same
+||| structure as `fromToDegreesRoundtrip` — `fromRadians r = MkAngle r
+||| Radians` then `toRadians (MkAngle v Radians) = v` (first clause).
 public export
-0 fromToRadiansRoundtrip :
+fromToRadiansRoundtrip :
   (r : Double) -> toRadians (fromRadians r) = r
+fromToRadiansRoundtrip _ = Refl
