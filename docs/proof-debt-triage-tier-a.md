@@ -55,8 +55,8 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 | exponentialRestrictsInput | 229 | `Exponential`-complexity restricts inputs to 100 chars | 5 | DISCHARGE | ~20 min | same record-projection blocker |
 | anyMatchesNonNewline | 248 | `Any` matches every non-newline char | 2 | DISCHARGE | ~15 min | Char FFI on `prim__eq_Char`; exhaustive split or `Data.Char` bridge |
 | digitOnlyDigits | 259 | `matchesClass c Digit = True` ⇒ `'0' <= c <= '9'` | 2 | DISCHARGE | ~20 min | Char FFI on `Ord Char`; `Data.Char` bridge + `andTrueSplit` |
-| negateInverts | 274 | `Negate` inverts match result — definitional unfolding | 2 | DISCHARGE | ~30 min | 10-arm case-split on `CharClass` with Refl per arm |
-| unionIsOr | 284 | `Union` is logical OR of two classes — definitional unfolding | 2 | DISCHARGE | ~40 min | 100-arm case-split on `(cls1, cls2)` (10×10) |
+| ~~negateInverts~~ | 274 | `Negate` inverts match result | 2 | **DISCHARGED** | done 2026-05-30 | `Refl` — `matchesClass` arm on `Negate _` reduces directly; `cls` stays abstract on both sides (no case-split needed) |
+| ~~unionIsOr~~ | 284 | `Union` is logical OR of two classes | 2 | **DISCHARGED** | done 2026-05-30 | `Refl` — `matchesClass` arm on `Union _ _` reduces directly; `cls1`/`cls2` stay abstract (no case-split needed) |
 | charSelfOverlaps | 302 | `SingleChar` overlaps itself via `c == c = True` | 2 | DISCHARGE | ~15 min | Char FFI on `prim__eq_Char`; `eqCharRefl` lemma |
 | rangeSelfOverlaps | 316 | `Range from to` overlaps itself — `not (to < from \|\| to < from) = True` | 2 | DISCHARGE | ~20 min | Char FFI on `prim__lt_Char`; `Data.Char` bridge for `(<)` |
 | unionSelfOverlaps | 332 | `Union` overlaps itself — recursive disjunction reduces | 2 | DISCHARGE | ~35 min | structural induction on `CharClass` + transitive Char-FFI |
