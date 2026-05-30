@@ -13,6 +13,7 @@ import Proven.Core
 import Proven.SafeFile.Types
 import Proven.SafeFile.Operations
 import Data.List
+import Data.Nat
 import Data.String
 
 %default total
@@ -210,35 +211,33 @@ fileSizeCheckPrevents path size limit tooLarge = ()
 -- Handle Tracking Proofs
 --------------------------------------------------------------------------------
 
-||| OWED: `updateAfterRead h bytes` produces a handle whose `bytesRead`
-||| field equals `h.bytesRead + bytes`, hence is `>=` the prior value.
-||| Operationally true by direct unfolding of
-|||   `updateAfterRead h bytes = { bytesRead := h.bytesRead + bytes } h`
-||| in `Proven.SafeFile.Operations`.
-||| Held back by Idris2 0.8.0 not reducing record-update field projection
-||| through a function call during type-checking — `(updateAfterRead h
-||| bytes).bytesRead` does not normalise to `h.bytesRead + bytes` by Refl
-||| (same blocker as the deleted `newHandleZeroCounters` documented at
-||| L218-220). Discharge once Idris2 fixes the record-update reduction
-||| (tracked upstream) or via a manual rewrite + `lteAddRight` proof on
-||| `Nat` once both sides are forced into normal form.
-export
-0 readTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
-                          (Operations.updateAfterRead h bytes).bytesRead >= h.bytesRead = True
+||| Helper: `n + m >= n = True` for all `Nat`. Used to discharge the
+||| tracking-monotonic theorems below. Induction on `n` (case-split on
+||| `m` is only needed in the `Z` branch because `m >= 0` reduces only
+||| after pattern-matching on whether `m` is `Z` or `S _`).
+plusGteOriginal : (n, m : Nat) -> (n + m) >= n = True
+plusGteOriginal Z Z = Refl
+plusGteOriginal Z (S _) = Refl
+plusGteOriginal (S k) m = plusGteOriginal k m
 
-||| OWED: `updateAfterWrite h bytes` produces a handle whose
-||| `bytesWritten` field equals `h.bytesWritten + bytes`, hence is `>=`
-||| the prior value. Operationally true by direct unfolding of
-|||   `updateAfterWrite h bytes = { bytesWritten := h.bytesWritten + bytes } h`
-||| in `Proven.SafeFile.Operations`.
-||| Held back by Idris2 0.8.0 not reducing record-update field projection
-||| through a function call during type-checking (same blocker family as
-||| `readTrackingMonotonic` above). Discharge once Idris2 fixes the
-||| record-update reduction, or via a manual rewrite + `lteAddRight`
-||| proof on `Nat` once both sides are forced into normal form.
-export
-0 writeTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
-                           (Operations.updateAfterWrite h bytes).bytesWritten >= h.bytesWritten = True
+||| DISCHARGED: `updateAfterRead h bytes` produces a handle whose
+||| `bytesRead` is `>=` the prior value. By inlined-constructor
+||| definition in `Operations.updateAfterRead`, the field projection
+||| reduces definitionally to `h.bytesRead + bytes`; the remaining
+||| Nat inequality `(n + m) >= n = True` is closed by induction
+||| (`plusGteOriginal`).
+public export
+readTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
+                        (Operations.updateAfterRead h bytes).bytesRead >= h.bytesRead = True
+readTrackingMonotonic h bytes = plusGteOriginal h.bytesRead bytes
+
+||| DISCHARGED: `updateAfterWrite h bytes` produces a handle whose
+||| `bytesWritten` is `>=` the prior value. Same shape of proof as
+||| `readTrackingMonotonic` above.
+public export
+writeTrackingMonotonic : (h : SafeHandle) -> (bytes : Nat) ->
+                         (Operations.updateAfterWrite h bytes).bytesWritten >= h.bytesWritten = True
+writeTrackingMonotonic h bytes = plusGteOriginal h.bytesWritten bytes
 
 ||| Theorem: New handle has zero counters
 -- newHandleZeroCounters removed: newHandle constructs a record but
