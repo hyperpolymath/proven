@@ -83,12 +83,18 @@ fromIntegerCapacity cap n = Refl
 -- `singleton` bounds-rejection
 --------------------------------------------------------------------------------
 
-||| OWED: `singleton 0 bit` always rejects (no bit fits in zero
-||| capacity). Blocked because `bit < 0` for variable `bit : Nat`
-||| does not Refl-reduce (standards#128 Nat-comparison opacity).
+||| DISCHARGED via 2-arm case-split on `bit`. The `bit < 0` check
+||| inside `singleton 0 bit` reduces on each constructor:
+|||   * `Z < 0` → `compareNat 0 0 == LT` → `EQ == LT` → `False`
+|||   * `S _ < 0` → `compareNat (S _) 0 == LT` → `GT == LT` → `False`
+||| Both make the `if` take the `else` branch, returning `Nothing`.
+||| The OWED's "abstract bit doesn't Refl-reduce" was correct for the
+||| zero-arg version; the case-split unblocks it.
 public export
-0 singletonZeroCapRejects :
+singletonZeroCapRejects :
   (bit : Nat) -> singleton 0 bit = Nothing
+singletonZeroCapRejects Z = Refl
+singletonZeroCapRejects (S _) = Refl
 
 --------------------------------------------------------------------------------
 -- Capacity preservation on `Right`-branch (structural case split on `if`)
