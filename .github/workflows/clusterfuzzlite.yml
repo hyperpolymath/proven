@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# ClusterFuzzLite — per-PR + scheduled batch fuzzing of the Rust FFI
+# bindings. Closes OpenSSF Scorecard `Fuzzing` check (#299).
+#
+# Gated on the presence of bindings/rust/fuzz/Cargo.toml so the workflow
+# does not run on commits before the fuzz scaffolding lands.
+
+name: ClusterFuzzLite
+
+on:
+  pull_request:
+    paths:
+      - 'bindings/rust/**'
+      - 'ffi/**'
+      - 'src/**'
+      - '.clusterfuzzlite/**'
+      - '.github/workflows/clusterfuzzlite.yml'
+  schedule:
+    - cron: '0 2 * * 0'  # Sunday 02:00 UTC
+  workflow_dispatch:
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-fuzzing:
+    if: github.event_name == 'pull_request' && hashFiles('bindings/rust/fuzz/Cargo.toml') != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+      - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: rust
+          sanitizer: address
+      - uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fuzz-seconds: 300  # 5 minutes per fuzzer
+          mode: prune
+          sanitizer: address
+
+  batch-fuzzing:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: rust
+          sanitizer: address
+      - uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fuzz-seconds: 1800  # 30 minutes per fuzzer
+          mode: batch
+          sanitizer: address

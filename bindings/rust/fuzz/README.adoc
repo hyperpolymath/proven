@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: CC-BY-4.0
+= Cargo-fuzz harness for proven Rust bindings
+
+== What
+
+Continuous fuzzing of the FFI boundary between the `proven` Rust bindings
+and `libproven.so` (the compiled output of the Zig FFI bridge over Idris2
+verified code).
+
+Targets currently shipped:
+
+[cols="1,2",options=header]
+|===
+| Target | Surface
+
+| `safe_url_parse` | `SafeUrl::parse(&str) -> Result<ParsedUrl>` (RFC 3986)
+| `safe_email_is_valid` | `SafeEmail::is_valid(&str) -> Result<bool>`
+| `safe_json_is_valid` | `SafeJson::is_valid(&str) -> Result<bool>`
+| `safe_path_has_traversal` | `SafePath::has_traversal(&str) -> Result<bool>`
+|===
+
+The Idris2 verification covers the parser/validator logic; the fuzz
+targets guard the Rust↔C marshaling boundary against panics, OOMs, or
+allocator-mismatch crashes that the type system cannot prevent.
+
+== Running locally
+
+```sh
+# 1. Build libproven via the Zig FFI bridge.
+(cd ffi/zig && zig build)
+export PROVEN_LIB_DIR="$PWD/ffi/zig/zig-out/lib"
+export LD_LIBRARY_PATH="$PROVEN_LIB_DIR:$LD_LIBRARY_PATH"
+
+# 2. Install cargo-fuzz once (requires nightly Rust).
+cargo install cargo-fuzz
+
+# 3. Run a fuzz target (Ctrl-C to stop).
+cd bindings/rust/fuzz
+cargo fuzz run safe_url_parse
+```
+
+Corpus + crash artefacts land under `corpus/` and `artifacts/` (both
+gitignored). To reproduce a crash:
+
+```sh
+cargo fuzz run safe_url_parse artifacts/safe_url_parse/crash-<sha>
+```
+
+== CI
+
+Per-PR fuzzing (5 min per target) + weekly batch fuzzing (30 min per
+target) configured in `.github/workflows/clusterfuzzlite.yml`. Container
+build orchestrated by `.clusterfuzzlite/{build.sh,Dockerfile}`.
