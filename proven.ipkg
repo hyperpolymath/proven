@@ -212,6 +212,7 @@ modules = Proven
         , Proven.SafeTensor
         -- Data formats
         , Proven.SafeCSV
+        , Proven.SafeCSV.Proofs
         , Proven.SafeDigest
         , Proven.SafeDigest.Proofs
         , Proven.SafeRegistry
