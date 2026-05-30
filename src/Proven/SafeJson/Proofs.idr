@@ -198,14 +198,17 @@ prependLengthInc v arr = Refl
 ||| DISCHARGED: `append v (JsonArray arr) = JsonArray (arr ++ [v])`
 ||| (SafeJson.idr L233-234), so the goal reduces to
 ||| `Just (length (arr ++ [v])) = Just (length arr + 1)`. Apply
-||| `lengthSnoc arr v : length (arr ++ [v]) = S (length arr)`, then
+||| `lengthSnoc v arr : length (arr ++ [v]) = S (length arr)`, then
 ||| close the `S n` vs `n + 1` gap with `plusCommutative 1 n`.
+||| (`Data.List.Equalities.lengthSnoc` takes the element first, then the
+||| list — `lengthSnoc x xs`; the previous `lengthSnoc arr v` argument
+||| order did not type-check under Idris2 0.8.0 contrib.)
 public export
 appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
                   arrayLength (append v (JsonArray arr)) =
                   Just (length arr + 1)
 appendLengthInc v arr =
-  cong Just (trans (lengthSnoc arr v) (plusCommutative 1 (length arr)))
+  cong Just (trans (lengthSnoc v arr) (plusCommutative 1 (length arr)))
 
 --------------------------------------------------------------------------------
 -- Path Access Properties
@@ -216,26 +219,32 @@ public export
 emptyPathIdentity : (v : JsonValue) -> getPath [] v = Just v
 emptyPathIdentity v = Refl
 
-||| OWED: a single-segment `Key k` path equals direct `lookup`:
+||| DISCHARGED: a single-segment `Key k` path equals direct `lookup`:
 ||| `getPath [Key k] (JsonObject obj) = lookup k obj`.
-||| `getPath` is defined in `Proven.SafeJson.Access` and dispatches
-||| through `getSegment` (mutually recursive across `PathSegment`
-||| constructors). Idris2 0.8.0 marks the family `covering` (not
-||| `total`) because the recursion is on `List PathSegment` paired
-||| with a `JsonValue` whose `JsonArray`/`JsonObject` arms recurse
-||| with new path-tails — same termination-witness shape as the
-||| `Proven.SafeJson.Access.deletePath` unreachable-clause warning
-||| already in this build. Covering functions do NOT reduce by
-||| `Refl` outside their pattern arms in Idris2 0.8.0, so this
-||| statement cannot be discharged without an external
-||| `assert_total`-style reduction lemma. Held back by the same
-||| Access-module covering/total gap that motivated removing
-||| `singleIndexPath` (L154 comment). Discharge once `getPath`
-||| can be re-stated as `total` via a structurally decreasing
-||| metric (path length is the obvious candidate).
+|||
+||| The original OWED comment correctly identified the blocker: while
+||| `getPath`/`getSegment` were `covering` (via the `%default covering`
+||| in `Proven.SafeJson.Access`), Idris2 0.8.0 does not reduce `covering`
+||| definitions during proof conversion, so neither side of the equation
+||| meets — verified: even the one-step
+||| `getSegment (Key k) (JsonObject obj) = lookup k obj` fails by `Refl`
+||| while the module default holds. The fix lives in
+||| `Proven.SafeJson.Access`: both functions are now explicitly `total`
+||| (they always were structurally — `getSegment` is non-recursive,
+||| `getPath` decreases on the path list). With totality `getPath`
+||| reduces:
+|||   getPath [Key k] (JsonObject obj)
+|||     = case getSegment (Key k) (JsonObject obj) of
+|||         { Nothing => Nothing; Just v => getPath [] v }
+|||     = case lookup k obj of { Nothing => Nothing; Just v => Just v }
+||| and the `with`-pattern on `lookup k obj` closes both arms by `Refl`
+||| (Maybe-identity).
 public export
-0 singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
+singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
                 getPath [Key k] (JsonObject obj) = lookup k obj
+singleKeyPath k obj with (lookup k obj)
+  singleKeyPath k obj | Nothing = Refl
+  singleKeyPath k obj | Just _  = Refl
 
 -- singleIndexPath: removed — where-clause in type signature is invalid
 -- in Idris2 0.8.0 and the index' helper conflicts with stdlib names.
@@ -326,26 +335,24 @@ public export
 stringMatchesTString : (s : String) -> matchesType (JsonString s) TString = True
 stringMatchesTString s = Refl
 
-||| OWED: every `JsonValue` matches `TAny`:
+||| DISCHARGED: every `JsonValue` matches `TAny`:
 ||| `matchesType v TAny = True` for all `v`.
 ||| Definitionally `matchesType _ TAny = True` (`SafeJson.idr` L353).
-||| The clause is a catch-all on the second argument and reduces by
-||| `Refl` for any concrete `v` constructor — but Idris2 0.8.0 will
-||| not reduce it for an abstract `v : JsonValue` because the
-||| preceding clauses (`JsonArray arr` / `JsonObject pairs` with
-||| `TArray`/`TObject`/`TOneOf` on the right) are *covering* (not
-||| total): `matchesType` mutually recurses through `all` over the
-||| array/object children. Covering definitions do not reduce on
-||| open variables in Idris2 0.8.0 — same blocker family as
-||| `singleKeyPath` above. The proof would normally close by a
-||| six-arm case-split on `v` (`JsonNull`/`JsonBool b`/`JsonNumber n`
-||| /`JsonString s`/`JsonArray arr`/`JsonObject pairs`), each with
-||| `Refl`. Held back by the covering-vs-total reduction policy.
-||| Discharge once `matchesType` is restated as `total` (e.g. by
-||| an explicit size metric over `JsonValue` + children), or with
-||| a manual six-arm split that elaborates per-arm `Refl`s.
+||| Unlike `singleKeyPath`, this needs no totality change: although
+||| `matchesType` is `covering`, supplying a concrete head constructor
+||| in each arm of a manual six-arm case-split
+||| (`JsonNull` / `JsonBool b` / `JsonNumber n` / `JsonString s` /
+||| `JsonArray arr` / `JsonObject pairs`) is enough — every earlier
+||| clause demands a non-`TAny` second argument, so each arm reduces
+||| through the catch-all `matchesType _ TAny = True` clause by `Refl`.
 public export
-0 anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
+anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
+anyMatchesTAny JsonNull       = Refl
+anyMatchesTAny (JsonBool _)   = Refl
+anyMatchesTAny (JsonNumber _) = Refl
+anyMatchesTAny (JsonString _) = Refl
+anyMatchesTAny (JsonArray _)  = Refl
+anyMatchesTAny (JsonObject _) = Refl
 
 --------------------------------------------------------------------------------
 -- Totality Proofs
