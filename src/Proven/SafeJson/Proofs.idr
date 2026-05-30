@@ -11,9 +11,62 @@ import Proven.SafeJson
 import Data.List
 import Data.List.Equalities
 import Data.List.Quantifiers
+import Data.Maybe
 import Data.Nat
+import Decidable.Equality
 
 %default total
+
+--------------------------------------------------------------------------------
+-- Object-Carrier Helper Lemmas (DecEq-based)
+--
+-- These three lemmas about `lookupObj` (`Proven.SafeJson.lookupObj`)
+-- power the discharge of `setGetIdentity`, `setPreservesOther`,
+-- `setHasKey`, and `removeNotHasKey` below.
+--------------------------------------------------------------------------------
+
+||| `lookupObj k ((k, v) :: rest) = Just v` — head-of-list lookup with
+||| a reflexive key match always returns the head value.
+public export
+lookupObjConsRefl : DecEq a => (k : a) -> (v : b) -> (rest : List (a, b)) ->
+                    lookupObj k ((k, v) :: rest) = Just v
+lookupObjConsRefl k v rest with (decEq k k)
+  _ | Yes _ = Refl
+  _ | No contra = Prelude.absurd (contra Refl)
+
+||| `lookupObj k ((k', v') :: rest) = lookupObj k rest` — head-of-list
+||| lookup with a NON-matching key skips the head.
+public export
+lookupObjConsSkip : DecEq a => (k, k' : a) -> Not (k = k') ->
+                    (v' : b) -> (rest : List (a, b)) ->
+                    lookupObj k ((k', v') :: rest) = lookupObj k rest
+lookupObjConsSkip k k' nkkn v' rest with (decEq k k')
+  _ | Yes prf = Prelude.absurd (nkkn prf)
+  _ | No _    = Refl
+
+||| Cong-style lemma: if `lookupObj k xs = lookupObj k ys`, then
+||| prepending the same `(k', v')` cons to both sides preserves the
+||| equation. Used to lift the inductive hypothesis through a
+||| cons-cell in `setPreservesOther`'s No-branch.
+public export
+lookupObjConsCong : DecEq a => (k, k' : a) -> (v' : b) ->
+                    {xs, ys : List (a, b)} ->
+                    lookupObj k xs = lookupObj k ys ->
+                    lookupObj k ((k', v') :: xs) = lookupObj k ((k', v') :: ys)
+lookupObjConsCong k k' v' eq with (decEq k k')
+  _ | Yes _ = Refl
+  _ | No _  = eq
+
+||| `lookupObj k (removeObj k xs) = Nothing` for any `xs` — removing
+||| a key then looking it up always misses.
+public export
+removeLookupNothing : DecEq a => (k : a) -> (xs : List (a, b)) ->
+                      lookupObj k (removeObj k xs) = Nothing
+removeLookupNothing k [] = Refl
+removeLookupNothing k ((k', v') :: rest) with (decEq k k')
+  _ | Yes _ = removeLookupNothing k rest
+  _ | No nkkn = trans (lookupObjConsSkip k k' nkkn v' (removeObj k rest))
+                      (removeLookupNothing k rest)
 
 --------------------------------------------------------------------------------
 -- JSON Value Properties
@@ -89,75 +142,78 @@ asObjectFromObject obj = Refl
 -- Object Access Properties
 --------------------------------------------------------------------------------
 
-||| OWED: getting a key that was just set returns that value:
+||| DISCHARGED: getting a key that was just set returns that value:
 ||| `get k (set k v (JsonObject obj)) = Just v`.
-||| `set` calls `update key val pairs` (`SafeJson.idr` L179) and `get`
-||| calls `lookup key pairs` (L156). Both thread through `(==)` on
-||| `String`, whose comparison is the opaque FFI primitive
-||| `prim__eq_String`. Idris2 0.8.0 does not reduce `k == k = True`
-||| by `Refl` — same blocker family as `SafeChecksum` Luhn/ISBN
-||| (FFI-bound String) and `boj-server` `Boj.SafetyLemmas.charEqSym`
-||| (the class-(J) `prim__eqChar` reflection gap, generalised to
-||| `String`). Held back by the absence of a reflective
-||| `prim__eq_String`-to-`Dec`-eq lemma in Idris2 0.8.0 base.
-||| Discharge once a class-(J) `String` reflection axiom is added
-||| or `update`/`lookup` are refactored onto a decidable-equality
-||| key type.
+|||
+||| The pre-PR OWED comment cited `prim__eq_String` opacity. Fixed by
+||| refactoring `set`'s inner `update` (and `get`'s inner `lookup`)
+||| onto a `DecEq String` carrier (`updateObj` / `lookupObj` in
+||| `Proven.SafeJson`). The discharge proceeds by induction on the
+||| key-value list, using `lookupObjConsRefl` on the Yes-match branch
+||| and `lookupObjConsSkip` + inductive hypothesis on the No-match
+||| branch.
 public export
-0 setGetIdentity : (k : String) -> (v : JsonValue) -> (obj : List (String, JsonValue)) ->
-                           get k (set k v (JsonObject obj)) = Just v
+setGetIdentity : (k : String) -> (v : JsonValue) -> (obj : List (String, JsonValue)) ->
+                 get k (set k v (JsonObject obj)) = Just v
+setGetIdentity k v [] = lookupObjConsRefl k v []
+setGetIdentity k v ((k', v') :: rest) with (decEq k k')
+  _ | Yes _ = lookupObjConsRefl k v rest
+  _ | No nkkn = trans (lookupObjConsSkip k k' nkkn v' (updateObj k v rest))
+                      (setGetIdentity k v rest)
 
-||| OWED: setting a different key preserves the other key's value:
-||| `Not (k1 = k2) -> get k2 (set k1 v obj) = get k2 obj`.
-||| `set k1 v` calls `update k1 v pairs`, which compares `k1 == k`
-||| for every pair `(k, _)` in the list. The proof requires that
-||| `k1 == k2 = False` (negative direction) whenever `Not (k1 = k2)`
-||| — the converse of `setGetIdentity`'s blocker, in the same
-||| `prim__eq_String` reflection-gap family. Idris2 0.8.0 has no
-||| primitive lemma `Not (a = b) -> prim__eq_String a b = False` and
-||| the elaborator cannot derive it by `Refl`. Same shape as the
-||| `gossamer` `stringNotEqCommut` class-(J) axiom landed in
-||| `Panels.Distinct` (`PR #41`). Held back by absence of a
-||| reflective `String`-disequality lemma. Discharge once the
-||| class-(J) `stringNotEq` axiom is shared via base, or `update`
-||| is rewritten on a `DecEq` carrier.
+||| DISCHARGED: setting a different key preserves the other key's
+||| value: `Not (k1 = k2) -> get k2 (set k1 v (JsonObject obj)) =
+||| get k2 (JsonObject obj)`.
+|||
+||| Note: type strengthened to require `obj : List (String, JsonValue)`
+||| (i.e. the body of the `JsonObject`) so that `set`/`get` both fire
+||| their `JsonObject` arms unconditionally. The old `obj : JsonValue`
+||| form was vacuously trivial for non-`JsonObject` values; the new
+||| form carries the actual key-preservation invariant.
+|||
+||| Proof: induction on `obj`. Empty list reduces both sides to
+||| `Nothing` via the `k1 ≠ k2 → k2 ≠ k1` direction. Non-empty list
+||| splits on `decEq k1 k'`: in either branch, further split on
+||| `decEq k2 k'` handles the matching/non-matching cases via
+||| `lookupObjConsSkip`.
 public export
-0 setPreservesOther : (k1, k2 : String) -> Not (k1 = k2) ->
-                              (v : JsonValue) -> (obj : JsonValue) ->
-                              get k2 (set k1 v obj) = get k2 obj
+setPreservesOther : (k1, k2 : String) -> Not (k1 = k2) ->
+                    (v : JsonValue) -> (obj : List (String, JsonValue)) ->
+                    get k2 (set k1 v (JsonObject obj)) = get k2 (JsonObject obj)
+setPreservesOther k1 k2 nkk v [] = lookupObjConsSkip k2 k1 (\eq => nkk (sym eq)) v []
+setPreservesOther k1 k2 nkk v ((k', v') :: rest) with (decEq k1 k')
+  _ | Yes prfEq = trans (lookupObjConsSkip k2 k1 (\eq => nkk (sym eq)) v rest)
+                        (sym (lookupObjConsSkip k2 k'
+                              (\eq => nkk (trans prfEq (sym eq))) v' rest))
+  _ | No _ = lookupObjConsCong k2 k' v' (setPreservesOther k1 k2 nkk v rest)
 
-||| OWED: after `set k v obj`, `hasKey k` returns `True` whenever
-||| `obj` is an object.
-||| `hasKey key json = isJust (get key json)` (`SafeJson.idr` L162),
-||| so this reduces to `get k (set k v obj) = Just _`, which is the
-||| same `prim__eq_String` reflection gap as `setGetIdentity`. The
-||| extra hypothesis `isObject obj = True` only excludes the
-||| non-`JsonObject` arms of `set` (which return `obj` unchanged) —
-||| the residual obligation still threads through opaque String FFI
-||| equality. Held back by the same Idris2 0.8.0 blocker. Discharge
-||| together with `setGetIdentity` once a class-(J) `String`
-||| reflection lemma is in base.
+||| DISCHARGED: after `set k v obj`, `hasKey k` returns `True`
+||| whenever `obj` is a `JsonObject`. By
+||| `hasKey k j = isJust (get k j)` (`SafeJson.idr`) and
+||| `setGetIdentity`, the goal reduces to `isJust (Just v) = True`,
+||| which is `Refl`.
+|||
+||| Note: type strengthened to take a concrete object body
+||| `obj : List (String, JsonValue)` rather than the abstract
+||| `JsonValue`. The original `isObject obj = True` hypothesis added
+||| no useful information once `set`'s `JsonObject` arm fires.
 public export
-0 setHasKey : (k : String) -> (v : JsonValue) -> (obj : JsonValue) ->
-                      isObject obj = True -> hasKey k (set k v obj) = True
+setHasKey : (k : String) -> (v : JsonValue) -> (obj : List (String, JsonValue)) ->
+            hasKey k (set k v (JsonObject obj)) = True
+setHasKey k v obj = cong isJust (setGetIdentity k v obj)
 
-||| OWED: after `remove k obj`, `hasKey k` returns `False`.
-||| `remove k (JsonObject pairs) = JsonObject (filter (\(k', _) => k' /= k) pairs)`
-||| (`SafeJson.idr` L191). The proof needs `filter` to drop every
-||| pair with key `k`, which requires `k' /= k = False` whenever
-||| `k' = k` — i.e. `prim__eq_String k k = True` and its lifting
-||| through `/=`. Same FFI-opaque-String blocker family as
-||| `setGetIdentity` / `setPreservesOther`. Also requires the
-||| non-`JsonObject` arms (which return `obj` unchanged) not to
-||| contain `k`, but for arbitrary `obj : JsonValue` the statement
-||| is unconditionally false on `JsonObject [(k, _)]` reduced
-||| through any non-pattern-matching FFI path. Held back jointly
-||| by the `prim__eq_String` reflection gap and the absence of a
-||| reduction lemma for `filter` on FFI-keyed pairs. Discharge once
-||| both are addressed.
+||| DISCHARGED: after `remove k (JsonObject obj)`, `hasKey k` returns
+||| `False`. By `hasKey k j = isJust (get k j)`, reduces to
+||| `isJust (lookupObj k (removeObj k obj)) = False`. By
+||| `removeLookupNothing` below: `lookupObj k (removeObj k obj) =
+||| Nothing`, so `isJust Nothing = False`.
+|||
+||| Type strengthened to `obj : List (String, JsonValue)` (same
+||| reasoning as `setHasKey`).
 public export
-0 removeNotHasKey : (k : String) -> (obj : JsonValue) ->
-                            hasKey k (remove k obj) = False
+removeNotHasKey : (k : String) -> (obj : List (String, JsonValue)) ->
+                  hasKey k (remove k (JsonObject obj)) = False
+removeNotHasKey k obj = cong isJust (removeLookupNothing k obj)
 
 --------------------------------------------------------------------------------
 -- Array Access Properties
