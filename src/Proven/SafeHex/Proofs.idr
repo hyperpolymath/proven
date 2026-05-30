@@ -10,7 +10,12 @@ import Proven.SafeHex
 
 %default total
 
-||| OWED: invalid character rejected (e.g. 'g' is not a hex digit).
-||| Blocked on Char FFI (`ord`, `>=`).
+||| TENTATIVE-DISCHARGE: invalid character rejected. The if-chain in
+||| `hexToNibble` (SafeHex.idr L66-71) tests `'g' >= '0' && 'g' <= '9'`,
+||| `'g' >= 'a' && 'g' <= 'f'`, `'g' >= 'A' && 'g' <= 'F'` — for a
+||| LITERAL Char like 'g' the `Ord Char` primitives may reduce at the
+||| type level (the FFI opacity the OWED cited applies primarily to
+||| ABSTRACT chars). If CI rejects this, fall back to the OWED stub.
 public export
-0 nonHexCharRejected : hexToNibble 'g' = Nothing
+nonHexCharRejected : hexToNibble 'g' = Nothing
+nonHexCharRejected = Refl
