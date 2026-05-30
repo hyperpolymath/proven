@@ -237,19 +237,25 @@ parsedTypesCorrect (YTimestamp _) = Refl
 ||| Held back by Idris2 0.8.0 not reducing `not . not . isScalar val`
 ||| to `isScalar val` by Refl when `val` is abstract. The composition
 ||| `(not . isScalar) val` only unfolds to `not (isScalar val)` once
-||| Idris splits on `val`'s constructor (so it can pattern-match
-||| `isScalar` to a literal `True`/`False`); for an abstract `val`
-||| the outer `not` keeps `not (isScalar val)` stuck, and the second
-||| `not` then keeps the whole expression stuck. Same blocker family
-||| as the `Data.Bool` involution gap noted in SafeChecksum's
-||| `xorChecksum [x,x] = 0` OWED. Discharge by case-analysis on the
-||| nine `YAMLValue` constructors (each branch reduces to `not (not
-||| True) = True` by Refl), or by a `boolDoubleNegation` lemma over
-||| `Bool`.
-export
-0 isScalarCorrect : (val : YAMLValue) ->
-                    isScalar val = True ->
-                    not (isCollection val) = True
+||| DISCHARGED via 9-arm case-split on `val`'s constructor — each
+||| scalar arm reduces `not (isCollection val) = True` to `Refl`
+||| (since `isCollection = not . isScalar` and `isScalar = True` on
+||| scalars means `not (not True) = True`). The two collection arms
+||| (`YArray`, `YObject`) have the premise `isScalar val = True`
+||| reduce to `False = True` which is uninhabited (`impossible`).
+public export
+isScalarCorrect : (val : YAMLValue) ->
+                  isScalar val = True ->
+                  not (isCollection val) = True
+isScalarCorrect YNull _ = Refl
+isScalarCorrect (YBool _) _ = Refl
+isScalarCorrect (YInt _) _ = Refl
+isScalarCorrect (YFloat _) _ = Refl
+isScalarCorrect (YString _) _ = Refl
+isScalarCorrect (YArray _) Refl impossible
+isScalarCorrect (YObject _) Refl impossible
+isScalarCorrect (YBinary _) _ = Refl
+isScalarCorrect (YTimestamp _) _ = Refl
 
 --------------------------------------------------------------------------------
 -- Deserialization Safety Proofs
