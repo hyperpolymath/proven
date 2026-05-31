@@ -4,7 +4,7 @@
 [metadata]
 project = "proven"
 version = "0.1.0"
-last-updated = "2026-05-30"
+last-updated = "2026-05-31"
 status = "active"
 
 [project-context]
@@ -30,10 +30,11 @@ bodyless-decls-total = 256
 # SafeChecksum convention. See PROOF-NEEDS.md "OWED-with-justification
 # convention" and META.a2ml ADR-001.
 
-discharged-decls = 34
+discharged-decls = 36
 # DISCHARGED entries (OWED → proven Refl or contrib-lemma) landed
-# across Phase 3 PRs #97-124 (2026-05-30 session). Each PR converts
-# one OWED to a machine-checked theorem.
+# across Phase 3 PRs #97-124 (2026-05-30 session) + #144 (2026-05-31:
+# SafeJson anyMatchesTAny, singleKeyPath). Each PR converts one OWED to
+# a machine-checked theorem.
 
 [trust-posture]
 believe-me-uses = 0
@@ -65,6 +66,7 @@ scorecard-fuzzing-source-fixed = "PR #121 (real ClusterFuzzLite + cargo-fuzz)"
 
 [session-history]
 # Most recent first.
+"2026-05-31" = "SafeJson Phase 3: #144 DISCHARGES anyMatchesTAny (6-arm split) + singleKeyPath (with-pattern), completing #138. Root-caused a pre-existing breakage: appendLengthInc (from #127) used `lengthSnoc arr v` but contrib Data.List.Equalities.lengthSnoc is element-first — it failed to type-check and blocked the ENTIRE SafeJson.Proofs module (so main did not compile). Fixed to `lengthSnoc v arr`. Verified on a clean idris2-0.8.0+contrib install (full SafeJson cone, 0 errors). Filed #145: the Idris build is not a required status check, so #127's broken merge went green (created→merged in ~2.5min with build jobs still queued); recommends branch-protection gating + faster cone-check job."
 "2026-05-30" = "Phase 3 discharge: PRs #97-124 land (~28 OWED→DISCHARGED conversions). Security tab cleanup: source-fixes for #2 / #296 / #299 + branch-protection safe-subset + 100 Hypatia FP alerts dismissed at API. Estate-wide CSA self-echo bulk-dismiss sweep (~9050 alerts) running in background."
 "2026-05-20" = "Fork A campaign complete: 250 bodyless decls across 28 of 41 modules annotated via OWED-with-justification convention (PRs #37-64, Refs standards#158); cross-prover audit confirms 0 Lean sorry / 0 Coq Admitted in first-party code (only echidnabot dogfood fixtures)"
 "2026-05-19" = "Six new modules merged with explicit OWED markers (SafeChecksum, SafeBuffer, SafeBloom, SafeCryptoAccel, SafeHKDF, SafeFPGA) — convention-setting"
