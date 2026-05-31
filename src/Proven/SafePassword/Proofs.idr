@@ -402,18 +402,19 @@ public export
 public export
 0 builderProducesPolicy : build Policy.policyBuilder = Policy.defaultPolicy
 
-||| OWED: `withMinLength n` followed by `build` yields a policy whose
-||| `minLength` field equals `n`. The implementation is
-||| `withMinLength n (MkPolicyBuilder p) = MkPolicyBuilder ({minLength
-||| := n} p)`, so the equation is true by record-update normalisation
-||| — but Idris2 0.8.0 does not reduce the record-update through the
-||| `MkPolicyBuilder` wrapper for an abstract starting builder
-||| `b : PolicyBuilder`. Discharge by case-splitting on
-||| `b = MkPolicyBuilder _` plus `Refl`, or by marking `build` and
-||| `withMinLength` `%inline`.
+||| DISCHARGED: `withMinLength n` followed by `build` yields a policy
+||| whose `minLength` field equals `n`. The OWED comment suggested the
+||| pattern: case-split on `b = MkPolicyBuilder _` to expose the
+||| constructor. Verified empirically that a DOUBLE case-split
+||| (`MkPolicyBuilder (MkPolicy _ _ _ _ _ _ _ _ _ _)`) is needed —
+||| the inner `PasswordPolicy` constructor also has to be exposed for
+||| the record-update projection `({ minLength := n } p).minLength`
+||| to reduce. Once both are exposed, the chain collapses to `Refl`.
+||| Test at `/tmp/charrefl/src/TestPolicyBuilder.idr`.
 public export
-0 withMinLengthCorrect : (n : Nat) -> (b : PolicyBuilder) ->
-                         minLength (build (withMinLength n b)) = n
+withMinLengthCorrect : (n : Nat) -> (b : PolicyBuilder) ->
+                       minLength (build (withMinLength n b)) = n
+withMinLengthCorrect n (MkPolicyBuilder (MkPolicy _ _ _ _ _ _ _ _ _ _)) = Refl
 
 ||| OWED: chained builder calls compose correctly — `withMinLength n
 ||| (withUppercase policyBuilder)` then `build`'s `minLength` is `n`.
