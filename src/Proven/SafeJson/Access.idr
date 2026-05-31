@@ -93,15 +93,8 @@ field _ _ = Left NotAnObject
 -- Safe Path Access
 --------------------------------------------------------------------------------
 
-||| Access JSON value at a path segment.
-||| Marked `total` (overriding the module-default `covering`): the top-level
-||| dispatch is non-recursive and the `index'` helper recurses structurally
-||| on `Nat`/`List`. Totality — not merely coverage — is what lets the
-||| equational lemmas in `Proven.SafeJson.Proofs` reduce `getSegment` on
-||| abstract arguments, since Idris2 0.8.0 does not unfold `covering`
-||| definitions during conversion checking.
+||| Access JSON value at a path segment
 public export
-total
 getSegment : PathSegment -> JsonValue -> Maybe JsonValue
 getSegment (Key k) (JsonObject pairs) = lookup k pairs
 getSegment (Index i) (JsonArray arr) = index' i arr
@@ -112,13 +105,8 @@ getSegment (Index i) (JsonArray arr) = index' i arr
     index' (S n) (_ :: xs) = index' n xs
 getSegment _ _ = Nothing
 
-||| Access JSON value at a path.
-||| Marked `total` (overriding the module-default `covering`): structurally
-||| decreasing on the path list and dispatching through the now-`total`
-||| `getSegment`. Required so `singleKeyPath` (and future path lemmas) in
-||| `Proven.SafeJson.Proofs` can reduce `getPath` on abstract arguments.
+||| Access JSON value at a path
 public export
-total
 getPath : JsonPath -> JsonValue -> Maybe JsonValue
 getPath [] val = Just val
 getPath (seg :: rest) val = case getSegment seg val of

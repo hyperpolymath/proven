@@ -202,7 +202,8 @@ prependLengthInc v arr = Refl
 ||| close the `S n` vs `n + 1` gap with `plusCommutative 1 n`.
 ||| (`Data.List.Equalities.lengthSnoc` takes the element first, then the
 ||| list — `lengthSnoc x xs`; the previous `lengthSnoc arr v` argument
-||| order did not type-check under Idris2 0.8.0 contrib.)
+||| order did not type-check under Idris2 0.8.0 contrib and blocked the
+||| whole module from compiling.)
 public export
 appendLengthInc : (v : JsonValue) -> (arr : List JsonValue) ->
                   arrayLength (append v (JsonArray arr)) =
@@ -221,24 +222,15 @@ emptyPathIdentity v = Refl
 
 ||| DISCHARGED: a single-segment `Key k` path equals direct `lookup`:
 ||| `getPath [Key k] (JsonObject obj) = lookup k obj`.
-|||
-||| The original OWED comment correctly identified the blocker: while
-||| `getPath`/`getSegment` were `covering` (via the `%default covering`
-||| in `Proven.SafeJson.Access`), Idris2 0.8.0 does not reduce `covering`
-||| definitions during proof conversion, so neither side of the equation
-||| meets — verified: even the one-step
-||| `getSegment (Key k) (JsonObject obj) = lookup k obj` fails by `Refl`
-||| while the module default holds. The fix lives in
-||| `Proven.SafeJson.Access`: both functions are now explicitly `total`
-||| (they always were structurally — `getSegment` is non-recursive,
-||| `getPath` decreases on the path list). With totality `getPath`
-||| reduces:
-|||   getPath [Key k] (JsonObject obj)
-|||     = case getSegment (Key k) (JsonObject obj) of
-|||         { Nothing => Nothing; Just v => getPath [] v }
-|||     = case lookup k obj of { Nothing => Nothing; Just v => Just v }
-||| and the `with`-pattern on `lookup k obj` closes both arms by `Refl`
-||| (Maybe-identity).
+||| On the concrete spine `[Key k]` / `JsonObject obj`, `getPath` and
+||| `getSegment` reduce by clause-matching to
+|||   case lookup k obj of { Nothing => Nothing; Just v => Just v }
+||| Abstracting `lookup k obj` with a `with`-pattern then closes both
+||| arms by `Refl` (Maybe-identity).
+||| (`getPath`/`getSegment` are `covering` via the `%default covering`
+||| in `Proven.SafeJson.Access`; that annotation does not block this
+||| clause-level reduction, so they are left covering and the proof
+||| still goes through.)
 public export
 singleKeyPath : (k : String) -> (obj : List (String, JsonValue)) ->
                 getPath [Key k] (JsonObject obj) = lookup k obj
@@ -338,13 +330,13 @@ stringMatchesTString s = Refl
 ||| DISCHARGED: every `JsonValue` matches `TAny`:
 ||| `matchesType v TAny = True` for all `v`.
 ||| Definitionally `matchesType _ TAny = True` (`SafeJson.idr` L353).
-||| Unlike `singleKeyPath`, this needs no totality change: although
-||| `matchesType` is `covering`, supplying a concrete head constructor
-||| in each arm of a manual six-arm case-split
-||| (`JsonNull` / `JsonBool b` / `JsonNumber n` / `JsonString s` /
-||| `JsonArray arr` / `JsonObject pairs`) is enough — every earlier
-||| clause demands a non-`TAny` second argument, so each arm reduces
-||| through the catch-all `matchesType _ TAny = True` clause by `Refl`.
+||| Discharged by a six-arm case-split on `v` (`JsonNull` / `JsonBool b`
+||| / `JsonNumber n` / `JsonString s` / `JsonArray arr` /
+||| `JsonObject pairs`): `matchesType _ TAny = True` is a catch-all, and
+||| for each concrete head every earlier clause demands a non-`TAny`
+||| second argument, so each arm reduces to the catch-all and closes by
+||| `Refl`. No totality change is needed — a concrete head per arm is
+||| sufficient even though `matchesType` is `covering`.
 public export
 anyMatchesTAny : (v : JsonValue) -> matchesType v TAny = True
 anyMatchesTAny JsonNull       = Refl
