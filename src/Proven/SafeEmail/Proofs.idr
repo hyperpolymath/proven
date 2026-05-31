@@ -103,22 +103,17 @@ validResultIsValid = Refl
                       issue.severity = Warning ->
                       (addIssue issue validResult).isValid = True
 
-||| OWED: combining two valid results yields a valid result. By the
-||| definition `combineResults r1 r2 = MkValidationResult
-||| (r1.isValid && r2.isValid) (r1.issues ++ r2.issues)`
-||| (Validation.idr L78-80), with `r1.isValid = True` and
-||| `r2.isValid = True` we get `True && True = True`. Held back by
-||| Idris2 0.8.0 not reducing the record-field projection
-||| `(MkValidationResult (r1.isValid && r2.isValid) _).isValid` to
-||| `r1.isValid && r2.isValid` by Refl when `r1`, `r2` are
-||| universally quantified (no constructor in normal form to fire
-||| the projector). Discharge by case-split on `r1`, `r2` to expose
-||| the `MkValidationResult` constructor, then `Refl` after the
-||| `True && True = True` rewrite.
+||| DISCHARGED: combining two valid results yields a valid result.
+||| The OWED comment suggested the discharge pattern: case-split on
+||| `r1`, `r2` to expose the `MkValidationResult` constructor, then
+||| pattern-match the `True` field through the premise's `Refl` to
+||| collapse `True && True` to `True` directly. Empirically verified
+||| at `/tmp/charrefl/src/TestEmail.idr`.
 public export
-0 combineValidValid : (r1, r2 : ValidationResult) ->
-                      r1.isValid = True -> r2.isValid = True ->
-                      (combineResults r1 r2).isValid = True
+combineValidValid : (r1, r2 : ValidationResult) ->
+                    r1.isValid = True -> r2.isValid = True ->
+                    (combineResults r1 r2).isValid = True
+combineValidValid (MkValidationResult True _) (MkValidationResult True _) Refl Refl = Refl
 
 --------------------------------------------------------------------------------
 -- Email Structure Properties
