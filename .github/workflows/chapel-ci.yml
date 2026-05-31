@@ -54,9 +54,15 @@ concurrency:
 env:
   # Pinned Chapel deb (Ubuntu 22.04 amd64).  SHA-256 verified out-of-band
   # against the GitHub Releases asset; mismatch fails the install step.
-  CHAPEL_VERSION: '2.3.0'
-  CHAPEL_DEB_URL: 'https://github.com/chapel-lang/chapel/releases/download/2.3.0/chapel-2.3.0-1.ubuntu22.amd64.deb'
-  CHAPEL_DEB_SHA256: 'b7c1a48cbf26cfc7ad9af22a84ea4becb1a5e2fd485ec4a1f5f8a69e8a7cd58c'
+  # 2.8.0 (not 2.3.0): the 2.3.0 .deb is slim and omits the bundled LLVM
+  # backend, so `chpl ... -lproven` fails the link phase with the cryptic
+  # `error in exec: No such file or directory` when chpl tries to spawn a
+  # clang/lld it doesn't ship.  2.8.0 ships a self-contained toolchain and
+  # matches the version the PR author validated against locally — same
+  # version proven's sister panic-attack repo's chapel-ci runs on.
+  CHAPEL_VERSION: '2.8.0'
+  CHAPEL_DEB_URL: 'https://github.com/chapel-lang/chapel/releases/download/2.8.0/chapel-2.8.0-1.ubuntu22.amd64.deb'
+  CHAPEL_DEB_SHA256: '944a454b8a791f344312fcd261b562871159b74f5ef41d81e11833eb21d85f60'
   # Pinned Zig version (kept in sync with .github/workflows/zig-ffi.yml).
   # Pinned Zig version.  Matches ffi/zig/build.zig.zon's
   # `minimum_zig_version = "0.15.2"`.
@@ -163,31 +169,18 @@ jobs:
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          # libunwind-dev is a runtime link-time dep for chpl-built binaries
+          # on the ubuntu .deb path; sibling estate repo (panic-attack)
+          # established this preinstall as the working pattern.
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
-          # The Chapel .deb installs CHPL_HOME under /usr/share/chapel/<minor>
-          # and ships a runtime built for ONE target tuple:
-          #   linux64/llvm/x86_64/cpu-none/loc-flat/comm-none/tasks-qthreads/...
-          # We pin CHPL_TARGET_CPU=none so chpl matches that prebuilt runtime;
-          # otherwise the host-CPU auto-probe picks `native` and chpl bails
-          # with "The runtime has not been built for this configuration".
-          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
-          if [ ! -d "$CHPL_HOME/modules" ]; then
-              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
-                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
-              done
-          fi
-          {
-              echo "CHPL_HOME=$CHPL_HOME"
-              echo "CHPL_TARGET_PLATFORM=linux64"
-              echo "CHPL_TARGET_COMPILER=llvm"
-              echo "CHPL_TARGET_ARCH=x86_64"
-              echo "CHPL_TARGET_CPU=none"
-          } | tee -a "$GITHUB_ENV"
+          # Chapel 2.8.0 .deb auto-configures its target tuple; no
+          # CHPL_TARGET_* overrides needed (the 2.3.0-era runtime-tuple
+          # mismatch is gone — verified against panic-attack chapel-ci).
           chpl --version
-          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
 
       - name: Chapel typecheck via driver build
         working-directory: proven/bindings/chapel
@@ -278,24 +271,12 @@ jobs:
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
-          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
-          if [ ! -d "$CHPL_HOME/modules" ]; then
-              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
-                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
-              done
-          fi
-          {
-              echo "CHPL_HOME=$CHPL_HOME"
-              echo "CHPL_TARGET_PLATFORM=linux64"
-              echo "CHPL_TARGET_COMPILER=llvm"
-              echo "CHPL_TARGET_ARCH=x86_64"
-              echo "CHPL_TARGET_CPU=none"
-          } | tee -a "$GITHUB_ENV"
-          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
+          chpl --version
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
@@ -341,24 +322,12 @@ jobs:
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
-          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
-          if [ ! -d "$CHPL_HOME/modules" ]; then
-              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
-                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
-              done
-          fi
-          {
-              echo "CHPL_HOME=$CHPL_HOME"
-              echo "CHPL_TARGET_PLATFORM=linux64"
-              echo "CHPL_TARGET_COMPILER=llvm"
-              echo "CHPL_TARGET_ARCH=x86_64"
-              echo "CHPL_TARGET_CPU=none"
-          } | tee -a "$GITHUB_ENV"
-          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
+          chpl --version
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
@@ -416,24 +385,12 @@ jobs:
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
-          CHPL_HOME="$(dirname "$(dirname "$(realpath "$(which chpl)")")")"
-          if [ ! -d "$CHPL_HOME/modules" ]; then
-              for cand in /usr/share/chapel/2.3 /usr/share/chapel/2 /usr/lib/chapel/2.3; do
-                  if [ -d "$cand/modules" ]; then CHPL_HOME="$cand"; break; fi
-              done
-          fi
-          {
-              echo "CHPL_HOME=$CHPL_HOME"
-              echo "CHPL_TARGET_PLATFORM=linux64"
-              echo "CHPL_TARGET_COMPILER=llvm"
-              echo "CHPL_TARGET_ARCH=x86_64"
-              echo "CHPL_TARGET_CPU=none"
-          } | tee -a "$GITHUB_ENV"
-          test -d "$CHPL_HOME/modules" || { echo "::error::CHPL_HOME bundled modules not found"; exit 1; }
+          chpl --version
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
