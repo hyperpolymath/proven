@@ -17,8 +17,56 @@ import public Proven.SafeJson.Access
 import Data.List
 import Data.Maybe
 import Data.String
+import Decidable.Equality
 
 %default total
+
+--------------------------------------------------------------------------------
+-- Object-Carrier Helpers (DecEq-based)
+--
+-- These three helpers (`lookupObj`, `updateObj`, `removeObj`) replace
+-- the previous `lookup` / `update` / `filter (/=)` chains, which routed
+-- through `(==) : String -> String -> Bool` (FFI-bound
+-- `prim__eq_String`) and were therefore not Refl-reducible on abstract
+-- keys. Using `decEq` instead routes through the `DecEq String`
+-- decision procedure, whose `Yes` / `No` arms expose structural
+-- proofs that the OWED lemmas in `Proven.SafeJson.Proofs` can pattern
+-- on (see `setGetIdentity`, `setPreservesOther`, `setHasKey`,
+-- `removeNotHasKey`).
+--
+-- Runtime semantics: identical to the prior `(==)`-based versions.
+-- Both `(==)` and `decEq` for `String` ultimately bottom out at
+-- `prim__eq_String`, so the FFI cost is unchanged.
+--------------------------------------------------------------------------------
+
+||| Lookup a key in a key-value list using `DecEq` decision procedure.
+||| Returns `Nothing` if the key is absent; `Just v` for the first
+||| match.
+public export
+lookupObj : DecEq a => (k : a) -> List (a, b) -> Maybe b
+lookupObj k [] = Nothing
+lookupObj k ((k', v) :: rest) with (decEq k k')
+  _ | Yes _ = Just v
+  _ | No _  = lookupObj k rest
+
+||| Update (or insert if absent) a key in a key-value list using
+||| `DecEq`. Existing entries with the key are replaced; if no entry
+||| exists, a new one is appended at the tail.
+public export
+updateObj : DecEq a => (k : a) -> b -> List (a, b) -> List (a, b)
+updateObj k v [] = [(k, v)]
+updateObj k v ((k', v') :: rest) with (decEq k k')
+  _ | Yes _ = (k, v) :: rest
+  _ | No _  = (k', v') :: updateObj k v rest
+
+||| Remove all entries with the given key from a key-value list using
+||| `DecEq`.
+public export
+removeObj : DecEq a => (k : a) -> List (a, b) -> List (a, b)
+removeObj k [] = []
+removeObj k ((k', v') :: rest) with (decEq k k')
+  _ | Yes _ = removeObj k rest
+  _ | No _  = (k', v') :: removeObj k rest
 
 -- Note: JsonValue is defined in Proven.SafeJson.Parser and re-exported here
 
@@ -153,7 +201,7 @@ object = JsonObject
 ||| Get a value from an object by key
 public export
 get : String -> JsonValue -> Maybe JsonValue
-get key (JsonObject pairs) = lookup key pairs
+get key (JsonObject pairs) = lookupObj key pairs
 get _ _ = Nothing
 
 ||| Check if object has a key
@@ -173,38 +221,31 @@ values : JsonValue -> Maybe (List JsonValue)
 values (JsonObject pairs) = Just (map snd pairs)
 values _ = Nothing
 
-||| Set a value in an object (creates new object)
+||| Set a value in an object (creates new object). Uses `updateObj`
+||| (`DecEq`-based) so that `Proven.SafeJson.Proofs.setGetIdentity` /
+||| `setPreservesOther` / `setHasKey` are dischargeable.
 public export
 set : String -> JsonValue -> JsonValue -> JsonValue
-set key val (JsonObject pairs) = JsonObject (update key val pairs)
-  where
-    update : String -> JsonValue -> List (String, JsonValue) -> List (String, JsonValue)
-    update k v [] = [(k, v)]
-    update k v ((k', v') :: rest) =
-      if k == k' then (k, v) :: rest
-                 else (k', v') :: update k v rest
+set key val (JsonObject pairs) = JsonObject (updateObj key val pairs)
 set _ _ json = json  -- Non-objects unchanged
 
-||| Remove a key from an object
+||| Remove a key from an object. Uses `removeObj` (`DecEq`-based) so
+||| that `Proven.SafeJson.Proofs.removeNotHasKey` is dischargeable.
 public export
 remove : String -> JsonValue -> JsonValue
-remove key (JsonObject pairs) = JsonObject (filter (\(k, _) => k /= key) pairs)
+remove key (JsonObject pairs) = JsonObject (removeObj key pairs)
 remove _ json = json
 
-||| Merge two objects (second overwrites first on conflicts)
+||| Merge two objects (second overwrites first on conflicts). Uses
+||| `updateObj` (`DecEq`-based) for the per-key overwrite step so the
+||| behaviour matches `set` exactly.
 public export
 merge : JsonValue -> JsonValue -> JsonValue
 merge (JsonObject obj1) (JsonObject obj2) = JsonObject (mergeWith obj1 obj2)
   where
     mergeWith : List (String, JsonValue) -> List (String, JsonValue) -> List (String, JsonValue)
     mergeWith base [] = base
-    mergeWith base ((k, v) :: rest) = mergeWith (update k v base) rest
-      where
-        update : String -> JsonValue -> List (String, JsonValue) -> List (String, JsonValue)
-        update key val [] = [(key, val)]
-        update key val ((k', v') :: pairs) =
-          if key == k' then (key, val) :: pairs
-                       else (k', v') :: update key val pairs
+    mergeWith base ((k, v) :: rest) = mergeWith (updateObj k v base) rest
 merge _ obj2 = obj2
 
 --------------------------------------------------------------------------------
