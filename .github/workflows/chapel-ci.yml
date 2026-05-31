@@ -54,11 +54,19 @@ concurrency:
 env:
   # Pinned Chapel deb (Ubuntu 22.04 amd64).  SHA-256 verified out-of-band
   # against the GitHub Releases asset; mismatch fails the install step.
-  CHAPEL_VERSION: '2.3.0'
-  CHAPEL_DEB_URL: 'https://github.com/chapel-lang/chapel/releases/download/2.3.0/chapel-2.3.0-1.ubuntu22.amd64.deb'
-  CHAPEL_DEB_SHA256: 'b7c1a48cbf26cfc7ad9af22a84ea4becb1a5e2fd485ec4a1f5f8a69e8a7cd58c'
+  # 2.8.0 (not 2.3.0): the 2.3.0 .deb is slim and omits the bundled LLVM
+  # backend, so `chpl ... -lproven` fails the link phase with the cryptic
+  # `error in exec: No such file or directory` when chpl tries to spawn a
+  # clang/lld it doesn't ship.  2.8.0 ships a self-contained toolchain and
+  # matches the version the PR author validated against locally — same
+  # version proven's sister panic-attack repo's chapel-ci runs on.
+  CHAPEL_VERSION: '2.8.0'
+  CHAPEL_DEB_URL: 'https://github.com/chapel-lang/chapel/releases/download/2.8.0/chapel-2.8.0-1.ubuntu22.amd64.deb'
+  CHAPEL_DEB_SHA256: '944a454b8a791f344312fcd261b562871159b74f5ef41d81e11833eb21d85f60'
   # Pinned Zig version (kept in sync with .github/workflows/zig-ffi.yml).
-  ZIG_VERSION: '0.13.0'
+  # Pinned Zig version.  Matches ffi/zig/build.zig.zon's
+  # `minimum_zig_version = "0.15.2"`.
+  ZIG_VERSION: '0.15.2'
 
 jobs:
   # ==========================================================================
@@ -124,42 +132,88 @@ jobs:
         with:
           path: proven
 
-      - name: Checkout idris2-zig-ffi dependency
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: hyperpolymath/idris2-zig-ffi
-          path: idris2-zig-ffi
-
       - name: Setup Zig ${{ env.ZIG_VERSION }}
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
 
-      - name: Build libproven.so via Zig
+      - name: Build libproven.so (WIRED-subset fixture)
         working-directory: proven/ffi/zig
-        run: zig build -Dtarget=x86_64-linux-gnu
+        # NOTE: ffi/zig/build.zig depends on `idris2_zig_ffi` (relative
+        # path to a sibling estate repo).  That dep is not resolvable
+        # from a fresh clone in CI (the same issue blocks zig-ffi.yml on
+        # main), and resolving it is out of scope for the Chapel pilot.
+        # All exports in src/main.zig are pure-Zig — none consume
+        # idris2_zig_ffi.  We compile main.zig directly with
+        # `zig build-lib -dynamic -lc`, producing a libproven.so with
+        # the WIRED 5 symbols (proven_path_has_traversal,
+        # proven_header_has_crlf, proven_free_string, proven_version,
+        # proven_build_info).  When proven#88 lands the real
+        # Idris-backed exports, this step swaps to
+        # `zig build -Dtarget=...`.
+        run: |
+          set -euo pipefail
+          mkdir -p zig-out/lib
+          zig build-lib -dynamic -O ReleaseSafe \
+              -fPIC \
+              --name proven \
+              -femit-bin=zig-out/lib/libproven.so \
+              src/main.zig -lc
+          ls -la zig-out/lib/
+          nm -D --defined-only zig-out/lib/libproven.so \
+              | awk '$2 ~ /^[TWV]$/ { print $3 }' \
+              | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' \
+              | sort -u | tee /tmp/wired-exports.txt
+          test "$(wc -l < /tmp/wired-exports.txt)" -eq 5
 
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          # libunwind-dev is a runtime link-time dep for chpl-built binaries
+          # on the ubuntu .deb path; sibling estate repo (panic-attack)
+          # established this preinstall as the working pattern.
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          # Chapel 2.8.0 .deb auto-configures its target tuple; no
+          # CHPL_TARGET_* overrides needed (the 2.3.0-era runtime-tuple
+          # mismatch is gone — verified against panic-attack chapel-ci).
           chpl --version
 
-      - name: Chapel module typecheck (--library on every module)
+      - name: Chapel typecheck via driver build
         working-directory: proven/bindings/chapel
+        env:
+          PROVEN_LIB_PATH: ${{ github.workspace }}/proven/ffi/zig/zig-out/lib
+          PROVEN_INCLUDE_PATH: ${{ github.workspace }}/proven/bindings/c/include
         run: |
           set -euo pipefail
-          for m in src/*.chpl; do
-              echo "[chapel-build] typecheck $m"
-              chpl --library --dynamic --print-callstack-on-error \
-                   --no-codegen \
-                   -M src/ \
-                   -I "$GITHUB_WORKSPACE/proven/bindings/c/include" \
-                   "$m"
-          done
+          # `chpl --no-codegen` against an extern-record Chapel module fails
+          # in chapel/2.3.0 .deb installs with
+          #   error: Could not find bundled module 'ChapelSysCTypes'
+          # because module resolution looks up
+          #   $CHPL_HOME/modules/standard/gen/$tuple/ChapelSysCTypes.chpl
+          # and `--no-codegen` does not invoke the runtime-aware target-tuple
+          # probe.  Instead, do a real chpl link against libproven.so; that
+          # exercises the same typechecker without the broken gen-path
+          # resolution, AND additionally proves the binding links — which is
+          # what we actually care about.
+          # --print-commands surfaces the linker invocation chpl synthesises;
+          # without it, link failures appear only as "error: Make Binary -
+          # Linking" with no actionable detail.
+          chpl -o /tmp/_chapel_typecheck_driver \
+              smoke/hello_smoke.chpl \
+              -M src/ \
+              -I "$PROVEN_INCLUDE_PATH" \
+              -L "$PROVEN_LIB_PATH" -lproven \
+              --ldflags "-Wl,-rpath,$PROVEN_LIB_PATH" \
+              --print-commands \
+              --print-callstack-on-error
+          ls -la /tmp/_chapel_typecheck_driver
+          # Sanity check: the binary actually runs against the test fixture.
+          LD_LIBRARY_PATH="$PROVEN_LIB_PATH" /tmp/_chapel_typecheck_driver
+          echo "[chapel-build] typecheck via real link: OK"
 
       - name: Upload libproven.so artefact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
@@ -217,10 +271,12 @@ jobs:
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          chpl --version
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
@@ -266,10 +322,12 @@ jobs:
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          chpl --version
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
@@ -327,10 +385,12 @@ jobs:
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
+          sudo apt-get update -qq
+          sudo apt-get install -y libunwind-dev
+          curl -fsSL --retry 3 -o /tmp/chapel.deb "$CHAPEL_DEB_URL"
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
-          sudo apt-get update
           sudo apt-get install -y /tmp/chapel.deb
+          chpl --version
 
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2

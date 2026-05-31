@@ -169,6 +169,20 @@ uint32_t proven_version_patch(void);
 /** @brief Get total module count. */
 uint32_t proven_module_count(void);
 
+/**
+ * @brief Get the library version string (NUL-terminated, statically allocated).
+ *
+ * The returned pointer is owned by the library; do NOT free it.
+ */
+const char* proven_version(void);
+
+/**
+ * @brief Get build information (compiler, target, etc.; NUL-terminated, static).
+ *
+ * The returned pointer is owned by the library; do NOT free it.
+ */
+const char* proven_build_info(void);
+
 /* ============================================================================
  * SafeMath - Arithmetic that cannot crash (9 functions)
  * ============================================================================ */

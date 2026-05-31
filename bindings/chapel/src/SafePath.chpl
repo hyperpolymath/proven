@@ -14,29 +14,34 @@ module SafePath {
    * Check if path contains directory traversal sequences ("..").
    *
    * :arg path: Filesystem path to check.
-   * :returns: ``none`` on error, true if traversal detected, false if safe.
+   * :returns: ``absent(bool)`` on FFI error; otherwise ``some(true)``
+   *           if traversal is detected, ``some(false)`` if safe.
    */
-  proc hasTraversal(path: string): bool? {
+  proc hasTraversal(path: string): Maybe(bool) {
     var (ptr, len) = toCBytes(path);
     var r = provenPathHasTraversal(ptr, len);
-    if isOk(r.status) then return r.value;
-    return none;
+    if isOk(r.status) then return some(r.value);
+    return absent(bool);
   }
 
   /**
    * Sanitize a filename by removing dangerous characters.
    *
    * :arg filename: Raw filename to sanitize.
-   * :returns: ``none`` on error, otherwise the sanitized filename.
+   * :returns: ``absent(string)`` on FFI error; otherwise ``some(sanitised)``.
+   *
+   * .. note::
+   *    GATED on proven#88 — the underlying ``proven_path_sanitize_filename``
+   *    Zig export is not yet present in libproven 0.9.0.  Calling this
+   *    today produces a linker error.
    */
-  proc sanitizeFilename(filename: string): string? {
+  proc sanitizeFilename(filename: string): Maybe(string) {
     var (ptr, len) = toCBytes(filename);
     var r = provenPathSanitizeFilename(ptr, len);
     if isOk(r.status) {
-      var result = extractString(r);
-      return result;
+      return some(extractString(r));
     }
-    return none;
+    return absent(string);
   }
 
 }

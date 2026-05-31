@@ -74,8 +74,10 @@ just test
 use Proven;
 
 // WIRED: links + runs against libproven 0.9.0.
-var trav = SafePath.hasTraversal("../../etc/passwd"); // some(true)
-var crlf = SafeHeader.hasCrlf("v\r\nX-Inj: 1");       // some(true)
+// WIRED: links + runs against libproven 0.9.0.
+var trav = SafePath.hasTraversal("../../etc/passwd"); // Maybe(bool): some(true)
+var crlf = SafeHeader.hasCrlf("v\r\nX-Inj: 1");       // Maybe(bool): some(true)
+if trav.present && trav.value then writeln("blocked");
 
 // Identify the linked libproven (debug-friendly).
 writeln("libproven version: ", libraryVersion());
@@ -88,20 +90,34 @@ writeln("libproven version: ", libraryVersion());
 
 == Error Handling
 
-All fallible operations return Chapel optional types (`T?`). Use pattern
-matching to handle errors:
+All fallible operations return `Maybe(T)` — a binding-provided record
+with a `present` flag and a `value`.  Chapel 2.x's built-in `T?`
+postfix syntax is class-only and does NOT compile for value types
+(`bool?`, `int?`, `string?` all error); `Maybe(T)` is the
+binding-tier replacement.
 
 [source,chapel]
 ----
 var result = SafePath.hasTraversal(userInput);
-if result == none {
+if !result.present {
   writeln("FFI error reading input");
-} else if result! {
+} else if result.value {
   writeln("Path traversal detected — refusing");
 } else {
   writeln("Path is safe");
 }
 ----
+
+The constructors are `some(value)` and `absent(T)`:
+
+[source,chapel]
+----
+return some(true);            // Maybe(bool) with present == true
+return absent(int(64));       // Maybe(int(64)) with present == false
+----
+
+(`absent` rather than `none`/`nothing` because both of those are
+reserved words in Chapel.)
 
 == Coverage matrix (WIRED vs GATED)
 
