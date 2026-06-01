@@ -145,8 +145,16 @@ jobs:
         run: echo "$HOME/.idris2/bin" >> $GITHUB_PATH
 
       - name: Type check every Proofs.idr
+        # Run from the package source root (proven.ipkg `sourcedir = src`) and
+        # pass module-relative paths. Idris2 derives a module's source root by
+        # matching its dotted namespace against the trailing path segments, so
+        # `Proven/Foo/Proofs.idr` resolves `module Proven.Foo.Proofs` correctly
+        # whereas `src/Proven/Foo/Proofs.idr` (with the extra `src/` segment)
+        # raises a spurious "module name does not match file name". The clean
+        # `build/` removal guarantees a stale TTC cannot mask a real break.
         run: |
           set -uo pipefail
+          cd src
           rm -rf build
           fail=0
           checked=0
@@ -156,11 +164,11 @@ jobs:
             if idris2 -p contrib -p network --check "$f"; then
               echo "PASS  $f"
             else
-              echo "::error file=$f::idris2 --check failed"
+              echo "::error file=src/$f::idris2 --check failed"
               fail=1
             fi
             echo "::endgroup::"
-          done < <(find src -name 'Proofs.idr' | sort)
+          done < <(find Proven -name 'Proofs.idr' | sort)
           echo "Checked $checked Proofs.idr module(s); fail=$fail"
           exit "$fail"
 
