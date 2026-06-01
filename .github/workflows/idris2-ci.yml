@@ -144,21 +144,30 @@ jobs:
       - name: Add Idris 2 to PATH
         run: echo "$HOME/.idris2/bin" >> $GITHUB_PATH
 
-      - name: Type check every Proofs.idr
-        # Run from the package source root (proven.ipkg `sourcedir = src`) and
-        # pass module-relative paths. Idris2 derives a module's source root by
-        # matching its dotted namespace against the trailing path segments, so
-        # `Proven/Foo/Proofs.idr` resolves `module Proven.Foo.Proofs` correctly
-        # whereas `src/Proven/Foo/Proofs.idr` (with the extra `src/` segment)
-        # raises a spurious "module name does not match file name". The clean
-        # `build/` removal guarantees a stale TTC cannot mask a real break.
+      - name: Type check the proof modules in proven.ipkg
+        # Scope: every `*.Proofs` module LISTED IN proven.ipkg — i.e. the proof
+        # modules the package actually builds. (64 of the 93 Proofs.idr files on
+        # disk are intentionally absent from the package: env-blocked on retired
+        # stdlib like Data.Nat.Division, or work-in-progress. Gating on those
+        # would be stricter than `build` itself.)
+        #
+        # Run from the package source root (proven.ipkg `sourcedir = src`) with
+        # module-relative paths. Idris2 matches a module's dotted namespace
+        # against trailing path segments, so `Proven/Foo/Proofs.idr` resolves
+        # `module Proven.Foo.Proofs` whereas `src/Proven/Foo/Proofs.idr` raises a
+        # spurious "module name does not match file name". The clean `build/`
+        # removal guarantees a stale TTC cannot mask a real break.
         run: |
           set -uo pipefail
+          grep -oE 'Proven\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*\.Proofs' proven.ipkg \
+            | sort -u | sed 's#\.#/#g; s#$#.idr#' > /tmp/proof_modules.txt
+          echo "Proof modules from proven.ipkg:"; cat /tmp/proof_modules.txt
           cd src
           rm -rf build
           fail=0
           checked=0
           while IFS= read -r f; do
+            [ -f "$f" ] || { echo "::error file=proven.ipkg::listed proof module missing on disk: src/$f"; fail=1; continue; }
             checked=$((checked + 1))
             echo "::group::idris2 --check $f"
             if idris2 -p contrib -p network --check "$f"; then
@@ -168,8 +177,8 @@ jobs:
               fail=1
             fi
             echo "::endgroup::"
-          done < <(find Proven -name 'Proofs.idr' | sort)
-          echo "Checked $checked Proofs.idr module(s); fail=$fail"
+          done < /tmp/proof_modules.txt
+          echo "Checked $checked proof module(s); fail=$fail"
           exit "$fail"
 
   docs:
