@@ -6,11 +6,13 @@ project = "proven"
 author = "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 license = "MPL-2.0"
 standard = "RSR 2026"
-last-updated = "2026-05-20"
+last-updated = "2026-06-01"
 
 [architecture-decisions]
 decisions = [
   { id = "ADR-001", title = "OWED-with-justification convention for bodyless declarations in Proofs.idr files", status = "accepted", date = "2026-05-20", body = "Bodyless type signatures (implicit postulates) are made discoverable via triple-pipe doc-comment naming the claim + Idris2 0.8.0 blocker + discharge condition, plus a leading `0 ` erased-multiplicity marker, plus the original bare signature. The `postulate` keyword is NOT used (zero Proofs.idr files use it). Canonical example: src/Proven/SafeChecksum/Proofs.idr. Reference: hyperpolymath/standards#158 Fork A campaign, PROOF-NEEDS.md." },
+  { id = "ADR-002", title = "Fast proof-check CI gate over the proven.ipkg proof modules", status = "accepted", date = "2026-06-01", body = "A required proof-check job runs idris2 --check on each *.Proofs module listed in proven.ipkg (the 29 build-contract proof modules), from the src/ sourcedir with module-relative paths, on a clean idris2-0.8.0 + contrib toolchain (build/ removed so a stale TTC cannot mask a break). This is the fast cone-check recommended in #145 after #127/#145 showed DISCHARGED-but-unbuilt proofs reaching main while the slow full build sat queued. Scope is the ipkg list, not every on-disk Proofs.idr (64 of 93 are intentionally env-blocked or WIP). A corollary of ADR-001: a theorem that can only be closed by consuming an erased 0-multiplicity OWED premise, or an irreducible top-level-constant projection, is itself reverted to OWED rather than given a body that does not type-check. Origin: #147 (gate) and #148 (gate correctness + 5 proof repairs)." },
+  { id = "ADR-003", title = "CI builds the standalone Zig FFI surface; full Idris->RefC->Zig integration deferred", status = "accepted", date = "2026-06-01", body = "The e2e.yml E2E and Bench jobs build ffi/zig/build_standalone.zig (src/main.zig only, the pure-Zig C-ABI surface) instead of the default build.zig, because build.zig's idris2_zig_ffi is a Zig .path dependency on the private, sibling-checkout-only repo nextgen-languages/language-bridges, which CI cannot resolve. The Zig toolchain is provisioned via mlugg/setup-zig@v1 at the build.zig.zon minimum (0.15.2). Full Idris->RefC->Zig integration (idris2 --codegen refc + scripts/build-refc.sh + zig build -Didris-*) is documented in docs/ffi-ci-build.md and deferred until language-bridges is provisioned as a submodule plus a CI read credential. Origin: #149; tracked in #151." },
 ]
 
 [proof-conventions]
