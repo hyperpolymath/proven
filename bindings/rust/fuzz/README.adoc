@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: CC-BY-4.0
+// SPDX-License-Identifier: MPL-2.0
 = Cargo-fuzz harness for proven Rust bindings
 
 == What
