@@ -43,9 +43,9 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Zig
-        uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406  # v2.2.1
+        uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: 0.15.0
+          version: '0.15.2'
 
       - name: Build FFI
         run: cd ffi/zig && zig build
@@ -154,9 +154,9 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Zig
-        uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406  # v2.2.1
+        uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: 0.15.0
+          version: '0.15.2'
 
       - name: Build and bench FFI
         run: cd ffi/zig && zig build bench 2>&1 | tee /tmp/bench-results.txt || echo "No bench target yet"
