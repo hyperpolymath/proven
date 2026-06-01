@@ -64,14 +64,21 @@ parseDeterministic s = Refl
 -- Validation Properties
 --------------------------------------------------------------------------------
 
-||| DISCHARGED: `validResult.isValid = True`. By definition
-||| `validResult = MkValidationResult True []` (Validation.idr L62)
-||| and `validResult` is `public export`, so the elaborator unfolds
-||| `validResult.isValid` to `(MkValidationResult True []).isValid =
-||| True` by direct record-projection reduction.
+||| OWED: `validResult.isValid = True`. Operationally immediate —
+||| `validResult = MkValidationResult True []` (Validation.idr L62) — but
+||| Idris2 0.8.0 does not reduce the projection of a top-level constant
+||| (`validResult.isValid`) by `Refl`, even with `ValidationResult` and
+||| `validResult` both `public export`. Verified: the same
+||| `Can't solve constraint between: True and validResult.isValid` arises
+||| in a minimal cross-module repro. Same top-level-constant-opacity
+||| blocker as `SafePassword.chainedBuildersCompose` and
+||| `SafeCSV.defaultDelimiterIsComma`. Discharge once Idris2 reduces
+||| top-level constant projections, or `validResult` is inlined at the use
+||| site so the constructor is exposed. (The prior "DISCHARGED … by direct
+||| record-projection reduction" comment was incorrect — it did not
+||| type-check under Idris2 0.8.0.)
 public export
-validResultIsValid : validResult.isValid = True
-validResultIsValid = Refl
+0 validResultIsValid : validResult.isValid = True
 
 ||| OWED: adding an Error-severity issue makes the result invalid.
 ||| `addIssue` (Validation.idr L71-74) computes the new validity as

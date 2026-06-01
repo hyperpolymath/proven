@@ -30,11 +30,18 @@ bodyless-decls-total = 256
 # SafeChecksum convention. See PROOF-NEEDS.md "OWED-with-justification
 # convention" and META.a2ml ADR-001.
 
-discharged-decls = 36
+discharged-decls = 31
 # DISCHARGED entries (OWED → proven Refl or contrib-lemma) landed
-# across Phase 3 PRs #97-124 (2026-05-30 session) + #144 (2026-05-31:
-# SafeJson anyMatchesTAny, singleKeyPath). Each PR converts one OWED to
-# a machine-checked theorem.
+# across Phase 3 PRs #97-124 (2026-05-30) + #144 (SafeJson anyMatchesTAny,
+# singleKeyPath). 2026-05-31 honesty correction (#147 proof-check gate):
+# the new gate type-checked all 29 ipkg proof modules on a clean toolchain
+# and found 5 that never actually compiled — "DISCHARGED" theorems merged
+# without a verifying build. Repaired: SafeUrl appendAssociative (wrong
+# contrib name) + addParamIncreasesCount (lengthSnoc arg order) now
+# genuinely hold; SafeSQL builderQueriesSafe / cannotEscapeStringLiteral /
+# combinePreservesSafety / addParamPreservesSafety reverted to OWED (they
+# consumed erased OWED premises); SafeEmail validResultIsValid reverted to
+# OWED (top-level-constant projection opacity). Net: 36 → 31 honest.
 
 [trust-posture]
 believe-me-uses = 0
@@ -66,6 +73,7 @@ scorecard-fuzzing-source-fixed = "PR #121 (real ClusterFuzzLite + cargo-fuzz)"
 
 [session-history]
 # Most recent first.
+"2026-05-31b" = "CI proof-gate (#147 → #148): added a fast `proof-check` job type-checking every *.Proofs module listed in proven.ipkg (29) from src/ with module-relative paths; fixed two self-inflicted gate bugs (repo-root path → spurious 'module name does not match file name'; over-broad glob over all 93 on-disk vs the 29 ipkg-built). The gate found 5 ipkg proof modules that never compiled (DISCHARGED-but-unbuilt, same disease as #127): SafeUrl appendAssociative (referenced nonexistent Data.List.Equalities.appendAssociative; fixed to sym (Data.List.appendAssociative)) + addParamIncreasesCount (lengthSnoc arg order) now genuinely hold; SafeSQL ×4 and SafeEmail ×1 reverted DISCHARGED→OWED (depended on erased OWED premises / top-level-constant opacity). All 29 now green on a clean idris2-0.8.0+contrib build. ADR-004."
 "2026-05-31" = "SafeJson Phase 3: #144 DISCHARGES anyMatchesTAny (6-arm split) + singleKeyPath (with-pattern), completing #138. Root-caused a pre-existing breakage: appendLengthInc (from #127) used `lengthSnoc arr v` but contrib Data.List.Equalities.lengthSnoc is element-first — it failed to type-check and blocked the ENTIRE SafeJson.Proofs module (so main did not compile). Fixed to `lengthSnoc v arr`. Verified on a clean idris2-0.8.0+contrib install (full SafeJson cone, 0 errors). Filed #145: the Idris build is not a required status check, so #127's broken merge went green (created→merged in ~2.5min with build jobs still queued); recommends branch-protection gating + faster cone-check job."
 "2026-05-30" = "Phase 3 discharge: PRs #97-124 land (~28 OWED→DISCHARGED conversions). Security tab cleanup: source-fixes for #2 / #296 / #299 + branch-protection safe-subset + 100 Hypatia FP alerts dismissed at API. Estate-wide CSA self-echo bulk-dismiss sweep (~9050 alerts) running in background."
 "2026-05-20" = "Fork A campaign complete: 250 bodyless decls across 28 of 41 modules annotated via OWED-with-justification convention (PRs #37-64, Refs standards#158); cross-prover audit confirms 0 Lean sorry / 0 Coq Admitted in first-party code (only echidnabot dogfood fixtures)"
