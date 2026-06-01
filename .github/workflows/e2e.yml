@@ -43,18 +43,22 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Zig
-        uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406  # v2.2.1
+        uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: 0.15.0
+          version: '0.15.2'
 
-      - name: Build FFI
-        run: cd ffi/zig && zig build
+      # Build the standalone pure-Zig FFI surface (src/main.zig only) -- no
+      # Idris2 RefC / idris2_zig_ffi dependency. The full Idris->RefC->Zig
+      # pipeline needs the private nextgen-languages/language-bridges repo,
+      # which CI cannot fetch as a path dependency; see PR #149.
+      - name: Build FFI (standalone Zig surface)
+        run: cd ffi/zig && zig build --build-file build_standalone.zig
 
-      - name: Run FFI integration tests
-        run: cd ffi/zig && zig build test
+      - name: Run FFI tests (standalone)
+        run: cd ffi/zig && zig build test --build-file build_standalone.zig
 
       - name: Verify library output
-        run: ls -la ffi/zig/zig-out/lib/libproven.* || echo "Library output check"
+        run: ls -la ffi/zig/zig-out/lib/libproven_ffi.* || echo "Library output check"
 
   safety-aspects:
     name: Aspect — Safety Invariants
@@ -154,12 +158,12 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Zig
-        uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406  # v2.2.1
+        uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: 0.15.0
+          version: '0.15.2'
 
       - name: Build and bench FFI
-        run: cd ffi/zig && zig build bench 2>&1 | tee /tmp/bench-results.txt || echo "No bench target yet"
+        run: cd ffi/zig && zig build bench --build-file build_standalone.zig 2>&1 | tee /tmp/bench-results.txt || echo "No bench target yet"
 
       - name: Upload benchmark results
         if: always()
