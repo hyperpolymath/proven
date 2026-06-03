@@ -19,8 +19,14 @@ fn main() {
         println!("cargo:rustc-link-search=native={}", lib_dir);
     }
 
-    // Link against libproven (the compiled Zig/Idris2 shared library)
-    println!("cargo:rustc-link-lib=dylib=proven");
+    // Link against libproven (the compiled Zig/Idris2 library).
+    // Prefer static linking if libproven.a is found (required for ClusterFuzzLite).
+    let is_static = std::path::Path::new(&lib_dir_path).join("libproven.a").exists();
+    if is_static {
+        println!("cargo:rustc-link-lib=static=proven");
+    } else {
+        println!("cargo:rustc-link-lib=dylib=proven");
+    }
 
     // Add RPATH so binaries can find libproven.so relative to themselves (e.g. in ./lib/ or ./)
     // This is required for ClusterFuzzLite and standalone distributions.

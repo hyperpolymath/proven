@@ -25,8 +25,8 @@ mkdir -p "$OUT"
 if [[ -f ffi/zig/build.zig ]]; then
   pushd ffi/zig >/dev/null
   mkdir -p zig-out/lib
-  zig build-lib -dynamic -O ReleaseSafe -fPIC --name proven \
-    -femit-bin=zig-out/lib/libproven.so src/main.zig -lc || {
+  zig build-lib -static -O ReleaseSafe -fPIC --name proven \
+    -femit-bin=zig-out/lib/libproven.a src/main.zig -lc || {
     echo "WARN: standalone Zig FFI build failed; fuzz targets will not link." >&2
     exit 1
   }
@@ -53,10 +53,9 @@ for fuzzer in safe_path_has_traversal; do
   fi
 done
 
-# Bundle libproven.so so the runner can find it at exec time.
-if [[ -f "$PROVEN_LIB_DIR/libproven.so" ]]; then
-  cp "$PROVEN_LIB_DIR/libproven.so" "$OUT/"
-fi
+# Bundle libproven.a so the fuzzer build can find it (for static linking).
+# Note: ClusterFuzzLite binaries should be self-contained; static linking
+# is preferred to avoid runtime library loading issues.
 popd >/dev/null
 
 echo "=== Build complete. Staged to $OUT. ==="
