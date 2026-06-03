@@ -180,6 +180,23 @@ chapel-test: build-ffi
 chapel-clean:
     just -d bindings/chapel --justfile bindings/chapel/Justfile clean
 
+# --- D Binding (Tier 1 Detachable Harness) ---
+# These recipes are THIN FORWARDERS into bindings/d/.
+d-check: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/d --justfile bindings/d/Justfile check
+
+d-build: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/d --justfile bindings/d/Justfile build
+
+d-test: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/d --justfile bindings/d/Justfile test
+
+d-clean:
+    just -d bindings/d --justfile bindings/d/Justfile clean
+
 # ---------------------------------------------------------------------------
 # Cleaning
 # ---------------------------------------------------------------------------

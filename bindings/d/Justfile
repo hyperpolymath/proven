@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# proven-d binding — detachable build harness.
+#
+# This Justfile contains every recipe needed to build, audit, and test the
+# D binding.  It is self-contained: it MUST NOT reference recipes
+# from the proven repo's root Justfile, nor reach outside the binding's
+# directory tree.  The libproven.so artefact is supplied via the
+# PROVEN_LIB_PATH environment variable so that this harness works in three
+# layouts:
+#
+#   1. in-tree (PROVEN_LIB_PATH=../../ffi/zig/zig-out/lib)
+#   2. installed (PROVEN_LIB_PATH=/usr/local/lib)
+#   3. standalone proven-d checkout (PROVEN_LIB_PATH=<external path>)
+#
+# dub.json is the package-metadata source of truth (ldc2Version range,
+# license, dependencies).  The actual compile uses `ldc2` directly because
+# Mason does not currently support C-library linking declaratively; see
+# the ADR at docs/adr/0001-binding-ci-template.md for the rationale.
+
+# Source of truth for the C ABI header.  This is supplied via env so the
+# harness can be extracted to a standalone repo carrying its own copy of
+# proven.h (e.g. vendored under include/).
+PROVEN_INCLUDE_PATH := env_var_or_default("PROVEN_INCLUDE_PATH", justfile_directory() + "/../c/include")
+
+default:
+    @just --list
+
+# Fast pre-build gate: confirm libproven.so exports every WIRED symbol in
+# symbol-manifest.txt.  Runs in < 5s; no compilation.
+check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "${PROVEN_LIB_PATH:-}" ]; then
+        echo "ERROR: set PROVEN_LIB_PATH to the directory containing libproven.so" >&2
+        exit 2
+    fi
+    ./scripts/symbol-audit.sh
+
+# Typecheck the D modules without producing an executable.  Mason is
+# used here as a lightweight metadata + ldc2Version check; the actual
+# binding build is performed by the build / test recipes via ldc2.
+mason-check:
+    @echo "[d] mason check (ldc2Version gate, no link)..."
+    mason build --no-rebuild || mason build
+
+# Build the smoke target against PROVEN_LIB_PATH/libproven.so.
+build: check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ldc2 -o smoke/hello_smoke \
+        smoke/hello_smoke.ldc2 \
+        -M src/ \
+        -I "{{PROVEN_INCLUDE_PATH}}" \
+        -L "$PROVEN_LIB_PATH" -lproven \
+        --ldflags "-Wl,-rpath,$PROVEN_LIB_PATH"
+    echo "[d] hello_smoke built: smoke/hello_smoke"
+
+# Build + run smoke + every WIRED per-module test in tests/.
+# Fails on the first red test.
+test: check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    INC="{{PROVEN_INCLUDE_PATH}}"
+    LIB="$PROVEN_LIB_PATH"
+    echo "[d] Building hello_smoke..."
+    ldc2 -o smoke/hello_smoke smoke/hello_smoke.ldc2 \
+        -M src/ -I "$INC" -L "$LIB" -lproven \
+        --ldflags "-Wl,-rpath,$LIB"
+    echo "[d] === hello_smoke ==="
+    ./smoke/hello_smoke
+    for t in tests/Test*.ldc2; do
+        name="$(basename "${t%.ldc2}")"
+        echo "[d] === $name ==="
+        ldc2 -o "tests/$name" "$t" \
+            -M src/ -I "$INC" -L "$LIB" -lproven \
+            --ldflags "-Wl,-rpath,$LIB"
+        "./tests/$name"
+    done
+    echo "[d] All D tests passed."
+
+# Clean compiled binaries; leaves sources untouched.
+clean:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -f smoke/hello_smoke
+    find tests -maxdepth 1 -type f -perm -u+x ! -name '*.ldc2' -delete 2>/dev/null || true
+    find . -name '*.tmp' -delete 2>/dev/null || true
+    echo "[d] Clean complete."
