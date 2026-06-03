@@ -29,7 +29,7 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           # Send a secure trigger to boj-server to build this repository.
-          # Payload values are passed via env vars rather than ${{ }}
+          # Payload values are passed via env vars rather than workflow expressions
           # interpolation to avoid shell-injection by branch name.
           payload=$(jq -nc \
             --arg repo "$REPO" \

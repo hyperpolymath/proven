@@ -1,0 +1,58 @@
+[
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/go/**/*.go",
+    "tracking_issue": "hyperpolymath/proven#150",
+    "note": "Pre-existing Go binding debt; governance migration is tracked separately from the FFI CI restoration."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/vcl/*.go",
+    "tracking_issue": "hyperpolymath/proven#150",
+    "note": "Pre-existing VCL plugin Go implementation; governance migration is tracked separately from the FFI CI restoration."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/java/**",
+    "tracking_issue": "hyperpolymath/proven#150",
+    "note": "Pre-existing Java binding debt; governance migration is tracked separately from the FFI CI restoration."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/kotlin/**",
+    "tracking_issue": "hyperpolymath/proven#150",
+    "note": "Pre-existing Kotlin binding debt; governance migration is tracked separately from the FFI CI restoration."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/gql/neo4j/**",
+    "tracking_issue": "hyperpolymath/proven#150",
+    "note": "Pre-existing Neo4j Java procedure binding debt; governance migration is tracked separately from the FFI CI restoration."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/swift/**",
+    "tracking_issue": "hyperpolymath/proven#150",
+    "note": "Pre-existing Swift binding debt; governance migration is tracked separately from the FFI CI restoration."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/dart/**",
+    "tracking_issue": "hyperpolymath/proven#150",
+    "note": "Pre-existing Dart binding debt; governance migration is tracked separately from the FFI CI restoration."
+  }
+]
