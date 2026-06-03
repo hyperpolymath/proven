@@ -341,7 +341,7 @@ data ValidPort : Nat -> Type where
 ||| DISCHARGED via `Data.Nat.lteReflectsLTE` stdlib lemma.
 export
 lteFrom65535Check : (p : Nat) -> (p <= 65535 = True) -> LTE p 65535
-lteFrom65535Check _ prf = Data.Nat.lteReflectsLTE p 65535 prf
+lteFrom65535Check p prf = Data.Nat.lteReflectsLTE p 65535 prf
 
 ||| Validate port is in range
 public export
