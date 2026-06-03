@@ -200,27 +200,30 @@ data InjectionSafe : ParameterizedQuery -> Type where
 ||| 1. Validated identifiers (table/column names)
 ||| 2. Parameterized values (never interpolated)
 ||| 3. Literal SQL fragments (from trusted code, not user input)
+||| OWED: queries built with the builder are injection-safe.
+||| The witness would be `SafeByParameterization q (parameterizedQueriesSafe q)
+||| (\v, _ => allValuesSafe q.dialect v)`, but `parameterizedQueriesSafe` is
+||| itself OWED (erased, `0`-multiplicity) — an erased proof cannot be supplied
+||| as the relevant `IsParameterized` field of `SafeByParameterization`, so this
+||| theorem cannot be discharged until `parameterizedQueriesSafe` is (i.e. once
+||| `Data.List.all` reflection lands, or `ParameterizedQuery` carries the
+||| invariant intrinsically). Held back by the same blocker as its premise.
 export
-builderQueriesSafe : (q : ParameterizedQuery) ->
-                     (builtWithBuilder : ()) ->
-                     InjectionSafe q
-builderQueriesSafe q _ =
-  SafeByParameterization q
-    (parameterizedQueriesSafe q)
-    (\v, _ => allValuesSafe q.dialect v)
+0 builderQueriesSafe : (q : ParameterizedQuery) ->
+                       (builtWithBuilder : ()) ->
+                       InjectionSafe q
 
-||| Theorem: User input cannot escape string literals after escaping
-|||
-||| Proof sketch:
-||| 1. escapeString doubles all single quotes in the input
-||| 2. The result is wrapped in single quotes: 'escaped_input'
-||| 3. Any quote in the original input becomes '' which is an escaped quote in SQL
-||| 4. Therefore the string literal cannot be terminated early
+||| OWED: user input cannot escape string literals after escaping.
+||| Proof sketch: escapeString doubles all single quotes and wraps the result
+||| in single quotes, so any quote in the input becomes the escaped `''` and the
+||| literal cannot be terminated early. The witness is exactly
+||| `escapeStringQuotesSafe d userInput`, but that is OWED (erased,
+||| `0`-multiplicity, opaque-String-FFI blocker), so this theorem inherits the
+||| same debt and cannot be relevantly discharged until it is.
 export
-cannotEscapeStringLiteral : (d : SQLDialect) -> (userInput : String) ->
-                            let escaped = escapeString d userInput
-                            in NoUnescapedQuotes escaped
-cannotEscapeStringLiteral d userInput = escapeStringQuotesSafe d userInput
+0 cannotEscapeStringLiteral : (d : SQLDialect) -> (userInput : String) ->
+                              let escaped = escapeString d userInput
+                              in NoUnescapedQuotes escaped
 
 ||| Theorem: Numeric values cannot contain SQL injection
 |||
@@ -237,32 +240,25 @@ numericValuesCannotInject d i = IntSafe
 -- Composition Safety
 --------------------------------------------------------------------------------
 
-||| Theorem: Combining safe queries produces a safe query
+||| OWED: combining safe queries produces a safe query.
+||| The witness would reuse `parameterizedQueriesSafe (combineQueries q1 q2)`,
+||| which is OWED (erased) — so, like `builderQueriesSafe`, this cannot be
+||| relevantly discharged until `parameterizedQueriesSafe` is.
 export
-combinePreservesSafety : (q1 : ParameterizedQuery) -> (q2 : ParameterizedQuery) ->
-                         InjectionSafe q1 -> InjectionSafe q2 ->
-                         InjectionSafe (combineQueries q1 q2)
-combinePreservesSafety q1 q2 safe1 safe2 =
-  SafeByParameterization (combineQueries q1 q2)
-    (parameterizedQueriesSafe (combineQueries q1 q2))
-    (\v, _ => allValuesSafe q1.dialect v)
+0 combinePreservesSafety : (q1 : ParameterizedQuery) -> (q2 : ParameterizedQuery) ->
+                           InjectionSafe q1 -> InjectionSafe q2 ->
+                           InjectionSafe (combineQueries q1 q2)
 
-||| Theorem: Adding parameters preserves safety
-|||
-||| addParam only appends to q.params and preserves fragments/dialect.
-||| Since allValuesSafe covers all constructors and fragments are unchanged,
-||| the parameterized query remains injection-safe.
-||| addParam uses record update `{ params := q.params ++ [val] } q`, which
-||| preserves fragments and dialect. The proof follows the same pattern as
-||| combinePreservesSafety.
+||| OWED: adding parameters preserves safety.
+||| addParam only appends to q.params and preserves fragments/dialect, so the
+||| query stays injection-safe — but the witness reuses
+||| `parameterizedQueriesSafe (addParam v q)`, which is OWED (erased). Same debt
+||| as `combinePreservesSafety`; discharge together once
+||| `parameterizedQueriesSafe` is.
 export
-addParamPreservesSafety : (q : ParameterizedQuery) -> (v : SQLValue) ->
-                          InjectionSafe q ->
-                          InjectionSafe (addParam v q)
-addParamPreservesSafety q v safe =
-  SafeByParameterization (addParam v q)
-    (parameterizedQueriesSafe (addParam v q))
-    (\v', _ => allValuesSafe (addParam v q).dialect v')
+0 addParamPreservesSafety : (q : ParameterizedQuery) -> (v : SQLValue) ->
+                            InjectionSafe q ->
+                            InjectionSafe (addParam v q)
 
 --------------------------------------------------------------------------------
 -- Defensive Checks (Runtime Validation)

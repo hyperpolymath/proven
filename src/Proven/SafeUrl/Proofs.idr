@@ -134,12 +134,15 @@ export
 ||| [(key, val)])`, so `(addParam key val qb).params` reduces to
 ||| `qb.params ++ [(key, val)]` and the claim becomes
 ||| `length (qb.params ++ [(key, val)]) = S (length qb.params)`.
-||| Discharged via `Data.List.Equalities.lengthSnoc` from `contrib`.
+||| Discharged via `Data.List.Equalities.lengthSnoc` from `contrib`,
+||| which is element-first (`lengthSnoc x xs : length (xs ++ [x]) =
+||| S (length xs)`), so the element `(key, val)` precedes the list
+||| `qb.params`.
 public export
 addParamIncreasesCount : (key, val : String) -> (qb : QueryBuilder) ->
                          paramCount (addParam key val qb).params =
                          S (paramCount qb.params)
-addParamIncreasesCount key val qb = lengthSnoc qb.params (key, val)
+addParamIncreasesCount key val qb = lengthSnoc (key, val) qb.params
 
 ||| OWED: Getting a parameter just set by key returns that value.
 ||| Operationally true by case analysis on `hasParam key qs`: in the
@@ -257,16 +260,20 @@ export
 ||| `Data.List` not exposing `appendAssociative` as a `%reducible`
 ||| rewrite (the proof exists in Prelude but requires induction on
 ||| `qs1`, and `Refl` cannot close it for abstract `qs1`). Discharge
-||| DISCHARGED via `Data.List.Equalities.appendAssociative` from
-||| contrib. `appendQueryStrings = (++)` (Query.idr L205-206), so the
-||| goal reduces to `(qs1 ++ qs2) ++ qs3 = qs1 ++ (qs2 ++ qs3)` —
-||| exactly the stdlib lemma. The OWED was a stdlib-plumbing residual,
-||| not a fundamental gap, as the comment noted.
+||| DISCHARGED via the Prelude/`Data.List` lemma `appendAssociative`.
+||| `appendQueryStrings = (++)` (Query.idr L205-206), so the goal reduces
+||| to `(qs1 ++ qs2) ++ qs3 = qs1 ++ (qs2 ++ qs3)`. `Data.List`'s lemma is
+||| stated in the opposite direction (`xs ++ (ys ++ zs) = (xs ++ ys) ++
+||| zs`), so we flip it with `sym`, and qualify it as
+||| `Data.List.appendAssociative` to disambiguate from this same-named
+||| local function. (The earlier `Data.List.Equalities.appendAssociative`
+||| reference did not resolve under Idris2 0.8.0 — the lemma lives in
+||| `Data.List`, not `Data.List.Equalities`.)
 public export
 appendAssociative : (qs1, qs2, qs3 : QueryString) ->
                     appendQueryStrings (appendQueryStrings qs1 qs2) qs3 =
                     appendQueryStrings qs1 (appendQueryStrings qs2 qs3)
-appendAssociative qs1 qs2 qs3 = Data.List.Equalities.appendAssociative qs1 qs2 qs3
+appendAssociative qs1 qs2 qs3 = sym (Data.List.appendAssociative qs1 qs2 qs3)
 
 --------------------------------------------------------------------------------
 -- URL Security Properties
