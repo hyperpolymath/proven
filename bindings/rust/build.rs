@@ -7,36 +7,47 @@
 //! Zig FFI layer (which delegates to Idris 2 compiled code).
 
 fn main() {
-    // Development build path: relative to bindings/rust/ within the repo
-    println!("cargo:rustc-link-search=native=../../ffi/zig/zig-out/lib");
-
-    // System-wide installation paths
-    println!("cargo:rustc-link-search=native=/usr/local/lib");
-    println!("cargo:rustc-link-search=native=/usr/lib");
+    // 1. Determine library search paths
+    let mut search_paths = vec![
+        "../../ffi/zig/zig-out/lib".to_string(),
+        "/usr/local/lib".to_string(),
+        "/usr/lib".to_string(),
+    ];
 
     // Allow override via PROVEN_LIB_DIR environment variable
-    if let Ok(lib_dir) = std::env::var("PROVEN_LIB_DIR") {
-        println!("cargo:rustc-link-search=native={}", lib_dir);
+    if let Ok(env_path) = std::env::var("PROVEN_LIB_DIR") {
+        search_paths.insert(0, env_path);
     }
 
-    // Link against libproven (the compiled Zig/Idris2 library).
+    for path in &search_paths {
+        println!("cargo:rustc-link-search=native={}", path);
+    }
+
+    // 2. Link against libproven (the compiled Zig/Idris2 library).
     // Prefer static linking if libproven.a is found (required for ClusterFuzzLite).
-    let is_static = std::path::Path::new(&lib_dir_path).join("libproven.a").exists();
+    let mut is_static = false;
+    for path in &search_paths {
+        if std::path::Path::new(path).join("libproven.a").exists() {
+            is_static = true;
+            break;
+        }
+    }
+
     if is_static {
         println!("cargo:rustc-link-lib=static=proven");
     } else {
         println!("cargo:rustc-link-lib=dylib=proven");
     }
 
-    // Add RPATH so binaries can find libproven.so relative to themselves (e.g. in ./lib/ or ./)
-    // This is required for ClusterFuzzLite and standalone distributions.
+    // 3. Add RPATH so binaries can find libproven.so relative to themselves (e.g. in ./lib/ or ./)
+    // This is required for standalone distributions using dynamic linking.
     if std::env::var("CARGO_CFG_TARGET_OS").ok() == Some("linux".to_string()) {
         println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/lib");
         println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN");
     }
 
-    // Re-run build script if the library changes
+    // Re-run build script if relevant files change
     println!("cargo:rerun-if-env-changed=PROVEN_LIB_DIR");
     println!("cargo:rerun-if-changed=../../ffi/zig/zig-out/lib/libproven.so");
-    println!("cargo:rerun-if-changed=../../ffi/zig/zig-out/lib/libproven.dylib");
+    println!("cargo:rerun-if-changed=../../ffi/zig/zig-out/lib/libproven.a");
 }

@@ -25,11 +25,12 @@ mkdir -p "$OUT"
 if [[ -f ffi/zig/build.zig ]]; then
   pushd ffi/zig >/dev/null
   mkdir -p zig-out/lib
-  zig build-lib -static -O ReleaseSafe -fPIC --name proven \
+  zig build-lib -static -O ReleaseSafe -fno-stack-check -fPIC --name proven \
     -femit-bin=zig-out/lib/libproven.a src/main.zig -lc || {
     echo "WARN: standalone Zig FFI build failed; fuzz targets will not link." >&2
     exit 1
   }
+
   popd >/dev/null
 fi
 
