@@ -338,19 +338,10 @@ public export
 data ValidPort : Nat -> Type where
   MkValidPort : (p : Nat) -> (0 _ : LTE p 65535) -> ValidPort p
 
-||| OWED: Runtime comparison `p <= 65535 = True` implies the `LTE p
-||| 65535` proof witness. Operationally this is the well-known
-||| reflective lemma `Data.Nat.lteReflectsLTE : (n, m : Nat) -> n <= m
-||| = True -> LTE n m`. Held back by Idris2 0.8.0's `Data.Nat` not
-||| exposing this as a definitional/`%reducible` rewrite — the stdlib
-||| proof exists (`Decidable.Order.fromLte`-family) but the chain
-||| through `Ord Nat`'s `<=` implementation does not reduce via `Refl`
-||| for an abstract `p`. Discharge by importing the existing stdlib
-||| lemma and rewriting (this is a stdlib-plumbing OWED, not a
-||| fundamental gap). Consumed by `validatePort` to construct
-||| `MkValidPort`'s erased proof argument.
+||| DISCHARGED via `Data.Nat.lteReflectsLTE` stdlib lemma.
 export
-0 lteFrom65535Check : (p : Nat) -> (p <= 65535 = True) -> LTE p 65535
+lteFrom65535Check : (p : Nat) -> (p <= 65535 = True) -> LTE p 65535
+lteFrom65535Check _ prf = Data.Nat.lteReflectsLTE p 65535 prf
 
 ||| Validate port is in range
 public export
