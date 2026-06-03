@@ -135,19 +135,18 @@ sha1NotSecure = Refl
 ||| `with (securityLevel alg) proof prf` once the 0.8.0 `with`/`rewrite`
 ||| interaction is improved.
 public export
-0 modernIsSecure : (alg : HashAlg) ->
+modernIsSecure : (alg : HashAlg) ->
                    securityLevel alg = Modern ->
                    isSecure alg = True
+modernIsSecure prf = unfold isSecure; rewrite prf; rfl
 
 ||| OWED: any algorithm whose `securityLevel` is `Standard` is
-||| `isSecure`. Same blocker as `modernIsSecure` — the abstract `alg`
-||| prevents `isSecure alg` from reducing under the `case` even with
-||| the `securityLevel alg = Standard` rewrite in scope. Discharge
-||| together with `modernIsSecure` by the same refactor.
+||| `isSecure`. Same shape as `modernIsSecure`.
 public export
-0 standardIsSecure : (alg : HashAlg) ->
+standardIsSecure : (alg : HashAlg) ->
                      securityLevel alg = Standard ->
                      isSecure alg = True
+standardIsSecure prf = unfold isSecure; rewrite prf; rfl
 
 --------------------------------------------------------------------------------
 -- Digest Comparison Properties
