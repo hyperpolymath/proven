@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# WIRED symbol manifest for the Chapel binding.
+#
+# Every symbol listed here MUST be exported by libproven.so.  The
+# chapel-symbol-audit job in .github/workflows/chapel-ci.yml runs nm -D
+# against the built libproven.so and fails the PR if any symbol below
+# is missing.
+#
+# When a previously-GATED extern in src/LibProven.chpl becomes available
+# (proven#88 ramp), move its proven_* C symbol here AND in the LibProven
+# WIRED block, then add a per-module test or extend an existing test to
+# call it.
+#
+# Format: one C symbol name per line.  Lines beginning with '#' and blank
+# lines are ignored.
+
+# Stateless safety primitives (pure functions; no init required)
+proven_path_has_traversal
+proven_header_has_crlf
+
+# Memory management for string-returning functions
+proven_free_string
+
+# Library identification accessors
+proven_version
+proven_build_info
