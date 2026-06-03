@@ -1,0 +1,5 @@
+# Exempting legitimate Java/Kotlin/Go bindings from language policy
+bindings/java/** cicd_rules/banned_language_file
+bindings/kotlin/** cicd_rules/banned_language_file
+bindings/gql/neo4j/** cicd_rules/banned_language_file
+bindings/go/** cicd_rules/banned_language_file
