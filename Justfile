@@ -180,6 +180,23 @@ chapel-test: build-ffi
 chapel-clean:
     just -d bindings/chapel --justfile bindings/chapel/Justfile clean
 
+# --- OCaml Binding (Tier 1 Detachable Harness) ---
+# These recipes are THIN FORWARDERS into bindings/ocaml/.
+ocaml-check: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/ocaml --justfile bindings/ocaml/Justfile check
+
+ocaml-build: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/ocaml --justfile bindings/ocaml/Justfile build
+
+ocaml-test: build-ffi
+    PROVEN_LIB_PATH="$(pwd)/ffi/zig/zig-out/lib" \
+        just -d bindings/ocaml --justfile bindings/ocaml/Justfile test
+
+ocaml-clean:
+    just -d bindings/ocaml --justfile bindings/ocaml/Justfile clean
+
 # ---------------------------------------------------------------------------
 # Cleaning
 # ---------------------------------------------------------------------------
