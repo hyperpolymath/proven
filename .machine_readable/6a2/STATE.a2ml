@@ -52,8 +52,8 @@ postulate-keyword-uses = 0
 
 [active-campaigns]
 fork-a-annotation = "complete"
-phase-3-discharge = "in flight — umbrella issue #90, sequencing SafeUrl → SafeRegex → SafeBase64 → SafeEmail. 31 DISCHARGED of ~209 Tier A sites (~15% as of 2026-06-01, corrected from 36→31 via #148 honesty audit). PRs #97-124 + #144 landed this cycle."
-fork-b-discharge = "triage open — quick-wins flagged in PROOF-NEEDS.md (SafeCrypto isSecure refactor; SafePath already-Refl pairs)"
+phase-3-discharge = "in flight — umbrella issue #90, sequencing SafeUrl → SafeRegex → SafeBase64 → SafeEmail. 33 DISCHARGED of ~209 Tier A sites (~15.3% as of 2026-06-03, +2 from SafeCrypto). PRs #97-124 + #144 landed this cycle."
+fork-b-discharge = "in flight — quick-wins: SafeCrypto isSecure refactor COMPLETED (modernIsSecure, standardIsSecure); SafePath already-Refl pairs still under triage"
 pending-admin = "#145: configure GitHub branch protection to require proof-check status check on main (admin-only action: Settings → Branches → Add proof-check to required checks)"
 
 [ci-infrastructure]
