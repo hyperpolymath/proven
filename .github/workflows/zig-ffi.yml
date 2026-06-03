@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        zig-version: ['0.13.0']
+        zig-version: ['0.15.2']
         target:
           # Linux glibc
           - x86_64-linux-gnu
@@ -48,12 +48,6 @@ jobs:
         with:
           path: proven
 
-      - name: Checkout idris2-zig-ffi dependency
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: hyperpolymath/idris2-zig-ffi
-          path: idris2-zig-ffi
-
       - name: Setup Zig
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
@@ -61,12 +55,12 @@ jobs:
 
       - name: Build FFI library
         working-directory: proven/ffi/zig
-        run: zig build -Dtarget=${{ matrix.target }}
+        run: zig build --build-file build_standalone.zig -Dtarget=${{ matrix.target }}
 
       - name: Run tests (native x86_64-linux only)
         if: matrix.target == 'x86_64-linux-gnu'
         working-directory: proven/ffi/zig
-        run: zig build test
+        run: zig build test --build-file build_standalone.zig
 
       - name: Upload artifacts
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
@@ -94,24 +88,18 @@ jobs:
         with:
           path: proven
 
-      - name: Checkout idris2-zig-ffi dependency
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: hyperpolymath/idris2-zig-ffi
-          path: idris2-zig-ffi
-
       - name: Setup Zig
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: '0.13.0'
+          version: '0.15.2'
 
       - name: Build FFI library
         working-directory: proven/ffi/zig
-        run: zig build -Dtarget=${{ matrix.target }}
+        run: zig build --build-file build_standalone.zig -Dtarget=${{ matrix.target }}
 
       - name: Run tests
         working-directory: proven/ffi/zig
-        run: zig build test
+        run: zig build test --build-file build_standalone.zig
 
       - name: Upload artifacts
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
@@ -129,20 +117,14 @@ jobs:
         with:
           path: proven
 
-      - name: Checkout idris2-zig-ffi dependency
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: hyperpolymath/idris2-zig-ffi
-          path: idris2-zig-ffi
-
       - name: Setup Zig
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: '0.13.0'
+          version: '0.15.2'
 
       - name: Build WASM for browser
         working-directory: proven/ffi/zig
-        run: zig build -Dtarget=wasm32-freestanding -Doptimize=ReleaseSmall
+        run: zig build --build-file build_standalone.zig -Dtarget=wasm32-freestanding -Doptimize=ReleaseSmall
 
       - name: Upload WASM artifact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4

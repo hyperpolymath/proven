@@ -6,7 +6,7 @@
 
     .dependencies = .{
         .idris2_zig_ffi = .{
-            .path = "../../../nextgen-languages/language-bridges/bridges/idris2",
+            .path = "../../nextgen-languages/language-bridges/bridges/idris2",
         },
     },
 
