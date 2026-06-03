@@ -14,8 +14,8 @@ This file is the per-site disposition data for every `||| OWED:` annotation in t
 
 | Disposition | Count | Share | Estimated Phase 3 cost |
 |---|---:|---:|---|
-| **DISCHARGE** (provable in Idris2 0.8.0 today) | **~59** | 28% | ~30h (~4 focused days) |
-| **DISCHARGE-after-totality** (blocked on totality refactor first) | **~7** | 3% | TBD per totality ticket |
+| **DISCHARGE** (provable in Idris2 0.8.0 today) | **~61** | 28% | ~31h (~4 focused days) |
+| **DISCHARGE-after-totality** (blocked on totality refactor first) | **~5** | 3% | TBD per totality ticket |
 | **PROPERTY-TEST** (concrete-input spot-check in `tests/properties/`) | **~66** | 31% | ~22h (~3 focused days) |
 | **OWED-AXIOM** (permanent or until-Idris2-upgrade) | **~79** | 38% | 0h discharge; ongoing ledger maintenance |
 
@@ -309,16 +309,16 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 | setHasKey | 139 | `isObject obj ⇒ hasKey k (set k v obj) = True` | 1 | OWED-AXIOM | 0 | same `prim__eq_String` blocker |
 | removeNotHasKey | 157 | `hasKey k (remove k obj) = False` | 1 | OWED-AXIOM | 0 | String `!=` on pairs + filter |
 | appendLengthInc | 197 | `length (arr ++ [v]) = length arr + 1` | — | DISCHARGE | ~40 min | `lengthAppend` + `plusZeroRightNeutral` + S congruence |
-| singleKeyPath | 228 | `getPath [Key k] (JsonObject obj) = lookup k obj` | 3 | DISCHARGE-after-totality | ~50 min | getPath is `covering`; mutually-recursive metric — tracked in **#81** |
+| singleKeyPath | 228 | `getPath [Key k] (JsonObject obj) = lookup k obj` | 3 | DISCHARGE | ~50 min | getPath covering→total refactor complete (proven#81); six-arm split on JsonValue |
 | parseNullCorrect | 258 | `parseJson "null" = Just JsonNull` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseTrueCorrect | 264 | `parseJson "true" = Just (JsonBool True)` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseFalseCorrect | 270 | `parseJson "false" = Just (JsonBool False)` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseEmptyFails | 279 | `parseJson "" = Nothing` | 1 | PROPERTY-TEST | ~10 min | concrete input |
 | parseEmptyArray | 287 | `parseJson "[]" = Just (JsonArray [])` | 1 | PROPERTY-TEST | ~10 min | two-char lookahead via strSubstr |
 | parseEmptyObject | 294 | `parseJson "{}" = Just (JsonObject [])` | 1 | PROPERTY-TEST | ~10 min | same lookahead pattern |
-| anyMatchesTAny | 339 | `matchesType v TAny = True` for all `v` | 3 | DISCHARGE-after-totality | ~50 min | matchesType is `covering`; six-arm split after totality — tracked in **#81** |
+| anyMatchesTAny | 339 | `matchesType v TAny = True` for all `v` | 3 | DISCHARGE | ~50 min | matchesType covering→total refactor complete (proven#81); six-arm split on JsonValue |
 
-**Module summary:** 1 DISCHARGE + 2 DISCHARGE-after-totality + 6 PROPERTY-TEST + 4 OWED-AXIOM. Cost: ~3-4h (2h if totality lands). Half the module is concrete-input PROPERTY-TEST (parser tests); covering-function gap is the second-largest blocker after String FFI.
+**Module summary:** 3 DISCHARGE + 0 DISCHARGE-after-totality + 6 PROPERTY-TEST + 4 OWED-AXIOM. Cost: ~2-2.5h. Half the module is concrete-input PROPERTY-TEST (parser tests); covering-function gap resolved (proven#81).
 
 ### SafeArchive / Proofs.idr (6 OWED — note: 7 grep hits include 1 meta-comment in module header)
 
@@ -369,7 +369,7 @@ Discrepancies of ±2 against the 210 figure are real — sub-agents occasionally
 
 3. **Family 4 (External KDF / opaque libs) is almost always OWED-AXIOM** — these are honest trusted-base entries. SafeCrypto and SafePassword's KDF-params proofs are the canonical examples. There is no Idris2 fix that helps here; the axiom names which external library claim is being trusted.
 
-4. **Family 3 (covering / totality)** sites are DISCHARGE-after-totality. Three modules have them: SafePassword (`analyzeStrength`), SafeJson (`getPath`, `matchesType`), SafeRegex (`matchingTerminatesLemma`). Each needs a per-module totality-refactor ticket.
+4. **Family 3 (covering / totality)** sites are DISCHARGE-after-totality. Two modules still have them: SafePassword (`analyzeStrength`) and SafeRegex (`matchingTerminatesLemma`). SafeJson's covering→total refactor (proven#81) discharged both `getPath` and `matchesType`. Each remaining module needs a per-module totality-refactor ticket.
 
 5. **The 5 SafePassword KDF params proofs** (argon2ParamsValid, bcryptCostBounded, defaultArgon2Valid, defaultBcryptValid, defaultScryptValid) should likely be lifted into a dedicated `Hash.Proofs` module once external-library correctness is formalised as a separate layer. They're not really logic proofs — they're parameter-bound assertions over abstract record fields.
 

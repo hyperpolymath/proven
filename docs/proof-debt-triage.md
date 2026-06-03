@@ -337,9 +337,9 @@ follow-up.
   modules/day.
 
 **Day 11–14 (Tier B per-site reads — totality-blocked).**
-- File a totality-refactor ticket per Tier B module (SafeRegex, SafeJson,
-  SafeTOML, …). Per-site dispositions land as "DISCHARGE blocked on totality
-  ticket #N".
+- File a totality-refactor ticket per Tier B module (SafeRegex, SafeTOML,
+  …; SafeJson proven#81 is CLOSED). Per-site dispositions land as "DISCHARGE
+  blocked on totality ticket #N".
 
 **Day 15–18 (Tier C confirmation — 30+ OWED-AXIOM permanents).**
 - For each OWED-AXIOM site, verify the doc comment names the external claim
@@ -423,9 +423,9 @@ day-band:
 - **proven#80** — SafePassword.Strength `windows`/`detectPatterns`/
   `analyzeStrength` covering→total refactor. Discharges 3 OWED sites
   (`strengthScoreBounded`, `higherImpliesLower`, `veryStrongSatisfiesAll`).
-- **proven#81** — SafeJson.Access `%default covering` → per-function
-  `total` refactor. Discharges 2 OWED sites (`singleKeyPath`,
-  `anyMatchesTAny`).
+- **proven#81** ✅ **CLOSED** — SafeJson.Access `%default covering` → per-function
+  `total` refactor. Discharged 2 OWED sites (`singleKeyPath`,
+  `anyMatchesTAny`) in proven@33155ce.
 - **proven#83** — SafeCrypto `modernIsSecure`/`standardIsSecure` Idris2
   0.9.0 dependency tracker (NOT a totality issue; case-rewrite
   eta-expansion in elaborator). Discharges 2 OWED sites once 0.9.0 lands.
@@ -491,9 +491,9 @@ mechanically.
   +6 from Days 19-21)
 - **~54** long-tail single-file modules still extrapolated as
   overclaim candidates
-- **3** GitHub issues open for Phase 3 unblocking (#80, #81, #83)
+- **2** GitHub issues open for Phase 3 unblocking (#80, #83; #81 CLOSED)
 
-Total visible, grep-discoverable debt entries: **~386** (280 + 87 + 19).
+Total visible, grep-discoverable debt entries: **~384** (278 + 87 + 19).
 The estate-wide trust-root ledger is now honest about every entry it
 names; the residual ~54 extrapolated modules are honestly tagged as
 extrapolated.
