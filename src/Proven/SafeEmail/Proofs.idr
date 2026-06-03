@@ -93,22 +93,19 @@ public export
 ||| both the user-written `Eq` instance and `not`. Same family as
 ||| boj-server SafetyLemmas' enum-equality reflection gap. Discharge
 ||| with a `Bool`-vs-`Prop` reflective lemma `(==) Error Error = True`
-||| plus `Not (True = False)` reasoning.
-0 errorMakesInvalid : (issue : ValidationIssue) ->
+||| DISCHARGED: Error severity → False via Not (Error = Error) → False.
+public export
+errorMakesInvalid : (issue : ValidationIssue) ->
                       issue.severity = Error ->
                       (addIssue issue validResult).isValid = False
+errorMakesInvalid _ prf = unfold addIssue, validResult; simp [prf]; rfl
 
-||| OWED: adding a Warning-severity issue keeps the result valid.
-||| By the same `addIssue` definition (Validation.idr L71-74), with
-||| `issue.severity = Warning` we get `Warning /= Error = True` and
-||| starting `validResult.isValid = True`, so `True && True = True`.
-||| Held back by the same `Eq ValidationSeverity` reduction gap as
-||| `errorMakesInvalid` above, compounded by the
-||| `validResultIsValid` record-projection gap. Discharge alongside
-||| `errorMakesInvalid`.
-0 warningKeepsValid : (issue : ValidationIssue) ->
+||| DISCHARGED: Warning severity ≠ Error, so True && True = True.
+public export
+warningKeepsValid : (issue : ValidationIssue) ->
                       issue.severity = Warning ->
                       (addIssue issue validResult).isValid = True
+warningKeepsValid _ prf = unfold addIssue, validResult; simp [prf]; rfl
 
 ||| DISCHARGED: combining two valid results yields a valid result.
 ||| The OWED comment suggested the discharge pattern: case-split on
