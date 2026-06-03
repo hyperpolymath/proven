@@ -54,9 +54,8 @@ for fuzzer in safe_path_has_traversal; do
 done
 
 # Bundle libproven.so so the runner can find it at exec time.
-mkdir -p "$OUT/lib"
 if [[ -f "$PROVEN_LIB_DIR/libproven.so" ]]; then
-  cp "$PROVEN_LIB_DIR/libproven.so" "$OUT/lib/"
+  cp "$PROVEN_LIB_DIR/libproven.so" "$OUT/"
 fi
 popd >/dev/null
 

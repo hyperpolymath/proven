@@ -22,10 +22,11 @@ fn main() {
     // Link against libproven (the compiled Zig/Idris2 shared library)
     println!("cargo:rustc-link-lib=dylib=proven");
 
-    // Add RPATH so binaries can find libproven.so relative to themselves (e.g. in ./lib/)
+    // Add RPATH so binaries can find libproven.so relative to themselves (e.g. in ./lib/ or ./)
     // This is required for ClusterFuzzLite and standalone distributions.
     if std::env::var("CARGO_CFG_TARGET_OS").ok() == Some("linux".to_string()) {
         println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/lib");
+        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN");
     }
 
     // Re-run build script if the library changes
