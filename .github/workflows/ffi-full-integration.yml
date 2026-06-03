@@ -46,17 +46,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Verify language-bridges credential
+      - name: Check language-bridges credential
+        id: bridge-token
         env:
           LANGUAGE_BRIDGES_TOKEN: ${{ secrets.LANGUAGE_BRIDGES_TOKEN }}
         run: |
           set -euo pipefail
           if [ -z "$LANGUAGE_BRIDGES_TOKEN" ]; then
-            echo "::error::LANGUAGE_BRIDGES_TOKEN must grant read access to nextgen-languages/language-bridges"
-            exit 1
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::LANGUAGE_BRIDGES_TOKEN is not configured; skipping private full FFI integration."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout language-bridges
+        if: steps.bridge-token.outputs.available == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           repository: nextgen-languages/language-bridges
@@ -65,12 +69,14 @@ jobs:
           persist-credentials: false
 
       - name: Install Idris 2 dependencies
+        if: steps.bridge-token.outputs.available == 'true'
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y chezscheme libgmp-dev
 
       - name: Cache Idris 2
+        if: steps.bridge-token.outputs.available == 'true'
         id: cache-idris2
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -80,7 +86,7 @@ jobs:
           key: idris2-refc-${{ env.IDRIS2_VERSION }}-${{ runner.os }}
 
       - name: Install Idris 2
-        if: steps.cache-idris2.outputs.cache-hit != 'true'
+        if: steps.bridge-token.outputs.available == 'true' && steps.cache-idris2.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           git clone --depth 1 --branch v${{ env.IDRIS2_VERSION }} https://github.com/idris-lang/Idris2.git ~/idris2-${{ env.IDRIS2_VERSION }}
@@ -89,17 +95,21 @@ jobs:
           make install
 
       - name: Add Idris 2 to PATH
+        if: steps.bridge-token.outputs.available == 'true'
         run: echo "$HOME/.idris2/bin" >> "$GITHUB_PATH"
 
       - name: Setup Zig
+        if: steps.bridge-token.outputs.available == 'true'
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
 
       - name: Build Idris RefC output
+        if: steps.bridge-token.outputs.available == 'true'
         run: scripts/build-refc.sh --verbose
 
       - name: Build and test libproven
+        if: steps.bridge-token.outputs.available == 'true'
         run: |
           set -euo pipefail
           IDRIS2_PREFIX="$(idris2 --prefix)"

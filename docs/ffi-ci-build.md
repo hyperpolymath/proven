@@ -10,7 +10,7 @@ There are **two** Zig build entry points:
 | File | Builds | External deps | Used by |
 |------|--------|---------------|---------|
 | `ffi/zig/build.zig` | full Idris→RefC→Zig `libproven` | `idris2_zig_ffi` (path dep on `nextgen-languages/language-bridges`) + generated RefC C | local dev, full integration CI |
-| `ffi/zig/build_standalone.zig` | `libproven_ffi.a` from `src/main.zig` only (pure-Zig C-ABI surface) | none | **CI** (`e2e.yml`) |
+| `ffi/zig/build_standalone.zig` | `libproven_ffi.a` from `src/main.zig` only (pure-Zig C-ABI surface) | none | **CI** (`e2e.yml`, `zig-ffi.yml`) |
 
 ## Why E2E uses the standalone build (ADR-003)
 
@@ -25,8 +25,8 @@ private credentials. `build_standalone.zig` compiles `src/main.zig` alone — an
 that file imports only `std`/`builtin` — so it needs neither the bridge nor the
 generated RefC, giving CI a real (if narrower) Zig FFI build + unit-test signal.
 
-`e2e.yml` therefore runs, with Zig provisioned by `mlugg/setup-zig@v1` at
-`0.15.2` (the `build.zig.zon` minimum):
+`e2e.yml` and `zig-ffi.yml` therefore run, with Zig provisioned by
+`mlugg/setup-zig@v1` at `0.15.2` (the `build.zig.zon` minimum):
 
     zig build       --build-file build_standalone.zig      # E2E build
     zig build test  --build-file build_standalone.zig      # E2E tests
@@ -63,9 +63,18 @@ Requires `libgmp` (the RefC runtime links `gmp`/`pthread`/`m`).
 5. Run `zig build` and `zig build test` with the generated RefC and Idris
    runtime/support paths.
 
-The workflow requires a repository secret named `LANGUAGE_BRIDGES_TOKEN` with
-read access to `nextgen-languages/language-bridges`. Pull requests from forks
-are skipped because that credential must not be exposed to untrusted branches.
+The workflow runs the private full integration only when a repository secret
+named `LANGUAGE_BRIDGES_TOKEN` is configured with read access to
+`nextgen-languages/language-bridges`. If that secret is absent, the job emits a
+notice and skips the private bridge steps instead of turning every unrelated PR
+red. Pull requests from forks are skipped because that credential must not be
+exposed to untrusted branches.
+
+ClusterFuzzLite uses the standalone Zig FFI surface to build a dynamic
+`libproven.so` fixture and fuzzes the Rust path traversal wrapper currently
+backed by `src/main.zig`. Additional Rust fuzz targets should be enabled in
+ClusterFuzzLite once their exported Zig symbols are available without the
+private bridge.
 
 If `language-bridges` is later converted to a real git submodule, keep the same
 checkout location so `ffi/zig/build.zig.zon` continues to resolve the bridge via
