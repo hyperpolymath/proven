@@ -44,7 +44,7 @@ module Proven
     end
 
     # Check if a UUID is nil (all zeros).
-    def self.nil?(uuid : LibProven::Uuid) : Bool
+    def self.is_nil?(uuid : LibProven::Uuid) : Bool
       LibProven.uuid_is_nil(pointerof(uuid))
     end
 
