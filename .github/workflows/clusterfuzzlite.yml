@@ -8,6 +8,8 @@
 # does not run on commits before the fuzz scaffolding lands.
 
 name: ClusterFuzzLite
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   pull_request:
@@ -29,7 +31,7 @@ concurrency:
 
 jobs:
   pr-fuzzing:
-    if: github.event_name == 'pull_request' && hashFiles('bindings/rust/fuzz/Cargo.toml') != ''
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

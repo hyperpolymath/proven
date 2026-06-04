@@ -3,6 +3,8 @@
 # See standards#191 for the reusable's purpose and design.
 
 name: Hypatia Security Scan
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:
