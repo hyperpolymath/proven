@@ -8,6 +8,8 @@
 # does not run on commits before the fuzz scaffolding lands.
 
 name: ClusterFuzzLite
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   pull_request:

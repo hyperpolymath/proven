@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # Trustfile validation — enforces security spec from Trustfile.a2ml
 name: Trustfile Validation
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:

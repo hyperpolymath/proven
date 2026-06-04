@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # Prevention workflow - runs OpenSSF Scorecard and fails on low scores
 name: OpenSSF Scorecard Enforcer
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:

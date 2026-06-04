@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 name: Scorecards supply-chain security
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   branch_protection_rule:

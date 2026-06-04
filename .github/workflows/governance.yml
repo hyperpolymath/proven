@@ -11,6 +11,8 @@
 # (rust-ci, codeql, dependabot, release, scan/mirror/pages plumbing).
 
 name: Governance
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:
