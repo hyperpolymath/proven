@@ -25,6 +25,7 @@ jobs:
   publish:
     name: Publish Rust crate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     defaults:

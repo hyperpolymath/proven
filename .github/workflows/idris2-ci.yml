@@ -185,6 +185,7 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: build
     if: github.ref == 'refs/heads/main'
     # Reuses Idris2 cache from build job; docs generation is fast (~5 min).

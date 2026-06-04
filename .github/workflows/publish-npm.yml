@@ -32,6 +32,7 @@ jobs:
   publish-javascript:
     name: Publish JavaScript package
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: inputs.package == 'all' || inputs.package == 'javascript' || github.event_name == 'release'
     permissions:
       contents: read
@@ -62,6 +63,7 @@ jobs:
   publish-typescript:
     name: Publish TypeScript package
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: inputs.package == 'all' || inputs.package == 'typescript' || github.event_name == 'release'
     permissions:
       contents: read
@@ -99,6 +101,7 @@ jobs:
     name: Publish summary
     needs: [publish-javascript, publish-typescript]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: always()
 
     steps:

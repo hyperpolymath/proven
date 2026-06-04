@@ -109,6 +109,7 @@ jobs:
 
   verify-idris-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Docker pull (snazzybucket/idris2) + Idris2 totality check across all
     # Proven.Safe.* modules. Local oracle runs in ~8 minutes; 20-minute
     # budget covers cold cache and the occasional Docker Hub slowdown.

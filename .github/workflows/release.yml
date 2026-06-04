@@ -37,6 +37,7 @@ jobs:
   validate:
     name: Validate release
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       version: ${{ steps.version.outputs.version }}
 
@@ -82,6 +83,7 @@ jobs:
     name: Create GitHub Release
     needs: validate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event_name == 'push'
     permissions:
       contents: write
@@ -133,6 +135,7 @@ jobs:
     needs: [validate, publish-crates, publish-npm, publish-jsr]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Summary

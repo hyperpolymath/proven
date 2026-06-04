@@ -17,6 +17,7 @@ jobs:
   publish-npm-ghcr:
     name: Publish npm to GitHub Packages
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -44,6 +45,7 @@ jobs:
   publish-container:
     name: Publish Docker container
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
