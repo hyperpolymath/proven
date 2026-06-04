@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 name: BoJ Server Build Trigger
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:

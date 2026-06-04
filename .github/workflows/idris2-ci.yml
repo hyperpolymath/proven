@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 name: Idris 2 CI
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
   contents: read

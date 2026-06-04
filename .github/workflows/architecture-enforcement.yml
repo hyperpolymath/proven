@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # Architecture Enforcement: Idris2 ONLY for logic, Zig for FFI, bindings for wrappers
 name: Architecture Enforcement
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   pull_request:

@@ -5,6 +5,8 @@
 # Validates that the repo uses hyperpolymath's own formats and tools.
 # Companion to static-analysis-gate.yml (security) — this is for format compliance.
 name: Dogfood Gate
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   pull_request:
