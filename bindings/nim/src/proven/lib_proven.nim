@@ -328,7 +328,7 @@ type
 
 proc provenBufferCreate*(capacity: csize_t): BufferResult {.importc: "proven_buffer_create", dynlib: ProvenDynlib.}
 proc provenBufferAppend*(buffer: ptr ProvenBoundedBuffer, p: pointer, len: csize_t): int32 {.importc: "proven_buffer_append", dynlib: ProvenDynlib.}
-proc provenBufferGet*(buffer: ptr ProvenBoundedBuffer, out_ptr: ptr pointer, out_len: ptr csize_t): int32 {.importc: "proven_buffer_get", dynlib: ProvenDynlib.}
+proc provenBufferGet*(buffer: ptr ProvenBoundedBuffer, out_p: ptr pointer, out_l: ptr csize_t): int32 {.importc: "proven_buffer_get", dynlib: ProvenDynlib.}
 proc provenBufferFree*(buffer: ptr ProvenBoundedBuffer) {.importc: "proven_buffer_free", dynlib: ProvenDynlib.}
 
 # ---------------------------------------------------------------------------
