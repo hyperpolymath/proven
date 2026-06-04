@@ -9,7 +9,7 @@
 #
 # Link with: -lproven
 
-import proven/lib_proven
+import proven/lib_proven as ffi
 export lib_proven
 
 import proven/safe_math
