@@ -80,6 +80,14 @@ export fn proven_free(handle: ?*Handle) void {
     clearError();
 }
 
+/// Return the library version triple
+export fn proven_version_major() u32 { return 1; }
+export fn proven_version_minor() u32 { return 1; }
+export fn proven_version_patch() u32 { return 0; }
+
+/// Return the FFI ABI version
+export fn proven_ffi_abi_version() u32 { return 1; }
+
 //==============================================================================
 // Core Operations
 //==============================================================================
