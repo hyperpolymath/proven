@@ -10,7 +10,6 @@
 name: ClusterFuzzLite
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   pull_request:
     paths:
@@ -20,15 +19,12 @@ on:
       - '.clusterfuzzlite/**'
       - '.github/workflows/clusterfuzzlite.yml'
   schedule:
-    - cron: '0 2 * * 0'  # Sunday 02:00 UTC
+    - cron: '0 2 * * 0' # Sunday 02:00 UTC
   workflow_dispatch:
-
 permissions: read-all
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   pr-fuzzing:
     if: github.event_name == 'pull_request'
@@ -45,10 +41,9 @@ jobs:
       - uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: 300  # 5 minutes per fuzzer
+          fuzz-seconds: 300 # 5 minutes per fuzzer
           mode: prune
           sanitizer: address
-
   batch-fuzzing:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -62,6 +57,6 @@ jobs:
       - uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: 1800  # 30 minutes per fuzzer
+          fuzz-seconds: 1800 # 30 minutes per fuzzer
           mode: batch
           sanitizer: address

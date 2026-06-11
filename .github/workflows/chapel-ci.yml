@@ -23,10 +23,8 @@
 # break Chapel are blocked from merge.
 
 name: Chapel CI
-
 permissions:
   contents: read
-
 on:
   push:
     branches: [main]
@@ -43,14 +41,12 @@ on:
       - 'bindings/c/include/proven.h'
       - '.github/workflows/chapel-ci.yml'
   workflow_dispatch:
-
 # Cancel superseded runs on the same ref.  Chapel install (cold) is ~30s
 # but the full smoke + tests cycle is ~3 min; without cancel-in-progress
 # a rapid push sequence will burn into the Pro-plan concurrency ceiling.
 concurrency:
   group: chapel-ci-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   # Pinned Chapel deb (Ubuntu 22.04 amd64).  SHA-256 verified out-of-band
@@ -68,7 +64,6 @@ env:
   # Pinned Zig version.  Matches ffi/zig/build.zig.zon's
   # `minimum_zig_version = "0.15.2"`.
   ZIG_VERSION: '0.15.2'
-
 jobs:
   # ==========================================================================
   # Job 0 — Detachability guard.
@@ -85,7 +80,6 @@ jobs:
           sparse-checkout: |
             .github/workflows/chapel-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Detachability grep guard
         run: |
           set -euo pipefail
@@ -117,7 +111,6 @@ jobs:
                      .github/workflows/chapel-ci.yml | sort -u)
           [ "$forbidden" -eq 0 ]
           echo "detachability-guard: OK"
-
   # ==========================================================================
   # Job 1 — Build libproven.so + Chapel typecheck.
   # Produces the .so artefact every subsequent job consumes via download.
@@ -126,18 +119,15 @@ jobs:
     runs-on: ubuntu-22.04
     needs: detachability-guard
     timeout-minutes: 20
-
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           path: proven
-
       - name: Setup Zig ${{ env.ZIG_VERSION }}
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
-
       - name: Build libproven.so (WIRED-subset fixture)
         working-directory: proven/ffi/zig
         # NOTE: ffi/zig/build.zig depends on `idris2_zig_ffi` (relative
@@ -166,7 +156,6 @@ jobs:
               | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' \
               | sort -u | tee /tmp/wired-exports.txt
           test "$(wc -l < /tmp/wired-exports.txt)" -eq 5
-
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
@@ -182,7 +171,6 @@ jobs:
           # CHPL_TARGET_* overrides needed (the 2.3.0-era runtime-tuple
           # mismatch is gone — verified against panic-attack chapel-ci).
           chpl --version
-
       - name: Chapel typecheck via driver build
         working-directory: proven/bindings/chapel
         env:
@@ -215,7 +203,6 @@ jobs:
           # Sanity check: the binary actually runs against the test fixture.
           LD_LIBRARY_PATH="$PROVEN_LIB_PATH" /tmp/_chapel_typecheck_driver
           echo "[chapel-build] typecheck via real link: OK"
-
       - name: Upload libproven.so artefact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
@@ -223,7 +210,6 @@ jobs:
           path: proven/ffi/zig/zig-out/lib/libproven.so
           if-no-files-found: error
           retention-days: 1
-
   # ==========================================================================
   # Job 2 — Symbol audit (FFI parity gate).
   # The load-bearing check: nm -D libproven.so vs. symbol-manifest.txt.
@@ -239,19 +225,16 @@ jobs:
           sparse-checkout: |
             bindings/chapel
           sparse-checkout-cone-mode: false
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Run chapel-symbol-audit
         working-directory: bindings/chapel
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/lib
         run: ./scripts/symbol-audit.sh
-
   # ==========================================================================
   # Job 3 — Smoke (the "binding actually links + runs" gate).
   # ==========================================================================
@@ -268,7 +251,6 @@ jobs:
             bindings/c/include
             .github/workflows/chapel-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
@@ -278,31 +260,26 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get install -y /tmp/chapel.deb
           chpl --version
-
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
           just-version: '1.36.0'
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Build hello_smoke (cd bindings/chapel && just build)
         working-directory: bindings/chapel
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/lib
           PROVEN_INCLUDE_PATH: ${{ github.workspace }}/bindings/c/include
         run: just build
-
       - name: Run hello_smoke
         working-directory: bindings/chapel
         env:
           LD_LIBRARY_PATH: ${{ github.workspace }}/lib
         run: ./smoke/hello_smoke
-
   # ==========================================================================
   # Job 4 — Per-module tests.
   # ==========================================================================
@@ -319,7 +296,6 @@ jobs:
             bindings/c/include
             .github/workflows/chapel-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
@@ -329,18 +305,15 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get install -y /tmp/chapel.deb
           chpl --version
-
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
           just-version: '1.36.0'
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Run all Chapel tests (cd bindings/chapel && just test)
         working-directory: bindings/chapel
         env:
@@ -348,7 +321,6 @@ jobs:
           PROVEN_INCLUDE_PATH: ${{ github.workspace }}/bindings/c/include
           LD_LIBRARY_PATH: ${{ github.workspace }}/lib
         run: just test
-
   # ==========================================================================
   # Job 5 — Detachable-checkout proof.
   # Validates the harness self-builds with ONLY:
@@ -369,7 +341,6 @@ jobs:
             .github/workflows/chapel-ci.yml
           sparse-checkout-cone-mode: false
           path: proven-chapel
-
       - name: Verify detached layout (no other proven trees present)
         working-directory: proven-chapel
         run: |
@@ -382,7 +353,6 @@ jobs:
           test -d bindings/chapel
           test -f bindings/c/include/proven.h
           echo "detached layout: OK"
-
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |
           set -euo pipefail
@@ -392,18 +362,15 @@ jobs:
           echo "$CHAPEL_DEB_SHA256  /tmp/chapel.deb" | sha256sum --check
           sudo apt-get install -y /tmp/chapel.deb
           chpl --version
-
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
           just-version: '1.36.0'
-
       - name: Download libproven.so (the only external dep allowed)
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Build + test from detached checkout
         working-directory: proven-chapel/bindings/chapel
         env:

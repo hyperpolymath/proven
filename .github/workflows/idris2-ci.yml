@@ -2,10 +2,8 @@
 name: Idris 2 CI
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 permissions:
   contents: read
-
 on:
   push:
     branches: [main]
@@ -24,7 +22,6 @@ on:
       - 'tests.ipkg'
       - '.github/workflows/idris2-ci.yml'
   workflow_dispatch:
-
 # Cancel superseded runs on the same ref. Idris2 bootstrap + build is
 # ~20 minutes per run; without cancel-in-progress, a rapid PR-push
 # sequence saturates the Pro-plan 40-job concurrent ceiling within
@@ -32,7 +29,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -42,16 +38,13 @@ jobs:
     strategy:
       matrix:
         idris2-version: ['0.8.0']
-
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Install Idris 2 dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y chezscheme libgmp-dev
-
       - name: Cache Idris 2
         id: cache-idris2
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -60,7 +53,6 @@ jobs:
             ~/.idris2
             ~/idris2-${{ matrix.idris2-version }}
           key: idris2-${{ matrix.idris2-version }}-${{ runner.os }}
-
       - name: Install Idris 2
         if: steps.cache-idris2.outputs.cache-hit != 'true'
         run: |
@@ -68,19 +60,14 @@ jobs:
           cd ~/idris2-${{ matrix.idris2-version }}
           make bootstrap SCHEME=chezscheme
           make install
-
       - name: Add Idris 2 to PATH
         run: echo "$HOME/.idris2/bin" >> $GITHUB_PATH
-
       - name: Build proven library
         run: idris2 --build proven.ipkg
-
       - name: Install proven library (required for tests.ipkg)
         run: idris2 --install proven.ipkg
-
       - name: Build property-test suite (tests.ipkg)
         run: idris2 --build tests.ipkg
-
       - name: Type check all modules
         run: |
           idris2 --check src/Proven.idr
@@ -95,7 +82,6 @@ jobs:
           idris2 --check src/Proven/SafePassword.idr
           idris2 --check src/Proven/SafeDateTime.idr
           idris2 --check src/Proven/SafeNetwork.idr
-
   # Fast, targeted gate over every Proofs.idr companion module.
   #
   # Rationale (issue #145): the swapped-arg `appendLengthInc` break (#127)
@@ -112,16 +98,13 @@ jobs:
     strategy:
       matrix:
         idris2-version: ['0.8.0']
-
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Install Idris 2 dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y chezscheme libgmp-dev
-
       # Cache the Idris2 compiler + bundled packages (base/contrib/network)
       # only. This job never runs `idris2 --install proven.ipkg` and never
       # caches `build/`, so every run type-checks the CURRENT source of each
@@ -134,7 +117,6 @@ jobs:
             ~/.idris2
             ~/idris2-${{ matrix.idris2-version }}
           key: idris2-${{ matrix.idris2-version }}-${{ runner.os }}
-
       - name: Install Idris 2
         if: steps.cache-idris2.outputs.cache-hit != 'true'
         run: |
@@ -142,10 +124,8 @@ jobs:
           cd ~/idris2-${{ matrix.idris2-version }}
           make bootstrap SCHEME=chezscheme
           make install
-
       - name: Add Idris 2 to PATH
         run: echo "$HOME/.idris2/bin" >> $GITHUB_PATH
-
       - name: Type check the proof modules in proven.ipkg
         # Scope: every `*.Proofs` module LISTED IN proven.ipkg — i.e. the proof
         # modules the package actually builds. (64 of the 93 Proofs.idr files on
@@ -182,7 +162,6 @@ jobs:
           done < /tmp/proof_modules.txt
           echo "Checked $checked proof module(s); fail=$fail"
           exit "$fail"
-
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -193,12 +172,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Install Idris 2 dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y chezscheme libgmp-dev
-
       - name: Cache Idris 2
         id: cache-idris2
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -207,7 +184,6 @@ jobs:
             ~/.idris2
             ~/idris2-0.8.0
           key: idris2-0.8.0-${{ runner.os }}
-
       - name: Install Idris 2
         if: steps.cache-idris2.outputs.cache-hit != 'true'
         run: |
@@ -215,13 +191,10 @@ jobs:
           cd ~/idris2-0.8.0
           make bootstrap SCHEME=chezscheme
           make install
-
       - name: Add Idris 2 to PATH
         run: echo "$HOME/.idris2/bin" >> $GITHUB_PATH
-
       - name: Generate documentation
         run: idris2 --mkdoc proven.ipkg || true
-
       - name: Upload docs artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

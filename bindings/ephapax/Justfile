@@ -15,3 +15,6 @@ test: all
 
 clean:
     rm -f libephapax_proven.so test_ffi *.o
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

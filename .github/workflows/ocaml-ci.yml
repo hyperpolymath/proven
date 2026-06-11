@@ -7,10 +7,8 @@
 # It references ONLY: bindings/ocaml/, ffi/zig/, and bindings/c/include/proven.h.
 
 name: OCaml CI
-
 permissions:
   contents: read
-
 on:
   push:
     branches: [main]
@@ -27,16 +25,13 @@ on:
       - 'bindings/c/include/proven.h'
       - '.github/workflows/ocaml-ci.yml'
   workflow_dispatch:
-
 concurrency:
   group: ocaml-ci-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   OCAML_VERSION: '5.1.1'
   ZIG_VERSION: '0.15.2'
-
 jobs:
   detachability-guard:
     runs-on: ubuntu-22.04
@@ -48,7 +43,6 @@ jobs:
           sparse-checkout: |
             .github/workflows/ocaml-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Detachability grep guard
         run: |
           set -euo pipefail
@@ -71,23 +65,19 @@ jobs:
                      .github/workflows/ocaml-ci.yml | sort -u)
           [ "$forbidden" -eq 0 ]
           echo "detachability-guard: OK"
-
   ocaml-build:
     runs-on: ubuntu-22.04
     needs: detachability-guard
     timeout-minutes: 20
-
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           path: proven
-
       - name: Setup Zig ${{ env.ZIG_VERSION }}
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
-
       - name: Build libproven.so (WIRED-subset fixture)
         working-directory: proven/ffi/zig
         run: |
@@ -104,16 +94,13 @@ jobs:
               | sort -u | tee /tmp/wired-exports.txt
           # Wait! OCaml might need more for the full lib integration
           # but for smoke we just need these.
-
       - name: Setup OCaml ${{ env.OCAML_VERSION }}
         uses: ocaml/setup-ocaml@4462cc269f8d5e869a19c676450637119e71ec60 # v3
         with:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
           dune-cache: true
-
       - name: Install dependencies
         run: opam install dune ctypes ctypes-foreign
-
       - name: OCaml build
         working-directory: proven/bindings/ocaml
         env:
@@ -121,7 +108,6 @@ jobs:
         run: |
           set -euo pipefail
           dune build
-
       - name: Upload libproven.so artefact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
@@ -129,7 +115,6 @@ jobs:
           path: proven/ffi/zig/zig-out/lib/libproven.so
           if-no-files-found: error
           retention-days: 1
-
   ocaml-symbol-audit:
     runs-on: ubuntu-22.04
     needs: ocaml-build
@@ -141,19 +126,16 @@ jobs:
           sparse-checkout: |
             bindings/ocaml
           sparse-checkout-cone-mode: false
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Run ocaml-symbol-audit
         working-directory: bindings/ocaml
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/lib
         run: ./scripts/symbol-audit.sh
-
   ocaml-smoke:
     runs-on: ubuntu-22.04
     needs: ocaml-build
@@ -167,26 +149,21 @@ jobs:
             bindings/c/include
             .github/workflows/ocaml-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Setup OCaml ${{ env.OCAML_VERSION }}
         uses: ocaml/setup-ocaml@4462cc269f8d5e869a19c676450637119e71ec60 # v3
         with:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
-
       - name: Install dependencies
         run: opam install dune ctypes ctypes-foreign
-
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
           just-version: '1.36.0'
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Build + Run hello_smoke
         working-directory: bindings/ocaml
         env:
@@ -196,7 +173,6 @@ jobs:
         run: |
           dune build smoke/hello_smoke.exe
           ./_build/default/smoke/hello_smoke.exe
-
   ocaml-detachable-build:
     runs-on: ubuntu-22.04
     needs: ocaml-build
@@ -211,7 +187,6 @@ jobs:
             .github/workflows/ocaml-ci.yml
           sparse-checkout-cone-mode: false
           path: proven-ocaml
-
       - name: Verify detached layout (no other proven trees present)
         working-directory: proven-ocaml
         run: |

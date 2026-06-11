@@ -3,10 +3,9 @@
 name: Trustfile Validation
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
     paths:
       - 'Trustfile.a2ml'
       - 'src/**'
@@ -14,28 +13,23 @@ on:
       - 'bindings/**'
       - '.github/workflows/trustfile.yml'
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   validate-trustfile:
     name: Validate Trustfile Integrity
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
-
       - name: Verify Trustfile exists
         run: |
           if [ ! -f Trustfile.a2ml ]; then
@@ -43,7 +37,6 @@ jobs:
             exit 1
           fi
           echo "Trustfile.a2ml found"
-
       - name: Validate Trustfile structure
         run: |
           # Verify required sections exist
@@ -55,7 +48,6 @@ jobs:
             fi
           done
           echo "All required sections present"
-
       - name: Verify architecture invariants
         run: |
           # Check that no binding reimplements logic (search for computation patterns)
@@ -76,7 +68,6 @@ jobs:
           else
             echo "Architecture invariants verified"
           fi
-
       - name: Compute integrity hashes
         run: |
           if command -v sha3sum &>/dev/null; then
@@ -86,17 +77,14 @@ jobs:
             SHA256=$(sha256sum Trustfile.a2ml | awk '{print $1}')
             echo "SHA256 (fallback): $SHA256"
           fi
-
   enforce-policies:
     name: Enforce Trustfile Policies
     runs-on: ubuntu-latest
     needs: validate-trustfile
     timeout-minutes: 5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
       - name: Check SPDX license compliance
         run: |
           # All source files must use MPL-2.0
@@ -109,7 +97,6 @@ jobs:
             exit 1
           fi
           echo "License compliance: PASS"
-
       - name: Check believe_me audit trail
         run: |
           # Count believe_me instances and verify they have justification comments
@@ -120,7 +107,6 @@ jobs:
           if [ "$BELIEVE_ME_COUNT" -gt 300 ]; then
             echo "WARNING: believe_me count ($BELIEVE_ME_COUNT) exceeds threshold (300)"
           fi
-
       - name: Verify FFI bridge purity
         run: |
           # Zig FFI bridge must not contain safety logic

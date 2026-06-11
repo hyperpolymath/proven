@@ -7,10 +7,8 @@
 # It references ONLY: bindings/d/, ffi/zig/, and bindings/c/include/proven.h.
 
 name: D CI
-
 permissions:
   contents: read
-
 on:
   push:
     branches: [main]
@@ -27,15 +25,12 @@ on:
       - 'bindings/c/include/proven.h'
       - '.github/workflows/d-ci.yml'
   workflow_dispatch:
-
 concurrency:
   group: d-ci-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   LDC_VERSION: '1.36.0'
   ZIG_VERSION: '0.15.2'
-
 jobs:
   detachability-guard:
     runs-on: ubuntu-22.04
@@ -47,7 +42,6 @@ jobs:
           sparse-checkout: |
             .github/workflows/d-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Detachability grep guard
         run: |
           set -euo pipefail
@@ -70,23 +64,19 @@ jobs:
                      .github/workflows/d-ci.yml | sort -u)
           [ "$forbidden" -eq 0 ]
           echo "detachability-guard: OK"
-
   d-build:
     runs-on: ubuntu-22.04
     needs: detachability-guard
     timeout-minutes: 20
-
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           path: proven
-
       - name: Setup Zig ${{ env.ZIG_VERSION }}
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
-
       - name: Build libproven.so (WIRED-subset fixture)
         working-directory: proven/ffi/zig
         run: |
@@ -101,12 +91,10 @@ jobs:
               | awk '$2 ~ /^[TWV]$/ { print $3 }' \
               | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' \
               | sort -u | tee /tmp/wired-exports.txt
-
       - name: Setup D compiler (LDC)
         uses: dlang-community/setup-dlang@4071ba822f6d0f622ba7359556d11f5827725916 # v1.6.0
         with:
           compiler: ldc-${{ env.LDC_VERSION }}
-
       - name: D build
         working-directory: proven/bindings/d
         env:
@@ -114,7 +102,6 @@ jobs:
         run: |
           set -euo pipefail
           dub build
-
       - name: Upload libproven.so artefact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
@@ -122,7 +109,6 @@ jobs:
           path: proven/ffi/zig/zig-out/lib/libproven.so
           if-no-files-found: error
           retention-days: 1
-
   d-symbol-audit:
     runs-on: ubuntu-22.04
     needs: d-build
@@ -134,19 +120,16 @@ jobs:
           sparse-checkout: |
             bindings/d
           sparse-checkout-cone-mode: false
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Run d-symbol-audit
         working-directory: bindings/d
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/lib
         run: ./scripts/symbol-audit.sh
-
   d-smoke:
     runs-on: ubuntu-22.04
     needs: d-build
@@ -160,23 +143,19 @@ jobs:
             bindings/c/include
             .github/workflows/d-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Setup D compiler (LDC)
         uses: dlang-community/setup-dlang@4071ba822f6d0f622ba7359556d11f5827725916 # v1.6.0
         with:
           compiler: ldc-${{ env.LDC_VERSION }}
-
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
           just-version: '1.36.0'
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Build + Run hello_smoke
         working-directory: bindings/d
         env:
@@ -189,7 +168,6 @@ jobs:
                -L-L$PROVEN_LIB_PATH -L-lproven \
                -L-rpath=$PROVEN_LIB_PATH
           ./smoke/hello_smoke
-
   d-tests:
     runs-on: ubuntu-22.04
     needs: d-build
@@ -203,23 +181,19 @@ jobs:
             bindings/c/include
             .github/workflows/d-ci.yml
           sparse-checkout-cone-mode: false
-
       - name: Setup D compiler (LDC)
         uses: dlang-community/setup-dlang@4071ba822f6d0f622ba7359556d11f5827725916 # v1.6.0
         with:
           compiler: ldc-${{ env.LDC_VERSION }}
-
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
           just-version: '1.36.0'
-
       - name: Download libproven.so
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: libproven-x86_64-linux-gnu
           path: lib/
-
       - name: Run all D tests
         working-directory: bindings/d
         env:
@@ -227,7 +201,6 @@ jobs:
           PROVEN_INCLUDE_PATH: ${{ github.workspace }}/bindings/c/include
           LD_LIBRARY_PATH: ${{ github.workspace }}/lib
         run: dub test
-
   d-detachable-build:
     runs-on: ubuntu-22.04
     needs: d-build
@@ -242,7 +215,6 @@ jobs:
             .github/workflows/d-ci.yml
           sparse-checkout-cone-mode: false
           path: proven-d
-
       - name: Verify detached layout (no other proven trees present)
         working-directory: proven-d
         run: |

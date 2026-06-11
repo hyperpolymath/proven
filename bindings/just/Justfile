@@ -76,3 +76,6 @@ validate-urls-file file:
         printf '%s -> ' "$url"; \
         {{ proven_cli }} validate url "$url" 2>&1 || true; \
     done < "{{ file }}"
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

@@ -88,3 +88,6 @@ clean:
     find tests -maxdepth 1 -type f -perm -u+x ! -name '*.ldc2' -delete 2>/dev/null || true
     find . -name '*.tmp' -delete 2>/dev/null || true
     echo "[d] Clean complete."
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

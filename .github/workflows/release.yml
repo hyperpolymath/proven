@@ -3,7 +3,6 @@
 name: Release
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     tags:
@@ -29,10 +28,8 @@ on:
         required: false
         default: true
         type: boolean
-
 permissions:
   contents: read
-
 jobs:
   validate:
     name: Validate release
@@ -40,11 +37,9 @@ jobs:
     timeout-minutes: 15
     outputs:
       version: ${{ steps.version.outputs.version }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Extract version
         id: version
         run: |
@@ -55,7 +50,6 @@ jobs:
           fi
           echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
           echo "Release version: ${VERSION#v}"
-
       - name: Verify version consistency
         run: |
           VERSION="${{ steps.version.outputs.version }}"
@@ -78,7 +72,6 @@ jobs:
           echo "TypeScript: $TS_VERSION"
 
           echo "All versions checked. Proceeding with release."
-
   create-release:
     name: Create GitHub Release
     needs: validate
@@ -87,11 +80,9 @@ jobs:
     if: github.event_name == 'push'
     permissions:
       contents: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Create Release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
         with:
@@ -108,35 +99,30 @@ jobs:
             **npm**: `npm install @proven/javascript`
 
             See [documentation](https://github.com/hyperpolymath/proven#readme) for the full binding set.
-
   publish-crates:
     name: Publish to crates.io
     needs: [validate, create-release]
     if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_crates)
     uses: ./.github/workflows/publish-crates.yml
     secrets: inherit
-
   publish-npm:
     name: Publish to npm
     needs: [validate, create-release]
     if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_npm)
     uses: ./.github/workflows/publish-npm.yml
     secrets: inherit
-
   publish-jsr:
     name: Publish to JSR
     needs: [validate, create-release]
     if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_jsr)
     uses: ./.github/workflows/publish-jsr.yml
     secrets: inherit
-
   summary:
     name: Release summary
     needs: [validate, publish-crates, publish-npm, publish-jsr]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Summary
         run: |

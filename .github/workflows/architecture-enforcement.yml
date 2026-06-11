@@ -3,22 +3,18 @@
 name: Architecture Enforcement
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   pull_request:
   push:
     branches: [main, develop]
-
 permissions:
   contents: read
-
 # Cancel superseded runs on the same ref so a rapid sequence of pushes
 # to a feature branch does not pile up jobs against the Pro-plan 40-job
 # concurrent ceiling. Each new push to a ref supersedes its predecessor.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   enforce-idris-only:
     runs-on: ubuntu-latest
@@ -26,7 +22,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Block unsafe patterns in Rust safe_*.rs wrappers
         run: |
           # safe_*.rs files are legitimate FFI wrappers around Proven.Safe.*
@@ -52,7 +47,6 @@ jobs:
             exit 1
           fi
           echo "✅ Rust safe_*.rs wrappers contain no panic-prone idioms"
-
       - name: Block non-FFI Zig code
         run: |
           # Zig is allowed in three places only:
@@ -70,13 +64,11 @@ jobs:
             exit 1
           fi
           echo "✅ Zig code correctly limited to ffi/zig/, bindings/zig/, bindings/ephapax/"
-
       - name: Verify Idris modules exist for claimed features
         run: |
           # Check that bindings don't claim features without Idris backing
           # This is a placeholder - actual check would parse binding manifests
           echo "✅ Idris module verification (manual review required)"
-
       - name: Block unwrap/getExn/panic in bindings
         run: |
           # Scan all language bindings for unsafe patterns
@@ -98,7 +90,6 @@ jobs:
           # e2e.yml (Aspect — Safety Invariants).
 
           echo "✅ No unsafe patterns found in bindings"
-
   # The legacy `hypatia-scan` job that bootstrapped its own checkout of
   # hyperpolymath/hypatia and built the Elixir scanner has been removed —
   # see `.github/workflows/hypatia-scan.yml`, which is the canonical wrapper
@@ -106,7 +97,6 @@ jobs:
   # job broke after hypatia's `elixir-scanner/` directory was relocated, and
   # maintaining two parallel scanner invocations created drift; the reusable
   # is the single source of truth.
-
   verify-idris-build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -116,7 +106,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Build Idris2 modules (via container)
         run: |
           # Use the snazzybucket/idris2 container so we don't pay a 10-minute
