@@ -36,6 +36,9 @@ struct ResourceHandle {
 // LRU functions (stub implementations)
 LRUCache* idris_proven_lru_new(uint64_t capacity) {
     LRUCache* cache = malloc(sizeof(LRUCache));
+    if (cache == NULL) {
+        return NULL; // Allocation failed; caller must handle NULL
+    }
     cache->capacity = capacity;
     cache->size = 0;
     cache->access_counter = 0;
@@ -80,9 +83,16 @@ void idris_proven_lru_free(LRUCache* cache) {
 // Buffer functions (stub implementations)
 Buffer* idris_proven_buffer_new(uint64_t capacity) {
     Buffer* buf = malloc(sizeof(Buffer));
+    if (buf == NULL) {
+        return NULL; // Allocation failed; caller must handle NULL
+    }
     buf->capacity = capacity;
     buf->size = 0;
     buf->data = malloc(capacity);
+    if (buf->data == NULL) {
+        free(buf); // Avoid leaking the partially-constructed buffer
+        return NULL;
+    }
     return buf;
 }
 
@@ -127,6 +137,9 @@ void idris_proven_buffer_free(Buffer* buf) {
 // Resource functions (stub implementations)
 ResourceHandle* idris_proven_resource_new_handle(uint64_t id) {
     ResourceHandle* handle = malloc(sizeof(ResourceHandle));
+    if (handle == NULL) {
+        return NULL; // Allocation failed; caller must handle NULL
+    }
     handle->resource_id = id;
     handle->state = 0; // Unacquired
     handle->acquired_at = 0;

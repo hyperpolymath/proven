@@ -14,8 +14,8 @@
   (metadata
     (version "1.0.0")
     (project "proven")
-    (last-updated "2026-05-26")
-    (entries 150)
+    (last-updated "2026-06-23")
+    (entries 161)
     (status "active"))
 
   (classification
@@ -949,4 +949,98 @@
     (category "CommandInjection")
     (classification "binding-wrapper-naming")
     (audit "audits/audit-ffi-bindings-2026-05-26.md §CommandInjection")
-    (rationale "Prolog binding exports an escape_shell/2 sanitisation function; 'escape_shell' is a function NAME (the sanitiser), not a shell-execution call.")))
+    (rationale "Prolog binding exports an escape_shell/2 sanitisation function; 'escape_shell' is a function NAME (the sanitiser), not a shell-execution call."))
+
+  ;; ─── Track C (issue #68) — non-FFI Critical/High triage, 2026-06-23 ───────
+  ;; Audited per-file; rationale in audits/audit-track-c-2026-06-23.md.
+  ;; The one genuine defect (unchecked malloc in bindings/ephapax/src/stubs.c)
+  ;; was FIXED at source in this same change-set and is therefore NOT
+  ;; suppressed here — it no longer fires. Everything below is a verified
+  ;; false positive (or a finding already resolved by file removal).
+
+  ;; ─── PA DynamicCodeExecution — 'eval' as a libproven method name ──────────
+  ;; Every flagged site routes the expression to libproven's verified calculator
+  ;; via the proven_calculator_eval C ABI export. No language-level eval() of
+  ;; attacker input occurs; the substring "eval" is a method/FFI-symbol name.
+
+  (classification
+    (file "build-simple/exec/test_ffi_exports_app/test_ffi_exports.ss")
+    (category "DynamicCodeExecution")
+    (classification "generated-code")
+    (audit "audits/audit-track-c-2026-06-23.md §DynamicCodeExecution")
+    (rationale "Idris2 Chez/Racket backend generated test harness; the 'eval' is blodwen-eval-scheme in the Idris runtime-support prelude and is never invoked with runtime/attacker input."))
+  (classification
+    (file "bindings/deno/src/safe_calculator.ts")
+    (category "DynamicCodeExecution")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-track-c-2026-06-23.md §DynamicCodeExecution")
+    (rationale "Method named eval() calls symbols.proven_calculator_eval (libproven C ABI); no JavaScript/Deno eval() is used. Computation happens in the verified Idris core."))
+  (classification
+    (file "bindings/assemblyscript/src/ffi.ts")
+    (category "DynamicCodeExecution")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-track-c-2026-06-23.md §DynamicCodeExecution")
+    (rationale "@external FFI *declaration* of proven_calculator_eval; AssemblyScript compiles to WebAssembly and has no eval() primitive. Declaration, not invocation."))
+  (classification
+    (file "bindings/elm/interop/proven-elm-ports.js")
+    (category "DynamicCodeExecution")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-track-c-2026-06-23.md §DynamicCodeExecution")
+    (rationale "Calls lib.proven_calculator_eval (libproven C ABI) over an Elm port; JavaScript eval() is never referenced. 'eval' is the libproven method name."))
+  (classification
+    (file "bindings/javascript/src/safe_calculator.js")
+    (category "DynamicCodeExecution")
+    (classification "binding-wrapper-naming")
+    (audit "audits/audit-track-c-2026-06-23.md §DynamicCodeExecution")
+    (rationale "Method named eval() calls symbols.proven_calculator_eval (libproven C ABI); no JavaScript eval() is used. Computation happens in the verified Idris core."))
+
+  ;; ─── PA UnsafeTypeCoercion — FFI-boundary casts and docstring references ──
+
+  (classification
+    (file "bindings/nim/src/proven/safe_hex.nim")
+    (category "UnsafeTypeCoercion")
+    (classification "legitimate-ffi")
+    (audit "audits/audit-track-c-2026-06-23.md §UnsafeTypeCoercion")
+    (rationale "cast[pointer](unsafeAddr a[0]) marshals a Nim string buffer to C void* at the libproven FFI boundary; each cast is length-guarded (a.len > 0) with a dummy sentinel for the empty case. Idiomatic safe-Nim FFI, not coercion of untrusted data."))
+  (classification
+    (file "bindings/haskell/src/Proven.hs")
+    (category "UnsafeTypeCoercion")
+    (classification "documentation-reference")
+    (audit "audits/audit-track-c-2026-06-23.md §UnsafeTypeCoercion")
+    (rationale "The token 'unsafeCoerce' occurs only in the module Haddock docstring asserting its ABSENCE ('No unsafePerformIO, no unsafeCoerce, no undefined, no error'). There is no unsafeCoerce call in the source."))
+
+  ;; ─── PA PanicPath — docstring reference, not a reachable partial path ─────
+
+  (classification
+    (file "bindings/haskell/src/Proven.hs")
+    (category "PanicPath")
+    (classification "documentation-reference")
+    (audit "audits/audit-track-c-2026-06-23.md §PanicPath")
+    (rationale "The tokens 'error'/'undefined' occur only in the module docstring asserting their absence and in error-constructor type names (e.g. ErrEncodingError); there is no error/undefined call in the source."))
+
+  ;; ─── PA UncheckedAllocation — already NULL-checked at every site ──────────
+
+  (classification
+    (file "bindings/sql/mysql/proven_udf.c")
+    (category "UncheckedAllocation")
+    (classification "already-null-checked")
+    (audit "audits/audit-track-c-2026-06-23.md §UncheckedAllocation")
+    (rationale "Every malloc (initid->ptr at the *_init UDF entry points) is immediately followed by an `if (ptr == NULL)` guard that frees any owned string, sets *is_null = 1 and returns, per the MySQL UDF convention. No unchecked dereference."))
+
+  ;; ─── PA SupplyChain — flake.nix removed in the estate Nix→Guix migration ──
+  ;; Both flagged files no longer exist on main (removed in commit ee62f7e);
+  ;; the build now pins via guix.scm + guix/channels.scm. Recorded so the
+  ;; historical finding is dispositioned rather than silently dropped.
+
+  (classification
+    (file "flake.nix")
+    (category "SupplyChain")
+    (classification "resolved-file-removed")
+    (audit "audits/audit-track-c-2026-06-23.md §SupplyChain")
+    (rationale "Root flake.nix removed during the estate Nix→Guix migration (commit ee62f7e); dependency pinning is now provided by guix.scm and guix/channels.scm. No unpinned Nix input remains."))
+  (classification
+    (file "bindings/nix/flake.nix")
+    (category "SupplyChain")
+    (classification "resolved-file-removed")
+    (audit "audits/audit-track-c-2026-06-23.md §SupplyChain")
+    (rationale "bindings/nix/flake.nix removed during the estate Nix→Guix migration (commit ee62f7e); the surviving bindings/nix/default.nix is a consumer-facing expression and was not flagged for unpinned flake inputs.")))
