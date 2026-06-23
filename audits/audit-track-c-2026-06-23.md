@@ -135,6 +135,46 @@ Re-verified during this pass; rationale unchanged from
 `HardcodedSecret` sites are protocol/type identifiers and a common-password
 *dictionary* (used by the strength checker), not credential literals.
 
+## Verification & scanner-mechanism note (panic-attack 2.5.5, 2026-06-23)
+
+This triage was verified by building `panic-attack 2.5.5` from source and running
+`panic-attack assail . --headless --output-format json` against this branch.
+Filtering on the scanner's own `suppressed` field, the result is:
+
+- **The only genuinely-active (`suppressed != true`) Critical/High finding in the
+  entire repository is `bindings/ephapax/src/stubs.c` (UncheckedAllocation).**
+  Every other Track-C finding is auto-suppressed by the scanner's 2.5.5
+  context-aware engine (`kanren` rules + `test_context` classification), and
+  `SupplyChain` is gone entirely (the `flake.nix` files no longer exist).
+
+Two mechanism facts discovered while verifying, which callers of this audit
+should know:
+
+1. **The registry file is not consumed by panic-attack 2.5.5.** Suppression in
+   2.5.5 is driven by (a) the context-aware `kanren` engine that sets
+   `WeakPoint.suppressed`, and (b) inline `// panic-attack: accepted` comment
+   markers. The `audits/assail-classifications.a2ml` registry is **not read by
+   the scanner** (nor by the `panicbot` fleet wrapper, which reads
+   `.machine_readable/bot_directives/panicbot.a2ml` and then honours the
+   scanner's `suppressed` flag). The registry therefore stands as the **reviewable
+   audit trail** for these dispositions; it is not, under 2.5.5, an active
+   suppression input. It is retained because it is the estate-canonical record
+   and because it predates (and may again post-date) this scanner version.
+
+2. **`stubs.c`'s finding has no available suppression path in 2.5.5, and that is
+   acceptable.** The `UncheckedAllocation` detector is pattern-based — it fires on
+   the presence of `malloc(` regardless of a following NULL check — and it emits a
+   *file-level* finding with no line number. Inline `// panic-attack: accepted`
+   markers are line-gated (`assail/mod.rs` only consults a marker when
+   `WeakPoint.line` is `Some`), so they cannot suppress a file-level finding; and
+   the `kanren` "null-check guarding" rule (`suppress_unchecked_alloc`) is defined
+   but its premise fact `context(File, "null_checked")` is emitted nowhere, so it
+   never fires. The defect is nonetheless **genuinely fixed in source** (the NULL
+   checks are real and correct); the residual scanner report is a known
+   false-positive-after-fix with no 2.5.5 suppression hook. Both gaps —
+   file-level findings being unsuppressable, and the unwired `null_checked` rule —
+   are scanner issues, noted upstream at hyperpolymath/panic-attack#32.
+
 ## Anti-gameability
 
 Identical to the Track A audit: the registry
