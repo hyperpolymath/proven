@@ -954,9 +954,17 @@
   ;; ─── Track C (issue #68) — non-FFI Critical/High triage, 2026-06-23 ───────
   ;; Audited per-file; rationale in audits/audit-track-c-2026-06-23.md.
   ;; The one genuine defect (unchecked malloc in bindings/ephapax/src/stubs.c)
-  ;; was FIXED at source in this same change-set and is therefore NOT
-  ;; suppressed here — it no longer fires. Everything below is a verified
+  ;; was FIXED at source in this same change-set, so it is NOT suppressed here.
+  ;; NB: the pattern-based UncheckedAllocation detector still reports it (it
+  ;; matches on `malloc(` presence and emits a line-less, file-level finding
+  ;; with no 2.5.5 suppression hook); see audits/audit-track-c-2026-06-23.md
+  ;; "Verification & scanner-mechanism note". Everything below is a verified
   ;; false positive (or a finding already resolved by file removal).
+  ;;
+  ;; SCANNER NOTE: under panic-attack 2.5.5 this registry is an audit trail,
+  ;; not an active suppression input — 2.5.5 suppresses via its context-aware
+  ;; kanren engine + inline `// panic-attack: accepted` markers, and does not
+  ;; read this file. Entries are retained as the estate-canonical record.
 
   ;; ─── PA DynamicCodeExecution — 'eval' as a libproven method name ──────────
   ;; Every flagged site routes the expression to libproven's verified calculator
