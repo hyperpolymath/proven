@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 = Proven Vala Bindings
 
-SPDX-License-Identifier: MPL-2.0
+SPDX-License-Identifier: CC-BY-SA-4.0
 
 Idiomatic GLib/GObject Vala wrappers over the *libproven* C ABI.
 All computation is performed inside libproven (Idris 2 core with Zig FFI
@@ -38,7 +38,7 @@ meson compile -C build
 
 [source,vala]
 ----
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 using Proven;
 
 void main () {

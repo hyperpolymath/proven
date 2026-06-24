@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 = Ephapax Bindings for Proven Library
 :toc:
@@ -268,7 +268,7 @@ cargo add ephapax-proven-sys
 ## 📜 License
 
 All three repositories use:
-**SPDX-License-Identifier: MPL-2.0
+**SPDX-License-Identifier: CC-BY-SA-4.0
 
 Built on Mozilla Public License 2.0-or-later (MPL-2.0-or-later).
 

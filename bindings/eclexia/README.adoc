@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 = proven-eclexia
 
@@ -39,7 +39,7 @@ budgets (`@requires: energy < NJ`) track computational cost of FFI operations.
 
 [source,eclexia]
 ----
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 fn main() {
     // Initialise the runtime

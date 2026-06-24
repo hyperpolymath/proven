@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 = proven-ffi: Self-hosted Idris 2 FFI binding for libproven
 
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 Self-hosted Idris 2 binding that calls the precompiled `libproven` shared
 library via `%foreign "C"` FFI declarations. This allows users to consume
