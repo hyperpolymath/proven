@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 name = "proven_http"
 description = "Formally verified HTTP utilities with Ada/SPARK bindings"
 version = "0.1.0"

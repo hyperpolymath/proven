@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 = proven.el - Emacs Lisp Bindings for libproven
 
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 
 Emacs Lisp bindings for *libproven*, a formally verified safety library.
 All computation is performed in Idris 2 via the Zig FFI layer. These bindings
