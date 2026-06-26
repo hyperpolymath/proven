@@ -92,7 +92,7 @@ jobs:
               | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' \
               | sort -u | tee /tmp/wired-exports.txt
       - name: Setup D compiler (LDC)
-        uses: dlang-community/setup-dlang@4071ba822f6d0f622ba7359556d11f5827725916 # v1.6.0
+        uses: dlang-community/setup-dlang@0a7469b93f791d83f30932c6fd105796c6966e20 # v2.0.0
         with:
           compiler: ldc-${{ env.LDC_VERSION }}
       - name: D build
@@ -144,7 +144,7 @@ jobs:
             .github/workflows/d-ci.yml
           sparse-checkout-cone-mode: false
       - name: Setup D compiler (LDC)
-        uses: dlang-community/setup-dlang@4071ba822f6d0f622ba7359556d11f5827725916 # v1.6.0
+        uses: dlang-community/setup-dlang@0a7469b93f791d83f30932c6fd105796c6966e20 # v2.0.0
         with:
           compiler: ldc-${{ env.LDC_VERSION }}
       - name: Install just
@@ -182,7 +182,7 @@ jobs:
             .github/workflows/d-ci.yml
           sparse-checkout-cone-mode: false
       - name: Setup D compiler (LDC)
-        uses: dlang-community/setup-dlang@4071ba822f6d0f622ba7359556d11f5827725916 # v1.6.0
+        uses: dlang-community/setup-dlang@0a7469b93f791d83f30932c6fd105796c6966e20 # v2.0.0
         with:
           compiler: ldc-${{ env.LDC_VERSION }}
       - name: Install just
