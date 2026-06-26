@@ -11,7 +11,7 @@
     <Description>F# bindings for the Proven safety library. Thin P/Invoke wrappers over libproven - all computation is performed in formally verified Idris 2 code via the Zig FFI bridge.</Description>
     <PackageProjectUrl>https://github.com/hyperpolymath/proven</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hyperpolymath/proven</RepositoryUrl>
-    <PackageLicenseExpression>PMPL-1.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

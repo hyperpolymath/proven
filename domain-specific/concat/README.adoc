@@ -78,7 +78,7 @@ See link:docs/concat-catalog.adoc[docs/concat-catalog.adoc] for the full catalog
 
 == License
 
-link:LICENSE[PMPL-1.0] (Palimpsest-MPL-1.0)
+link:LICENSE[MPL-2.0]
 
 == Related
 

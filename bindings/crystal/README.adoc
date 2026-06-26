@@ -232,4 +232,4 @@ Proven::SafeCrypto.pbkdf2_default(password, salt)
 
 == License
 
-PMPL-1.0
+MPL-2.0

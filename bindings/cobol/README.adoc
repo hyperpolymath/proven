@@ -528,4 +528,4 @@ Note: Some intrinsic functions (LOWER-CASE, ORD, MOD) require COBOL-85 or later.
 
 == License
 
-PMPL-1.0
+MPL-2.0

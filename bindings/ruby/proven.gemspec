@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
     Requires libproven shared library (build from ffi/zig/ with: zig build).
   DESC
   spec.homepage = "https://github.com/hyperpolymath/proven"
-  spec.license = "PMPL-1.0"
+  spec.license = "MPL-2.0"
   spec.required_ruby_version = ">= 3.0.0"
 
   spec.metadata["homepage_uri"] = spec.homepage

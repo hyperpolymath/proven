@@ -272,7 +272,7 @@ All three repositories use:
 
 Built on Mozilla Public License 2.0-or-later (MPL-2.0-or-later).
 
-See https://github.com/hyperpolymath/palimpsest-license[Palimpsest License].
+MPL-2.0. See link:../../LICENSE[the licence].
 
 ---
 

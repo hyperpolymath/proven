@@ -126,4 +126,4 @@ let memory = SafeConfig.parse_memory "512M" in
 
 == License
 
-PMPL-1.0 (Palimpsest-MPL-1.0)
+MPL-2.0

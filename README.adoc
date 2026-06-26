@@ -10,7 +10,7 @@
 
 image:https://img.shields.io/badge/OpenSSF-Best_Practices-green?logo=opensourcesecurity[OpenSSF Best Practices,link="https://www.bestpractices.dev/en/projects/new?repo_url=https://github.com/hyperpolymath/proven"]
 image:https://img.shields.io/badge/version-1.2.0-blue[Version 1.2.0]
-image:https://img.shields.io/badge/License-PMPL_1.0--or--later-blue.svg[MPL-2.0,link="https://github.com/hyperpolymath/proven/blob/main/LICENSE"]
+image:https://img.shields.io/badge/License-MPL--2.0-blue.svg[MPL-2.0,link="https://github.com/hyperpolymath/proven/blob/main/LICENSE"]
 image:https://img.shields.io/badge/modules-104-blue[104 Modules]
 image:https://img.shields.io/badge/bindings-120+_targets-orange[120+ Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]

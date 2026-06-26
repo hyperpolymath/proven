@@ -316,4 +316,4 @@ Safe, validated operations library for Common Lisp.
 
 == License
 
-PMPL-1.0 (Polymath Public License)
+MPL-2.0

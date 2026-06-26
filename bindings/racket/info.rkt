@@ -9,4 +9,4 @@
 (define build-deps '("scribble-lib" "racket-doc"))
 (define pkg-desc "FFI bindings to libproven verified safety library")
 (define pkg-authors '("Jonathan D.A. Jewell"))
-(define license 'PMPL-1.0)
+(define license 'MPL-2.0)

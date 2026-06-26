@@ -219,4 +219,4 @@ proven.generate_password_default()
 
 == License
 
-PMPL-1.0
+MPL-2.0

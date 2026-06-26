@@ -328,4 +328,4 @@ public    % Public address
 
 == License
 
-PMPL-1.0 (Polymath Public License)
+MPL-2.0

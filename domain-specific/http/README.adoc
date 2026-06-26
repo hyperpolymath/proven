@@ -13,9 +13,7 @@ image:https://img.shields.io/badge/FFI-Zig-orange.svg[Zig FFI]
 
 == License & Philosophy
 
-This project must declare **MPL-2.0-or-later** for platform/tooling compatibility.
-
-Philosophy: **Palimpsest**. The Palimpsest-MPL (PMPL) text is provided in `license/PMPL-1.0.txt`, and the canonical source is the palimpsest-license repository.
+This project is licensed under **MPL-2.0**. The full licence text is in the root `LICENSE` and in `LICENSES/MPL-2.0.txt`.
 
 **Formally verified HTTP utilities with Ada/SPARK bindings.**
 
@@ -287,7 +285,7 @@ end Build_Registry_URL;
 
 == License
 
-**MPL-2.0** (Palimpsest Mozilla Public License)
+**MPL-2.0**
 
 Based on MPL-2.0 with ethical use and provenance extensions.
 

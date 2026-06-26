@@ -15,7 +15,7 @@ description = {
       are designed to never crash and return nil or error on invalid input.
    ]],
    homepage = "https://github.com/hyperpolymath/proven",
-   license = "PMPL-1.0"
+   license = "MPL-2.0"
 }
 dependencies = {
    "lua >= 5.1"

@@ -354,7 +354,7 @@ principle, not a practical implementation.
 
 == License
 
-PMPL-1.0 (Proven Malbolge Public License... just kidding, it's the standard PMPL)
+MPL-2.0
 
 == See Also
 

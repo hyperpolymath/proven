@@ -54,7 +54,7 @@ defmodule Proven.MixProject do
   defp package do
     [
       name: "proven",
-      licenses: ["PMPL-1.0"],
+      licenses: ["MPL-2.0"],
       links: %{
         "GitHub" => @source_url,
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"

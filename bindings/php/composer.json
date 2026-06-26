@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Code that cannot crash - safe arithmetic, string escaping, path validation, and more. 38 modules for safe, crash-free operations.",
     "type": "library",
-    "license": "PMPL-1.0",
+    "license": "MPL-2.0",
     "keywords": [
         "safety",
         "security",
