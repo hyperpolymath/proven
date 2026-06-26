@@ -80,4 +80,4 @@ if (SafeCrypto::verifyPassword($input, $hash)) {
 
 == License
 
-PMPL-1.0
+MPL-2.0

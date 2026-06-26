@@ -91,7 +91,7 @@ max i64                         # Show maximum i64 value
 
 == License
 
-PMPL-1.0
+MPL-2.0
 
 == See Also
 

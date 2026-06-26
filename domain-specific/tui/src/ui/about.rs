@@ -80,7 +80,7 @@ pub fn render(_app: &App, frame: &mut Frame, area: Rect) {
         Line::from(""),
         Line::from(vec![
             Span::styled("License: ", Style::default().fg(Color::DarkGray)),
-            Span::styled("PMPL-1.0", Style::default().fg(Color::White)),
+            Span::styled("MPL-2.0", Style::default().fg(Color::White)),
         ]),
         Line::from(vec![
             Span::styled("Author: ", Style::default().fg(Color::DarkGray)),

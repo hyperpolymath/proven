@@ -213,4 +213,4 @@ SafeCrypto.pbkdf2Default password salt
 
 == License
 
-PMPL-1.0
+MPL-2.0

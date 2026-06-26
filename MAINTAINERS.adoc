@@ -74,4 +74,4 @@ The following bots operate on this repository under human oversight:
 
 == License
 
-This project is licensed under MPL-2.0 (Palimpsest License).
+This project is licensed under MPL-2.0.

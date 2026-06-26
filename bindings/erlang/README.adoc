@@ -316,4 +316,4 @@ rebar3 ct
 
 == License
 
-PMPL-1.0 (Polymath Public License)
+MPL-2.0

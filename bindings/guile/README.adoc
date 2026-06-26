@@ -237,4 +237,4 @@ The proven library is ideal for validating data in your Guile state files:
 
 == License
 
-PMPL-1.0 (Palimpsest-MPL-1.0)
+MPL-2.0

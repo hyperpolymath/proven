@@ -83,4 +83,4 @@ if (constant_time_compare($token, $expected)) {
 
 == License
 
-PMPL-1.0
+MPL-2.0

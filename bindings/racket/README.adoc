@@ -355,4 +355,4 @@ This library requires:
 
 == License
 
-PMPL-1.0
+MPL-2.0
