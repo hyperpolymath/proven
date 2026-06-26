@@ -24,12 +24,12 @@ struct CurrencyResult
     string error;
     bool ok;
 
-    static CurrencyResult success(long amount, ubyte[3] code, ubyte decimals)
+    static CurrencyResult success(long amount, ubyte[3] code, ubyte decimals) nothrow
     {
         return CurrencyResult(amount, code, decimals, "", true);
     }
 
-    static CurrencyResult failure(string error)
+    static CurrencyResult failure(string error) nothrow
     {
         return CurrencyResult(0, [0, 0, 0], 0, error, false);
     }

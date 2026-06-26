@@ -39,12 +39,12 @@ struct UrlResult
     string error;
     bool ok;
 
-    static UrlResult success(ParsedUrl url)
+    static UrlResult success(ParsedUrl url) nothrow
     {
         return UrlResult(url, "", true);
     }
 
-    static UrlResult failure(string error)
+    static UrlResult failure(string error) nothrow
     {
         return UrlResult(ParsedUrl.init, error, false);
     }

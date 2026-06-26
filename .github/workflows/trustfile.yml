@@ -87,13 +87,14 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Check SPDX license compliance
         run: |
-          # All source files must use MPL-2.0
+          # Estate licence policy: code is MPL-2.0, docs are CC-BY-SA-4.0.
+          # Flag only files whose SPDX header is neither of the two.
           WRONG_LICENSE=$(grep -rl "SPDX-License-Identifier:" src/ ffi/ bindings/ 2>/dev/null | \
-                         xargs grep -L "MPL-2.0" 2>/dev/null | wc -l)
+                         xargs grep -LE "MPL-2.0|CC-BY-SA-4.0" 2>/dev/null | wc -l)
           if [ "$WRONG_LICENSE" -gt 0 ]; then
-            echo "ERROR: $WRONG_LICENSE files have incorrect SPDX license headers"
+            echo "ERROR: $WRONG_LICENSE files have an SPDX header that is neither MPL-2.0 (code) nor CC-BY-SA-4.0 (docs)"
             grep -rl "SPDX-License-Identifier:" src/ ffi/ bindings/ 2>/dev/null | \
-              xargs grep -L "MPL-2.0" 2>/dev/null | head -20
+              xargs grep -LE "MPL-2.0|CC-BY-SA-4.0" 2>/dev/null | head -20
             exit 1
           fi
           echo "License compliance: PASS"
