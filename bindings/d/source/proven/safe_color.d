@@ -46,12 +46,12 @@ struct ColorResult
     string error;
     bool ok;
 
-    static ColorResult success(RGB color)
+    static ColorResult success(RGB color) nothrow
     {
         return ColorResult(color, "", true);
     }
 
-    static ColorResult failure(string error)
+    static ColorResult failure(string error) nothrow
     {
         return ColorResult(RGB.init, error, false);
     }

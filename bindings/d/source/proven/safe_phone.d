@@ -30,12 +30,12 @@ struct PhoneResult
     string error;
     bool ok;
 
-    static PhoneResult success(PhoneNumber phone)
+    static PhoneResult success(PhoneNumber phone) nothrow
     {
         return PhoneResult(phone, "", true);
     }
 
-    static PhoneResult failure(string error)
+    static PhoneResult failure(string error) nothrow
     {
         return PhoneResult(PhoneNumber.init, error, false);
     }

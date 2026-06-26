@@ -52,12 +52,12 @@ struct DateTimeResult
     string error;
     bool ok;
 
-    static DateTimeResult success(DateTime dt)
+    static DateTimeResult success(DateTime dt) nothrow
     {
         return DateTimeResult(dt, "", true);
     }
 
-    static DateTimeResult failure(string error)
+    static DateTimeResult failure(string error) nothrow
     {
         return DateTimeResult(DateTime.init, error, false);
     }
