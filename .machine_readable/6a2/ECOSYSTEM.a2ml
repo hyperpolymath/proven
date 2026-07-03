@@ -8,3 +8,8 @@ ecosystem = "hyperpolymath"
 
 [position]
 type = "component"
+
+[relations]
+relations = [
+  { project = "proven-tests-and-benches", relation = "test-framework", detail = "grades proven's modules by three-tier provenance (Actually-/Provisionally-/Unproven) from proven's own MODULE-STATUS.txt + STATE.a2ml OWED ledger, without re-checking proofs. As-declared 4/37/47 reconciles with MODULE-STATUS; strict evidence-carrying grading reports 0 Actually-Proven (the 4 proof-bearing modules all carry OWED axioms). See that repo's integrations/proven and .machine_readable/6a2/ECOSYSTEM.a2ml." },
+]
