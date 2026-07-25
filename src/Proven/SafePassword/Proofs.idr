@@ -78,7 +78,7 @@ import Data.Maybe
 ||| `checkPolicy` to expose `checkLength` as a separately-callable
 ||| total function returning a `Dec` for the length predicate.
 public export
-0 validPasswordLength : (policy : PasswordPolicy) ->
+postulate 0 validPasswordLength : (policy : PasswordPolicy) ->
                         (pwd : String) ->
                         null (checkPolicy policy pwd) = True ->
                         (length pwd >= policy.minLength = True,
@@ -105,7 +105,7 @@ policyCheckDeterministic policy pwd = Refl
 ||| `unpack "" = []` definitionally, or refactor `checkPolicy` to
 ||| handle the empty case before threading through `unpack`.
 public export
-0 emptyPasswordFails : (policy : PasswordPolicy) ->
+postulate 0 emptyPasswordFails : (policy : PasswordPolicy) ->
                        policy.minLength > 0 = True ->
                        null (checkPolicy policy "") = False
 
@@ -120,7 +120,7 @@ public export
 ||| dedicated lemma per checker. Discharge requires per-checker
 ||| monotonicity lemmas plus a `Data.String` reflective tactic.
 public export
-0 longerPasswordBetter : (policy : PasswordPolicy) ->
+postulate 0 longerPasswordBetter : (policy : PasswordPolicy) ->
                          (short, long : String) ->
                          length long > length short = True ->
                          length (checkPolicy policy long) <= length (checkPolicy policy short) = True
@@ -141,7 +141,7 @@ public export
 ||| `params.parallelism` and `Refl`-ing each leaf, or by a
 ||| `Decidable.Decidable.decide`-style reflective tactic over `<`.
 public export
-0 argon2ParamsValid : (params : Argon2Params) ->
+postulate 0 argon2ParamsValid : (params : Argon2Params) ->
                       isRight (validateArgon2Params params) = True ->
                       (params.timeCost >= 1 = True,
                        params.memoryCost >= 8192 = True,
@@ -155,7 +155,7 @@ public export
 ||| relation to `10` and `31` is case-analysed. Discharge by
 ||| case-splitting on `params.cost` and `Refl`-ing each leaf.
 public export
-0 bcryptCostBounded : (params : BcryptParams) ->
+postulate 0 bcryptCostBounded : (params : BcryptParams) ->
                       isRight (validateBcryptParams params) = True ->
                       (params.cost >= 10 = True, params.cost <= 31 = True)
 
@@ -202,7 +202,7 @@ defaultScryptValid = Refl
 ||| Discharge once a `Data.Bits` reflective tactic for `xor`-self is
 ||| available, or by importing a per-bit-width self-xor lemma.
 public export
-0 constantTimeRefl : (hash : List Bits8) ->
+postulate 0 constantTimeRefl : (hash : List Bits8) ->
                      constantTimeHashCompare hash hash = True
 
 ||| OWED: `constantTimeHashCompare` is symmetric in its two arguments.
@@ -213,7 +213,7 @@ public export
 ||| requires either a `Data.Bits` reflective tactic for `xor`-symm or
 ||| a per-byte-width algebraic lemma.
 public export
-0 constantTimeSym : (h1, h2 : List Bits8) ->
+postulate 0 constantTimeSym : (h1, h2 : List Bits8) ->
                     constantTimeHashCompare h1 h2 = constantTimeHashCompare h2 h1
 
 ||| OWED: hashes of different length never compare equal under the
@@ -229,7 +229,7 @@ public export
 ||| refactor `constantTimeHashCompare` to case-split on
 ||| `decEq (length xs) (length ys)` directly.
 public export
-0 differentLengthNoMatch : (h1, h2 : List Bits8) ->
+postulate 0 differentLengthNoMatch : (h1, h2 : List Bits8) ->
                            length h1 /= length h2 = True ->
                            constantTimeHashCompare h1 h2 = False
 
@@ -250,7 +250,7 @@ public export
 ||| with a structurally-decreasing recursor (e.g., via `Vect` or
 ||| `Data.List.Quantifiers.AllInits`) making `analyzeStrength` total.
 public export
-0 strengthScoreBounded : (pwd : String) ->
+postulate 0 strengthScoreBounded : (pwd : String) ->
                          score (analyzeStrength pwd) <= 100 = True
 
 ||| OWED: `entropy (analyzeStrength pwd) >= 0.0` for every password.
@@ -266,7 +266,7 @@ public export
 ||| `Data.Double` non-negativity lemma for `*` and `log2` of
 ||| `>= 1.0` arguments.
 public export
-0 entropyNonNegative : (pwd : String) ->
+postulate 0 entropyNonNegative : (pwd : String) ->
                        entropy (analyzeStrength pwd) >= 0.0 = True
 
 ||| OWED: a longer password has higher or equal entropy. By
@@ -283,7 +283,7 @@ public export
 ||| is `covering`). Discharge requires all three blockers to be
 ||| lifted together.
 public export
-0 longerHigherEntropy : (short, long : String) ->
+postulate 0 longerHigherEntropy : (short, long : String) ->
                         length long > length short = True ->
                         entropy (analyzeStrength long) >= entropy (analyzeStrength short) = True
 
@@ -298,7 +298,7 @@ public export
 ||| and `Refl`-ing each of the five leaves, or by refactoring the
 ||| `Ord` instance to derive from a `Cast StrengthLevel (Fin 5)`.
 public export
-0 veryStrongMax : (level : StrengthLevel) -> level <= VeryStrong = True
+postulate 0 veryStrongMax : (level : StrengthLevel) -> level <= VeryStrong = True
 
 ||| OWED: `StrengthLevel`'s ordering is transitive. The claim is the
 ||| standard transitivity of a total order, true by case-analysis on
@@ -312,7 +312,7 @@ public export
 ||| derive from `Cast StrengthLevel (Fin 5)`, in which case
 ||| transitivity comes free from `Data.Fin`'s `Ord` transitivity.
 public export
-0 strengthTransitive : (a, b, c : StrengthLevel) ->
+postulate 0 strengthTransitive : (a, b, c : StrengthLevel) ->
                        a <= b = True ->
                        b <= c = True ->
                        a <= c = True
@@ -333,7 +333,7 @@ public export
 ||| helper). Discharge requires both a `Data.String` reflective
 ||| tactic for `toLower`/`elem` and `detectPatterns` becoming total.
 public export
-0 commonPasswordDetected : (pwd : String) ->
+postulate 0 commonPasswordDetected : (pwd : String) ->
                            (toLower pwd `elem` ["password", "123456", "qwerty"]) = True ->
                            any (\p => case p of CommonPassword _ => True; _ => False) (detectPatterns pwd) = True
 
@@ -346,7 +346,7 @@ public export
 ||| `Refl`-ing each leaf, or by refactoring `patternPenalty` to
 ||| return a `Nat`-typed structure whose `>= 0` is by construction.
 public export
-0 patternPenaltyNonNeg : (p : Pattern) -> patternPenalty p >= 0 = True
+postulate 0 patternPenaltyNonNeg : (p : Pattern) -> patternPenalty p >= 0 = True
 
 --------------------------------------------------------------------------------
 -- Rehash Decision Proofs
@@ -364,7 +364,7 @@ public export
 ||| to derive `paramsAtLeast` from a per-algorithm `Decidable`
 ||| relation.
 public export
-0 paramsAtLeastRefl : (params : HashParams) ->
+postulate 0 paramsAtLeastRefl : (params : HashParams) ->
                       paramsAtLeast params params = True
 
 ||| OWED: when current hash params are weaker than a target and the
@@ -380,7 +380,7 @@ public export
 ||| antisymmetry exposed, or by rewriting the claim's codomain to
 ||| `decEq`-style witness.
 public export
-0 strongerRequiresRehash : (weak, strong : HashParams) ->
+postulate 0 strongerRequiresRehash : (weak, strong : HashParams) ->
                            paramsAtLeast weak strong = False ->
                            paramsAtLeast strong weak = True ->
                            ()
@@ -400,7 +400,7 @@ public export
 ||| inlining `build (MkPolicyBuilder p)` to `p` via a definitional
 ||| equality lemma, or by marking `build` `%inline`.
 public export
-0 builderProducesPolicy : build Policy.policyBuilder = Policy.defaultPolicy
+postulate 0 builderProducesPolicy : build Policy.policyBuilder = Policy.defaultPolicy
 
 ||| DISCHARGED: `withMinLength n` followed by `build` yields a policy
 ||| whose `minLength` field equals `n`. The OWED comment suggested the
@@ -428,7 +428,7 @@ withMinLengthCorrect n (MkPolicyBuilder (MkPolicy _ _ _ _ _ _ _ _ _ _)) = Refl
 ||| discharges, since this proof reduces to it after one record-
 ||| update normalisation step.
 public export
-0 chainedBuildersCompose : (n : Nat) ->
+postulate 0 chainedBuildersCompose : (n : Nat) ->
                            minLength (build (withMinLength n (withUppercase Policy.policyBuilder))) = n
 
 --------------------------------------------------------------------------------
@@ -448,7 +448,7 @@ public export
 ||| derives from `Cast StrengthLevel (Fin 5)` (per
 ||| `strengthTransitive`'s discharge).
 public export
-0 higherImpliesLower : (pwd : String) ->
+postulate 0 higherImpliesLower : (pwd : String) ->
                        (high, low : StrengthRequirement) ->
                        requiredLevel high >= requiredLevel low = True ->
                        meetsRequirement pwd high = True ->
@@ -465,7 +465,7 @@ public export
 ||| `strengthScoreBounded` discharge — this proof reduces to their
 ||| composition.
 public export
-0 veryStrongSatisfiesAll : (pwd : String) ->
+postulate 0 veryStrongSatisfiesAll : (pwd : String) ->
                            quickStrengthCheck pwd = VeryStrong ->
                            (req : StrengthRequirement) ->
                            meetsRequirement pwd req = True

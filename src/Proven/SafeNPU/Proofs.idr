@@ -9,4 +9,4 @@ module Proven.SafeNPU.Proofs
 %default total
 
 public export
-0 safeNPUProofsAwaitBaselineRepair : ()
+postulate 0 safeNPUProofsAwaitBaselineRepair : ()

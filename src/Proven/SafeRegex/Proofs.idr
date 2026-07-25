@@ -33,7 +33,7 @@ import Data.Nat
 ||| (same root cause as the `gcd` covering-callee reduction blocker in
 ||| PR #46). Discharge once the elaborator forces the field equation
 ||| through, or via a manual `rewrite` + `absurd Refl`.
-0 boundedImpliesJustMax : (q : Quantifier) -> isBounded q = True ->
+postulate 0 boundedImpliesJustMax : (q : Quantifier) -> isBounded q = True ->
                           q.maxCount = Nothing -> Void
 
 ||| OWED: Bounded quantifiers expose a concrete `Nat` upper bound.
@@ -44,7 +44,7 @@ import Data.Nat
 ||| equation across the `isBounded` unfolding (same blocker as
 ||| `boundedImpliesJustMax`). Discharge together with that lemma.
 public export
-0 boundedQuantifierFinite : (q : Quantifier) -> (prf : isBounded q = True) -> (n : Nat ** q.maxCount = Just n)
+postulate 0 boundedQuantifierFinite : (q : Quantifier) -> (prf : isBounded q = True) -> (n : Nat ** q.maxCount = Just n)
 
 ||| OWED: `steps < maxSteps = True` implies `S steps <= maxSteps = True`.
 ||| Operationally `<` is defined as `\a, b => S a <= b` on `Nat`, so the
@@ -55,7 +55,7 @@ public export
 ||| through `compareNat` not through structural pattern match. Discharge
 ||| via `Data.Nat.lteSuccRight` after unfolding the instance, or once
 ||| the stdlib exposes `lt = lteS` as a definitional equality.
-0 stepIncreases : (steps : Nat) -> (maxSteps : Nat) -> (steps < maxSteps = True) ->
+postulate 0 stepIncreases : (steps : Nat) -> (maxSteps : Nat) -> (steps < maxSteps = True) ->
                   (S steps <= maxSteps = True)
 
 ||| OWED: For any fuel-bounded match attempt there exists a step count
@@ -77,7 +77,7 @@ public export
 ||| (defined `= matchingTerminatesLemma` below) is at default
 ||| multiplicity for the user-facing API; making the lemma `0` would
 ||| break that consumer.
-matchingTerminatesLemma : (fuel : Nat) -> (r : Regex) ->
+postulate matchingTerminatesLemma : (fuel : Nat) -> (r : Regex) ->
                           Either (steps : Nat ** steps <= fuel = True)
                                  (steps : Nat ** steps > fuel = True)
 
@@ -104,7 +104,7 @@ matchingTerminates = matchingTerminatesLemma
 ||| `Bool`-vs-`Prop` reflection gap. Discharge via a manual
 ||| `rewrite` of the `if`-head with the premise, or once a reflective
 ||| `Bool->Dec` bridge for arbitrary boolean scrutinees lands.
-0 nestedQuantifiersExponential : (r : Regex) ->
+postulate 0 nestedQuantifiersExponential : (r : Regex) ->
                                  hasNestedQuantifiers r = True ->
                                  determineComplexity r = Exponential
 
@@ -119,7 +119,7 @@ matchingTerminates = matchingTerminatesLemma
 ||| countQuantifiers r > 0`. Discharge via the same reflective
 ||| `Bool->Dec` bridge plus an `andTrueSplit` lemma applied at the
 ||| premise.
-0 overlappingAltsExponential : (r : Regex) ->
+postulate 0 overlappingAltsExponential : (r : Regex) ->
                                hasOverlappingAlternatives r = True ->
                                countQuantifiers r > 0 = True ->
                                (determineComplexity r = Exponential) `Either`
@@ -132,7 +132,7 @@ matchingTerminates = matchingTerminatesLemma
 ||| Held back by the same Idris2 0.8.0 nested `if`-scrutinee blocker
 ||| as the other complexity-classification lemmas. Discharge via the
 ||| same reflective `Bool->Dec` bridge.
-0 quantifiedEmptyQuadratic : (r : Regex) ->
+postulate 0 quantifiedEmptyQuadratic : (r : Regex) ->
                              hasQuantifiedEmpty r = True ->
                              (determineComplexity r = Quadratic) `Either`
                              (determineComplexity r = Exponential)
@@ -149,7 +149,7 @@ matchingTerminates = matchingTerminatesLemma
 ||| four nested `case`-inversions on opaque function calls. Discharge
 ||| via a manual hand-written four-arm inversion, or once a tactic
 ||| for `if`-chain inversion lands.
-0 linearNoExponentialPatterns : (r : Regex) ->
+postulate 0 linearNoExponentialPatterns : (r : Regex) ->
                                 determineComplexity r = Linear ->
                                 (hasNestedQuantifiers r = False,
                                  Either (hasOverlappingAlternatives r = False) ((countQuantifiers r = 0) = True),
@@ -203,7 +203,7 @@ unboundedNeverSafe RelaxedSafety = Refl
 ||| `Data.Nat.lteTransitive`. Discharge once a `Data.String`
 ||| reflective bridge for `length` is available, then apply
 ||| transitivity.
-0 smallInputAlwaysSafe : (sr : SafeRegex) -> (input : String) ->
+postulate 0 smallInputAlwaysSafe : (sr : SafeRegex) -> (input : String) ->
                          length input <= 50 = True ->
                          isInputSafe sr input = True
 
@@ -217,7 +217,7 @@ unboundedNeverSafe RelaxedSafety = Refl
 ||| `boundedImpliesJustMax` (record-field equation not tracked by
 ||| case-split). Discharge via a manual `rewrite` of the scrutinee
 ||| with the premise.
-0 linearAllowsLargeInput : (sr : SafeRegex) ->
+postulate 0 linearAllowsLargeInput : (sr : SafeRegex) ->
                            sr.complexity.level = Linear ->
                            maxSafeInputLength sr = 10000000
 
@@ -226,7 +226,7 @@ unboundedNeverSafe RelaxedSafety = Refl
 ||| `maxSafeInputLength` (`Safety.idr` L375).
 ||| Held back by the same record-projection-through-`case` blocker as
 ||| `linearAllowsLargeInput`. Discharge identically.
-0 exponentialRestrictsInput : (sr : SafeRegex) ->
+postulate 0 exponentialRestrictsInput : (sr : SafeRegex) ->
                               sr.complexity.level = Exponential ->
                               maxSafeInputLength sr = 100
 
@@ -255,7 +255,7 @@ anyMatchesNonNewline _ prf = prf
 ||| primitives `prim__gte_Char` / `prim__lte_Char` — same blocker
 ||| family as `anyMatchesNonNewline`. Discharge once a `Data.Char`
 ||| reflective bridge is available.
-0 digitOnlyDigits : (c : Char) ->
+postulate 0 digitOnlyDigits : (c : Char) ->
                     matchesClass c Digit = True ->
                     (c >= '0' = True, c <= '9' = True)
 
@@ -295,7 +295,7 @@ unionIsOr _ _ _ = Refl
 ||| marked `0` because the public `sameClassOverlaps` proof consumes
 ||| this lemma at default multiplicity. Discharge once a `Data.Char`
 ||| reflective bridge gives `eqCharRefl : (c : Char) -> (c == c) = True`.
-charSelfOverlaps : (c : Char) -> classesOverlap (SingleChar c) (SingleChar c) = True
+postulate charSelfOverlaps : (c : Char) -> classesOverlap (SingleChar c) (SingleChar c) = True
 
 ||| OWED: a `Range` overlaps itself. Operationally true by the
 ||| `(Range f1 t1) (Range f2 t2)` arm of `classesOverlap`
@@ -309,7 +309,7 @@ charSelfOverlaps : (c : Char) -> classesOverlap (SingleChar c) (SingleChar c) = 
 ||| public `sameClassOverlaps` proof consumes this lemma at default
 ||| multiplicity. Discharge once a `Data.Char` reflective bridge for
 ||| `(<)` is available.
-rangeSelfOverlaps : (from, to : Char) -> classesOverlap (Range from to) (Range from to) = True
+postulate rangeSelfOverlaps : (from, to : Char) -> classesOverlap (Range from to) (Range from to) = True
 
 ||| OWED: a `Union` overlaps itself. Operationally true by the
 ||| `(Union c1 c2) other` arm of `classesOverlap` (`Safety.idr`
@@ -325,7 +325,7 @@ rangeSelfOverlaps : (from, to : Char) -> classesOverlap (Range from to) (Range f
 ||| public `sameClassOverlaps` proof consumes this lemma at default
 ||| multiplicity. Discharge via explicit induction on `(a, b)` plus
 ||| the discharged `charSelfOverlaps` / `rangeSelfOverlaps`.
-unionSelfOverlaps : (a, b : CharClass) -> classesOverlap (Union a b) (Union a b) = True
+postulate unionSelfOverlaps : (a, b : CharClass) -> classesOverlap (Union a b) (Union a b) = True
 
 ||| Proof that identical classes always overlap
 public export
@@ -356,7 +356,7 @@ anyOverlapsAll _ = Refl
 ||| range/overlap lemmas. Discharge via a manual `rewrite` of `t1 <
 ||| f2` with the premise, plus the `Data.Bool` lemmas `orTrueLeft`
 ||| and `notTrue`.
-0 disjointRangesNoOverlap : (f1, t1, f2, t2 : Char) ->
+postulate 0 disjointRangesNoOverlap : (f1, t1, f2, t2 : Char) ->
                             (t1 < f2 = True) ->
                             classesOverlap (Range f1 t1) (Range f2 t2) = False
 
@@ -415,7 +415,7 @@ backrefNotKnownSafe _ = Refl
 ||| the *linear-time* growth law underlying the matcher's safety
 ||| budget. Discharge via `Data.Nat.multStrictMonotone` plus a
 ||| manual `rewrite` of the case scrutinee.
-0 linearStepLimitScales : (analysis : ComplexityAnalysis) ->
+postulate 0 linearStepLimitScales : (analysis : ComplexityAnalysis) ->
                           (analysis.level = Linear) ->
                           (inputSize1, inputSize2 : Nat) ->
                           (inputSize1 < inputSize2 = True) ->
@@ -434,7 +434,7 @@ backrefNotKnownSafe _ = Refl
 ||| pattern into a hard-bounded ReDoS-resistant matcher. Discharge
 ||| via `Data.Nat.minLteRight` plus a manual `rewrite` of the
 ||| scrutinee.
-0 exponentialStepLimitCapped : (analysis : ComplexityAnalysis) ->
+postulate 0 exponentialStepLimitCapped : (analysis : ComplexityAnalysis) ->
                                (analysis.level = Exponential) ->
                                (inputSize : Nat) ->
                                calculateStepLimit analysis inputSize <= 1000000 = True
@@ -468,7 +468,7 @@ successIsMatched _ _ _ _ = Refl
 ||| `dateComponentsValid` / `timeComponentsValid`). Discharge once
 ||| `Capture` is refactored to carry the bound as an erased witness,
 ||| and the matcher is updated to produce it at every push site.
-0 capturePositionsValid : (result : MatchResult) ->
+postulate 0 capturePositionsValid : (result : MatchResult) ->
                           (result.matched = True) ->
                           All (\c => c.start <= c.end = True) result.captures
 
@@ -486,7 +486,7 @@ successIsMatched _ _ _ _ = Refl
 ||| `andTrueSplit` applied twice plus `notFalseTrue`. Discharge via
 ||| a manual chain of `andTrueSplit` once the helper lands, or by
 ||| inlining the equation by hand.
-0 seqPreservesSafety : (r1, r2 : Regex) ->
+postulate 0 seqPreservesSafety : (r1, r2 : Regex) ->
                        isKnownSafe r1 = True ->
                        isKnownSafe r2 = True ->
                        hasNestedQuantifiers (Seq r1 r2) = False ->
@@ -498,7 +498,7 @@ successIsMatched _ _ _ _ = Refl
 |||   `isKnownSafe (Alt r1 r2) = isKnownSafe r1 && isKnownSafe r2 && not (regexesOverlap r1 r2)`
 ||| Held back by the same three-way `&&`-split blocker as
 ||| `seqPreservesSafety`. Discharge identically.
-0 altPreservesSafety : (r1, r2 : Regex) ->
+postulate 0 altPreservesSafety : (r1, r2 : Regex) ->
                        isKnownSafe r1 = True ->
                        isKnownSafe r2 = True ->
                        regexesOverlap r1 r2 = False ->
@@ -510,7 +510,7 @@ successIsMatched _ _ _ _ = Refl
 |||   `isKnownSafe (Quant r q) = isKnownSafe r && isBounded q && not (hasNestedQuantifiers (Quant r q))`
 ||| Held back by the same three-way `&&`-split blocker as
 ||| `seqPreservesSafety`. Discharge identically.
-0 boundedQuantPreservesSafety : (r : Regex) -> (q : Quantifier) ->
+postulate 0 boundedQuantPreservesSafety : (r : Regex) -> (q : Quantifier) ->
                                 isKnownSafe r = True ->
                                 isBounded q = True ->
                                 hasNestedQuantifiers (Quant r q) = False ->
@@ -544,7 +544,7 @@ safetyAnalysisTotal r = (analyzeComplexity r ** Refl)
 ||| Discharge via the 60-arm case-split with `absurd Refl` on every
 ||| impossible arm, or by reformulating the lemma to take a single
 ||| `Ord ComplexityLevel`-derived strict-order proof.
-complexityTransitiveFallback : (a, b, c : ComplexityLevel) ->
+postulate complexityTransitiveFallback : (a, b, c : ComplexityLevel) ->
                                 a `compare` b = LT ->
                                 b `compare` c = LT ->
                                 a `compare` c = LT

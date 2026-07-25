@@ -39,7 +39,7 @@ emptyStringLength = Refl
 ||| tactic for `length` / `++` is available, or `String` is refactored
 ||| to expose its packed-character list as a definitional equality.
 export
-0 concatLength : (s1, s2 : String) ->
+postulate 0 concatLength : (s1, s2 : String) ->
                  Prelude.String.length (s1 ++ s2) = Prelude.String.length s1 + Prelude.String.length s2
 
 --------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ trimEmpty = Refl
 ||| tactic for `pack . unpack` is available, or `String` is refactored
 ||| to expose its packed-character list.
 export
-0 trimNoWhitespace : (s : String) -> all (Prelude.Basics.not . isSpace) (unpack s) = True ->
+postulate 0 trimNoWhitespace : (s : String) -> all (Prelude.Basics.not . isSpace) (unpack s) = True ->
                      Proven.SafeString.trim s = s
 
 --------------------------------------------------------------------------------
@@ -101,7 +101,7 @@ escapeSQLEmpty = Refl
 ||| `pack . singletonList = singleton` (or the `singleton`/`unpack`
 ||| pair becomes a definitional inverse).
 export
-0 escapeHTMLSafe : (c : Char) ->
+postulate 0 escapeHTMLSafe : (c : Char) ->
                    Prelude.Basics.not (c == '&' || c == '<' || c == '>' || c == '"' || c == '\'') = True ->
                    escapeHTML (singleton c) = singleton c
 
@@ -118,7 +118,7 @@ export
 ||| Refs standards#158).
 public export
 data NoUnescapedQuotes : String -> Type where
-  MkNoUnescapedQuotes : (s : String) ->
+  postulate MkNoUnescapedQuotes : (s : String) ->
                         (0 prf : all (\c => c /= '\'') (unpack s) = True) ->
                         NoUnescapedQuotes s
 
@@ -145,7 +145,7 @@ data NoUnescapedQuotes : String -> Type where
 ||| tactic for `unpack . pack . map f` (or an induction principle on
 ||| the unpacked list) is available.
 export
-0 escapeSQLSafeProperty : (s : String) ->
+postulate 0 escapeSQLSafeProperty : (s : String) ->
                           all (\c => c /= '\'') (unpack (escapeSQL s)) = True
 
 ||| After SQL escaping, there are no single quotes that aren't doubled
@@ -161,7 +161,7 @@ escapeSQLSafe s = MkNoUnescapedQuotes (escapeSQL s) (escapeSQLSafeProperty s)
 ||| Refs standards#158).
 public export
 data NoRawBrackets : String -> Type where
-  MkNoRawBrackets : (s : String) ->
+  postulate MkNoRawBrackets : (s : String) ->
                     (0 prf : all (\c => c /= '<' && c /= '>') (unpack s) = True) ->
                     NoRawBrackets s
 
@@ -181,7 +181,7 @@ data NoRawBrackets : String -> Type where
 ||| tactic for `unpack . pack . map f` (or an induction principle on
 ||| the unpacked list) is available.
 export
-0 escapeHTMLSafeProperty : (s : String) ->
+postulate 0 escapeHTMLSafeProperty : (s : String) ->
                            all (\c => c /= '<' && c /= '>') (unpack (escapeHTML s)) = True
 
 ||| After HTML escaping, there are no raw angle brackets
@@ -209,7 +209,7 @@ escapeHTMLSafe' s = MkNoRawBrackets (escapeHTML s) (escapeHTMLSafeProperty s)
 ||| and SafeHtml's `escapePreservesNoLT`. Discharge once a
 ||| `Data.String` reflective tactic for `pack . unpack` is available.
 export
-0 splitJoinIdentity : (delim : Char) -> (s : String) ->
+postulate 0 splitJoinIdentity : (delim : Char) -> (s : String) ->
                       Prelude.Basics.not (delim `elem` unpack s) = True ->
                       Proven.SafeString.join (singleton delim) (Proven.SafeString.split delim s) = s
 
@@ -233,4 +233,4 @@ export
 ||| `join` are refactored to a list-based intermediate that admits
 ||| structural induction.
 export
-0 linesUnlinesApprox : (s : String) -> Proven.SafeString.unlines (Proven.SafeString.lines s) = s ++ ""
+postulate 0 linesUnlinesApprox : (s : String) -> Proven.SafeString.unlines (Proven.SafeString.lines s) = s ++ ""

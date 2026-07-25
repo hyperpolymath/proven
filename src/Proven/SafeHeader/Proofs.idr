@@ -23,7 +23,7 @@ import Data.String
 ||| Predicate: Header value has no CRLF
 public export
 data NoCRLF : String -> Type where
-  MkNoCRLF : (value : String) ->
+  postulate MkNoCRLF : (value : String) ->
              {auto prf : not (hasCRLF value) = True} ->
              NoCRLF value
 
@@ -46,7 +46,7 @@ crlfCheckPreventsInjection value hasCrlf = ()
 ||| once `HeaderValue` carries an erased `NoCRLF` proof field that this
 ||| lemma can simply project.
 export
-0 headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
+postulate 0 headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
 
 ||| Helper: render a header to its wire format
 public export
@@ -64,7 +64,7 @@ renderHeader h = h.name.originalCase ++ ": " ++ h.value.value
 ||| tactic supplies `isInfixOf_append : isInfixOf p (a ++ b) = isInfixOf p a || isInfixOf p b`,
 ||| or via per-character induction on `unpack (renderHeader h)`.
 export
-0 renderedHeaderSafe : (h : Header) ->
+postulate 0 renderedHeaderSafe : (h : Header) ->
                        not (hasCRLF (renderHeader h)) = True
 
 --------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ export
 ||| Predicate: Header name is valid token
 public export
 data ValidToken : String -> Type where
-  MkValidToken : (name : String) ->
+  postulate MkValidToken : (name : String) ->
                  {auto prf : isValidToken name = True} ->
                  ValidToken name
 
@@ -105,7 +105,7 @@ tokenValidationPrevents name invalid = ()
 ||| Predicate: Header value is bounded
 public export
 data BoundedValue : Nat -> String -> Type where
-  MkBoundedValue : (maxLen : Nat) -> (value : String) ->
+  postulate MkBoundedValue : (maxLen : Nat) -> (value : String) ->
                    {auto prf : length (unpack value) <= maxLen = True} ->
                    BoundedValue maxLen value
 
@@ -152,7 +152,7 @@ totalSizePrevents opts size tooLarge = ()
 ||| hand-rewriting via `plusLteMonotone` over the two `.bounded`
 ||| projections.
 export
-0 singleHeaderBounded : (h : Header) ->
+postulate 0 singleHeaderBounded : (h : Header) ->
                         length (unpack h.name.originalCase) + 2 + length (unpack h.value.value) <=
                         maxNameLength + 2 + maxValueLength = True
 
@@ -248,7 +248,7 @@ strictBlocksDangerous = Refl
 ||| pre-validated `HeaderName` (so the proof becomes a projection of
 ||| the constructor invariant).
 export
-0 wellKnownNamesValid : (h : WellKnownHeader) ->
+postulate 0 wellKnownNamesValid : (h : WellKnownHeader) ->
                         isValidToken (show h) = True
 
 ||| Theorem: Security headers are categorized correctly

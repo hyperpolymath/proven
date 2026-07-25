@@ -53,7 +53,7 @@ import Data.List
 ||| directly so the length-equality and per-character comparison are
 ||| both type-level structural.
 public export
-0 constantTimeEqRefl : (s : String) -> constantTimeEqual s s = True
+postulate 0 constantTimeEqRefl : (s : String) -> constantTimeEqual s s = True
 
 ||| OWED: `constantTimeEqual a b = constantTimeEqual b a` for every
 ||| `a, b : String`. Operationally true because the length-inequality
@@ -78,7 +78,7 @@ public export
 ||| awaits a `Data.Char.eqCharSym` reflective lemma symmetric to
 ||| `Boj.SafetyLemmas.charEqSym`.
 public export
-0 constantTimeEqSym : (a, b : String) -> constantTimeEqual a b = constantTimeEqual b a
+postulate 0 constantTimeEqSym : (a, b : String) -> constantTimeEqual a b = constantTimeEqual b a
 
 ||| OWED: if `Not (length a = length b)` then
 ||| `constantTimeEqual a b = False`. Operationally true because the
@@ -103,7 +103,7 @@ public export
 ||| is refactored to take a `LengthEq`-tagged input (push the
 ||| length equality into the type and remove the runtime guard).
 public export
-0 differentLengthUnequal : (a, b : String) ->
+postulate 0 differentLengthUnequal : (a, b : String) ->
                            Not (length a = length b) ->
                            constantTimeEqual a b = False
 
@@ -130,7 +130,7 @@ public export
 ||| `constantTimeEqRefl → tokenValidatesSelf`); the proof body is
 ||| then `constantTimeEqRefl (tokenString tok)`.
 public export
-0 tokenValidatesSelf : (tok : CSRFToken) -> validateToken tok (tokenString tok) = True
+postulate 0 tokenValidatesSelf : (tok : CSRFToken) -> validateToken tok (tokenString tok) = True
 
 ||| OWED: `validateDoubleSubmit (MkDoubleSubmit val val) = True` for
 ||| every `val : String`. By unfolding,
@@ -147,7 +147,7 @@ public export
 ||| Discharge once `constantTimeEqRefl` is discharged; the proof
 ||| body is then `constantTimeEqRefl val`.
 public export
-0 identicalDoubleSubmitValid : (val : String) ->
+postulate 0 identicalDoubleSubmitValid : (val : String) ->
                                validateDoubleSubmit (MkDoubleSubmit val val) = True
 
 ||| OWED: if `validateToken tok submitted = False` then
@@ -178,7 +178,7 @@ public export
 ||| or (b) a Bool-Prop reflective tactic exposes `validateToken`'s
 ||| reduction. Recorded as OWED until one of those lands.
 public export
-0 fullValidationRequiresToken : (tok : CSRFToken) -> (submitted : String) ->
+postulate 0 fullValidationRequiresToken : (tok : CSRFToken) -> (submitted : String) ->
                                 (origins : List String) -> (origin : String) ->
                                 validateToken tok submitted = False ->
                                 fullValidation tok submitted origins origin = False

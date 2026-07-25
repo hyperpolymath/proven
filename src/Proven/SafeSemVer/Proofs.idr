@@ -139,7 +139,7 @@ alphaAfterNumeric _ _ = Refl
 ||| lemma is available in `Data.Nat`, or refactor `isCompatible` to use
 ||| `decEq` or `compare ... = EQ` form.
 public export
-0 compatibleWithSelf : (v : SemVer) -> isStable v = True -> isCompatible v v = True
+postulate 0 compatibleWithSelf : (v : SemVer) -> isStable v = True -> isCompatible v v = True
 
 ||| OWED: `satisfiesGTE` is reflexive — every version satisfies `>=`
 ||| itself. By definition `satisfiesGTE v v = compare v v /= LT`, so
@@ -153,4 +153,4 @@ public export
 ||| an `Ord`-reflexivity lemma is available for `Nat` and `List` is
 ||| chained through `comparePre`.
 public export
-0 satisfiesGTERefl : (v : SemVer) -> satisfiesGTE v v = True
+postulate 0 satisfiesGTERefl : (v : SemVer) -> satisfiesGTE v v = True

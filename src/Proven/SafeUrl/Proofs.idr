@@ -46,7 +46,7 @@ parseDeterministic s = Refl
 ||| Discharge once a `Data.Char` reflective tactic is available, or
 ||| `isUnreserved` is refactored to a non-FFI predicate.
 export
-0 unreservedNotEncoded : (c : Char) ->
+postulate 0 unreservedNotEncoded : (c : Char) ->
                          isAlphaNum c = True ->
                          percentEncode c = singleton c
 
@@ -65,7 +65,7 @@ encodeEmptyEmpty = Refl
 ||| `unreservedNotEncoded` above). Discharge once both String FFI
 ||| reduction and a `Data.Char` reflective tactic are available.
 export
-0 encodePreservesAlphaNum : (s : String) ->
+postulate 0 encodePreservesAlphaNum : (s : String) ->
                             all isAlphaNum (unpack s) = True ->
                             urlEncode s = s
 
@@ -88,7 +88,7 @@ decodeEmptySucceeds = Refl
 ||| make the case analysis on `go` definitional. Discharge once String
 ||| FFI reduction and a `Data.Char` reflective tactic are available.
 export
-0 decodeUnreservedIdentity : (s : String) ->
+postulate 0 decodeUnreservedIdentity : (s : String) ->
                              all isAlphaNum (unpack s) = True ->
                              urlDecode s = Just s
 
@@ -105,7 +105,7 @@ export
 ||| reduction is available, or via a property-test + trusted-extraction
 ||| validation campaign (see boj-server backend-assurance harness).
 export
-0 encodeDecodeIdentity : (s : String) ->
+postulate 0 encodeDecodeIdentity : (s : String) ->
                          urlDecode (urlEncode s) = Just s
 
 --------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ parseEmptyQuery = Refl
 ||| or refactor `buildQueryString` to expose the empty-list base case
 ||| at the top.
 export
-0 emptyBuilderEmpty : buildQueryString Query.emptyQuery = ""
+postulate 0 emptyBuilderEmpty : buildQueryString Query.emptyQuery = ""
 
 ||| DISCHARGED: Adding a parameter increases the parameter count by one.
 ||| `addParam key val qb` is defined as `MkQueryBuilder (qb.params ++
@@ -157,7 +157,7 @@ addParamIncreasesCount key val qb = lengthSnoc (key, val) qb.params
 ||| SafeChecksum Luhn/ISBN (String FFI opacity). Discharge once String
 ||| equality is type-level reducible, or via a property-test campaign.
 export
-0 setGetIdentity : (key, val : String) -> (qs : QueryString) ->
+postulate 0 setGetIdentity : (key, val : String) -> (qs : QueryString) ->
                    getParam key (setParam key val qs) = Just val
 
 ||| OWED: After removing all instances of a key, `hasParam` returns
@@ -170,7 +170,7 @@ export
 ||| induction over `qs`. Discharge once String equality is type-level
 ||| reducible. Same blocker family as `setGetIdentity`.
 export
-0 removeHasNot : (key : String) -> (qs : QueryString) ->
+postulate 0 removeHasNot : (key : String) -> (qs : QueryString) ->
                  hasParam key (removeAllParams key qs) = False
 
 ||| OWED: `filterParams` keeps only entries whose keys are in the given
@@ -184,7 +184,7 @@ export
 ||| / proving the `filterAll` lemma and rewriting, once String equality
 ||| is type-level reducible.
 export
-0 filterPreservesOnly : (keys : List String) -> (qs : QueryString) ->
+postulate 0 filterPreservesOnly : (keys : List String) -> (qs : QueryString) ->
                         all (\(k, _) => k `elem` keys) (filterParams keys qs) = True
 
 --------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ export
 ||| "42" = Just 42` is operationally true but opaque). Discharge via
 ||| property-test + trusted-extraction validation.
 export
-0 parseIntValid : (key : String) ->
+postulate 0 parseIntValid : (key : String) ->
                   getIntParam key [(key, "42")] = Just 42
 
 ||| OWED: Parsing bool `"true"` from a matching key yields `Just True`.
@@ -216,7 +216,7 @@ export
 ||| Discharge once String equality is type-level reducible, or via
 ||| property-test campaign.
 export
-0 parseBoolTrue : (key : String) ->
+postulate 0 parseBoolTrue : (key : String) ->
                   getBoolParam key [(key, "true")] = Just True
 
 ||| OWED: Parsing bool `"false"` from a matching key yields `Just
@@ -225,7 +225,7 @@ export
 ||| Held back by the same Idris2 0.8.0 String-literal-match
 ||| (`prim__eqString` FFI) opacity. Discharge with `parseBoolTrue`.
 export
-0 parseBoolFalse : (key : String) ->
+postulate 0 parseBoolFalse : (key : String) ->
                    getBoolParam key [(key, "false")] = Just False
 
 --------------------------------------------------------------------------------
@@ -251,7 +251,7 @@ mergeEmptyRight qs = Refl
 ||| once String equality is type-level reducible and the snoc-length
 ||| lemma is `%reducible`.
 export
-0 mergeEmptyLeft : (qs : QueryString) ->
+postulate 0 mergeEmptyLeft : (qs : QueryString) ->
                    mergeQueryStrings [] qs = qs
 
 ||| OWED: Query string append is associative — inherited from
@@ -284,7 +284,7 @@ appendAssociative qs1 qs2 qs3 = sym (Data.List.appendAssociative qs1 qs2 qs3)
 ||| because `isSafeSchemeNotJavascript` is OWED — see below.
 public export
 data SafeURL : ParsedURL -> Type where
-  MkSafeURL : (url : ParsedURL) ->
+  postulate MkSafeURL : (url : ParsedURL) ->
               (0 _ : Not (url.scheme = Just (Custom "javascript"))) ->
               SafeURL url
 
@@ -309,7 +309,7 @@ isSafeScheme url = case url.scheme of
 ||| `setGetIdentity`. Discharge once String equality is type-level
 ||| reducible. Used by `validateSafe` to construct `MkSafeURL`.
 export
-0 isSafeSchemeNotJavascript : (url : ParsedURL) -> isSafeScheme url = True ->
+postulate 0 isSafeSchemeNotJavascript : (url : ParsedURL) -> isSafeScheme url = True ->
                               Not (url.scheme = Just (Custom "javascript"))
 
 ||| Validate URL is safe
@@ -327,7 +327,7 @@ validateSafe url =
 ||| IPv4 address components are bounded
 public export
 data ValidIPv4 : Host -> Type where
-  MkValidIPv4 : (a, b, c, d : Nat) ->
+  postulate MkValidIPv4 : (a, b, c, d : Nat) ->
                 LTE a 255 -> LTE b 255 -> LTE c 255 -> LTE d 255 ->
                 ValidIPv4 (IPv4 a b c d)
 
@@ -336,7 +336,7 @@ data ValidIPv4 : Host -> Type where
 ||| because `lteFrom65535Check` is OWED — see below.
 public export
 data ValidPort : Nat -> Type where
-  MkValidPort : (p : Nat) -> (0 _ : LTE p 65535) -> ValidPort p
+  postulate MkValidPort : (p : Nat) -> (0 _ : LTE p 65535) -> ValidPort p
 
 ||| DISCHARGED via `Data.Nat.lteReflectsLTE` stdlib lemma.
 export

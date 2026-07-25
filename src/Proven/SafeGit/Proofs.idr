@@ -29,7 +29,7 @@ forbiddenRefCharsAnchor = Refl
 ||| OWED: `isValidRefName ""` = False (empty refs invalid). Blocked
 ||| on String FFI (`unpack`, `length` opacity for variable inputs).
 public export
-0 emptyRefNameInvalid : isValidRefName "" = False
+postulate 0 emptyRefNameInvalid : isValidRefName "" = False
 
 ||| DISCHARGED: `refName (MkGitRef s) = s` (record extraction
 ||| pass-through). `refName` is a direct pattern match

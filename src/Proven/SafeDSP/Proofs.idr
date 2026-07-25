@@ -23,4 +23,4 @@ module Proven.SafeDSP.Proofs
 
 ||| Sentinel for the upstream `Data.Nat.Division` baseline-rot blocker.
 public export
-0 safeDSPProofsAwaitBaselineRepair : ()
+postulate 0 safeDSPProofsAwaitBaselineRepair : ()

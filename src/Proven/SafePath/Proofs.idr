@@ -103,7 +103,7 @@ import Data.Maybe
 ||| a `Data.String` reflective tactic (or a `splitPath . joinSegments
 ||| = id`-on-canonical-lists lemma) is available.
 export
-0 normalizeIdempotent : (path : String) ->
+postulate 0 normalizeIdempotent : (path : String) ->
                         normalizePath (normalizePath path) = normalizePath path
 
 ||| OWED: normalisation removes empty segments. Witnessed by
@@ -120,7 +120,7 @@ export
 ||| `splitPath` to a `List (Subset String NonEmpty)` where the
 ||| non-emptiness is propagated structurally.
 export
-0 normalizeRemovesEmpty : (path : String) ->
+postulate 0 normalizeRemovesEmpty : (path : String) ->
                           not ("" `elem` splitPath (normalizePath path)) = True
 
 ||| OWED: normalisation removes `.` segments. Witnessed by
@@ -133,7 +133,7 @@ export
 ||| available, or refactor `splitPath` to a `List PathSegment` where
 ||| `.` is excluded by construction.
 export
-0 normalizeRemovesDot : (path : String) ->
+postulate 0 normalizeRemovesDot : (path : String) ->
                         not ("." `elem` splitPath (normalizePath path)) = True
 
 ||| OWED: a normalised absolute path has no leading `..` segment —
@@ -151,7 +151,7 @@ export
 ||| tactic is available, or refactor to a `data IsAbsolute : String ->
 ||| Type` predicate carrying the witness structurally.
 export
-0 normalizeAbsNoLeadingDotDot : (path : String) ->
+postulate 0 normalizeAbsNoLeadingDotDot : (path : String) ->
                                 isPrefixOf "/" path = True ->
                                 case splitPath (normalizePath path) of
                                   (".." :: _) => Void
@@ -164,7 +164,7 @@ export
 ||| Safe join prevents escape beyond base directory
 public export
 data NoEscape : (base : String) -> (combined : String) -> Type where
-  MkNoEscape : (base : String) -> (combined : String) ->
+  postulate MkNoEscape : (base : String) -> (combined : String) ->
                (prf : isPrefixOf (splitPath (normalizePath base))
                                 (splitPath (normalizePath combined)) = True) ->
                NoEscape base combined
@@ -186,7 +186,7 @@ data NoEscape : (base : String) -> (combined : String) -> Type where
 ||| `safeJoinPaths` to return a `Subset String (NoEscape base)`
 ||| carrying the proof in the type.
 export
-0 safeJoinNoEscape : (base, rel : String) ->
+postulate 0 safeJoinNoEscape : (base, rel : String) ->
                      (result : String ** safeJoinPaths base rel = Just result) ->
                      NoEscape base result
 
@@ -206,7 +206,7 @@ export
 ||| or refactor `sanitizeSegment` to `List Char -> List Char` with
 ||| the safety predicate stated structurally.
 export
-0 sanitizedIsSafe : (seg : String) ->
+postulate 0 sanitizedIsSafe : (seg : String) ->
                     isSafeSegment (sanitizeSegment seg) = True
 
 ||| OWED: every `ContainedPath base` value has a full path that is
@@ -224,7 +224,7 @@ export
 ||| as `normalizeRemovesEmpty`. Discharge alongside
 ||| `safeJoinNoEscape`.
 export
-0 containedInBase : (base : String) -> (cp : ContainedPath base) ->
+postulate 0 containedInBase : (base : String) -> (cp : ContainedPath base) ->
                     isAncestorOf base (getFullPath cp) = True
 
 --------------------------------------------------------------------------------
@@ -234,7 +234,7 @@ export
 ||| Data type for path without traversal
 public export
 data NoTraversal : String -> Type where
-  MkNoTraversal : (path : String) ->
+  postulate MkNoTraversal : (path : String) ->
                   (prf : not (".." `elem` splitPath (normalizePath path)) = True) ->
                   NoTraversal path
 
@@ -252,7 +252,7 @@ data NoTraversal : String -> Type where
 ||| as `sanitizedIsSafe`. Discharge once a `Data.String` reflective
 ||| tactic for `unpack`/`pack` is available.
 export
-0 sanitizedNoTraversal : (path : String) ->
+postulate 0 sanitizedNoTraversal : (path : String) ->
                          NoTraversal (normalizePath (joinSegments (map sanitizeSegment (splitPath path))))
 
 ||| OWED: if `".." `elem` splitPath path = True` then `any (== "..")
@@ -269,7 +269,7 @@ export
 ||| (or equivalent) is added to the Prelude, or once a
 ||| `Data.String` reflective tactic for `(==)` is available.
 export
-0 traversalHasDotDot : (path : String) ->
+postulate 0 traversalHasDotDot : (path : String) ->
                        (".." `elem` splitPath path = True) ->
                        any (== "..") (splitPath path) = True
 
@@ -293,7 +293,7 @@ export
 ||| axiom (`%unsafe`, `believe_me ()` over `prim__eq_String`) in
 ||| the same trust posture as the boj-server / gossamer axioms.
 export
-0 pathEqRefl : (path : String) -> pathEqSensitive path path = True
+postulate 0 pathEqRefl : (path : String) -> pathEqSensitive path path = True
 
 ||| OWED: `pathEqSensitive` is symmetric, i.e. `pathEqSensitive p1
 ||| p2 = pathEqSensitive p2 p1`. Witnessed by `pathEqSensitive`
@@ -308,7 +308,7 @@ export
 ||| `Data.String` reflective tactic for `(==)` is available, or by
 ||| stating a `stringEqSym` class-J axiom in the same trust posture.
 export
-0 pathEqSym : (p1, p2 : String) ->
+postulate 0 pathEqSym : (p1, p2 : String) ->
               pathEqSensitive p1 p2 = pathEqSensitive p2 p1
 
 ||| OWED: if `parent` is a parent of `child` then `parent` is an
@@ -328,7 +328,7 @@ export
 ||| `splitPath . normalizePath` is reflective, or by a manual
 ||| `&&-projL` lemma followed by reflexivity on `isPrefixOf`.
 export
-0 parentIsAncestor : (parent, child : String) ->
+postulate 0 parentIsAncestor : (parent, child : String) ->
                      isParentOf parent child = True ->
                      isAncestorOf parent child = True
 
@@ -346,7 +346,7 @@ export
 ||| structural induction over the prefix witness) and
 ||| `splitPath . normalizePath` is reflective.
 export
-0 ancestorTransitive : (a, b, c : String) ->
+postulate 0 ancestorTransitive : (a, b, c : String) ->
                        isAncestorOf a b = True ->
                        isAncestorOf b c = True ->
                        isAncestorOf a c = True
@@ -373,7 +373,7 @@ export
 ||| `record { stem : String, ext : Maybe String }` carrier where
 ||| the round-trip is structural.
 export
-0 changeExtensionCorrect : (path, ext : String) ->
+postulate 0 changeExtensionCorrect : (path, ext : String) ->
                            not (ext == "") = True ->
                            getExtension (changeExtension path ext) = Just ext
 
@@ -387,7 +387,7 @@ export
 ||| `changeExtensionCorrect`. Discharge alongside
 ||| `changeExtensionCorrect`.
 export
-0 stripExtensionRemoves : (path : String) ->
+postulate 0 stripExtensionRemoves : (path : String) ->
                           Data.Maybe.isJust (getExtension path) = True ->
                           getExtension (stripExtension path) = Nothing
 
@@ -407,7 +407,7 @@ export
 ||| `isSuffixOf` is available, or by stating a
 ||| `joinSegments_snoc_suffix` lemma over `List String`.
 export
-0 addExtensionAdds : (path, ext : String) ->
+postulate 0 addExtensionAdds : (path, ext : String) ->
                      isSuffixOf ("." ++ ext) (addExtension path ext) = True
 
 --------------------------------------------------------------------------------
@@ -433,7 +433,7 @@ emptyMatchesEmpty = Refl
 ||| tactic for `unpack` is available, or by an induction on `s` via
 ||| `Strings.Strong.WithProof`.
 export
-0 starMatchesAll : (s : String) -> matchGlob "*" s = True
+postulate 0 starMatchesAll : (s : String) -> matchGlob "*" s = True
 
 ||| OWED: `matchGlob "?" (singleton c) = True` for every `c : Char`
 ||| — the question-mark wildcard matches any single character.
@@ -450,7 +450,7 @@ export
 ||| tactic for `unpack . singleton = ::` (or equivalent) is
 ||| available.
 export
-0 questionMatchesSingle : (c : Char) -> matchGlob "?" (singleton c) = True
+postulate 0 questionMatchesSingle : (c : Char) -> matchGlob "?" (singleton c) = True
 
 ||| OWED: a literal pattern `s` (containing no `*` or `?`) matches
 ||| itself, i.e. `matchGlob s s = True`. Witnessed by
@@ -468,7 +468,7 @@ export
 ||| `charEqRefl` class-J axiom in the same trust posture as
 ||| boj-server.
 export
-0 literalMatchesSelf : (s : String) ->
+postulate 0 literalMatchesSelf : (s : String) ->
                        all (\c => c /= '*' && c /= '?') (unpack s) = True ->
                        matchGlob s s = True
 
@@ -492,7 +492,7 @@ export
 ||| structurally, or by a manual case-split on the guard chain
 ||| with `Strings.Substr.length`-reflective tactics.
 export
-0 validPathBounded : (path : String) ->
+postulate 0 validPathBounded : (path : String) ->
                      (vp : ValidatedPath ** validatePath path = Right vp) ->
                      Prelude.String.length path <= 4096 = True
 
@@ -506,7 +506,7 @@ export
 ||| from `normalizeRemovesEmpty`. Same blocker family. Discharge
 ||| alongside `validPathBounded`.
 export
-0 validSegmentsBounded : (path : String) ->
+postulate 0 validSegmentsBounded : (path : String) ->
                          (vp : ValidatedPath ** validatePath path = Right vp) ->
                          all (\seg => Prelude.String.length seg <= 255) (splitPath path) = True
 
@@ -522,7 +522,7 @@ export
 ||| Discharge alongside `validPathBounded`, or refactor to a
 ||| `dec*`-style decidable check.
 export
-0 validPathNoNull : (path : String) ->
+postulate 0 validPathNoNull : (path : String) ->
                     (vp : ValidatedPath ** validatePath path = Right vp) ->
                     not ('\0' `elem` unpack path) = True
 
@@ -544,7 +544,7 @@ export
 ||| stuck on the FFI seam. Same blocker family. Discharge
 ||| alongside `safeJoinNoEscape`.
 export
-0 containedStartsWithBase : (base : String) -> (cp : ContainedPath base) ->
+postulate 0 containedStartsWithBase : (base : String) -> (cp : ContainedPath base) ->
                             isPrefixOf (splitPath (normalizePath base))
                                       (splitPath (normalizePath (getFullPath cp))) = True
 

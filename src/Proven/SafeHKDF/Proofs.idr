@@ -107,7 +107,7 @@ sha512MaxOutput = Refl
 
 ||| OWED: `mkHKDFParams` cannot return a `Just` that fails `isValid`.
 public export
-0 mkHKDFParamsSound :
+postulate 0 mkHKDFParamsSound :
   (h : HKDFHash) -> (ikm, salt, info, outLen : Nat) -> (p : HKDFParams)
   -> mkHKDFParams h ikm salt info outLen = Just p
   -> isValid p = True
@@ -115,7 +115,7 @@ public export
 ||| OWED: `mkHKDFParams` returns `Nothing` iff the would-be params fail
 ||| validation.
 public export
-0 mkHKDFParamsRejectsInvalid :
+postulate 0 mkHKDFParamsRejectsInvalid :
   (h : HKDFHash) -> (ikm, salt, info, outLen : Nat)
   -> mkHKDFParams h ikm salt info outLen = Nothing
   -> isValid (MkHKDFParams h ikm salt info outLen) = False

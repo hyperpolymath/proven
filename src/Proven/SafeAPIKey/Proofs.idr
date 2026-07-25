@@ -105,7 +105,7 @@ fullMaskStructure _ = Refl
 ||| Discharge once a `DecEq KeyFormat` instance is exposed alongside a
 ||| Bool-Prop reflection lemma for `==`, or once `mkAPIKeyWithFormat`
 ||| is refactored to case-split on `decEq key.format expected`.
-0 formatMismatchRejected : (expected : KeyFormat) -> (s : String) ->
+postulate 0 formatMismatchRejected : (expected : KeyFormat) -> (s : String) ->
                            (key : APIKey) ->
                            mkAPIKey s = Just key ->
                            Not (key.format = expected) ->

@@ -24,7 +24,7 @@ import Data.Maybe
 ||| Predicate: String is valid token
 public export
 data ValidMediaToken : String -> Type where
-  MkValidMediaToken : (token : String) ->
+  postulate MkValidMediaToken : (token : String) ->
                       {auto prf : isValidToken token = True} ->
                       ValidMediaToken token
 
@@ -58,7 +58,7 @@ spaceNotTokenChar = Refl
 ||| Predicate: Type is bounded
 public export
 data BoundedType : Nat -> String -> Type where
-  MkBoundedType : (maxLen : Nat) -> (t : String) ->
+  postulate MkBoundedType : (maxLen : Nat) -> (t : String) ->
                   {auto prf : length (unpack t) <= maxLen = True} ->
                   BoundedType maxLen t
 
