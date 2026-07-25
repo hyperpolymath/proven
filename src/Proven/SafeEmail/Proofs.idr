@@ -58,7 +58,7 @@ parseDeterministic s = Refl
 ||| Discharge once a `Data.String` reflective tactic is available,
 ||| or once `splitOnLast` is reformulated on `List Char` so its
 ||| reduction does not pass through `unpack`.
-0 parseNoAtFails : parseEmail "noatsign" = Nothing
+postulate 0 parseNoAtFails : parseEmail "noatsign" = Nothing
 
 --------------------------------------------------------------------------------
 -- Validation Properties
@@ -78,7 +78,7 @@ parseDeterministic s = Refl
 ||| record-projection reduction" comment was incorrect — it did not
 ||| type-check under Idris2 0.8.0.)
 public export
-0 validResultIsValid : validResult.isValid = True
+postulate 0 validResultIsValid : validResult.isValid = True
 
 ||| OWED: adding an Error-severity issue makes the result invalid.
 ||| `addIssue` (Validation.idr L71-74) computes the new validity as
@@ -126,7 +126,7 @@ combineValidValid (MkValidationResult True _) (MkValidationResult True _) Refl R
 ||| Parsed email always contains @
 public export
 data ContainsAt : String -> Type where
-  MkContainsAt : (s : String) -> (prf : '@' `elem` unpack s = True) -> ContainsAt s
+  postulate MkContainsAt : (s : String) -> (prf : '@' `elem` unpack s = True) -> ContainsAt s
 
 ||| OWED: if `parseEmail s` succeeds (`isJust (parseEmail s) = True`),
 ||| the input string contains `'@'` (`'@' `elem` unpack s = True`).
@@ -140,22 +140,22 @@ data ContainsAt : String -> Type where
 ||| String FFI is reflectively modelled, or once `splitOnLast` is
 ||| factored through `List Char` with a structural lemma
 ||| `splitOnLastJust : splitOnLast c s = Just _ -> c `elem` unpack s = True`.
-0 parsedContainsAt : (s : String) -> isJust (parseEmail s) = True -> ContainsAt s
+postulate 0 parsedContainsAt : (s : String) -> isJust (parseEmail s) = True -> ContainsAt s
 
 ||| Local part length bound
 public export
 data ValidLocalLength : String -> Type where
-  MkValidLocalLength : (local : String) -> LTE (length local) 64 -> ValidLocalLength local
+  postulate MkValidLocalLength : (local : String) -> LTE (length local) 64 -> ValidLocalLength local
 
 ||| Domain length bound
 public export
 data ValidDomainLength : String -> Type where
-  MkValidDomainLength : (domain : String) -> LTE (length domain) 253 -> ValidDomainLength domain
+  postulate MkValidDomainLength : (domain : String) -> LTE (length domain) 253 -> ValidDomainLength domain
 
 ||| Total email length bound
 public export
 data ValidTotalLength : String -> Type where
-  MkValidTotalLength : (email : String) -> LTE (length email) 254 -> ValidTotalLength email
+  postulate MkValidTotalLength : (email : String) -> LTE (length email) 254 -> ValidTotalLength email
 
 --------------------------------------------------------------------------------
 -- Normalization Properties
@@ -173,7 +173,7 @@ data ValidTotalLength : String -> Type where
 ||| character-level lemma `Data.Char.toLowerIdempotent` lifted
 ||| through `pack . map toLower . unpack` (which still requires
 ||| reducing through `unpack` / `pack`).
-0 normalizeIdempotent : (email : ParsedEmail) ->
+postulate 0 normalizeIdempotent : (email : ParsedEmail) ->
                         toLower email.domain = toLower (toLower email.domain)
 
 ||| Normalized emails with same local and domain are equal (trivial
@@ -193,7 +193,7 @@ normalizedEquality e1 e2 _ prf = prf
 ||| Sanitized string contains no newlines
 public export
 data NoNewlines : String -> Type where
-  MkNoNewlines : (s : String) ->
+  postulate MkNoNewlines : (s : String) ->
                  all (\c => c /= '\n' && c /= '\r') (unpack s) = True ->
                  NoNewlines s
 
@@ -217,7 +217,7 @@ sanitizeForHeader str = pack (filter isHeaderSafe (unpack str))
 ||| `Bool` reduction. Same family as SafeHtml's filter-correctness
 ||| OWED. Discharge with a hand-written `filterAll` lemma or with a
 ||| reflective `Bool` tactic.
-0 sanitizeRemovesNewlinesLemma : (s : String) ->
+postulate 0 sanitizeRemovesNewlinesLemma : (s : String) ->
                                   all (\c => c /= '\n' && c /= '\r')
                                       (filter (\c => c /= '\n' && c /= '\r' && c /= '\0') (unpack s))
                                   = True
@@ -234,7 +234,7 @@ sanitizeForHeader str = pack (filter isHeaderSafe (unpack str))
 ||| (2) the upstream `sanitizeRemovesNewlinesLemma` is itself OWED.
 ||| Discharge once both are discharged.
 public export
-0 sanitizeRemovesNewlines : (s : String) ->
+postulate 0 sanitizeRemovesNewlines : (s : String) ->
                             NoNewlines (sanitizeForHeader s)
 
 --------------------------------------------------------------------------------
@@ -253,7 +253,7 @@ public export
 ||| with `(::)`). Discharge with a hand-written
 ||| `filterAllSelf : (xs : List a) -> all p (filter p xs) = True`
 ||| lemma in `Data.List`, or via the reflective `Bool` tactic.
-0 filterValidCorrect : (emails : List String) ->
+postulate 0 filterValidCorrect : (emails : List String) ->
                        all (\e => (validateEmailFull e).isValid) (filterValid emails) = True
 
 uniqueEmails : List ParsedEmail -> List ParsedEmail
@@ -271,7 +271,7 @@ uniqueEmails = nubBy (\e1, e2 => toLower (e1.localPart ++ "@" ++ e1.domain) ==
 ||| boj-server `Data.List` length-monotonicity OWED set. Discharge
 ||| by adding the missing lemma to `Data.List`, or by extending
 ||| `Data.List.Lemmas` (contrib) with it.
-0 uniqueNoDuplicates : (emails : List ParsedEmail) ->
+postulate 0 uniqueNoDuplicates : (emails : List ParsedEmail) ->
                        LTE (length (uniqueEmails emails)) (length emails)
 
 --------------------------------------------------------------------------------
@@ -290,7 +290,7 @@ uniqueEmails = nubBy (\e1, e2 => toLower (e1.localPart ++ "@" ++ e1.domain) ==
 ||| as SafeTOML's `isScalarCorrect` Bool-LEM gap. Discharge with a
 ||| one-line case-split on `isFreeEmail domain`.
 public export
-0 freeEmailExhaustive : (domain : String) ->
+postulate 0 freeEmailExhaustive : (domain : String) ->
                         Either (isFreeEmail domain = True) (isFreeEmail domain = False)
 
 ||| OWED: `checkCommonTypos "gmial.com"` returns the
@@ -305,7 +305,7 @@ public export
 ||| `normalizeIdempotent` and `parseNoAtFails`. Discharge once the
 ||| String FFI is reflectively modelled, or by refactoring
 ||| `checkCommonTypos` to operate on `List Char`.
-0 typoCheckFindsKnown : checkCommonTypos "gmial.com" = addIssue
+postulate 0 typoCheckFindsKnown : checkCommonTypos "gmial.com" = addIssue
                         (MkValidationIssue Warning "W010"
                           "Possible typo - did you mean gmail.com?")
                         validResult
@@ -325,7 +325,7 @@ public export
 ||| by the `addIssue` Bool-reduction gap shared with
 ||| `errorMakesInvalid`. Same family as `parseNoAtFails`. Discharge
 ||| once the String FFI is reflectively modelled.
-0 validLocalNoStartDot : (local : String) ->
+postulate 0 validLocalNoStartDot : (local : String) ->
                         (validateLocalPart local).isValid = True ->
                         isPrefixOf "." local = False
 
@@ -335,7 +335,7 @@ public export
 ||| when `isSuffixOf "." local = True`. Held back by the same
 ||| String-FFI / Bool-reduction blockers; discharged in the same
 ||| stroke.
-0 validLocalNoEndDot : (local : String) ->
+postulate 0 validLocalNoEndDot : (local : String) ->
                       (validateLocalPart local).isValid = True ->
                       isSuffixOf "." local = False
 
@@ -348,7 +348,7 @@ public export
 ||| `LTE 1 (length (forget xs))` as a Refl. Discharge with a
 ||| one-line case-split on the `List1` constructor (`x ::: xs`
 ||| gives length `S (length xs) >= S Z`).
-0 validDomainHasLabel : (domain : String) ->
+postulate 0 validDomainHasLabel : (domain : String) ->
                        (validateDomain domain).isValid = True ->
                        LTE 1 (length (forget (split (== '.') domain)))
 
@@ -368,7 +368,7 @@ public export
 ||| `combineValidValid` plus the `foldl combineResults` invariant
 ||| (which `Data.List` does not expose as a Refl in Idris2 0.8.0).
 ||| Discharge alongside `combineValidValid`.
-0 comprehensiveCatchesRFC : (s : String) ->
+postulate 0 comprehensiveCatchesRFC : (s : String) ->
                             (validateEmailFull s).isValid = False ->
                             (validateComprehensive s).isValid = False
 
@@ -387,6 +387,6 @@ public export
 ||| `errorMakesInvalid`. Discharge alongside `errorMakesInvalid` +
 ||| `combineValidValid`, with one extra step-lemma per extra check
 ||| (each: "this check only emits non-Error issues").
-0 validPassesComprehensive : (s : String) ->
+postulate 0 validPassesComprehensive : (s : String) ->
                              (validateEmailFull s).isValid = True ->
                              hasErrors (validateComprehensive s) = False

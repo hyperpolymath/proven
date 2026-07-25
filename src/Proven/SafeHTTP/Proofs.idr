@@ -102,7 +102,7 @@ parseEmptyMethodFails = Refl
 ||| is available, or by deriving via `boolAnd`/`boolNot` case-split on
 ||| the `So` witness plus `lteTransitive` (200 <= sc.code < 300 < 400).
 export
-0 successNotError : (sc : StatusCode) -> isSuccess sc = True -> isError sc = False
+postulate 0 successNotError : (sc : StatusCode) -> isSuccess sc = True -> isError sc = False
 
 ||| OWED: error status codes are not successes. If `isError sc = True`
 ||| (i.e. `sc.code >= 400`), then `isSuccess sc = False` (i.e.
@@ -113,7 +113,7 @@ export
 ||| Discharge once a `Data.Nat` linear-arithmetic reflective tactic
 ||| is available, or by case-split on `>=`/`<` with `lteTransitive`.
 export
-0 errorNotSuccess : (sc : StatusCode) -> isError sc = True -> isSuccess sc = False
+postulate 0 errorNotSuccess : (sc : StatusCode) -> isError sc = True -> isSuccess sc = False
 
 ||| OWED: retryable status codes are errors. 429, 502, 503, 504 are
 ||| each `>= 400`, so `isRetryable sc = True` implies `isError sc =
@@ -126,7 +126,7 @@ export
 ||| analysis on the `||` chain with literal `lteSucc`-derived proofs
 ||| `429 >= 400`, `502 >= 400`, `503 >= 400`, `504 >= 400`.
 export
-0 retryableIsError : (sc : StatusCode) -> isRetryable sc = True -> isError sc = True
+postulate 0 retryableIsError : (sc : StatusCode) -> isRetryable sc = True -> isError sc = True
 
 --------------------------------------------------------------------------------
 -- Header Injection Prevention Properties

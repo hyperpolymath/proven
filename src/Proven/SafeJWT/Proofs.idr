@@ -24,30 +24,30 @@ import Data.String
 ||| Predicate: Algorithm is secure (not 'none')
 public export
 data IsSecureAlg : JWTAlgorithm -> Type where
-  HS256Secure : IsSecureAlg HS256
-  HS384Secure : IsSecureAlg HS384
-  HS512Secure : IsSecureAlg HS512
-  RS256Secure : IsSecureAlg RS256
-  RS384Secure : IsSecureAlg RS384
-  RS512Secure : IsSecureAlg RS512
-  ES256Secure : IsSecureAlg ES256
-  ES384Secure : IsSecureAlg ES384
-  ES512Secure : IsSecureAlg ES512
-  PS256Secure : IsSecureAlg PS256
-  PS384Secure : IsSecureAlg PS384
-  PS512Secure : IsSecureAlg PS512
-  EdDSASecure : IsSecureAlg EdDSA
+  postulate HS256Secure : IsSecureAlg HS256
+  postulate HS384Secure : IsSecureAlg HS384
+  postulate HS512Secure : IsSecureAlg HS512
+  postulate RS256Secure : IsSecureAlg RS256
+  postulate RS384Secure : IsSecureAlg RS384
+  postulate RS512Secure : IsSecureAlg RS512
+  postulate ES256Secure : IsSecureAlg ES256
+  postulate ES384Secure : IsSecureAlg ES384
+  postulate ES512Secure : IsSecureAlg ES512
+  postulate PS256Secure : IsSecureAlg PS256
+  postulate PS384Secure : IsSecureAlg PS384
+  postulate PS512Secure : IsSecureAlg PS512
+  postulate EdDSASecure : IsSecureAlg EdDSA
 
 ||| Predicate: Token has not expired
 public export
 data NotExpired : Integer -> Integer -> Type where
-  MkNotExpired : (exp : Integer) -> (current : Integer) ->
+  postulate MkNotExpired : (exp : Integer) -> (current : Integer) ->
                  {auto prf : So (current <= exp)} -> NotExpired exp current
 
 ||| Predicate: Token is currently valid (nbf <= current <= exp)
 public export
 data IsCurrentlyValid : Integer -> Integer -> Integer -> Type where
-  MkCurrentlyValid : (nbf : Integer) -> (exp : Integer) -> (current : Integer) ->
+  postulate MkCurrentlyValid : (nbf : Integer) -> (exp : Integer) -> (current : Integer) ->
                      {auto prf1 : So (nbf <= current)} ->
                      {auto prf2 : So (current <= exp)} ->
                      IsCurrentlyValid nbf exp current
@@ -55,17 +55,17 @@ data IsCurrentlyValid : Integer -> Integer -> Integer -> Type where
 ||| Predicate: Signature has been verified
 public export
 data SignatureVerified : DecodedJWT -> SigningKey -> Type where
-  MkSignatureVerified : (jwt : DecodedJWT) -> (key : SigningKey) -> SignatureVerified jwt key
+  postulate MkSignatureVerified : (jwt : DecodedJWT) -> (key : SigningKey) -> SignatureVerified jwt key
 
 ||| Predicate: Claims have been validated
 public export
 data ClaimsValidated : JWTClaims -> ValidationOptions -> Type where
-  MkClaimsValidated : (claims : JWTClaims) -> (opts : ValidationOptions) -> ClaimsValidated claims opts
+  postulate MkClaimsValidated : (claims : JWTClaims) -> (opts : ValidationOptions) -> ClaimsValidated claims opts
 
 ||| Predicate: JWT is fully validated
 public export
 data FullyValidated : ValidatedJWT -> Type where
-  MkFullyValidated : (vjwt : ValidatedJWT) -> FullyValidated vjwt
+  postulate MkFullyValidated : (vjwt : ValidatedJWT) -> FullyValidated vjwt
 
 --------------------------------------------------------------------------------
 -- Algorithm Security Proofs
@@ -185,7 +185,7 @@ validatedMeansChecked vjwt = MkFullyValidated vjwt
 ||| or by introducing a generic `ifFalseElim : (if b then x else y) =
 ||| y -> b = False` and case-splitting on `claims.exp`.
 public export
-0 expValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : JWTClaims) ->
+postulate 0 expValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : JWTClaims) ->
                        isOk (validateExp currentTime skew claims) = True ->
                        (exp : Integer) -> claims.exp = Just exp ->
                        currentTime <= exp + cast skew.expLeeway = True
@@ -206,7 +206,7 @@ public export
 ||| reflective tactic or `ifFalseElim` lemma that closes
 ||| `expValidationSound`.
 public export
-0 nbfValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : JWTClaims) ->
+postulate 0 nbfValidationSound : (currentTime : Integer) -> (skew : ClockSkew) -> (claims : JWTClaims) ->
                        isOk (validateNbf currentTime skew claims) = True ->
                        (nbf : Integer) -> claims.nbf = Just nbf ->
                        currentTime >= nbf - cast skew.nbfLeeway = True
@@ -230,7 +230,7 @@ public export
 ||| ships a reflective `strEqSound : (s1 == s2 = True) -> s1 = s2`
 ||| with the same trust posture as boj-server `SafetyLemmas`.
 public export
-0 issuerValidationSound : (expected : String) -> (claims : JWTClaims) ->
+postulate 0 issuerValidationSound : (expected : String) -> (claims : JWTClaims) ->
                           isOk (validateIssuer expected claims) = True ->
                           claims.iss = Just expected
 
@@ -252,7 +252,7 @@ public export
 ||| (x \`elem\` xs = True) -> ...` for instances whose `(==)` has a
 ||| Bool-Prop reflection lemma, parameterised by `strEqSound`.
 public export
-0 audienceValidationSound : (expected : String) -> (claims : JWTClaims) ->
+postulate 0 audienceValidationSound : (expected : String) -> (claims : JWTClaims) ->
                             isOk (validateAudience expected claims) = True ->
                             expected `elem` getAudienceList claims = True
 
@@ -281,7 +281,7 @@ public export
 ||| `Dec (KeyValidForAlgorithm key alg)` witness so the
 ||| precondition is propositional rather than boolean.
 public export
-0 keyMustMatchAlgorithm : (key : SigningKey) -> (jwt : DecodedJWT) ->
+postulate 0 keyMustMatchAlgorithm : (key : SigningKey) -> (jwt : DecodedJWT) ->
                           isOk (verifySignature key jwt) = True ->
                           isKeyValidForAlgorithm key jwt.header.alg = True
 
@@ -307,7 +307,7 @@ public export
 ||| one `Refl` per algorithm constructor — analogous to the
 ||| explicit enum case-split in `noneNotSecure` above).
 public export
-0 noKeyOnlyForNone : (jwt : DecodedJWT) ->
+postulate 0 noKeyOnlyForNone : (jwt : DecodedJWT) ->
                      isOk (verifySignature NoKey jwt) = True ->
                      jwt.header.alg = None
 
@@ -333,7 +333,7 @@ public export
 ||| derive `False = True` from the guard premise and discharge
 ||| via `absurd Refl`).
 public export
-0 secretKeyRequiresHMAC : (secret : List Bits8) -> (jwt : DecodedJWT) ->
+postulate 0 secretKeyRequiresHMAC : (secret : List Bits8) -> (jwt : DecodedJWT) ->
                           isOk (verifySignature (SecretKey secret) jwt) = True ->
                           isSymmetric jwt.header.alg = True
 
@@ -362,7 +362,7 @@ public export
 ||| available, plus a hand-rolled induction principle on the
 ||| `validateRequiredClaims` recursion.
 public export
-0 requiredClaimsPresent : (claims : List String) -> (jwtClaims : JWTClaims) ->
+postulate 0 requiredClaimsPresent : (claims : List String) -> (jwtClaims : JWTClaims) ->
                           isOk (validateRequiredClaims claims jwtClaims) = True ->
                           (name : String) -> name `elem` claims = True ->
                           hasRequiredClaim name jwtClaims = True
@@ -385,7 +385,7 @@ public export
 ||| tactic for `<=`/`>` is available, plus a `castNatToInteger`
 ||| reduction lemma.
 public export
-0 maxAgeValidationSound : (currentTime : Integer) -> (maxAge : Nat) -> (claims : JWTClaims) ->
+postulate 0 maxAgeValidationSound : (currentTime : Integer) -> (maxAge : Nat) -> (claims : JWTClaims) ->
                           isOk (validateMaxAge currentTime maxAge claims) = True ->
                           (iat : Integer) -> claims.iat = Just iat ->
                           currentTime - iat <= cast maxAge = True
@@ -418,7 +418,7 @@ public export
 ||| and the `when`/projection opacities are addressed (likely the
 ||| same `Data.Bool` reflective tactic as `expValidationSound`).
 public export
-0 fullValidationImpliesAll :
+postulate 0 fullValidationImpliesAll :
   (opts : ValidationOptions) -> (currentTime : Integer) -> (jwt : DecodedJWT) ->
   isOk (validateDecoded opts currentTime jwt) = True ->
   (opts.validateExp = True -> isOk (validateExp currentTime opts.clockSkew jwt.claims) = True,
@@ -454,9 +454,9 @@ public export
 ||| the proof. Alternatively, hide `MkValidatedJWT` from the public
 ||| API and re-export only the `validate` smart constructor.
 public export
-0 validatedJWTFromValidation : (vjwt : ValidatedJWT) ->
+postulate 0 validatedJWTFromValidation : (vjwt : ValidatedJWT) ->
                                 (opts : ValidationOptions ** key : SigningKey ** currentTime : Integer **
-                                 decoded : DecodedJWT **
+                                 postulate decoded : DecodedJWT **
                                  isOk (validate opts key currentTime decoded) = True)
 
 --------------------------------------------------------------------------------
@@ -483,7 +483,7 @@ public export
 ||| lemmas are in place — at that point `rejectNonePreventsNone`
 ||| closes by a 3-step `rewrite` + `Refl`.
 public export
-0 rejectNonePreventsNone : (opts : ValidationOptions) -> opts.rejectNone = True ->
+postulate 0 rejectNonePreventsNone : (opts : ValidationOptions) -> opts.rejectNone = True ->
                            (jwt : DecodedJWT) -> jwt.header.alg = None ->
                            isOk (validateDecoded opts 0 jwt) = False
 
@@ -504,7 +504,7 @@ public export
 ||| AND `Result`-bind `Err`-propagation. Discharge with the same
 ||| three reflective lemmas.
 public export
-0 allowedAlgorithmsRestrictive : (opts : ValidationOptions) ->
+postulate 0 allowedAlgorithmsRestrictive : (opts : ValidationOptions) ->
                                  (alg : JWTAlgorithm) -> not (null opts.allowedAlgorithms) = True ->
                                  not (alg `elem` opts.allowedAlgorithms) = True ->
                                  (jwt : DecodedJWT) -> jwt.header.alg = alg ->
@@ -601,7 +601,7 @@ SafeJWT Security Guarantees:
 ||| would be ~10 lines and structurally identical to
 ||| `noneNotSecure`.
 public export
-0 algorithmConfusionPrevented :
+postulate 0 algorithmConfusionPrevented :
   (jwt : DecodedJWT) -> jwt.header.alg = HS256 ->
   (rsaKey : SigningKey) -> isKeyValidForAlgorithm rsaKey RS256 = True ->
   isKeyValidForAlgorithm rsaKey HS256 = False
@@ -629,7 +629,7 @@ public export
 ||| posture as gossamer's `stringNotEqCommut` (`%unsafe` +
 ||| `believe_me ()` over the FFI primitive).
 public export
-0 tokenSubstitutionPrevented :
+postulate 0 tokenSubstitutionPrevented :
   (opts : ValidationOptions) -> opts.requiredIssuer = Just "expected-issuer" ->
   (jwt : DecodedJWT) -> jwt.claims.iss = Just "malicious-issuer" ->
   isOk (validateDecoded opts 0 jwt) = False
@@ -655,7 +655,7 @@ public export
 ||| dischargeable — at which point `replayMitigatedWithMaxAge`
 ||| follows by a 3-step `rewrite` + `Refl`.
 public export
-0 replayMitigatedWithMaxAge :
+postulate 0 replayMitigatedWithMaxAge :
   (opts : ValidationOptions) -> opts.maxAge = Just 300 ->
   (currentTime : Integer) -> (jwt : DecodedJWT) ->
   jwt.claims.iat = Just (currentTime - 600) ->  -- Token is 10 minutes old

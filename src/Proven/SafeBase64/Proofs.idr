@@ -31,14 +31,14 @@ isValidOutputChar v c = isValidBase64Char v c || isPaddingChar c ||
 ||| Predicate: Output contains only valid Base64 characters
 public export
 data ValidBase64Output : Base64Variant -> String -> Type where
-  MkValidBase64Output : (variant : Base64Variant) -> (s : String) ->
+  postulate MkValidBase64Output : (variant : Base64Variant) -> (s : String) ->
                         {auto prf : all (isValidOutputChar variant) (unpack s) = True} ->
                         ValidBase64Output variant s
 
 ||| Predicate: Encoded length is correct
 public export
 data CorrectEncodedLength : Base64Variant -> Nat -> Nat -> Type where
-  MkCorrectEncodedLength : (variant : Base64Variant) ->
+  postulate MkCorrectEncodedLength : (variant : Base64Variant) ->
                            (inputLen : Nat) -> (outputLen : Nat) ->
                            {auto prf : outputLen = encodedLength variant inputLen} ->
                            CorrectEncodedLength variant inputLen outputLen
@@ -46,7 +46,7 @@ data CorrectEncodedLength : Base64Variant -> Nat -> Nat -> Type where
 ||| Predicate: Decoded length is correct
 public export
 data CorrectDecodedLength : Nat -> Nat -> Nat -> Type where
-  MkCorrectDecodedLength : (encodedLen : Nat) -> (padding : Nat) -> (outputLen : Nat) ->
+  postulate MkCorrectDecodedLength : (encodedLen : Nat) -> (padding : Nat) -> (outputLen : Nat) ->
                            {auto prf : outputLen = exactDecodedLength encodedLen padding} ->
                            CorrectDecodedLength encodedLen padding outputLen
 
@@ -57,7 +57,7 @@ data CorrectDecodedLength : Nat -> Nat -> Nat -> Type where
 ||| Predicate: Encoding is reversible
 public export
 data RoundtripSuccess : Base64Variant -> List Bits8 -> Type where
-  MkRoundtripSuccess : (variant : Base64Variant) -> (bytes : List Bits8) ->
+  postulate MkRoundtripSuccess : (variant : Base64Variant) -> (bytes : List Bits8) ->
                        {auto prf : decode variant (encodeBytesToString variant bytes) = Ok bytes} ->
                        RoundtripSuccess variant bytes
 
@@ -83,7 +83,7 @@ data RoundtripSuccess : Base64Variant -> List Bits8 -> Type where
 ||| reflective tactic for `unpack` is available, or by hand-rolling a
 ||| 64-arm exhaustive case-split over the alphabet (one `Refl` per
 ||| character).
-0 standardAlphabetValid : (c : Char) -> c `elem` unpack standardAlphabet = True ->
+postulate 0 standardAlphabetValid : (c : Char) -> c `elem` unpack standardAlphabet = True ->
                           isValidBase64Char Standard c = True
 
 ||| OWED: every character in the URL-safe Base64 alphabet
@@ -95,7 +95,7 @@ data RoundtripSuccess : Base64Variant -> List Bits8 -> Type where
 ||| `String` at the type level — same FFI-primitive blocker as
 ||| `standardAlphabetValid` above. Discharge by the same mechanism
 ||| (`Data.String` reflective tactic or 64-arm exhaustive case-split).
-0 urlSafeAlphabetValid : (c : Char) -> c `elem` unpack urlSafeAlphabet = True ->
+postulate 0 urlSafeAlphabetValid : (c : Char) -> c `elem` unpack urlSafeAlphabet = True ->
                          isValidBase64Char URLSafe c = True
 
 ||| OWED: the encoder `encodeBytesToString variant bytes` emits only
@@ -115,7 +115,7 @@ data RoundtripSuccess : Base64Variant -> List Bits8 -> Type where
 ||| a `Data.String` `pack`/`unpack` reflective tactic is available, or
 ||| by lifting the proof to the underlying `List Char` produced before
 ||| `pack` (which IS reducible by induction on the 6-bit chunking).
-0 encodeOutputValid : (variant : Base64Variant) -> (bytes : List Bits8) ->
+postulate 0 encodeOutputValid : (variant : Base64Variant) -> (bytes : List Bits8) ->
                       ValidBase64Output variant (encodeBytesToString variant bytes)
 
 --------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ paddedLengthCorrect n = Refl
 ||| product-by-divisor is available, or by direct induction on
 ||| `(n + 2) `div` 3` using the `divides`/`Mod 0` lemmas from
 ||| `Data.Nat.Division`.
-0 paddedLengthMultipleOf4 : (variant : Base64Variant) -> usesPadding variant = True ->
+postulate 0 paddedLengthMultipleOf4 : (variant : Base64Variant) -> usesPadding variant = True ->
                             (n : Nat) -> (encodedLength variant n) `mod` 4 = 0
 
 ||| OWED: `decodedLength encodedLen <= (encodedLen * 3) `div` 4 + 1`
@@ -159,7 +159,7 @@ paddedLengthCorrect n = Refl
 ||| `Bool`-reflective `lteSucc` is wired up, or by hand-writing
 ||| `decideEq` over the underlying `Nat` to convert the `LTE` proof
 ||| to its `Bool` form.
-0 decodedLengthBound : (encodedLen : Nat) ->
+postulate 0 decodedLengthBound : (encodedLen : Nat) ->
                        decodedLength encodedLen <= (encodedLen * 3) `div` 4 + 1 = True
 
 ||| OWED: for non-empty input (`n > 0 = True`), `encodedLength variant
@@ -179,7 +179,7 @@ paddedLengthCorrect n = Refl
 ||| available, or by chained applications of `lteMultRight`/
 ||| `divLteRight` after refactoring `encodedLength` to expose a
 ||| `total` divisor.
-0 encodingIncreasesLength : (variant : Base64Variant) -> (n : Nat) -> n > 0 = True ->
+postulate 0 encodingIncreasesLength : (variant : Base64Variant) -> (n : Nat) -> n > 0 = True ->
                             encodedLength variant n >= n = True
 
 --------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ paddedLengthCorrect n = Refl
 ||| `List Bits8 -> List (Fin 64) -> List Char -> List (Fin 64) ->
 ||| List Bits8` decomposition where each leg IS reducible by
 ||| structural induction.
-0 roundtripCorrect : (variant : Base64Variant) -> (bytes : List Bits8) ->
+postulate 0 roundtripCorrect : (variant : Base64Variant) -> (bytes : List Bits8) ->
                      decode variant (encodeBytesToString variant bytes) = Ok bytes
 
 ||| OWED: round-trip on the empty input, `decode variant
@@ -224,7 +224,7 @@ paddedLengthCorrect n = Refl
 ||| the same mechanism, or as a one-off `Refl` once the encoder's
 ||| `pack`/`unpack` wrappers are reduced manually via a `Data.String`
 ||| reflective tactic.
-0 roundtripEmpty : (variant : Base64Variant) ->
+postulate 0 roundtripEmpty : (variant : Base64Variant) ->
                    decode variant (encodeBytesToString variant []) = Ok []
 
 ||| OWED: round-trip on a single byte, `decode variant
@@ -242,7 +242,7 @@ paddedLengthCorrect n = Refl
 ||| as `roundtripCorrect`. Discharge once a `Data.Bits` reflective
 ||| tactic for `shiftL`/`shiftR`/`.&.` is available alongside the
 ||| `Data.String` `pack`/`unpack` tactic.
-0 roundtripSingleByte : (variant : Base64Variant) -> (b : Bits8) ->
+postulate 0 roundtripSingleByte : (variant : Base64Variant) -> (b : Bits8) ->
                         decode variant (encodeBytesToString variant [b]) = Ok [b]
 
 ||| OWED: string-level round-trip, `decodeToString variant
@@ -258,7 +258,7 @@ paddedLengthCorrect n = Refl
 ||| and `SafeHtml.escapePreservesNoLT`. Discharge once a
 ||| `Data.String` reflective tactic exposes `pack (unpack s) = s` and
 ||| `roundtripCorrect` is itself discharged.
-0 roundtripString : (variant : Base64Variant) -> (s : String) ->
+postulate 0 roundtripString : (variant : Base64Variant) -> (s : String) ->
                     decodeToString variant (encodeStringToString variant s) = Ok s
 
 --------------------------------------------------------------------------------
@@ -281,7 +281,7 @@ paddedLengthCorrect n = Refl
 ||| `Data.String` reflective tactic exposes `length (unpack (pack
 ||| xs)) = length xs` (i.e. `pack`/`unpack` preserve length), then
 ||| `Refl` closes against the shared chunking step.
-0 variantsEqualLength : (bytes : List Bits8) ->
+postulate 0 variantsEqualLength : (bytes : List Bits8) ->
                         length (unpack (encodeBytesToString Standard bytes)) =
                         length (unpack (encodeBytesToString URLSafe bytes))
 
@@ -298,7 +298,7 @@ paddedLengthCorrect n = Refl
 ||| True`. Same blocker family as `decodedLengthBound`. Discharge by
 ||| the same mechanism (`Data.String` `unpack` + `Data.Nat`/`Bool`
 ||| `lte` reflective tactics).
-0 noPadShorter : (bytes : List Bits8) ->
+postulate 0 noPadShorter : (bytes : List Bits8) ->
                  let standardLen = length (unpack (encodeBytesToString Standard bytes))
                      noPadLen = length (unpack (encodeBytesToString URLSafeNoPad bytes))
                  in noPadLen <= standardLen = True
@@ -326,7 +326,7 @@ paddedLengthCorrect n = Refl
 ||| canonical Idris2 enhancement #2400-series), or by routing the
 ||| scrutinee through a `decideEq`-style helper that returns the
 ||| equation explicitly.
-0 decodeNeverCrashes : (variant : Base64Variant) -> (input : String) ->
+postulate 0 decodeNeverCrashes : (variant : Base64Variant) -> (input : String) ->
                        Either (err : Base64Error ** decode variant input = Err err)
                               (bytes : List Bits8 ** decode variant input = Ok bytes)
 
@@ -346,7 +346,7 @@ paddedLengthCorrect n = Refl
 ||| reflective tactic for `unpack`/`elem` is available, or by
 ||| refactoring the decoder to return a `Dec`-style witness alongside
 ||| each rejection.
-0 invalidCharDetected : (variant : Base64Variant) -> (input : String) ->
+postulate 0 invalidCharDetected : (variant : Base64Variant) -> (input : String) ->
                         (c : Char) -> (pos : Nat) ->
                         c `elem` unpack input = True ->
                         not (isValidBase64Char variant c) = True ->
@@ -374,7 +374,7 @@ index' (S k) (_ :: xs) = index' k xs
 ||| `invalidCharDetected`. Discharge once a `Data.String` reflective
 ||| tactic for `unpack` / `index'` is available, or by refactoring
 ||| `decode` to thread an explicit position-validation `Dec` witness.
-0 invalidPaddingDetected : (input : String) ->
+postulate 0 invalidPaddingDetected : (input : String) ->
                            -- Padding not at end
                            (pos : Nat) -> pos < (length (unpack input) `minus` 2) = True ->
                            index' pos (unpack input) = Just '=' ->
@@ -399,7 +399,7 @@ index' (S k) (_ :: xs) = index' k xs
 ||| `length . unpack . pack = length` and a `Data.List1` `split`
 ||| reflective tactic is available, or by inductive proof over the
 ||| encoder's line-wrap loop counter.
-0 mimeLineBreaksCorrect : (bytes : List Bits8) ->
+postulate 0 mimeLineBreaksCorrect : (bytes : List Bits8) ->
                           let encoded = encodeBytesToString MIME bytes
                               lines = forget (split (== '\n') encoded)
                           in all (\l => length (unpack l) <= mimeLineLength + 1) lines = True
@@ -423,7 +423,7 @@ stripWhitespace s = pack (filter (not . isBase64Whitespace) (unpack s))
 ||| tactic exposes `pack (filter p (unpack s))` as a `Refl`-able
 ||| operation, or by refactoring `decode MIME` to take the already-
 ||| stripped `String` as an explicit pre-condition.
-0 mimeIgnoresWhitespace : (encoded : String) -> (withWs : String) ->
+postulate 0 mimeIgnoresWhitespace : (encoded : String) -> (withWs : String) ->
                           stripWhitespace withWs = encoded ->
                           decode MIME withWs = decode MIME encoded
 
@@ -446,7 +446,7 @@ stripWhitespace s = pack (filter (not . isBase64Whitespace) (unpack s))
 ||| tactic for `pack`/`unpack` is available, or by lifting the proof
 ||| to the underlying pre-`pack` `List Char` where the alphabet table
 ||| lookup IS reducible (one `Refl` per Fin 64 index).
-0 urlSafeContainsNoUnsafe : (bytes : List Bits8) ->
+postulate 0 urlSafeContainsNoUnsafe : (bytes : List Bits8) ->
                             let encoded = encodeBytesToString URLSafe bytes
                             in all (\c => c /= '+' && c /= '/') (unpack encoded) = True
 
@@ -467,7 +467,7 @@ stripWhitespace s = pack (filter (not . isBase64Whitespace) (unpack s))
 ||| or by lifting to the pre-`pack` `List (Fin 64)` representation
 ||| and case-splitting on whether `62 \`elem\` indices` or
 ||| `63 \`elem\` indices`.
-0 standardMayContainUnsafe : (bytes : List Bits8) ->
+postulate 0 standardMayContainUnsafe : (bytes : List Bits8) ->
                              Either ('+' `elem` unpack (encodeBytesToString Standard bytes) = True)
                                     (Either ('/' `elem` unpack (encodeBytesToString Standard bytes) = True)
                                             (all (\c => c /= '+' && c /= '/') (unpack (encodeBytesToString Standard bytes)) = True))
@@ -494,7 +494,7 @@ stripWhitespace s = pack (filter (not . isBase64Whitespace) (unpack s))
 ||| `Data.Nat.Division` `divides`-elimination lemmas after
 ||| introducing `(k : Nat) ** n = 3 * k` from the `n `mod` 3 = 0`
 ||| hypothesis.
-0 threeToFourRatio : (n : Nat) -> (n `mod` 3 = 0) = True ->
+postulate 0 threeToFourRatio : (n : Nat) -> (n `mod` 3 = 0) = True ->
                      encodedLength Standard n = (n `div` 3) * 4
 
 ||| Count padding characters in a string
@@ -520,7 +520,7 @@ countPadding s = length (filter (== '=') (unpack s))
 ||| is available alongside a `Data.Nat` `mod`-elimination tactic, or
 ||| by case-splitting on `n `mod` 3 ∈ {0,1,2}` and lifting to the
 ||| pre-`pack` `List Char` where padding emission IS reducible.
-0 paddingMatchesRemainder : (variant : Base64Variant) -> usesPadding variant = True ->
+postulate 0 paddingMatchesRemainder : (variant : Base64Variant) -> usesPadding variant = True ->
                             (n : Nat) ->
                             let remainder = n `mod` 3
                                 encoded = encodeBytesToString variant (replicate n 0)
@@ -544,7 +544,7 @@ countPadding s = length (filter (== '=') (unpack s))
 ||| `roundtripCorrect` is discharged: the proof body is then a pair
 ||| of `roundtripCorrect variant bytes1` and `roundtripCorrect
 ||| variant bytes2`.
-0 segmentedRoundtrip : (variant : Base64Variant) -> (bytes1 : List Bits8) -> (bytes2 : List Bits8) ->
+postulate 0 segmentedRoundtrip : (variant : Base64Variant) -> (bytes1 : List Bits8) -> (bytes2 : List Bits8) ->
                        let enc1 = encodeBytesToString variant bytes1
                            enc2 = encodeBytesToString variant bytes2
                        in (decode variant enc1 = Ok bytes1,

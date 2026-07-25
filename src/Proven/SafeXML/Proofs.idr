@@ -24,14 +24,14 @@ import Data.String
 ||| Predicate: XML contains no external entities
 public export
 data NoExternalEntities : String -> Type where
-  MkNoExternalEntities : (xml : String) ->
+  postulate MkNoExternalEntities : (xml : String) ->
                          {auto prf : not (isInfixOf "<!ENTITY" xml && (isInfixOf "SYSTEM" xml || isInfixOf "PUBLIC" xml)) = True} ->
                          NoExternalEntities xml
 
 ||| Predicate: XML contains no DOCTYPE declarations
 public export
 data NoDTD : String -> Type where
-  MkNoDTD : (xml : String) ->
+  postulate MkNoDTD : (xml : String) ->
             {auto prf : not (isInfixOf "<!DOCTYPE" xml) = True} ->
             NoDTD xml
 
@@ -48,19 +48,19 @@ nodeDepth (Element _ _ children) = S (foldl max 0 (map nodeDepth children))
 ||| Predicate: Element nesting depth is bounded
 public export
 data BoundedDepth : Nat -> XMLNode -> Type where
-  MkBoundedDepth : (maxDepth : Nat) -> (node : XMLNode) ->
+  postulate MkBoundedDepth : (maxDepth : Nat) -> (node : XMLNode) ->
                    {auto prf : Proofs.nodeDepth node <= maxDepth = True} ->
                    BoundedDepth maxDepth node
 
 ||| Predicate: All text is properly escaped
 public export
 data ProperlyEscaped : XMLNode -> Type where
-  MkProperlyEscaped : (node : XMLNode) -> ProperlyEscaped node
+  postulate MkProperlyEscaped : (node : XMLNode) -> ProperlyEscaped node
 
 ||| Predicate: Document is well-formed
 public export
 data WellFormed : XMLDocument -> Type where
-  MkWellFormed : (doc : XMLDocument) -> WellFormed doc
+  postulate MkWellFormed : (doc : XMLDocument) -> WellFormed doc
 
 --------------------------------------------------------------------------------
 -- XXE Prevention Proofs
@@ -97,7 +97,7 @@ secureDefaultsZeroExpansions = Refl
 ||| `Data.String` representation supplanting the FFI-opaque one) is
 ||| available.
 export
-0 builderNoXXE : (builder : ElementBuilder) ->
+postulate 0 builderNoXXE : (builder : ElementBuilder) ->
                  NoExternalEntities (renderNode (build builder))
 
 ||| OWED: The builder API never emits `<!DOCTYPE ...>` in rendered output,
@@ -108,7 +108,7 @@ export
 ||| once `isInfixOf` is reflective, or once `renderNode` is refactored to
 ||| return a structural type that excludes `!DOCTYPE` by construction.
 export
-0 builderNoDTD : (builder : ElementBuilder) ->
+postulate 0 builderNoDTD : (builder : ElementBuilder) ->
                  NoDTD (renderNode (build builder))
 
 --------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ entityExpansionBounded opts count tooMany = ()
 ||| `xmlAttrValue` return a structural escaped-string type that
 ||| character-class excludes raw `&` by construction.
 export
-0 builderNoEntities : (builder : ElementBuilder) ->
+postulate 0 builderNoEntities : (builder : ElementBuilder) ->
                       -- Builder escapes & to &amp;, preventing entity references
                       not (isInfixOf "&" (renderNode (build builder)) &&
                            not (isInfixOf "&amp;" (renderNode (build builder)) ||
@@ -156,7 +156,7 @@ export
 ||| returns a structural `EscapedString` whose constructor character-class
 ||| excludes raw `<`.
 export
-0 textEscapingSound : (s : String) ->
+postulate 0 textEscapingSound : (s : String) ->
                       let escaped = (xmlText s).escaped
                       in not (isInfixOf "<" escaped && not (isInfixOf "&lt;" escaped)) = True
 
@@ -168,7 +168,7 @@ export
 ||| `unpack` is reflective, or once `xmlAttrValue` returns a structural
 ||| `EscapedAttrValue` whose constructor character-class excludes raw `"`.
 export
-0 attrEscapingSound : (s : String) ->
+postulate 0 attrEscapingSound : (s : String) ->
                       let escaped = (xmlAttrValue s).escaped
                       in not (isInfixOf "\"" escaped && not (isInfixOf "&quot;" escaped)) = True
 
@@ -209,7 +209,7 @@ builderElementWellFormed builder = MkWellFormed (MkXMLDocument Nothing Nothing (
 ||| to call `isValidXMLName` directly (so the two paths share a single
 ||| reduction).
 export
-0 elementNameValidation : (name : String) ->
+postulate 0 elementNameValidation : (name : String) ->
                           isOk (xmlName name) = True ->
                           isValidXMLName name = True
 
@@ -222,7 +222,7 @@ export
 ||| once `xmlQName` is rewritten to compose `xmlName pfx` and
 ||| `xmlName local` so the two arms expose their underlying checks.
 export
-0 qnameComponentsValid : (pfx : String) -> (local : String) ->
+postulate 0 qnameComponentsValid : (pfx : String) -> (local : String) ->
                          isOk (xmlQName pfx local) = True ->
                          (isValidXMLName pfx = True, isValidXMLName local = True)
 
@@ -259,7 +259,7 @@ builderDepthConstant builder = ()
 ||| `xmlAttrValue` returns a structural `EscapedAttrValue` indexed by a
 ||| `List Char` whose constructor excludes `'"'` by construction.
 export
-0 attrValueNoQuotes : (value : String) ->
+postulate 0 attrValueNoQuotes : (value : String) ->
                       let attrVal = xmlAttrValue value
                       in all (\c => c /= '"' || False) (unpack attrVal.escaped) = True
 
@@ -313,7 +313,7 @@ piNotXmlDecl target isXml = ()
 ||| refactored to a structurally-recursive proof over the `XMLNode`
 ||| constructors.
 export
-0 nestedElementsSafe : (parent : ElementBuilder) -> (child : XMLNode) ->
+postulate 0 nestedElementsSafe : (parent : ElementBuilder) -> (child : XMLNode) ->
                        ProperlyEscaped child ->
                        ProperlyEscaped (build (withChild child parent))
 

@@ -22,16 +22,16 @@ import Data.String
 public export
 data NoUnescapedQuotes : String -> Type where
   ||| Empty string has no unescaped quotes
-  EmptyNoQuotes : NoUnescapedQuotes ""
+  postulate EmptyNoQuotes : NoUnescapedQuotes ""
   ||| String with all quotes properly doubled
-  QuotesEscaped : (s : String) ->
+  postulate QuotesEscaped : (s : String) ->
                   (prf : all (\c => c /= '\'') (unpack s) = True) ->
                   NoUnescapedQuotes s
 
 ||| Predicate: A string contains no SQL comment markers
 public export
 data NoCommentMarkers : String -> Type where
-  MkNoCommentMarkers : (s : String) ->
+  postulate MkNoCommentMarkers : (s : String) ->
                        (noDoubleDash : not (isInfixOf "--" s) = True) ->
                        (noSlashStar : not (isInfixOf "/*" s) = True) ->
                        NoCommentMarkers s
@@ -39,14 +39,14 @@ data NoCommentMarkers : String -> Type where
 ||| Predicate: A string contains no statement terminators
 public export
 data NoStatementTerminators : String -> Type where
-  MkNoTerminators : (s : String) ->
+  postulate MkNoTerminators : (s : String) ->
                     (noSemicolon : not (';' `elem` unpack s) = True) ->
                     NoStatementTerminators s
 
 ||| Predicate: A string is a safe SQL identifier
 public export
 data IsSafeIdentifier : String -> Type where
-  MkSafeIdent : (s : String) ->
+  postulate MkSafeIdent : (s : String) ->
                 (validChars : all isIdentifierChar (unpack s) = True) ->
                 (notEmpty : length s > 0 = True) ->
                 (notTooLong : length s <= 128 = True) ->
@@ -63,7 +63,7 @@ isParamOrLiteral (Identifier _) = True
 ||| Predicate: A query uses only parameterized values (no string interpolation)
 public export
 data IsParameterized : ParameterizedQuery -> Type where
-  MkParameterized : (q : ParameterizedQuery) ->
+  postulate MkParameterized : (q : ParameterizedQuery) ->
                     (noRawStrings : all isParamOrLiteral q.fragments = True) ->
                     IsParameterized q
 
@@ -71,27 +71,27 @@ data IsParameterized : ParameterizedQuery -> Type where
 public export
 data IsEscapedValue : SQLDialect -> SQLValue -> Type where
   ||| NULL is always safe
-  NullSafe : IsEscapedValue d SQLNull
+  postulate NullSafe : IsEscapedValue d SQLNull
   ||| Booleans are safe (rendered as TRUE/FALSE)
-  BoolSafe : IsEscapedValue d (SQLBool b)
+  postulate BoolSafe : IsEscapedValue d (SQLBool b)
   ||| Integers are safe (no string escaping needed)
-  IntSafe : IsEscapedValue d (SQLInt i)
+  postulate IntSafe : IsEscapedValue d (SQLInt i)
   ||| Naturals are safe
-  NatSafe : IsEscapedValue d (SQLNat n)
+  postulate NatSafe : IsEscapedValue d (SQLNat n)
   ||| Doubles are safe (numeric)
-  DoubleSafe : IsEscapedValue d (SQLDouble x)
+  postulate DoubleSafe : IsEscapedValue d (SQLDouble x)
   ||| Text is escaped by escapeString
-  TextEscaped : (d : SQLDialect) -> (s : String) -> IsEscapedValue d (SQLText s)
+  postulate TextEscaped : (d : SQLDialect) -> (s : String) -> IsEscapedValue d (SQLText s)
   ||| Blob is hex-encoded
-  BlobEncoded : (d : SQLDialect) -> (bs : List Bits8) -> IsEscapedValue d (SQLBlob bs)
+  postulate BlobEncoded : (d : SQLDialect) -> (bs : List Bits8) -> IsEscapedValue d (SQLBlob bs)
   ||| Date components are numeric
-  DateSafe : IsEscapedValue d (SQLDate y m day)
+  postulate DateSafe : IsEscapedValue d (SQLDate y m day)
   ||| Time components are numeric
-  TimeSafe : IsEscapedValue d (SQLTime h m s)
+  postulate TimeSafe : IsEscapedValue d (SQLTime h m s)
   ||| Timestamp components are numeric
-  TimestampSafe : IsEscapedValue d (SQLTimestamp y mo dy h mi s)
+  postulate TimestampSafe : IsEscapedValue d (SQLTimestamp y mo dy h mi s)
   ||| Raw SQL is trusted by construction (only from code, never user input)
-  RawTrusted : IsEscapedValue d (SQLRaw s)
+  postulate RawTrusted : IsEscapedValue d (SQLRaw s)
 
 --------------------------------------------------------------------------------
 -- Core Safety Theorems
@@ -116,7 +116,7 @@ data IsEscapedValue : SQLDialect -> SQLValue -> Type where
 ||| tactic or per-character induction lemma over
 ||| `unpack . concat . map` is available.
 export
-0 escapeStringQuotesSafe : (d : SQLDialect) -> (s : String) ->
+postulate 0 escapeStringQuotesSafe : (d : SQLDialect) -> (s : String) ->
                                      NoUnescapedQuotes (escapeString d s)
 
 ||| OWED: if `isValidIdentifier s = True` then `IsSafeIdentifier s`.
@@ -138,7 +138,7 @@ export
 ||| `isValidIdentifier` is refactored to return a structural witness
 ||| (e.g. `Dec (IsSafeIdentifier s)`) instead of a `Bool`.
 export
-0 identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = True) ->
+postulate 0 identifierCharsSafe : (s : String) -> (prf : isValidIdentifier s = True) ->
                                   IsSafeIdentifier s
 
 ||| OWED: every `ParameterizedQuery` value `q` satisfies
@@ -163,7 +163,7 @@ export
 ||| available, or (b) `ParameterizedQuery` is refactored to carry an
 ||| `IsParameterized` field at construction (intrinsic invariant).
 export
-0 parameterizedQueriesSafe : (q : ParameterizedQuery) -> IsParameterized q
+postulate 0 parameterizedQueriesSafe : (q : ParameterizedQuery) -> IsParameterized q
 
 ||| Theorem: All SQLValue types are safely escapable
 export
@@ -188,7 +188,7 @@ allValuesSafe d (SQLRaw s) = RawTrusted
 public export
 data InjectionSafe : ParameterizedQuery -> Type where
   ||| Query is safe because it uses parameterization
-  SafeByParameterization :
+  postulate SafeByParameterization :
     (q : ParameterizedQuery) ->
     (isParam : IsParameterized q) ->
     (allEscaped : (v : SQLValue) -> v `elem` q.params = True -> IsEscapedValue q.dialect v) ->
@@ -209,7 +209,7 @@ data InjectionSafe : ParameterizedQuery -> Type where
 ||| `Data.List.all` reflection lands, or `ParameterizedQuery` carries the
 ||| invariant intrinsically). Held back by the same blocker as its premise.
 export
-0 builderQueriesSafe : (q : ParameterizedQuery) ->
+postulate 0 builderQueriesSafe : (q : ParameterizedQuery) ->
                        (builtWithBuilder : ()) ->
                        InjectionSafe q
 
@@ -221,7 +221,7 @@ export
 ||| `0`-multiplicity, opaque-String-FFI blocker), so this theorem inherits the
 ||| same debt and cannot be relevantly discharged until it is.
 export
-0 cannotEscapeStringLiteral : (d : SQLDialect) -> (userInput : String) ->
+postulate 0 cannotEscapeStringLiteral : (d : SQLDialect) -> (userInput : String) ->
                               let escaped = escapeString d userInput
                               in NoUnescapedQuotes escaped
 
@@ -245,7 +245,7 @@ numericValuesCannotInject d i = IntSafe
 ||| which is OWED (erased) — so, like `builderQueriesSafe`, this cannot be
 ||| relevantly discharged until `parameterizedQueriesSafe` is.
 export
-0 combinePreservesSafety : (q1 : ParameterizedQuery) -> (q2 : ParameterizedQuery) ->
+postulate 0 combinePreservesSafety : (q1 : ParameterizedQuery) -> (q2 : ParameterizedQuery) ->
                            InjectionSafe q1 -> InjectionSafe q2 ->
                            InjectionSafe (combineQueries q1 q2)
 
@@ -256,7 +256,7 @@ export
 ||| as `combinePreservesSafety`; discharge together once
 ||| `parameterizedQueriesSafe` is.
 export
-0 addParamPreservesSafety : (q : ParameterizedQuery) -> (v : SQLValue) ->
+postulate 0 addParamPreservesSafety : (q : ParameterizedQuery) -> (v : SQLValue) ->
                             InjectionSafe q ->
                             InjectionSafe (addParam v q)
 

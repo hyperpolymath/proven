@@ -38,7 +38,7 @@ portAlwaysValid p = MkValidPort p
 ||| is exposed by `Data.Nat`, or `mkPort` is refactored to take the
 ||| `LTE` proof directly.
 public export
-0 mkPortSucceeds : (n : Nat) -> LTE n 65535 -> IsJust (mkPort n)
+postulate 0 mkPortSucceeds : (n : Nat) -> LTE n 65535 -> IsJust (mkPort n)
 
 ||| OWED: every CIDR block contains its own network address. Held back
 ||| by Idris2 0.8.0 not reducing `contains` on an abstract `CIDRBlock`:
@@ -48,7 +48,7 @@ public export
 ||| Discharge once `ipToNat` monotonicity lemmas are proven and a
 ||| reflective bridge from primitive `>=` to `GTE` is available.
 public export
-0 networkInOwnCIDR : (cidr : CIDRBlock) -> contains cidr (networkAddress cidr) = True
+postulate 0 networkInOwnCIDR : (cidr : CIDRBlock) -> contains cidr (networkAddress cidr) = True
 
 ||| OWED: every CIDR block contains its own broadcast address. Same
 ||| blocker family as `networkInOwnCIDR` — `contains` does not reduce
@@ -56,13 +56,13 @@ public export
 ||| Nat `>=`. Discharge once `ipToNat` monotonicity + a `>=`-to-`GTE`
 ||| reflective bridge are in place.
 public export
-0 broadcastInOwnCIDR : (cidr : CIDRBlock) -> contains cidr (broadcastAddress cidr) = True
+postulate 0 broadcastInOwnCIDR : (cidr : CIDRBlock) -> contains cidr (broadcastAddress cidr) = True
 
 ||| CIDR subset transitivity: if A is a subset of B and B is a subset of C then A is a subset of C
 ||| This follows from the transitivity of the containment relation
 public export
 data SubsetTransitive : CIDRBlock -> CIDRBlock -> CIDRBlock -> Type where
-  MkSubsetTransitive : isSubsetOf a b = True ->
+  postulate MkSubsetTransitive : isSubsetOf a b = True ->
                        isSubsetOf b c = True ->
                        SubsetTransitive a b c
 
@@ -75,7 +75,7 @@ data SubsetTransitive : CIDRBlock -> CIDRBlock -> CIDRBlock -> Type where
 ||| witness (e.g. `(c : Class ** ClassifiedAs p c)`) carrying the
 ||| `LTE` proof, or once a primitive-Nat reflective bridge lands.
 public export
-0 systemPortBound : (p : Port) -> isSystemPort p = True -> LTE (portValue p) 1023
+postulate 0 systemPortBound : (p : Port) -> isSystemPort p = True -> LTE (portValue p) 1023
 
 ||| OWED: every well-typed `Port` has `portValue p <= 65535`. Held
 ||| back by the move to runtime bounds checking: `mkPort` / `unsafeMkPort`
@@ -87,14 +87,14 @@ public export
 ||| (i.e. `IsPort n := LTE n 65535`), or `Port` is rebuilt to store
 ||| the `LTE` proof directly.
 public export
-0 portBounded : (p : Port) -> LTE (portValue p) 65535
+postulate 0 portBounded : (p : Port) -> LTE (portValue p) 65535
 
 ||| Proof that host count is positive for prefix < 32
 public export
 data PositiveHostCount : PrefixLength -> Type where
-  MkPositiveHostCount : LTE 1 (hostCount pfx) -> PositiveHostCount pfx
+  postulate MkPositiveHostCount : LTE 1 (hostCount pfx) -> PositiveHostCount pfx
 
 ||| Proof that private networks are not routable
 public export
 data PrivateNetwork : CIDRBlock -> Type where
-  MkPrivateNetwork : isPrivate cidr = True -> PrivateNetwork cidr
+  postulate MkPrivateNetwork : isPrivate cidr = True -> PrivateNetwork cidr

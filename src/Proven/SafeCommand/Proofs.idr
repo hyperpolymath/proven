@@ -156,6 +156,6 @@ redirectInjectionRejected = Refl
 ||| erased, named, and justified rather than hidden. Discharging it
 ||| needs an `unpack`/`all` bridge lemma (tracked in PROOF-NEEDS.md).
 public export
-0 validNameCharsBridge : (s : String)
+postulate 0 validNameCharsBridge : (s : String)
                       -> isValidCommandName s = True
                       -> all isValidCommandChar (unpack s) = True

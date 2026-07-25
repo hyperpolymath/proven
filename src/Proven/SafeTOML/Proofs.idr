@@ -40,30 +40,30 @@ valueDepth (TTable kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
 ||| Predicate: TOML has bounded nesting depth
 public export
 data BoundedDepth : Nat -> TOMLValue -> Type where
-  MkBoundedDepth : (maxDepth : Nat) -> (val : TOMLValue) ->
+  postulate MkBoundedDepth : (maxDepth : Nat) -> (val : TOMLValue) ->
                    {auto prf : valueDepth val <= maxDepth = True} ->
                    BoundedDepth maxDepth val
 
 ||| Predicate: TOML arrays are homogeneous
 public export
 data HomogeneousArray : TOMLValue -> Type where
-  MkHomogeneousArray : (arr : TOMLValue) -> HomogeneousArray arr
+  postulate MkHomogeneousArray : (arr : TOMLValue) -> HomogeneousArray arr
 
 ||| Predicate: Value is scalar (no nested structure)
 public export
 data IsScalar : TOMLValue -> Type where
-  StringScalar : IsScalar (TString s)
-  IntScalar : IsScalar (TInt i)
-  FloatScalar : IsScalar (TFloat f)
-  BoolScalar : IsScalar (TBool b)
-  DateTimeScalar : IsScalar (TDateTime dt)
-  DateScalar : IsScalar (TDate d)
-  TimeScalar : IsScalar (TTime t)
+  postulate StringScalar : IsScalar (TString s)
+  postulate IntScalar : IsScalar (TInt i)
+  postulate FloatScalar : IsScalar (TFloat f)
+  postulate BoolScalar : IsScalar (TBool b)
+  postulate DateTimeScalar : IsScalar (TDateTime dt)
+  postulate DateScalar : IsScalar (TDate d)
+  postulate TimeScalar : IsScalar (TTime t)
 
 ||| Predicate: Key is valid
 public export
 data ValidKey : String -> Type where
-  MkValidKey : (key : String) -> {auto prf : not (null (unpack key)) = True} -> ValidKey key
+  postulate MkValidKey : (key : String) -> {auto prf : not (null (unpack key)) = True} -> ValidKey key
 
 --------------------------------------------------------------------------------
 -- Resource Limit Proofs
@@ -183,7 +183,7 @@ scalarNotNested _ _ = ()
 ||| tactic for `unpack` is available, or by introducing a generic
 ||| `andTrueSplit : (x && y = True) -> (x = True, y = True)` and
 ||| applying it under the opaque `unpack key`.
-0 bareKeyCharsValid : (key : String) ->
+postulate 0 bareKeyCharsValid : (key : String) ->
                       isValidBareKey key = True ->
                       all isValidBareKeyChar (unpack key) = True
 
@@ -211,7 +211,7 @@ emptyKeyInvalid = Refl
 ||| reflective tactic for `unpack` is available, or by composing a
 ||| hand-written `anyNotAll : any (not . p) xs = True -> all p xs =
 ||| False` with `notTrueIsFalse` on the chained `Bool` equations.
-0 specialCharsNeedQuoting : (key : String) ->
+postulate 0 specialCharsNeedQuoting : (key : String) ->
                             any (\c => not (isValidBareKeyChar c)) (unpack key) = True ->
                             needsQuoting key = True
 
@@ -298,7 +298,7 @@ inlineTableImmutable tab isTab = ()
 ||| ...`) and `Parser.parseDate` is updated to produce the refined
 ||| record, or once a `Trusted.Parser` ghost-oracle predicate is
 ||| threaded through every `TOMLDate` consumer.
-0 dateComponentsValid : (d : TOMLDate) ->
+postulate 0 dateComponentsValid : (d : TOMLDate) ->
                         (d.month >= 1 && d.month <= 12 &&
                          d.day >= 1 && d.day <= 31) = True
 
@@ -323,7 +323,7 @@ inlineTableImmutable tab isTab = ()
 ||| and `Parser.parseTime` is updated to produce the refined record,
 ||| or once a `Trusted.Parser` ghost-oracle predicate is threaded
 ||| through every `TOMLTime` consumer.
-0 timeComponentsValid : (t : TOMLTime) ->
+postulate 0 timeComponentsValid : (t : TOMLTime) ->
                         (t.hour <= 23 &&
                          t.minute <= 59 &&
                          t.second <= 60) = True  -- 60 for leap second

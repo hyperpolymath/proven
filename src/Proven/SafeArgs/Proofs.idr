@@ -29,14 +29,14 @@ import Data.String
 ||| Predicate: Argument length is bounded
 public export
 data BoundedArg : Nat -> String -> Type where
-  MkBoundedArg : (maxLen : Nat) -> (arg : String) ->
+  postulate MkBoundedArg : (maxLen : Nat) -> (arg : String) ->
                  {auto prf : length (unpack arg) <= maxLen = True} ->
                  BoundedArg maxLen arg
 
 ||| Predicate: Argument count is bounded
 public export
 data BoundedArgCount : Nat -> List String -> Type where
-  MkBoundedArgCount : (maxCount : Nat) -> (args : List String) ->
+  postulate MkBoundedArgCount : (maxCount : Nat) -> (args : List String) ->
                       {auto prf : length args <= maxCount = True} ->
                       BoundedArgCount maxCount args
 
@@ -65,7 +65,7 @@ argCountPreventsExhaustion opts count tooMany = ()
 ||| Predicate: Option value is in allowed list
 public export
 data AllowedValue : List String -> String -> Type where
-  MkAllowedValue : (allowed : List String) -> (value : String) ->
+  postulate MkAllowedValue : (allowed : List String) -> (value : String) ->
                    {auto prf : value `elem` allowed = True} ->
                    AllowedValue allowed value
 
@@ -98,7 +98,7 @@ nonEmptyAllowedRestricts allowed value notEmpty notIn = ()
 ||| Predicate: All required arguments are present
 public export
 data RequiredPresent : List ArgSpec -> ParsedArgs -> Type where
-  MkRequiredPresent : (specs : List ArgSpec) -> (parsed : ParsedArgs) ->
+  postulate MkRequiredPresent : (specs : List ArgSpec) -> (parsed : ParsedArgs) ->
                       RequiredPresent specs parsed
 
 ||| Theorem: Required check prevents missing arguments
@@ -150,7 +150,7 @@ parseBool' str =
 ||| `Eq`-instance reduction lemma for `toLower` are available — or
 ||| once the parser is refactored to case-split via `DecEq` on a
 ||| `Recognised` ADT.
-0 boolParsingComplete : (s : String) ->
+postulate 0 boolParsingComplete : (s : String) ->
                         toLower s `elem` ["true", "yes", "1", "on",
                                           "false", "no", "0", "off"] = True ->
                         isJust (parseBool' s) = True
@@ -168,7 +168,7 @@ parseBool' str =
 ||| String FFI primitives are exposed with reflective lemmas, or
 ||| once the parser is rewritten to fold over a typed `List Digit`
 ||| with explicit sign handling.
-0 intParsingHandlesNegative : (s : String) ->
+postulate 0 intParsingHandlesNegative : (s : String) ->
                               isPrefixOf "-" s = True ->
                               all Prelude.Types.isDigit (Data.List.drop 1 (unpack s)) = True ->
                               isJust (parseInteger s) = True
@@ -191,7 +191,7 @@ parseNat' str = do
 ||| a sign-tracking spec lemma, or once `parseNat'` is rewritten
 ||| without going through `Integer` (e.g. directly folding `Digit`
 ||| values into `Nat`).
-0 natRejectsNegative : (s : String) ->
+postulate 0 natRejectsNegative : (s : String) ->
                        isPrefixOf "-" s = True ->
                        parseNat' s = Nothing
 

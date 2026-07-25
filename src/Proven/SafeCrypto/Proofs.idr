@@ -55,7 +55,7 @@ import Data.Vect
 ||| (FFI-opaque Bits primitives). Discharge once a `Data.Bits`
 ||| reflective tactic / Prelude lemma is available.
 public export
-0 constantTimeRefl : (d : ByteVector n) -> digestEq d d = True
+postulate 0 constantTimeRefl : (d : ByteVector n) -> digestEq d d = True
 
 ||| OWED: constant-time `digestEq` is symmetric —
 ||| `digestEq d1 d2 = digestEq d2 d1`. Reduces to showing that
@@ -66,7 +66,7 @@ public export
 ||| stdlib). Same blocker family as `constantTimeRefl`. Discharge
 ||| once `Data.Bits` exposes `xorCommutative : (x, y : Bits8) -> x \`xor\` y = y \`xor\` x`.
 public export
-0 constantTimeSym : (d1, d2 : ByteVector n) ->
+postulate 0 constantTimeSym : (d1, d2 : ByteVector n) ->
                     digestEq d1 d2 = digestEq d2 d1
 
 --------------------------------------------------------------------------------
@@ -158,13 +158,13 @@ standardIsSecure prf = unfold isSecure; rewrite prf; rfl
 ||| and inherits the same `Data.Bits` `xor x x = 0` reductive blocker.
 ||| Discharge together with `constantTimeRefl`.
 public export
-0 digestEqRefl : (d : ByteVector n) -> digestEq d d = True
+postulate 0 digestEqRefl : (d : ByteVector n) -> digestEq d d = True
 
 ||| OWED: digest equality is symmetric — `digestEq d1 d2 = digestEq d2 d1`.
 ||| Same claim as `constantTimeSym` above; same `Data.Bits` `xor`
 ||| commutativity blocker. Discharge together with `constantTimeSym`.
 public export
-0 digestEqSym : (d1, d2 : ByteVector n) -> digestEq d1 d2 = digestEq d2 d1
+postulate 0 digestEqSym : (d1, d2 : ByteVector n) -> digestEq d1 d2 = digestEq d2 d1
 
 ||| OWED: distinct `ByteVector`s compare unequal under `digestEq`.
 ||| Stated with `Not (d1 = d2)` (propositional inequality) because
@@ -176,7 +176,7 @@ public export
 ||| Discharge once `Data.Bits` exposes the cancellation lemma OR once
 ||| `digestEq` is refactored to recurse via `decEq` element-wise.
 public export
-0 differentDigestsUnequal : (d1, d2 : ByteVector n) ->
+postulate 0 differentDigestsUnequal : (d1, d2 : ByteVector n) ->
                             Not (d1 = d2) ->
                             digestEq d1 d2 = False
 
@@ -198,7 +198,7 @@ public export
 ||| index, or (b) refactoring the return type so the length witness
 ||| is exposed without case-pattern reduction.
 public export
-0 randomBytesLength : (n : Nat) ->
+postulate 0 randomBytesLength : (n : Nat) ->
                       case randomBytes n of
                         Right (MkByteVec v) => length v = n
                         Left _ => ()
@@ -213,7 +213,7 @@ public export
 ||| modelled propositionally and `modLT : (a, b : Nat) -> IsSucc b -> LT (a \`mod\` b) b`
 ||| is available in `Data.Nat`.
 public export
-0 randomNatBounded : (max : Nat) -> {auto ok : IsSucc max} ->
+postulate 0 randomNatBounded : (max : Nat) -> {auto ok : IsSucc max} ->
                      case randomNat max of
                        Right n => LT n max
                        Left _ => ()
@@ -225,7 +225,7 @@ public export
 ||| reasoning. Same FFI + `Data.Nat` blocker family. Discharge
 ||| together with `randomNatBounded`.
 public export
-0 randomRangeBounded : (mn, mx : Nat) -> {auto ok : LTE mn mx} ->
+postulate 0 randomRangeBounded : (mn, mx : Nat) -> {auto ok : LTE mn mx} ->
                        case randomNatRange mn mx of
                          Right n => (LTE mn n, LTE n mx)
                          Left _ => ()
@@ -245,7 +245,7 @@ public export
 ||| `Not (c1 = c2)` for 0.8.0 (`/=` returns `Bool`). Discharge once
 ||| `Data.Bits` exposes the requisite cast/shift round-trip lemmas.
 public export
-0 counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
+postulate 0 counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
                        Not (c1 = c2) ->
                        Not (counterNonce pfx c1 = counterNonce pfx c2)
 
@@ -254,7 +254,7 @@ public export
 ||| `randomBytesLength` lifted through the rename. Same FFI entropy
 ||| opacity blocker; discharge together with `randomBytesLength`.
 public export
-0 freshNonceSize : (n : Nat) ->
+postulate 0 freshNonceSize : (n : Nat) ->
                    case freshNonce n of
                      Right (MkByteVec v) => length v = n
                      Left _ => ()
@@ -275,7 +275,7 @@ public export
 ||| once a `String`-FFI reflective tactic or pack/unpack length
 ||| lemma is available.
 public export
-0 tokenLengthApprox : (bytes : Nat) ->
+postulate 0 tokenLengthApprox : (bytes : Nat) ->
                       case randomToken bytes of
                         Right s => LTE (length s) ((bytes * 4 `div` 3) + 3)
                         Left _ => ()
@@ -289,7 +289,7 @@ public export
 ||| opacity blocker as `tokenLengthApprox`. Discharge together with
 ||| `tokenLengthApprox` once the pack/unpack length lemma lands.
 public export
-0 uuidLength : case randomUUID of
+postulate 0 uuidLength : case randomUUID of
                  Right s => length s = 36
                  Left _ => ()
 
@@ -331,5 +331,5 @@ hexEncodeDeterministic _ _ = Refl
 ||| concrete `bytesToHex`, AND (b) the `String`-FFI reflective
 ||| tactic / pack-length lemma.
 public export
-0 hexEncodeEvenLength : (bytesToHex : List Bits8 -> String) -> (bs : List Bits8) ->
+postulate 0 hexEncodeEvenLength : (bytesToHex : List Bits8 -> String) -> (bs : List Bits8) ->
                         mod (length (bytesToHex bs)) 2 = 0
