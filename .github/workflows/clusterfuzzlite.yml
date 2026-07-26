@@ -22,6 +22,7 @@ on:
     - cron: '0 2 * * 0' # Sunday 02:00 UTC
   workflow_dispatch:
 permissions: read-all
+  actions: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

@@ -24,6 +24,7 @@
 
 name: Chapel CI
 permissions:
+  actions: read
   contents: read
 on:
   push:
