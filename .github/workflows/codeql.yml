@@ -33,6 +33,12 @@ jobs:
             build-mode: none
           - language: cpp
             build-mode: none
+          # `actions` analyses the workflow files themselves. It is valid in
+          # every repository — every repository has workflows — and its absence
+          # is what Hypatia's workflow_audit/codeql_missing_actions_language
+          # rule reports.
+          - language: actions
+            build-mode: none
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
