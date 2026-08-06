@@ -54,5 +54,1535 @@
     "file_pattern": "bindings/dart/**",
     "tracking_issue": "hyperpolymath/proven#150",
     "note": "Pre-existing Dart binding debt; governance migration is tracked separately from the FFI CI restoration."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/assemblyscript/src/common.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/assemblyscript/src/ffi.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/assemblyscript/src/index.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/assemblyscript/src/safe_email.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/assemblyscript/src/safe_math.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/assemblyscript/src/safe_path.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/assemblyscript/src/safe_string.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/mod.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/ffi.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/result.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_angle.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_calculator.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_checksum.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_color.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_content_type.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_cookie.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_crypto.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_currency.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_datetime.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_email.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_float.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_geo.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_header.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_hex.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_json.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_math.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_ml.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_network.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_password.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_path.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_probability.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_string.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_unit.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_url.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_uuid.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/deno/src/safe_version.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/proven.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/proven_test.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_angle.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_bloom.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_buffer.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_calculator.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_checksum.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_circuit_breaker.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_color.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_content_type.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_cookie.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_crypto.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_currency.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_datetime.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_digest.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_email.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_float.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_geo.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_graph.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_header.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_hex.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_http.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_json.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_lru.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_math.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_ml.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_monotonic.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_network.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_password.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_path.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_phone.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_probability.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_queue.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_rate_limiter.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_registry.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_retry.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_state_machine.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_string.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_tensor.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_unit.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_url.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_uuid.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/go/proven/safe_version.go"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/error.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/index.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_angle.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_bloom.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_buffer.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_checksum.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_circuit_breaker.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_color.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_content_type.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_cookie.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_crypto.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_datetime.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_email.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_float.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_geo.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_graph.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_header.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_json.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_lru.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_math.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_ml.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_monotonic.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_network.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_password.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_path.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_probability.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_queue.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_rate_limiter.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_retry.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_state_machine.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_string.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_tensor.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_unit.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_url.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/safe_version.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/typescript/src/wasm.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file": "bindings/vcl/proven_plugin.go"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "ada_unchecked_access",
+    "file": "bindings/ada/src/proven-safe_version.adb"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/elixir/native/proven_nif/src/lib.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/ephapax-affine/src/safe_crypto.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/ephapax-affine/src/safe_email.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/ephapax-affine/src/safe_json.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/ephapax-affine/src/safe_string.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/ephapax-affine/src/safe_url.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/ephapax-linear/src/safe_string.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/callbacks.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_bloom.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_buffer.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_calculator.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_checksum.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_color.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_content_type.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_cookie.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_crypto.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_currency.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_datetime.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_digest.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_email.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_header.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_hex.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_http.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_json.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_ml.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_network.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_password.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_path.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_phone.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_registry.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_string.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_url.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_uuid.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file": "bindings/rust/src/safe_version.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "assert_smaller",
+    "file": "src/Proven/SafeInput.idr"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/elixir/native/proven_nif/src/lib.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/ephapax-affine/src/lib.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/ephapax-linear/src/lib.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/core.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_buffer.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_content_type.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_digest.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_hex.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_http.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_registry.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_url.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file": "bindings/rust/src/safe_version.rs"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "code_safety",
+    "type": "js_eval",
+    "file": "bindings/deno/src/safe_calculator.ts"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "code_safety",
+    "type": "js_eval",
+    "file": "bindings/javascript/src/safe_calculator.js"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "manually_drop",
+    "file": "bindings/ephapax-linear/src/safe_math.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "manually_drop",
+    "file": "bindings/ephapax-linear/src/safe_string.rs"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "shell_download_then_run",
+    "file": ".devcontainer/post-create.sh"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "code_safety",
+    "type": "transmute",
+    "file": "bindings/elixir/native/proven_nif/src/lib.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/elixir/native/proven_nif/src/lib.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-affine/src/lib.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-affine/src/safe_crypto.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-affine/src/safe_email.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-affine/src/safe_json.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-affine/src/safe_math.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-affine/src/safe_string.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-affine/src/safe_url.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-linear/src/lib.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-linear/src/safe_math.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/ephapax-linear/src/safe_string.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/callbacks.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/core.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/lifecycle.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_angle.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_bloom.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_buffer.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_calculator.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_checksum.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_circuit_breaker.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_color.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_content_type.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_cookie.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_crypto.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_currency.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_datetime.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_digest.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_email.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_float.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_geo.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_graph.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_header.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_hex.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_http.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_json.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_lru.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_math.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_ml.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_monotonic.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_network.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_password.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_path.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_phone.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_probability.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_queue.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_rate_limiter.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_registry.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_retry.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_state_machine.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_string.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_tensor.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_unit.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_url.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_uuid.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/safe_version.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file": "bindings/rust/src/version.rs"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "zig_bit_cast",
+    "file": "ffi/beam/src/proven_nif.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_color.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_content_type.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_cookie.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_currency.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_datetime.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_header.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_hex.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_http.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_path.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_phone.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_string.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_uuid.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "bindings/zig/src/safe_version.zig"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "domain-specific/http/ffi/zig/src/http.zig"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-apiserver/src/Apiserver/Types.idr"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-authserver/src/Authserver/Types.idr"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-irc/src/IRC/Types.idr"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-radius/src/RADIUS/Types.idr"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-socks/src/SOCKS/Types.idr"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-ssh-bastion/src/SSH/Auth.idr"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "src/Proven/SafeEnv/Types.idr"
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "src/Proven/SafeOTP.idr"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "structural_drift",
+    "type": "SD009",
+    "file": "ffi/zig/src/main.zig"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "structural_drift",
+    "type": "SD009",
+    "file": "ffi/zig/src/root.zig"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "structural_drift",
+    "type": "SD022",
+    "file": "domain-specific/concat/README.adoc"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "workflow_audit",
+    "type": "codeql_missing_actions_language",
+    "file": "codeql.yml"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "workflow_audit",
+    "type": "missing_timeout_minutes",
+    "file": "push-email-notify.yml"
+  },
+  {
+    "severity": "high",
+    "rule_module": "workflow_audit",
+    "type": "secret_action_without_presence_gate",
+    "file": "instant-sync.yml"
   }
 ]
