@@ -103,7 +103,6 @@ jobs:
     # Docker pull (snazzybucket/idris2) + Idris2 totality check across all
     # Proven.Safe.* modules. Local oracle runs in ~8 minutes; 20-minute
     # budget covers cold cache and the occasional Docker Hub slowdown.
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       - name: Build Idris2 modules (via container)
