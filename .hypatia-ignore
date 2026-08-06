@@ -1,5 +1,184 @@
+# Banned-language exemption ledger — hypatia / governance-reusable.yml
+#
+# Format: <rule_module>/<rule_type>:<path>
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# The governance "Language / package anti-pattern policy" gate is correct:
+# these files really are in languages estate policy bans. The gate's own
+# failure message names this file as the sanctioned way to declare an
+# intentional exception.
+#
+# This library's entire purpose is to be callable from other languages — its own description reads "Call from Python, Rust, JavaScript, Go — any language." The bindings/ tree is the deliverable, not a violation. NOTE: this repository already had a .hypatia-ignore, but written backwards (`<path> <rule>` instead of `<rule>:<path>`), so the exemptions never applied.
+#
+# EVERY PATH IS LISTED INDIVIDUALLY — deliberately. A `src/**` wildcard would
+# silently absorb NEW banned files added later, turning a migration ledger into
+# a permanent blind spot. Listing each path means a newly added file still
+# fails the gate: this ledger can only shrink as work is done, never quietly
+# grow.
+#
+# Inventory taken 2026-08-06 across all 424 estate repositories.
+# Files covered: 50 java-kotlin, 44 go, 40 swift, 21 dart
+
+cicd_rules/banned_language_file:bindings/dart/lib/proven.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/ffi.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_angle.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_color.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_crypto.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_currency.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_datetime.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_email.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_float.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_hex.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_json.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_math.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_network.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_path.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_phone.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_string.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_unit.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_url.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_uuid.dart
+cicd_rules/banned_language_file:bindings/dart/lib/src/safe_version.dart
+cicd_rules/banned_language_file:bindings/dart/pubspec.yaml
+cicd_rules/banned_language_file:bindings/go/proven/proven.go
+cicd_rules/banned_language_file:bindings/go/proven/proven_test.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_angle.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_bloom.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_buffer.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_calculator.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_checksum.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_circuit_breaker.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_color.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_content_type.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_cookie.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_crypto.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_currency.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_datetime.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_digest.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_email.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_float.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_geo.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_graph.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_header.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_hex.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_http.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_json.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_lru.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_math.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_ml.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_monotonic.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_network.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_password.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_path.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_phone.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_probability.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_queue.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_rate_limiter.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_registry.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_retry.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_state_machine.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_string.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_tensor.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_unit.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_url.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_uuid.go
+cicd_rules/banned_language_file:bindings/go/proven/safe_version.go
+cicd_rules/banned_language_file:bindings/gql/neo4j/proven_procedures.java
+cicd_rules/banned_language_file:bindings/groovy/build.gradle
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/NativeUtil.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/Proven.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/ProvenLibrary.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/Result.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeAngle.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeCalculator.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeChecksum.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeCookie.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeCrypto.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeDateTime.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeEmail.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeFloat.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeHeader.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeHex.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeJson.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeML.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeMath.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeNetwork.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafePath.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeProbability.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeString.groovy
+cicd_rules/banned_language_file:bindings/groovy/src/main/groovy/com/hyperpolymath/proven/SafeUrl.groovy
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/NativeUtil.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/Proven.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/ProvenLibrary.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/ProvenStatus.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeAngle.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeCalculator.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeChecksum.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeCookie.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeCrypto.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeDateTime.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeEmail.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeFloat.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeHeader.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeHex.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeJson.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeML.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeMath.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafePath.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeProbability.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeString.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/SafeUrl.java
+cicd_rules/banned_language_file:bindings/java/src/main/java/io/github/hyperpolymath/proven/package-info.java
+cicd_rules/banned_language_file:bindings/kotlin/build.gradle.kts
+cicd_rules/banned_language_file:bindings/kotlin/settings.gradle.kts
+cicd_rules/banned_language_file:bindings/kotlin/src/main/kotlin/io/github/hyperpolymath/proven/Proven.kt
+cicd_rules/banned_language_file:bindings/kotlin/src/main/kotlin/io/github/hyperpolymath/proven/ProvenLibrary.kt
+cicd_rules/banned_language_file:bindings/swift/Package.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/Proven.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeAngle.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeBloom.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeBuffer.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeCalculator.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeChecksum.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeCircuitBreaker.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeColor.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeContentType.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeCookie.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeCrypto.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeDatetime.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeEmail.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeFloat.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeGeo.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeGraph.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeHeader.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeHex.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeJson.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeLRU.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeML.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeMath.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeMonotonic.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeNetwork.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafePassword.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafePath.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafePhone.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeProbability.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeQueue.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeRateLimiter.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeRetry.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeStateMachine.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeString.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeTensor.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeUUID.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeUnit.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeUrl.swift
+cicd_rules/banned_language_file:bindings/swift/Sources/Proven/SafeVersion.swift
+cicd_rules/banned_language_file:bindings/swift/Tests/ProvenTests/ProvenTests.swift
+cicd_rules/banned_language_file:bindings/vcl/proven_plugin.go
+
+# ---- previous contents of this file, preserved ----
 # Exempting legitimate Java/Kotlin/Go bindings from language policy
-bindings/java/** cicd_rules/banned_language_file
-bindings/kotlin/** cicd_rules/banned_language_file
-bindings/gql/neo4j/** cicd_rules/banned_language_file
-bindings/go/** cicd_rules/banned_language_file
+# bindings/java/** cicd_rules/banned_language_file
+# bindings/kotlin/** cicd_rules/banned_language_file
+# bindings/gql/neo4j/** cicd_rules/banned_language_file
+# bindings/go/** cicd_rules/banned_language_file
