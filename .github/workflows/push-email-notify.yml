@@ -13,6 +13,10 @@ jobs:
     name: Email on push
     if: ${{ vars.PUSH_EMAIL_ENABLED == 'true' }}
     runs-on: ubuntu-latest
+    # An unbounded job holds a runner for the account default (6 hours) if the
+    # SMTP host hangs. Hypatia's workflow_audit/missing_timeout_minutes rule
+    # reports exactly this.
+    timeout-minutes: 10
     steps:
       - name: Send push notification email
         uses: dawidd6/action-send-mail@6e502825a508b867ab2954ad6343b68787624c01 # pinned
