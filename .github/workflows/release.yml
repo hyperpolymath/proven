@@ -29,6 +29,7 @@ on:
         default: true
         type: boolean
 permissions:
+  actions: read
   contents: read
 jobs:
   validate:

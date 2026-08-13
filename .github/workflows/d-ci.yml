@@ -8,6 +8,7 @@
 
 name: D CI
 permissions:
+  actions: read
   contents: read
 on:
   push:

@@ -8,6 +8,7 @@ on:
   push:
     branches: [main, develop]
 permissions:
+  actions: read
   contents: read
 # Cancel superseded runs on the same ref so a rapid sequence of pushes
 # to a feature branch does not pile up jobs against the Pro-plan 40-job

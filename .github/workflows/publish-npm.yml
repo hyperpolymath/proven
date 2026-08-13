@@ -24,6 +24,7 @@ on:
           - javascript
           - typescript
 permissions:
+  actions: read
   contents: read
 jobs:
   publish-javascript:
