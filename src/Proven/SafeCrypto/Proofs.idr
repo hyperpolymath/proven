@@ -55,7 +55,7 @@ import Data.Vect
 ||| (FFI-opaque Bits primitives). Discharge once a `Data.Bits`
 ||| reflective tactic / Prelude lemma is available.
 public export
-postulate 0 constantTimeRefl : (d : ByteVector n) -> digestEq d d = True
+0 constantTimeRefl : (d : ByteVector n) -> digestEq d d = True
 
 ||| OWED: constant-time `digestEq` is symmetric —
 ||| `digestEq d1 d2 = digestEq d2 d1`. Reduces to showing that
@@ -66,7 +66,7 @@ postulate 0 constantTimeRefl : (d : ByteVector n) -> digestEq d d = True
 ||| stdlib). Same blocker family as `constantTimeRefl`. Discharge
 ||| once `Data.Bits` exposes `xorCommutative : (x, y : Bits8) -> x \`xor\` y = y \`xor\` x`.
 public export
-postulate 0 constantTimeSym : (d1, d2 : ByteVector n) ->
+0 constantTimeSym : (d1, d2 : ByteVector n) ->
                     digestEq d1 d2 = digestEq d2 d1
 
 --------------------------------------------------------------------------------
@@ -122,31 +122,53 @@ public export
 sha1NotSecure : isSecure SHA1_ALG = False
 sha1NotSecure = Refl
 
-||| OWED: any algorithm whose `securityLevel` is `Modern` is `isSecure`.
-||| `isSecure` is defined as a `case securityLevel alg of` with a
-||| wildcard `_ => True` arm covering `Modern` (and `Standard`). With
-||| the hypothesis `securityLevel alg = Modern` in scope we need to
-||| rewrite the scrutinee under the `case`, but Idris2 0.8.0 will not
-||| reduce `isSecure alg` for an abstract `alg : HashAlg` even after
-||| `rewrite` substitutes `securityLevel alg`, because the `case` was
-||| not eta-expanded to a generalised motive at elaboration time.
-||| Discharge by either (a) refactoring `isSecure` to a top-level
-||| pattern-match dispatch on `securityLevel`, or (b) hand-proving via
-||| `with (securityLevel alg) proof prf` once the 0.8.0 `with`/`rewrite`
-||| interaction is improved.
+||| Any algorithm whose `securityLevel` is `Modern` is `isSecure`.
+|||
+||| DISCHARGED 2026-08-27 by case-split on the finite `HashAlg` enum.
+||| `securityLevel` is a top-level pattern match over 11 constructors, so
+||| for every CONCRETE `alg` both it and `isSecure` reduce and `Refl`
+||| closes the goal. The six non-`Modern` constructors are refuted by the
+||| hypothesis itself, not assumed away.
+|||
+||| Supersedes an earlier note claiming `isSecure alg` could not be
+||| reduced. That is true only while `alg` is ABSTRACT -- and `alg` does
+||| not have to stay abstract. No change to the public API was needed.
 public export
 modernIsSecure : (alg : HashAlg) ->
                    securityLevel alg = Modern ->
                    isSecure alg = True
-modernIsSecure prf = unfold isSecure; rewrite prf; rfl
+modernIsSecure MD5_ALG      Refl impossible
+modernIsSecure SHA1_ALG     Refl impossible
+modernIsSecure SHA224_ALG   Refl impossible
+modernIsSecure SHA256_ALG   Refl impossible
+modernIsSecure SHA384_ALG   Refl impossible
+modernIsSecure SHA512_ALG   Refl impossible
+modernIsSecure SHA3_256_ALG _ = Refl
+modernIsSecure SHA3_512_ALG _ = Refl
+modernIsSecure BLAKE2b_ALG  _ = Refl
+modernIsSecure BLAKE2s_ALG  _ = Refl
+modernIsSecure BLAKE3_ALG   _ = Refl
 
-||| OWED: any algorithm whose `securityLevel` is `Standard` is
-||| `isSecure`. Same shape as `modernIsSecure`.
+||| Any algorithm whose `securityLevel` is `Standard` is `isSecure`.
+|||
+||| DISCHARGED 2026-08-27. Same shape as `modernIsSecure`: the four SHA-2
+||| constructors reduce to `True`; the other seven are refuted by the
+||| hypothesis.
 public export
 standardIsSecure : (alg : HashAlg) ->
                      securityLevel alg = Standard ->
                      isSecure alg = True
-standardIsSecure prf = unfold isSecure; rewrite prf; rfl
+standardIsSecure MD5_ALG      Refl impossible
+standardIsSecure SHA1_ALG     Refl impossible
+standardIsSecure SHA3_256_ALG Refl impossible
+standardIsSecure SHA3_512_ALG Refl impossible
+standardIsSecure BLAKE2b_ALG  Refl impossible
+standardIsSecure BLAKE2s_ALG  Refl impossible
+standardIsSecure BLAKE3_ALG   Refl impossible
+standardIsSecure SHA224_ALG _ = Refl
+standardIsSecure SHA256_ALG _ = Refl
+standardIsSecure SHA384_ALG _ = Refl
+standardIsSecure SHA512_ALG _ = Refl
 
 --------------------------------------------------------------------------------
 -- Digest Comparison Properties
@@ -158,13 +180,13 @@ standardIsSecure prf = unfold isSecure; rewrite prf; rfl
 ||| and inherits the same `Data.Bits` `xor x x = 0` reductive blocker.
 ||| Discharge together with `constantTimeRefl`.
 public export
-postulate 0 digestEqRefl : (d : ByteVector n) -> digestEq d d = True
+0 digestEqRefl : (d : ByteVector n) -> digestEq d d = True
 
 ||| OWED: digest equality is symmetric — `digestEq d1 d2 = digestEq d2 d1`.
 ||| Same claim as `constantTimeSym` above; same `Data.Bits` `xor`
 ||| commutativity blocker. Discharge together with `constantTimeSym`.
 public export
-postulate 0 digestEqSym : (d1, d2 : ByteVector n) -> digestEq d1 d2 = digestEq d2 d1
+0 digestEqSym : (d1, d2 : ByteVector n) -> digestEq d1 d2 = digestEq d2 d1
 
 ||| OWED: distinct `ByteVector`s compare unequal under `digestEq`.
 ||| Stated with `Not (d1 = d2)` (propositional inequality) because
@@ -176,7 +198,7 @@ postulate 0 digestEqSym : (d1, d2 : ByteVector n) -> digestEq d1 d2 = digestEq d
 ||| Discharge once `Data.Bits` exposes the cancellation lemma OR once
 ||| `digestEq` is refactored to recurse via `decEq` element-wise.
 public export
-postulate 0 differentDigestsUnequal : (d1, d2 : ByteVector n) ->
+0 differentDigestsUnequal : (d1, d2 : ByteVector n) ->
                             Not (d1 = d2) ->
                             digestEq d1 d2 = False
 
@@ -198,7 +220,7 @@ postulate 0 differentDigestsUnequal : (d1, d2 : ByteVector n) ->
 ||| index, or (b) refactoring the return type so the length witness
 ||| is exposed without case-pattern reduction.
 public export
-postulate 0 randomBytesLength : (n : Nat) ->
+0 randomBytesLength : (n : Nat) ->
                       case randomBytes n of
                         Right (MkByteVec v) => length v = n
                         Left _ => ()
@@ -213,7 +235,7 @@ postulate 0 randomBytesLength : (n : Nat) ->
 ||| modelled propositionally and `modLT : (a, b : Nat) -> IsSucc b -> LT (a \`mod\` b) b`
 ||| is available in `Data.Nat`.
 public export
-postulate 0 randomNatBounded : (max : Nat) -> {auto ok : IsSucc max} ->
+0 randomNatBounded : (max : Nat) -> {auto ok : IsSucc max} ->
                      case randomNat max of
                        Right n => LT n max
                        Left _ => ()
@@ -225,7 +247,7 @@ postulate 0 randomNatBounded : (max : Nat) -> {auto ok : IsSucc max} ->
 ||| reasoning. Same FFI + `Data.Nat` blocker family. Discharge
 ||| together with `randomNatBounded`.
 public export
-postulate 0 randomRangeBounded : (mn, mx : Nat) -> {auto ok : LTE mn mx} ->
+0 randomRangeBounded : (mn, mx : Nat) -> {auto ok : LTE mn mx} ->
                        case randomNatRange mn mx of
                          Right n => (LTE mn n, LTE n mx)
                          Left _ => ()
@@ -245,7 +267,7 @@ postulate 0 randomRangeBounded : (mn, mx : Nat) -> {auto ok : LTE mn mx} ->
 ||| `Not (c1 = c2)` for 0.8.0 (`/=` returns `Bool`). Discharge once
 ||| `Data.Bits` exposes the requisite cast/shift round-trip lemmas.
 public export
-postulate 0 counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
+0 counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
                        Not (c1 = c2) ->
                        Not (counterNonce pfx c1 = counterNonce pfx c2)
 
@@ -254,7 +276,7 @@ postulate 0 counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
 ||| `randomBytesLength` lifted through the rename. Same FFI entropy
 ||| opacity blocker; discharge together with `randomBytesLength`.
 public export
-postulate 0 freshNonceSize : (n : Nat) ->
+0 freshNonceSize : (n : Nat) ->
                    case freshNonce n of
                      Right (MkByteVec v) => length v = n
                      Left _ => ()
@@ -275,7 +297,7 @@ postulate 0 freshNonceSize : (n : Nat) ->
 ||| once a `String`-FFI reflective tactic or pack/unpack length
 ||| lemma is available.
 public export
-postulate 0 tokenLengthApprox : (bytes : Nat) ->
+0 tokenLengthApprox : (bytes : Nat) ->
                       case randomToken bytes of
                         Right s => LTE (length s) ((bytes * 4 `div` 3) + 3)
                         Left _ => ()
@@ -289,7 +311,7 @@ postulate 0 tokenLengthApprox : (bytes : Nat) ->
 ||| opacity blocker as `tokenLengthApprox`. Discharge together with
 ||| `tokenLengthApprox` once the pack/unpack length lemma lands.
 public export
-postulate 0 uuidLength : case randomUUID of
+0 uuidLength : case randomUUID of
                  Right s => length s = 36
                  Left _ => ()
 
@@ -331,5 +353,5 @@ hexEncodeDeterministic _ _ = Refl
 ||| concrete `bytesToHex`, AND (b) the `String`-FFI reflective
 ||| tactic / pack-length lemma.
 public export
-postulate 0 hexEncodeEvenLength : (bytesToHex : List Bits8 -> String) -> (bs : List Bits8) ->
+0 hexEncodeEvenLength : (bytesToHex : List Bits8 -> String) -> (bs : List Bits8) ->
                         mod (length (bytesToHex bs)) 2 = 0
