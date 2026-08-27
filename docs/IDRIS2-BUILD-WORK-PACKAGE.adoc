@@ -83,18 +83,26 @@ them is the only thing making the repository parse.
 
 Measured on a pristine `origin/main` tree:
 
-[cols="3,1,1"]
+[cols="4,1,1"]
 |===
-| Detector `(^\|[[:space:]])postulate[[:space:]]` over `src/**/*.idr` | Files | Occurrences
+| Detector over `src/**/*.idr`, pristine `origin/main` | Files | Occurrences
 
-| `origin/main`, pristine | **46** | **369**
-| local working tree | 6 | 9 — *all* in `--` or `\|\|\|` comments, none in declaration position
+| Raw grep `(^\|[[:space:]])postulate[[:space:]]` | 46 | 369
+| **Declaration position only** (comment lines excluded) | **42** | **360**
+| Comment-only mentions (`--` / `\|\|\|`) | 4 | 9
+| Local working tree, declaration position | **0** | **0**
 |===
+
+IMPORTANT: The raw grep over-counts by 4 files. `SafeCrypto/Hash.idr`,
+`SafeCrypto/Random.idr`, `SafeHTTP.idr` and `SafeJWT/Validate.idr` mention
+`postulate` only inside comments and parse fine on `origin/main`. Quote **42**,
+never 46 — the same over-generalisation this document faults elsewhere.
+A detector that matches comments is not a detector for a *keyword* defect.
 
 `postulate` is **not an Idris2 keyword** (v0.7.0 answers `Couldn't parse declaration`;
 absent from the changelog for v0.2.0–v0.8.0). In declaration position it makes the entire
-file unparseable. So **46 tracked `.idr` files do not parse on `origin/main` today**, and
-the cure for 40 of them exists *only* in the uncommitted working tree.
+file unparseable. So **42 tracked `.idr` files do not parse on `origin/main` today**, and
+the cure for every one of them exists *only* in the uncommitted working tree.
 
 Controlled pair, same file, same compiler, same flags — `src/Proven/SafeRegex/Proofs.idr`:
 
