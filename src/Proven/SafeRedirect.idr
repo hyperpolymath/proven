@@ -43,12 +43,12 @@ isRelativeUrl : String -> Bool
 isRelativeUrl url =
   not (isInfixOf "://" url) &&
   not (isPrefixOf "//" url) &&
-  not (isPrefixOf "javascript:" (toLower url)) &&
-  not (isPrefixOf "data:" (toLower url)) &&
-  not (isPrefixOf "vbscript:" (toLower url))
+  not (isPrefixOf "javascript:" (lowerStr url)) &&
+  not (isPrefixOf "data:" (lowerStr url)) &&
+  not (isPrefixOf "vbscript:" (lowerStr url))
   where
-    toLower : String -> String
-    toLower = pack . map toLower . unpack
+    lowerStr : String -> String
+    lowerStr = pack . map toLower . unpack
 
 ||| Check if a URL starts with a safe path prefix
 public export
@@ -78,10 +78,10 @@ isAllowedDomain allowedDomains url =
     Just host => any (\d => d == host || isSuffixOf ("." ++ d) host) allowedDomains
   where
     isSuffixOf : String -> String -> Bool
-    isSuffixOf suffix str = isPrefixOf (reverse suffix) (reverse str)
+    isSuffixOf suffix str = isPrefixOf (reverseStr suffix) (reverseStr str)
       where
-        reverse : String -> String
-        reverse = pack . reverse . unpack
+        reverseStr : String -> String
+        reverseStr = pack . reverse . unpack
 
 -- ============================================================================
 -- REDIRECT VALIDATION

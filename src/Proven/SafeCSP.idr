@@ -88,6 +88,16 @@ data Directive =
   | ReportUri String
   | ReportTo String
 
+||| Render a list of CSP sources as a space-separated header fragment.
+|||
+||| Hoisted to top level 2026-08-27. It was previously a `where` block written
+||| after the LAST clause of `renderDirective`, so it was in scope for that one
+||| clause only and the other 15 clauses could not see it -- a `where` attaches
+||| to a single clause, never to a whole multi-clause function.
+public export
+renderSources : List Source -> String
+renderSources srcs = fastConcat (intersperse " " (map show srcs))
+
 ||| Render a directive to its header string fragment
 public export
 renderDirective : Directive -> String
@@ -110,9 +120,6 @@ renderDirective UpgradeInsecureRequests = "upgrade-insecure-requests"
 renderDirective BlockAllMixedContent   = "block-all-mixed-content"
 renderDirective (ReportUri uri)    = "report-uri " ++ uri
 renderDirective (ReportTo group)   = "report-to " ++ group
-  where
-    renderSources : List Source -> String
-    renderSources srcs = fastConcat (intersperse " " (map show srcs))
 
 -- ============================================================================
 -- CSP POLICY

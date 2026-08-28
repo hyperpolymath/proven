@@ -1,0 +1,501 @@
+= Idris2 Build Work Package
+:toc: macro
+:toclevels: 3
+:source-highlighter: rouge
+
+Handover document for continuing the `proven` Idris2 build-repair campaign.
+
+Written 2026-08-27 at the point where the build frontier reached **211/305**.
+Its purpose is that the next person does not re-derive any of this.
+
+Every claim below was produced by running the Idris2 compiler and reading its exit
+code. Where something is an inference rather than a measurement, it says so.
+
+toc::[]
+
+== 0. Read this first — the three framing facts
+
+=== 0.1 VOID is not RED, and RED is not a regression
+
+The exit-code convention this campaign uses throughout:
+
+[cols="1,4"]
+|===
+| `0` | correct — the check ran and passed
+| `1` | wrong outcome — the check ran and failed
+| `2` | **VOID** — no check was performed
+|===
+
+Before this campaign, `idris2 --build proven.ipkg` was **cancelled at CI's 45-minute
+timeout** with zero modules built. That is VOID, not red: nothing was measured, so
+nothing was learned. The campaign's first achievement was not fixing an error — it was
+moving the build from *unmeasurable* to *measurably wrong*.
+
+=== 0.2 The error count is not a progress metric; the frontier is
+
+`SafeRegex/Parser.idr` reported **39 errors**. Classified by hand, that was
+**6 real roots + 33 transitive totality propagations**. Curing the 6 roots took the
+standalone check to **0 errors**.
+
+A *rising* error count after a fix is almost always **successive unmasking** — the
+compiler getting further and finding more. Judge progress by the frontier
+(`N/305: Building <Module>`), never by the error count.
+
+=== 0.3 Every frontier figure must name the tree it was measured on, and the compiler version
+
+* All figures here are **Idris2 0.7.0**, while the source and CI target **0.8.0**.
+* Frontier **211/305** was measured on the **dirty working tree**, which carries an
+  uncommitted cure that `origin/main` does not have (see <<sweep>>). A build of
+  `origin/main`, or of the PR #206 branch, **cannot** reach 211.
+
+== 1. Where the build actually is
+
+.Frontier progression, Idris2 0.7.0
+[cols="1,3,4,2"]
+|===
+| Step | Frontier | Blocker | Status
+
+| — | `1/300` | build never completed | VOID
+| 36 | `165/305` `SafeOTP` | class 13 + class 30 | cured
+| 37 | `167/305` `SafeRedirect` | class 31 ×2 | cured
+| 38 | `168/305` `SafeCSP` | class 32 | cured — **+30 modules**
+| 39 | `198/305` `SafeCrypto.Proofs` | class 33 ×2 | cured, real proofs
+| 40 | `203/305` `SafeUrl.Proofs` | class 35 | cured
+| 41 | `210/305` `SafeRegex.Parser` | class 36 ×25, eta bug, 3 totality roots, class 37 | cured — rc=0
+| 42 | **`211/305` `SafeRegex.Matcher`** | see <<matcher>> | **diagnosed, NOT fixed — this is the next job**
+|===
+
+Seven modules cured. **Zero new trusted-base markers** across the whole campaign.
+Five proof obligations genuinely discharged (two in strictly stronger, generalised form):
+`modernIsSecure`, `standardIsSecure`, `errorMakesInvalid`, `warningKeepsValid`,
+`lteFrom65535Check`.
+
+Published as **PR #206**, seven files, based on `origin/main`.
+
+[[sweep]]
+== 2. ⚠ The working tree is load-bearing — do not clean it
+
+This is the single most important operational fact in this document.
+
+`proven`'s working tree carries **245 uncommitted modified files**. They look like the
+residue of an interrupted estate sweep. **They are not merely residue.** A large part of
+them is the only thing making the repository parse.
+
+Measured on a pristine `origin/main` tree:
+
+[cols="4,1,1"]
+|===
+| Detector over `src/**/*.idr`, pristine `origin/main` | Files | Occurrences
+
+| Raw grep `(^\|[[:space:]])postulate[[:space:]]` | 46 | 369
+| **Declaration position only** (comment lines excluded) | **42** | **360**
+| Comment-only mentions (`--` / `\|\|\|`) | 4 | 9
+| Local working tree, declaration position | **0** | **0**
+|===
+
+IMPORTANT: The raw grep over-counts by 4 files. `SafeCrypto/Hash.idr`,
+`SafeCrypto/Random.idr`, `SafeHTTP.idr` and `SafeJWT/Validate.idr` mention
+`postulate` only inside comments and parse fine on `origin/main`. Quote **42**,
+never 46 — the same over-generalisation this document faults elsewhere.
+A detector that matches comments is not a detector for a *keyword* defect.
+
+`postulate` is **not an Idris2 keyword** (v0.7.0 answers `Couldn't parse declaration`;
+absent from the changelog for v0.2.0–v0.8.0). In declaration position it makes the entire
+file unparseable. So **42 tracked `.idr` files do not parse on `origin/main` today**, and
+the cure for every one of them exists *only* in the uncommitted working tree.
+
+Controlled pair, same file, same compiler, same flags — `src/Proven/SafeRegex/Proofs.idr`:
+
+[cols="2,3"]
+|===
+| pristine `origin/main` | `Error: Couldn't parse declaration` at 25:1 → **rc=1**
+| cured working tree | **rc=0, 0 errors**
+|===
+
+[WARNING]
+====
+**The reported error location lies.** Idris2 reports the span of the *docstring* (line 25),
+not the `postulate` line that actually fails, because a `|||` block attaches to the
+declaration that follows it. Anyone who greps the reported line finds well-formed prose and
+concludes the report is spurious.
+====
+
+**Therefore:** never `git checkout -- .`, `git stash`, or `git clean` in this repo. The
+disposition of those 245 files is an owner decision (ruling R-13, triage report first), and
+until it is made they must be left exactly as found.
+
+=== 2.1 Five files are on disk but not in git
+
+Commit `f2833c2c` — titled *"feat: add ECHIDNA validation modules"*, author string `Test` —
+**deleted 149 files, 22 of them `.idr` sources**. Seventeen were later restored *and
+re-tracked*. Five were restored to the working tree but **never re-added to git**:
+
+* `src/Proven/SafeRegex/Matcher.idr`
+* `src/Proven/SafeRegex/Parser.idr` — re-tracked by PR #206
+* `src/Proven/SafeSQL/Builder.idr`
+* `src/Proven/SafeXML/Parser.idr`
+* `src/Proven/SafeYAML/Parser.idr`
+
+All five are confirmed **absent** from a pristine `origin/main` tree.
+
+`Proven.FFI.SafeRegex` *is* listed at `proven.ipkg:309` and imports
+`Proven.SafeRegex.Parser` at line 22 — so the local build reaches these files transitively
+and compiles them, while a clean checkout does not contain them at all.
+**The local build and the CI build have been building different source trees, and nothing
+reported that.**
+
+This also explains a second defect: the `Char` → `SingleChar` constructor rename reached
+`Types.idr`, `Safety.idr`, `Proofs.idr` and `SafeArgs/Proofs.idr` — and **missed
+`Parser.idr`, the one file outside git's view**. A sweep that walks tracked files cannot
+reach an untracked one, so untracked files silently accumulate rename debt.
+
+[TIP]
+====
+**Detector worth building:** for every module named in an `.ipkg`, and every module
+transitively imported by one, assert the source file is present in `HEAD`.
+*Untracked-but-built* is a distinct failure class from *missing-from-ipkg*, and no existing
+check sees it.
+====
+
+[[matcher]]
+== 3. The next blocker, fully diagnosed
+
+`src/Proven/SafeRegex/Matcher.idr` at frontier `211/305`. It reports 16 errors; six are
+roots. It is also one of the five untracked files above, so **re-add it to git as part of
+the fix**.
+
+....
+BUILD_RC=1
+frontier: 211/305: Building Proven.SafeRegex.Matcher
+errors: 16   shadow: 0
+Error: While processing right hand side of matchCharClass. Undefined name matchesClassWithFlags.
+Error: While processing right hand side of matchesClassWithFlags. When unifying: ...
+Error: ... Undefined name Proven.SafeRegex.Matcher.5468:5311:matchQuantified.
+Error: findAll is not total, possibly not terminating due to call to ...findFrom
+Error: findFirst is not total, possibly not terminating due to call to ...findFrom
+Error: match is not total, possibly not terminating due to call to ...findFirst
+....
+
+[cols="1,2,4"]
+|===
+| Line | Class | What to do
+
+| 133 | <<c36,36>> | `Char x =>` where the constructor is `SingleChar`. Reports `When unifying: Type and ?argTy -> CharClass`, **never** `Undefined name`.
+| 127 | <<c28,28>> | `Undefined name matchesClassWithFlags` — it is defined at 130–131, *below* the use. Hoist the **signature only**, then delete the late signature.
+| ~237 | <<c32,32>> | `where`-block scope around `matchQuantified` (mangled `Proven.SafeRegex.Matcher.5468:5311:matchQuantified`). Hoist to top level.
+| — | <<c30,30>> | Three totality failures: `findAll` → `findFrom`, `findFirst` → `findFrom`, `match` → `findFirst`. Derive a `Nat` bound and recurse structurally on it.
+|===
+
+The relevant source, as it stands:
+
+[source,idris]
+----
+ 123 |   case currentChar st of
+ 124 |     Nothing => False
+ 125 |     Just c =>
+ 126 |       let c' = if st.flags.caseInsensitive then toLower c else c
+ 127 |       in matchesClassWithFlags c' cls st.flags     -- forward reference
+ 129 | ||| Match character class with flags
+ 130 | matchesClassWithFlags : Char -> CharClass -> RegexFlags -> Bool
+ 131 | matchesClassWithFlags c cls flags =
+ 132 |   case cls of
+ 133 |     Char x =>                                      -- should be SingleChar
+----
+
+And the constructor it should be using, from `src/Proven/SafeRegex/Types.idr`:
+
+[source,idris]
+----
+data CharClass : Type where
+  SingleChar : Char -> CharClass          -- line 24 — NOT `Char`
+  Range : (from : Char) -> (to : Char) -> CharClass
+  Digit | Word | Space | Any : CharClass
+  Negate : CharClass -> CharClass
+  Union : CharClass -> CharClass -> CharClass
+----
+
+== 4. Blocker classes encountered
+
+Numbering is continuous with the estate-wide register. Only the classes met in `proven`
+are reproduced here.
+
+[[c13]]
+=== Class 13 — `where`-block ordering
+A `where`-bound name must be defined before it is used within the block.
+
+[[c27]]
+=== Class 27 — `Int` vs `Nat` in string primitives
+`strSubstr : Int -> ...` against `String.length : ... -> Nat`. Convert explicitly.
+
+[[c28]]
+=== Class 28 — top-level forward reference
+Idris2 elaborates a module top-to-bottom. **Cure:** hoist the *signature only* above the
+first use, then **delete the later signature** — leaving both is a duplicate-definition
+error.
+
+[[c29]]
+=== Class 29 — a `|||` docstring cannot attach to a `mutual` block
+Move the docstring inside, onto a member.
+
+[[c30]]
+=== Class 30 — recursion on a non-inductive numeric type
+Idris2's termination checker needs a structurally decreasing argument. `Int`, `Integer` and
+`Double` have none. **Cure:** derive a `Nat` bound (typically `length` of the input) and
+recurse structurally on that. **Never** reach for a totality escape hatch.
+
+[[c31]]
+=== Class 31 — a `where`-local wrapper that shadows the Prelude name it calls
+A local `toLower` that calls `toLower` recurses into itself. **Cure:** rename the local.
+
+[WARNING]
+====
+`grep -c 'is shadowing'` returns **0** on the very build reporting these. The shadow
+counter does not see `where`-local bindings that shadow imported names — see <<shadow>>.
+====
+
+[[c32]]
+=== Class 32 — a `where` block attaches to ONE clause, not the whole function
+In a multi-clause definition, a `where` block is visible only to the clause it follows.
+Other clauses report `Undefined name`, and the name is *mangled* with source offsets
+(`Module.5468:5311:name`), which is the diagnostic tell. **Cure: hoist to top level.**
+
+[[c33]]
+=== Class 33 — a body written in a FOREIGN proof assistant's tactic language
+Lean 4 syntax inside an Idris2 file: comma-list `unfold`, `simp [prf]`, `;`-sequenced
+tactics, lowercase `rfl`. **Diagnostic:** the error points at a keyword *mid-line* in a
+proof body. Frequently carries an arity bug as well. **Cure:** write the proof properly.
+
+[[c34]]
+=== Class 34 — a top-level constant of a RECORD type is opaque to the unifier
+Idris2 0.7.0 will not reduce a top-level constant whose type is a record.
+**Control that compiles**, proving the problem is record-specific:
+
+[source,idris]
+----
+n : Nat
+n = 5
+tn : n = 5
+tn = Refl        -- compiles
+----
+
+**Cure:** generalise over the record *value* and case-split on its constructor.
+
+[[c35]]
+=== Class 35 — `Ord Nat`'s `<=` is NOT `Data.Nat.lte`
+`p <= 65535` elaborates to `not (compare p 65535 == GT)`, whereas `lteReflectsLTE` consumes
+`lte p 65535`. The two are **propositionally equal but not convertible**, so the stdlib
+lemma will not apply. **Cure:** restate the hypothesis over the relation the lemma actually
+consumes.
+
+[[c36]]
+=== Class 36 — a rename that silently retargets to a Prelude name of a DIFFERENT KIND
+The constructor is `SingleChar : Char -> CharClass`, but the file still writes `Char '\n'`.
+`Char` *is* in scope — as the **builtin type** — so it resolves, and the error is
+`Mismatch between: Type and Char -> CharClass`. It is **never** `Undefined name Char`.
+
+**Every existing detector misses this**: the identifier is spelled correctly and is in
+scope; only its *kind* is wrong.
+
+Safe rewrite patterns:
+
+[source,bash]
+----
+sed -i "s/(Char '/(SingleChar '/g; s/(Char c/(SingleChar c/g" "$F"
+----
+
+[CAUTION]
+`(Char ` alone is **unsafe** — it also matches type positions such as
+`satisfy : (Char -> Bool) -> Parser Char`. Always verify both the presence of the new form
+and the absence of the old.
+
+[[c37]]
+=== Class 37 — a `let`-bound record update cannot infer its type
+
+[source,idris]
+----
+let st' = { input := rest, pos := S st.pos } st     -- Can't infer type for this record update
+let st' : ParserState = { input := rest, pos := S st.pos } st   -- compiles
+----
+
+**Mechanism:** Idris2 resolves record-update field names from the **expected type, working
+downward** — not from the type of the subject expression. Field names are ambiguous across
+records, so it cannot work upward. Every *other* record update in the file compiled because
+it sat inside `Right (x, { ... } st)`, where the tuple's second component is pinned by the
+return type. **A bare `let` with no annotation is the one syntactic position that supplies
+no expected type.** Exactly 1 of ~20 record updates in the file failed.
+
+Generalises to ambiguous record *projection* and to interface-method resolution.
+
+== 5. The cure discipline
+
+[IMPORTANT]
+====
+**Defunctionalise, restructure, or prove properly. Never assert.**
+
+Census the file's trusted-base marker tokens *before* choosing a cure, and again after.
+The whole campaign added **zero**. `SafeRegex/Parser.idr` was and remains 0/0/0/0.
+====
+
+=== 5.1 Fuel: keep it internal where the recursion is local
+
+When a function's recursion is confined to its own body, derive the fuel *inside* the body
+from `length st.input` — the **public signature does not change** and the blast radius is
+zero. Only a `mutual` block whose recursion crosses function boundaries needs an explicit
+`Nat` parameter threaded through every member.
+
+In `SafeRegex/Parser.idr`: `many` and `parseClassContents` took internal fuel; the six-member
+mutual block took an explicit `Nat`, and the entry points seed it with
+`16 * length (unpack pattern) + 16`. The whole mutual block is private, so no public
+signature moved.
+
+Totality then holds by construction: every intra-group call passes `k` where the clause
+matched `S k`, so all members decrease strictly on argument 1.
+
+=== 5.2 `DISCHARGED` in a docstring is an unverified assertion
+
+There are **67** `DISCHARGED` docstring lines across **23** files in `src/`. Five were
+written during this campaign and each was verified rc=0. **Sixty-two are pre-existing and
+have never been verified.** Twenty of the 23 files carry **both** `DISCHARGED` and `OWED`.
+
+Four of the 62 were confirmed **false** — and all four were found by *compiling*, not by
+reading.
+
+**The compiler is the only witness. The build is the audit instrument.**
+
+== 6. Harness traps
+
+These cost real time. Each is stated with the limit of what it was observed to do.
+
+[[t1]]
+=== Trap 1 — a backgrounded launcher reports the LAUNCHER's exit code
+A task notification saying *"completed (exit code 0)"* refers to the wrapper script, not to
+`idris2`. This has falsely reported success **seven times** in this campaign.
+
+**Always** `grep '^BUILD_RC=' <log>`. Never read the notification's exit code.
+
+=== Trap 2 — inside perl's `\Q...\E`, `\n` is quoted as a literal backslash-n
+Prefer file reconstruction over in-place regex for multi-line edits:
+
+[source,bash]
+----
+{ sed -n '1,Np' f; new-block; sed -n 'M,$p' f; } > tmp && mv tmp f
+----
+
+Then verify **both** the presence of the new text and the absence of the old.
+
+=== Trap 3 — standalone checks need `-p contrib`
+[source,bash]
+----
+idris2 -p contrib --source-dir src --check src/Proven/<Path>.idr    # correct
+----
+Never `--find-ipkg`. Without `-p contrib`, `Module Data.List.Equalities not found`
+**masks the real error** and you debug the wrong thing.
+
+=== Trap 4 — idris2 progress output is block-buffered without a PTY
+Polling the log mid-run returns nothing. **This is not a hang.**
+
+=== Trap 5 — `pgrep -f <pattern>` self-matches
+The `pgrep` process's own command line contains the pattern, so it always finds itself.
+Use **`pgrep -x idris2`**.
+
+This is the bounded-observation fallacy *inverted*: a non-null result mistaken for presence.
+An empty-result control cannot catch it.
+
+[[shadow]]
+=== Trap 6 — the shadow counter's reach is narrower than it looks
+`grep -c 'is shadowing'` fires on implicitly-bound lowercase names in bodyless erased
+`0 name : Type` declarations. It does **not** fire on `where`-local bindings that shadow
+imported names (class 31). Quote both limits whenever quoting `shadow: N`.
+
+Readings this campaign: `5` @198, `3` @203, `55` @210, `0` @211.
+
+== 7. Git traps and techniques
+
+=== 7.1 `git branch -f` refuses on a branch checked out in a worktree
+It fails *quietly enough* that later commands in the same compound shell line silently
+describe the **old** branch. Verify against the **commit SHA**, never the branch name.
+
+=== 7.2 Rebase without touching a dirty worktree, via a temporary index
+Needed here because the worktree holds 245 dirty files that must not move. This constructs
+the commit entirely in git's object database:
+
+[source,bash]
+----
+export GIT_INDEX_FILE="$T/tmpidx"
+rm -f "$GIT_INDEX_FILE"
+git read-tree origin/main
+for f in <paths>; do
+  sha=$(git rev-parse "$SRC:$f")
+  mode=$(git ls-tree "$SRC" -- "$f" | awk '{print $1}')
+  git update-index --add --cacheinfo "$mode,$sha,$f"
+done
+TREE=$(git write-tree)
+NEW=$(git commit-tree "$TREE" -p origin/main -F "$T/commitmsg.txt")
+unset GIT_INDEX_FILE
+----
+
+The dirty count stayed at 245 throughout.
+
+=== 7.3 Check your PR base before opening it
+[source,bash]
+----
+git rev-list --left-right --count origin/main...HEAD
+----
+The local branch `fix/idris2-totality-and-elaboration-cures` sits on top of nine unrelated
+CI commits, one of which bumps reusable-workflow pins to **`5b1d0022`** — a SHA already
+recorded estate-wide as **phantom** and fixed across 15 repos. PR-ing that branch against
+`main` would have re-introduced a known-bad pin under a new author.
+
+=== 7.4 A pristine tree without a clone
+[source,bash]
+----
+git archive origin/main | tar -x -C "$TMP/clean"
+----
+No network, no `.git`, seconds rather than minutes. This is how the <<sweep>> measurement
+was taken.
+
+== 8. Reproducing the measurements
+
+Full build:
+
+[source,bash]
+----
+#!/bin/bash
+cd /path/to/proven
+RAW=$T/build.raw
+timeout 2700 idris2 --build-dir bd --build proven.ipkg > "$RAW" 2>&1
+RC=$?
+{
+  echo "BUILD_RC=$RC"
+  echo "frontier: $(grep -oE '^[0-9]+/[0-9]+: Building [A-Za-z0-9._]+' "$RAW" | tail -1)"
+  echo "errors: $(grep -c '^Error:' "$RAW")   shadow: $(grep -c 'is shadowing' "$RAW")"
+  grep -n '^Error:' "$RAW" | head -6
+} > $T/build.log
+----
+
+Single module:
+
+[source,bash]
+----
+timeout 900 idris2 -p contrib --source-dir src --check src/Proven/<Path>.idr
+----
+
+[NOTE]
+`--build-dir bd` creates `bd/` inside the repo. It has not appeared in `git status`, but
+check before staging — and **never** `git add -A` in this repo while the 245 files are
+undisposed.
+
+== 9. Known-defective gates in this repo
+
+`.github/workflows/e2e.yml` — the marker gate is **well built**: it excludes lines whose
+first non-whitespace is `|||` or `--` before failing, so doc-comment mentions do not
+false-positive. Keep it.
+
+`.github/workflows/trustfile.yml` — *"Check believe_me audit trail"* **cannot fail**. It
+computes `UNJUSTIFIED` from a pipeline that re-greps its own `-B1` context for the pattern
+itself, discarding the justification check; the variable is then never read; and the only
+branch prints `WARNING` above a threshold of 300 without ever calling `exit 1`.
+**A gate that cannot fail is as defective as one that cannot pass.**
+
+Neither gate covers `assert_smaller`, top-level `partial`, or bodyless erased
+`0 name : Type` declarations — which is where the repository's actual proof debt lives.
