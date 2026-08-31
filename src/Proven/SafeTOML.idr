@@ -32,7 +32,9 @@ import public Proven.SafeTOML.Parser
 import public Proven.SafeTOML.Proofs
 
 import Data.List
+import Data.List1
 import Data.String
+import Data.Maybe
 
 %default total
 
@@ -147,7 +149,7 @@ hasField key kvs = isJust (lookup key kvs)
 ||| Get nested field using dot notation
 public export
 getPath : String -> List (String, TOMLValue) -> TOMLResult TOMLValue
-getPath path doc = go (split (== '.') path) doc
+getPath path doc = go (forget (Data.String.split (== '.') path)) doc
   where
     go : List String -> List (String, TOMLValue) -> TOMLResult TOMLValue
     go [] _ = Err (InvalidKey "" "empty path")
@@ -221,7 +223,7 @@ getTable key kvs = do
 public export
 getIndex : Nat -> TOMLValue -> TOMLResult TOMLValue
 getIndex idx (TArray xs) =
-  case index' idx xs of
+  case getAt idx xs of
     Just val => Ok val
     Nothing => Err (InvalidValue (show idx) "index out of bounds")
 getIndex idx val = Err (TypeMismatch "array" (tomlTypeName val))
@@ -284,19 +286,36 @@ mkTime hour minute second = TTime (MkTOMLTime hour minute second 0)
 -- Transformation
 --------------------------------------------------------------------------------
 
+-- The traversals below are explicit recursion rather than `map`. A recursive
+-- call passed to `map` is opaque to the totality checker: it cannot see that
+-- the argument is structurally smaller. Spelling the recursion out makes the
+-- descent visible and the definitions total, with no `assert_total`.
+
+public export
+mapValuesItems : (TOMLValue -> TOMLValue) -> List TOMLValue -> List TOMLValue
+
+public export
+mapValuesPairs : (TOMLValue -> TOMLValue) -> List (String, TOMLValue) ->
+                 List (String, TOMLValue)
+
 ||| Map over all values
 public export
 mapValues : (TOMLValue -> TOMLValue) -> TOMLValue -> TOMLValue
-mapValues f val = case val of
-  TArray xs => f (TArray (map (mapValues f) xs))
-  TInlineTable kvs => f (TInlineTable (map (\(k, v) => (k, mapValues f v)) kvs))
-  TTable kvs => f (TTable (map (\(k, v) => (k, mapValues f v)) kvs))
-  other => f other
+mapValues f (TArray xs) = f (TArray (mapValuesItems f xs))
+mapValues f (TInlineTable kvs) = f (TInlineTable (mapValuesPairs f kvs))
+mapValues f (TTable kvs) = f (TTable (mapValuesPairs f kvs))
+mapValues f other = f other
+
+mapValuesItems f [] = []
+mapValuesItems f (x :: xs) = mapValues f x :: mapValuesItems f xs
+
+mapValuesPairs f [] = []
+mapValuesPairs f ((k, v) :: kvs) = (k, mapValues f v) :: mapValuesPairs f kvs
 
 ||| Map over document
 public export
 mapDocument : (TOMLValue -> TOMLValue) -> TOMLDocument -> TOMLDocument
-mapDocument f doc = map (\(k, v) => (k, mapValues f v)) doc
+mapDocument f doc = mapValuesPairs f doc
 
 ||| Filter document fields
 public export

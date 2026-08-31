@@ -19,6 +19,7 @@ import public Proven.Core
 import Proven.SafeUrl
 import Data.List
 import Data.String
+import Data.Maybe
 
 %default total
 
@@ -108,9 +109,9 @@ isValidDigest : String -> Bool
 isValidDigest s =
   case break (== ':') s of
     (algo, rest) =>
-      case strTail rest of
+      case strUncons rest of
         Nothing => False
-        Just hex =>
+        Just (_, hex) =>
           let validAlgos = ["sha256", "sha384", "sha512", "blake3"]
           in elem algo validAlgos && all isHexDigit (unpack hex)
 
@@ -153,11 +154,11 @@ extractTag s =
 ||| @ Proof: Single splitAtFirst call, terminates
 splitRegistry : String -> (Maybe String, String)
 splitRegistry s =
-  case break (== '/') s of
+  case break (== '/') (unpack s) of
     (first, []) => (Nothing, s)  -- No slash
-    (first, '/' :: rest) =>
-      if looksLikeRegistry first
-        then (Just first, pack rest)
+    (first, _ :: rest) =>
+      if looksLikeRegistry (pack first)
+        then (Just (pack first), pack rest)
         else (Nothing, s)
 
 ||| Parse OCI image reference

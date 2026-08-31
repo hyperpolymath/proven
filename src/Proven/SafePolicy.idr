@@ -165,15 +165,6 @@ data Conflict =
   | ActionConflict PolicyRule PolicyRule
   | ConditionOverlap PolicyRule PolicyRule
 
-||| Check if two rules might conflict
-public export
-rulesConflict : PolicyRule -> PolicyRule -> Bool
-rulesConflict r1 r2 =
-  ruleAction r1 /= ruleAction r2 &&
-  rulePriority r1 == rulePriority r2 &&
-  -- Simplified overlap check
-  ruleCondition r1 == ruleCondition r2
-
 ||| Simplified equality for conditions
 Eq Condition where
   Always == Always = True
@@ -187,6 +178,16 @@ Eq Condition where
   Or a1 b1 == Or a2 b2 = a1 == a2 && b1 == b2
   Not c1 == Not c2 = c1 == c2
   _ == _ = False
+
+||| Check if two rules might conflict
+public export
+rulesConflict : PolicyRule -> PolicyRule -> Bool
+rulesConflict r1 r2 =
+  ruleAction r1 /= ruleAction r2 &&
+  rulePriority r1 == rulePriority r2 &&
+  -- Simplified overlap check
+  ruleCondition r1 == ruleCondition r2
+
 
 ||| Find conflicts in a policy
 public export
@@ -340,13 +341,18 @@ evaluateNode : Policy -> ASTNode -> PolicyAction
 evaluateNode policy node =
   evaluatePolicy policy (nodeZone node) (nodeTags node)
 
-||| Recursively evaluate policy on AST tree
-public export
-evaluateTree : Policy -> ASTNode -> List (ASTNode, PolicyAction)
-evaluateTree policy node =
-  let nodeResult = (node, evaluateNode policy node)
-      childResults = concatMap (evaluateTree policy) (nodeChildren node)
-  in nodeResult :: childResults
+mutual
+  ||| Recursively evaluate policy on AST tree
+  public export
+  evaluateTree : Policy -> ASTNode -> List (ASTNode, PolicyAction)
+  evaluateTree policy node@(MkASTNode _ _ _ _ children) =
+    (node, evaluateNode policy node) :: evaluateForest policy children
+
+  ||| Evaluate policy across a forest of AST nodes
+  public export
+  evaluateForest : Policy -> List ASTNode -> List (ASTNode, PolicyAction)
+  evaluateForest policy [] = []
+  evaluateForest policy (n :: ns) = evaluateTree policy n ++ evaluateForest policy ns
 
 ||| Check if all nodes pass policy
 public export
@@ -378,9 +384,9 @@ restrictedZonePolicy zone allowedTags =
 public export
 inheritPolicy : Policy -> ZoneId -> Policy
 inheritPolicy parent childZone =
-  let inheritedRules = map (\r => { ruleCondition :=
-                                     Or (ruleCondition r) (InZone childZone) } r)
-                           (policyRules parent)
+  let addZone : PolicyRule -> PolicyRule
+      addZone r = { ruleCondition := Or (ruleCondition r) (InZone childZone) } r
+      inheritedRules = map addZone (policyRules parent)
   in { policyRules := inheritedRules } parent
 
 ||| Policy exception - override specific rules

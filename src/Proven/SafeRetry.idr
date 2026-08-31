@@ -137,7 +137,7 @@ remainingAttempts config state = minus config.maxAttempts (S state.attempt)
 
 ||| Result of retry operation
 public export
-data RetryResult a : Type where
+data RetryResult : Type -> Type where
   ||| Operation succeeded
   Success : a -> RetryResult a
   ||| All retries exhausted

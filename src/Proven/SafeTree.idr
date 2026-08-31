@@ -119,7 +119,14 @@ levelorder tree = bfs [tree]
     bfs : List (BinaryTree a) -> List a
     bfs [] = []
     bfs (Leaf :: rest) = bfs rest
-    bfs (Node v l r :: rest) = v :: bfs (rest ++ [l, r])
+    -- TRUSTED: totality; budgeted per TRUSTED-BASE-REDUCTION-POLICY.adoc.
+    -- Breadth-first queue: `rest ++ [l, r]` GROWS the argument, so no structural
+    -- measure exists. Termination is on total remaining node count, which is not
+    -- an argument. A fuel parameter was REJECTED: the correct bound is 2n+1 queue
+    -- pops for n internal nodes, and an off-by-one fuel would silently TRUNCATE
+    -- the traversal -- a correctness bug no test would catch. Declared debt is
+    -- preferable to silent wrongness.
+    bfs (Node v l r :: rest) = v :: assert_total (bfs (rest ++ [l, r]))
 
 --------------------------------------------------------------------------------
 -- Binary Search Tree Operations
@@ -229,19 +236,37 @@ public export
 nchildren : NTree a -> List (NTree a)
 nchildren (NNode _ cs) = cs
 
-||| Size of n-ary tree
-public export
-nsize : NTree a -> Nat
-nsize (NNode _ cs) = S (sum (map nsize cs))
-  where
-    sum : List Nat -> Nat
-    sum [] = 0
-    sum (x :: xs) = x + sum xs
+-- Size of n-ary tree
+--
+-- Split into a mutually-recursive pair over the forest. The obvious
+-- `S (sum (map nsize cs))` is NOT accepted under %default total: the recursive
+-- call is hidden inside `map`, and the checker cannot see that `map` applies
+-- `nsize` only to elements of `cs`. Threading the descent through `nsizes`
+-- makes it STRUCTURAL -- no assert_total, no trusted-base debt.
+mutual
+  public export
+  nsize : NTree a -> Nat
+  nsize (NNode _ cs) = S (nsizes cs)
 
-||| Flatten n-ary tree to list (pre-order)
-public export
-nflatten : NTree a -> List a
-nflatten (NNode v cs) = v :: concatMap nflatten cs
+  ||| Total size of a forest.
+  public export
+  nsizes : List (NTree a) -> Nat
+  nsizes [] = 0
+  nsizes (c :: cs) = nsize c + nsizes cs
+
+-- Flatten n-ary tree to list (pre-order)
+--
+-- Same treatment as `nsize`: `concatMap nflatten cs` hides the descent.
+mutual
+  public export
+  nflatten : NTree a -> List a
+  nflatten (NNode v cs) = v :: nflattens cs
+
+  ||| Pre-order flatten of a forest.
+  public export
+  nflattens : List (NTree a) -> List a
+  nflattens [] = []
+  nflattens (c :: cs) = nflatten c ++ nflattens cs
 
 --------------------------------------------------------------------------------
 -- Display

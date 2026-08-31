@@ -169,6 +169,6 @@ intersectionPreservesHashes a b c prf with (a.size /= b.size || a.numHashes /= b
 ||| (`ord`, `unpack`) that Idris2 0.8.0 cannot type-level reduce; the
 ||| claim therefore lives as an explicit, named assumption.
 public export
-postulate 0 noFalseNegatives :
+0 noFalseNegatives :
   (v : String) -> (bf : BloomFilter) -> LT 0 bf.size -> LT 0 bf.numHashes
   -> isInfixOf v (insert v bf) = True

@@ -78,7 +78,7 @@ public export
 insert : Ord a => a -> Set a -> Set a
 insert x (MkSet xs) = MkSet (insertSorted x xs)
   where
-    insertSorted : Ord a => a -> List a -> List a
+    insertSorted : a -> List a -> List a
     insertSorted x [] = [x]
     insertSorted x (y :: ys) =
       case compare x y of
@@ -96,7 +96,7 @@ public export
 member : Ord a => a -> Set a -> Bool
 member x (MkSet xs) = memberSorted x xs
   where
-    memberSorted : Ord a => a -> List a -> Bool
+    memberSorted : a -> List a -> Bool
     memberSorted _ [] = False
     memberSorted x (y :: ys) =
       case compare x y of
@@ -134,7 +134,7 @@ public export
 union : Ord a => Set a -> Set a -> Set a
 union (MkSet xs) (MkSet ys) = MkSet (merge xs ys)
   where
-    merge : Ord a => List a -> List a -> List a
+    merge : List a -> List a -> List a
     merge [] ys = ys
     merge xs [] = xs
     merge (x :: xs) (y :: ys) =
@@ -148,7 +148,7 @@ public export
 intersection : Ord a => Set a -> Set a -> Set a
 intersection (MkSet xs) (MkSet ys) = MkSet (intersect xs ys)
   where
-    intersect : Ord a => List a -> List a -> List a
+    intersect : List a -> List a -> List a
     intersect [] _ = []
     intersect _ [] = []
     intersect (x :: xs) (y :: ys) =
@@ -162,7 +162,7 @@ public export
 difference : Ord a => Set a -> Set a -> Set a
 difference (MkSet xs) (MkSet ys) = MkSet (diff xs ys)
   where
-    diff : Ord a => List a -> List a -> List a
+    diff : List a -> List a -> List a
     diff [] _ = []
     diff xs [] = xs
     diff (x :: xs) (y :: ys) =
@@ -185,7 +185,7 @@ public export
 isSubsetOf : Ord a => Set a -> Set a -> Bool
 isSubsetOf (MkSet xs) (MkSet ys) = subset xs ys
   where
-    subset : Ord a => List a -> List a -> Bool
+    subset : List a -> List a -> Bool
     subset [] _ = True
     subset _ [] = False
     subset (x :: xs) (y :: ys) =

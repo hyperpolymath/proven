@@ -10,7 +10,7 @@
 |||   2. Disjointness:   extracted ∩ rest = ∅   (no fields duplicated)
 |||   3. Completeness:   |extracted| + |rest| = |full|
 |||
-||| These properties are impossible to express in ReScript's type system.
+||| These properties are impossible to express in 's type system.
 ||| They require dependent types (to state the theorems) and total
 ||| functions (to construct the proofs). Ephapax's linear types will
 ||| enforce the single-use property at the value level; these proofs

@@ -113,7 +113,7 @@ validateSampleConfig cfg =
 ||| Nyquist frequency: half the sample rate
 public export
 nyquistFrequency : SampleConfig -> Nat
-nyquistFrequency cfg = divNatNZ cfg.sampleRate 2 ItIsSucc
+nyquistFrequency cfg = divNatNZ cfg.sampleRate 2 SIsNonZero
 
 ||| Check whether the Nyquist frequency is above a given target frequency
 public export
@@ -170,4 +170,4 @@ estimateMACs fs = fs.order + 1
 ||| Calculate the byte rate (bytes per second) for a sample configuration
 public export
 byteRate : SampleConfig -> Nat
-byteRate cfg = cfg.sampleRate * (divNatNZ cfg.bitDepth 8 ItIsSucc) * cfg.channels
+byteRate cfg = cfg.sampleRate * (divNatNZ cfg.bitDepth 8 SIsNonZero) * cfg.channels

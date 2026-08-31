@@ -349,8 +349,18 @@ findEffects entity graph =
 public export
 causallyPrecedes : EntityId -> EntityId -> CausalityGraph -> Bool
 causallyPrecedes a b graph =
-  elem b (findEffects a graph) ||
-  any (\mid => causallyPrecedes mid b graph) (findEffects a graph)
+  causallyPrecedesFuel (length (cgRelations graph)) a b graph
+  where
+    -- Bounded reachability. Fuel is the number of causal relations, which
+    -- bounds the length of any simple path, so this agrees with unbounded
+    -- search on every graph the unbounded version terminated on, and
+    -- terminates (returning False) on cyclic graphs where it did not.
+    -- Mirrors the existing idiom in Proven.SafeOrdering.causallyPrecedes.
+    causallyPrecedesFuel : Nat -> EntityId -> EntityId -> CausalityGraph -> Bool
+    causallyPrecedesFuel Z _ _ _ = False  -- Fuel exhausted
+    causallyPrecedesFuel (S fuel) x y g =
+      elem y (findEffects x g) ||
+      any (\mid => causallyPrecedesFuel fuel mid y g) (findEffects x g)
 
 ||| Proof of causal relationship
 public export

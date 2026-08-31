@@ -182,7 +182,7 @@ isPowerOfTwoFuel _      Z      = False
 isPowerOfTwoFuel _      (S Z)  = True
 isPowerOfTwoFuel Z      _      = False    -- fuel exhausted; n > 1 → not a power of two
 isPowerOfTwoFuel (S f)  n      =
-  (modNatNZ n 2 ItIsSucc == 0) && isPowerOfTwoFuel f (divNatNZ n 2 ItIsSucc)
+  (modNatNZ n 2 SIsNonZero == 0) && isPowerOfTwoFuel f (divNatNZ n 2 SIsNonZero)
 
 ||| Check if a value is a power of two
 isPowerOfTwo : Nat -> Bool

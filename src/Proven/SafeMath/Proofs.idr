@@ -11,8 +11,11 @@
 |||   `Calc` proof style internally)
 ||| - `minus n 0` no longer reduces on abstract `n`; case-split required
 ||| - `div`/`mod`/`gcd` internal representations changed; some properties
-|||   are postulated pending upstream proof availability
-||| - `SIsNonZero` replaced by `ItIsSucc`
+|||   are stated without proof pending upstream proof availability
+||| - `SIsNonZero` was replaced by `ItIsSucc` here; REVERTED 2026-08-27. On the
+|||   toolchain that actually builds this repo (Idris 2 0.7.0), `NonZero` and
+|||   `IsSucc` are distinct types and `divNatNZ`/`modNatNZ` require `SIsNonZero`.
+|||   VERSION-SENSITIVE: re-adjudicate if the build ever runs on the 0.8.0 CI pins.
 module Proven.SafeMath.Proofs
 
 import Proven.Core
@@ -147,8 +150,8 @@ lteAntisym (LTESucc ab) (LTESucc ba) = cong S (lteAntisym ab ba)
 ||| Proved via Data.Nat.Division.DivisionTheoremUniqueness:
 ||| n = n * 1 + 0 is the unique decomposition, so divNatNZ n 1 = n.
 public export
-divByOne : (n : Nat) -> divNatNZ n 1 ItIsSucc = n
-divByOne n = fst $ DivisionTheoremUniqueness n 1 ItIsSucc n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
+divByOne : (n : Nat) -> divNatNZ n 1 SIsNonZero = n
+divByOne n = fst $ DivisionTheoremUniqueness n 1 SIsNonZero n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
   where
     nTimesOnePlusZero : (k : Nat) -> k = k * 1 + 0
     nTimesOnePlusZero k = sym $ Calc $
@@ -161,7 +164,7 @@ divByOne n = fst $ DivisionTheoremUniqueness n 1 ItIsSucc n 0 (LTESucc LTEZero) 
 ||| fuel-based induction over mod''.
 public export
 modLtDivisor : (n, d : Nat) -> {auto 0 ok : NonZero d} -> LT (modNatNZ n d ok) d
-modLtDivisor n (S d) = boundModNatNZ n (S d) ItIsSucc
+modLtDivisor n (S d) = boundModNatNZ n (S d) SIsNonZero
 
 --------------------------------------------------------------------------------
 -- GCD Properties
@@ -182,7 +185,7 @@ modLtDivisor n (S d) = boundModNatNZ n (S d) ItIsSucc
 ||| `Data.Nat.Factor.gcdUnproven` (which IS total) and prove agreement
 ||| with `Data.Nat.gcd` on every input.
 public export
-postulate 0 gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
+0 gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
 
 ||| OWED: GCD is commutative — `gcd a b = gcd b a`. The base cases
 ||| (`gcd 0 (S b)` vs `gcd (S b) 0`) would be trivially `Refl` if
@@ -200,4 +203,4 @@ postulate 0 gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0
 ||| agreement with `Data.Nat.gcd` on every input — at which point
 ||| both `gcdZeroRight` and `gcdCommutative` discharge together.
 public export
-postulate 0 gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}
+0 gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}

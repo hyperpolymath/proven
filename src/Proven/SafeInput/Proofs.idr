@@ -15,4 +15,4 @@ import Proven.SafeInput
 ||| an `Eq CharClass` constrained to the nullary constructors is
 ||| provided.
 public export
-postulate 0 safeInputProofsAwaitEqCharClass : ()
+0 safeInputProofsAwaitEqCharClass : ()

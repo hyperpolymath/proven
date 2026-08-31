@@ -12,6 +12,8 @@ import Proven.Core
 import Proven.SafeHeader.Types
 import Data.List
 import Data.String
+import Data.Maybe
+import Data.List1
 
 %default total
 
@@ -166,7 +168,7 @@ parseHeaderLine opts line =
     (name, rest) =>
       if null (unpack rest)
         then Err (InvalidValueFormat name line "missing colon")
-        else let value = drop 1 rest  -- Skip the colon
+        else let value = pack (drop 1 (unpack rest))  -- Skip the colon
              in mkHeader opts (trim name) (trim value)
 
 ||| Parse multiple header lines
@@ -250,7 +252,7 @@ parseContentLength headers =
 export
 parseAcceptHeader : String -> List (String, Double)
 parseAcceptHeader value =
-  map parseQValue (split (== ',') value)
+  forget (map parseQValue (split (== ',') value))
   where
     parseQValue : String -> (String, Double)
     parseQValue s =
@@ -259,7 +261,7 @@ parseAcceptHeader value =
            (media, rest) =>
              if null (unpack rest)
                then (trim media, 1.0)
-               else case parseDouble (drop 3 (trim rest)) of  -- Skip ";q="
+               else case parseDouble (pack (drop 3 (unpack (trim rest)))) of  -- Skip ";q="
                       Just q => (trim media, q)
                       Nothing => (trim media, 1.0)
 
@@ -267,7 +269,7 @@ parseAcceptHeader value =
 export
 parseCacheControl : String -> List (String, Maybe String)
 parseCacheControl value =
-  map parseDirective (split (== ',') value)
+  forget (map parseDirective (split (== ',') value))
   where
     parseDirective : String -> (String, Maybe String)
     parseDirective s =
@@ -276,7 +278,7 @@ parseCacheControl value =
            (name, rest) =>
              if null (unpack rest)
                then (toLower (trim name), Nothing)
-               else (toLower (trim name), Just (trim (drop 1 rest)))
+               else (toLower (trim name), Just (trim (pack (drop 1 (unpack rest)))))
 
 --------------------------------------------------------------------------------
 -- Security Header Builders
@@ -295,8 +297,11 @@ buildCSP directives =
 export
 buildHSTS : Nat -> Bool -> Bool -> String
 buildHSTS maxAge includeSubDomains preload =
-  let base = "max-age=" ++ show maxAge
+  let base : String
+      base = "max-age=" ++ show maxAge
+      withSub : String
       withSub = if includeSubDomains then base ++ "; includeSubDomains" else base
+      withPreload : String
       withPreload = if preload then withSub ++ "; preload" else withSub
   in withPreload
 
@@ -327,12 +332,6 @@ filterByCategory : HeaderCategory -> Headers -> Headers
 filterByCategory cat headers =
   filter (matchesCategory cat) headers
   where
-    matchesCategory : HeaderCategory -> Header -> Bool
-    matchesCategory c h =
-      case lookupWellKnown h.name.name of
-        Just wk => headerCategory wk == c
-        Nothing => c == Custom
-
     lookupWellKnown : String -> Maybe WellKnownHeader
     lookupWellKnown name =
       -- Simplified lookup - in practice would be more complete
@@ -341,6 +340,12 @@ filterByCategory cat headers =
       else if name == "cache-control" then Just HdrCacheControl
       else if name == "content-security-policy" then Just HdrContentSecurityPolicy
       else Nothing
+
+    matchesCategory : HeaderCategory -> Header -> Bool
+    matchesCategory c h =
+      case lookupWellKnown h.name.name of
+        Just wk => headerCategory wk == c
+        Nothing => c == Custom
 
 ||| Check for required headers
 export

@@ -25,7 +25,7 @@ import Data.String
 ||| Predicate: Name is valid
 public export
 data ValidName : String -> Type where
-  postulate MkValidName : (name : String) ->
+  MkValidName : (name : String) ->
                 {auto prf : isValidEnvName name = True} ->
                 ValidName name
 
@@ -44,7 +44,7 @@ emptyNameInvalid = Refl
 ||| once a `Data.String` reflective tactic (or a `packUnpackInverse`
 ||| equation lemma) is available.
 export
-postulate 0 digitStartInvalid : (s : String) ->
+0 digitStartInvalid : (s : String) ->
                       (c : Char) -> isDigit c = True ->
                       isValidEnvName (pack (c :: unpack s)) = False
 
@@ -60,7 +60,7 @@ postulate 0 digitStartInvalid : (s : String) ->
 ||| commutativity is axiomatised in `gossamer` as `stringNotEqCommut`),
 ||| or refactor `wellKnownVars` to a sum-of-`DecEq`-checked names list.
 export
-postulate 0 wellKnownValid : (name : String) ->
+0 wellKnownValid : (name : String) ->
                    Prelude.elem name Types.wellKnownVars = True ->
                    isValidEnvName name = True
 
@@ -86,7 +86,7 @@ userValid = Refl
 ||| Predicate: Value is within bounds
 public export
 data BoundedValue : Nat -> String -> Type where
-  postulate MkBoundedValue : (maxLen : Nat) -> (value : String) ->
+  MkBoundedValue : (maxLen : Nat) -> (value : String) ->
                    {auto prf : length (unpack value) <= maxLen = True} ->
                    BoundedValue maxLen value
 
@@ -101,7 +101,7 @@ data BoundedValue : Nat -> String -> Type where
 ||| `Data.String`, or refactor `BoundedValue` to take `length value`
 ||| (a primitive String length) instead of `length (unpack value)`.
 export
-postulate 0 emptyBounded : (maxLen : Nat) -> BoundedValue maxLen ""
+0 emptyBounded : (maxLen : Nat) -> BoundedValue maxLen ""
 
 ||| Theorem: Bounded value check prevents overflow
 export
@@ -123,7 +123,7 @@ defaultMaxLengthReasonable = Refl
 ||| Predicate: Name contains sensitive pattern
 public export
 data SensitivePatterned : String -> Type where
-  postulate MkSensitivePatterned : (name : String) ->
+  MkSensitivePatterned : (name : String) ->
                          {auto prf : isSensitiveName name = True} ->
                          SensitivePatterned name
 
@@ -159,7 +159,7 @@ keySensitive = Refl
 ||| `if`-on-`Bool`-hypotheses, or refactor `classifyByName` to
 ||| `case isSensitiveName name of False => Public; True => Sensitive`.
 export
-postulate 0 publicClassification : (name : String) ->
+0 publicClassification : (name : String) ->
                          isSensitiveName name = False ->
                          classifyByName name = Public
 
@@ -174,7 +174,7 @@ postulate 0 publicClassification : (name : String) ->
 ||| `keySensitive` already cover specific witnesses; this is the
 ||| universally-quantified form.
 export
-postulate 0 sensitiveClassification : (name : String) ->
+0 sensitiveClassification : (name : String) ->
                             isSensitiveName name = True ->
                             classifyByName name = Sensitive
 
@@ -228,7 +228,7 @@ blockedPatternsPreventsAccess opts name blocked = ()
 ||| refactor `parseBool` to compare against a pre-lower-cased list
 ||| without invoking `toLower`.
 export
-postulate 0 validBoolParses : (s : String) ->
+0 validBoolParses : (s : String) ->
                     s `elem` ["true", "false", "yes", "no", "1", "0", "on", "off"] = True ->
                     isJust (parseBool s) = True
 
@@ -244,7 +244,7 @@ postulate 0 validBoolParses : (s : String) ->
 ||| or refactor `validIntParses` to call a hand-rolled digit-folder
 ||| whose proof is straightforward induction over `unpack s`.
 export
-postulate 0 validIntParses : (s : String) ->
+0 validIntParses : (s : String) ->
                    all Prelude.Types.isDigit (unpack s) = True ->
                    isJust (parseInteger {a=Integer} s) = True
 

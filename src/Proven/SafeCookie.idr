@@ -323,8 +323,8 @@ friendlyError (InvalidDomain domain reason) =
   "Invalid domain '" ++ domain ++ "': " ++ reason
 friendlyError (InvalidPath path reason) =
   "Invalid path '" ++ path ++ "': " ++ reason
-friendlyError (PrefixViolation name prefix reason) =
-  "Cookie prefix " ++ show prefix ++ " violation for '" ++ name ++ "': " ++ reason
+friendlyError (PrefixViolation name pfx reason) =
+  "Cookie prefix " ++ show pfx ++ " violation for '" ++ name ++ "': " ++ reason
 friendlyError SameSiteNoneRequiresSecure =
   "SameSite=None cookies must have the Secure attribute"
 friendlyError (CookieTooLarge size) =

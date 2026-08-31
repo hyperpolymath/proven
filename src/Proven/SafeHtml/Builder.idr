@@ -150,6 +150,15 @@ withRawHtml : String -> HtmlBuilder -> HtmlBuilder
 withRawHtml html builder =
   { builderChildren := html :: builder.builderChildren } builder
 
+||| Build the HTML string.
+|||
+||| Forward-declared here because `withChild` below uses it, while the body
+||| depends on `renderAttr`/`isVoid` which are defined further down. Idris2
+||| requires definition-before-use at top level; a lone signature is the
+||| sanctioned way to break the cycle.
+public export
+build : HtmlBuilder -> String
+
 ||| Add child builder
 public export
 withChild : HtmlBuilder -> HtmlBuilder -> HtmlBuilder
@@ -179,9 +188,6 @@ voidElements = ["area", "base", "br", "col", "embed", "hr", "img", "input",
 isVoid : String -> Bool
 isVoid tag = toLower tag `elem` voidElements
 
-||| Build the HTML string
-public export
-build : HtmlBuilder -> String
 build builder =
   let attrs = concat (map renderAttr (reverse builder.builderAttrs))
       tag = builder.builderTag

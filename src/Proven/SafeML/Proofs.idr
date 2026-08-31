@@ -12,4 +12,4 @@ import Proven.SafeML
 
 ||| Sentinel — surface depends on Double comparisons + So-proofs.
 public export
-postulate 0 safeMLProofsAwaitDoubleEqDecide : ()
+0 safeMLProofsAwaitDoubleEqDecide : ()

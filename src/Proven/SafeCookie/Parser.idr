@@ -11,8 +11,10 @@ module Proven.SafeCookie.Parser
 import Proven.Core
 import Proven.SafeCookie.Types
 import Data.List
+import Data.List1
 import Data.String
 import Decidable.Equality
+import Data.Maybe
 
 %default total
 
@@ -32,8 +34,7 @@ validateName opts name =
          else case find (not . isValidNameChar) (unpack name) of
                 Just c => Err (InvalidNameChar name c)
                 Nothing =>
-                  let bounded = length (unpack name) <= maxNameLength
-                  in case decEq bounded True of
+                  case decEq (length (unpack name) <= maxNameLength) True of
                        Yes prf => Ok (MkCookieName name prf)
                        No _ => Err (NameTooLong name len)
 
@@ -55,8 +56,7 @@ validateValue opts name value =
        then Err (ValueTooLong name len)
        else if hasInjectionChar value
          then Err (CookieInjection name value)
-         else let bounded = length (unpack value) <= maxValueLength
-              in case decEq bounded True of
+         else case decEq (length (unpack value) <= maxValueLength) True of
                    Yes prf => Ok (MkCookieValue value prf)
                    No _ => Err (ValueTooLong name len)
 
@@ -204,7 +204,7 @@ mkStrictCookie name value = mkCookie strictOptions name value strictAttributes
 export
 parseCookieHeader : CookieOptions -> String -> CookieResult Cookies
 parseCookieHeader opts header =
-  let pairs = split (== ';') header
+  let pairs = forget (split (== ';') header)
   in traverse (parsePair opts) (filter (not . null . unpack . trim) pairs)
   where
     parsePair : CookieOptions -> String -> CookieResult Cookie
@@ -213,7 +213,7 @@ parseCookieHeader opts header =
         (name, rest) =>
           if null (unpack rest)
             then mkCookie opts (trim name) "" defaultAttributes
-            else mkCookie opts (trim name) (trim (drop 1 rest)) defaultAttributes
+            else mkCookie opts (trim name) (trim (pack (drop 1 (unpack rest)))) defaultAttributes
 
 ||| Parse with default options
 export
@@ -233,6 +233,9 @@ buildSetCookie cookie =
       parts = base :: buildAttributes attrs
   in joinBy "; " parts
   where
+    formatExpires : Integer -> String
+    formatExpires ts = "Thu, 01 Jan 1970 00:00:00 GMT"  -- Simplified
+
     buildAttributes : CookieAttributes -> List String
     buildAttributes a =
       catMaybes
@@ -245,9 +248,6 @@ buildSetCookie cookie =
         , map (\s => "SameSite=" ++ show s) a.sameSite
         , if a.partitioned then Just "Partitioned" else Nothing
         ]
-
-    formatExpires : Integer -> String
-    formatExpires ts = "Thu, 01 Jan 1970 00:00:00 GMT"  -- Simplified
 
 ||| Build Set-Cookie for deletion (expired)
 export

@@ -9,6 +9,7 @@ module Proven.SafeUUID
 import public Proven.Core
 import public Proven.SafeHex
 import Data.String
+import Data.Maybe
 
 %default total
 

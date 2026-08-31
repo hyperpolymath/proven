@@ -9,6 +9,7 @@ module Proven.SafeVersion
 import public Proven.Core
 import Data.String
 import Data.List
+import Data.Maybe
 
 %default total
 

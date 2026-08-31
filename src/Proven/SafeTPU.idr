@@ -9,6 +9,7 @@
 module Proven.SafeTPU
 
 import Data.List
+import Data.Nat
 
 %default total
 

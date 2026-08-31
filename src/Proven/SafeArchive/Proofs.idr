@@ -147,13 +147,13 @@ zeroCompressedNonZeroUncompressedIsZipBomb = Refl
 ||| OWED: A reasonably-compressed entry (ratio 100, well under 1000)
 ||| is NOT a zip bomb. Blocked on Nat-literal opacity (standards#128).
 public export
-postulate 0 modestRatioNotZipBomb :
+0 modestRatioNotZipBomb :
   isZipBomb (MkArchiveEntry "x" RegularFile 1 100 Nothing) = False
 
 ||| OWED: An entry with compression ratio > 1000 IS a zip bomb. Same
 ||| blocker.
 public export
-postulate 0 extremeRatioIsZipBomb :
+0 extremeRatioIsZipBomb :
   isZipBomb (MkArchiveEntry "x" RegularFile 1 1001 Nothing) = True
 
 --------------------------------------------------------------------------------
@@ -201,10 +201,10 @@ symlinkNoTargetNotDangerous = Refl
 ||| OWED: A path with no special characters has no traversal. Blocked
 ||| on the String FFI family (`isInfixOf` / `isPrefixOf`).
 public export
-postulate 0 plainPathHasNoTraversal :
+0 plainPathHasNoTraversal :
   hasPathTraversal "normal.txt" = False
 
 ||| OWED: A path with ".." has traversal. Same blocker.
 public export
-postulate 0 dotDotPathHasTraversal :
+0 dotDotPathHasTraversal :
   hasPathTraversal "../etc/passwd" = True

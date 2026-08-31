@@ -14,6 +14,7 @@ import Proven.SafeContentType.Types
 import Data.List
 import Data.List1
 import Data.String
+import Data.Maybe
 
 %default total
 
@@ -70,7 +71,7 @@ parseParameter param =
       if null (unpack rest)
         then Err (InvalidParameter param "missing value")
         else let n = toLower (trim name)
-                 v = parseParamValue (drop 1 rest)
+                 v = parseParamValue (pack (drop 1 (unpack rest)))
              in if not (isValidToken n)
                   then Err (InvalidParameter n "invalid name")
                   else Ok (MkParameter n v)
@@ -91,7 +92,7 @@ extractSuffix subtype =
     (base, rest) =>
       if null (unpack rest)
         then (subtype, Nothing)
-        else (base, Just (drop 1 rest))
+        else (base, Just (pack (drop 1 (unpack rest))))
 
 ||| Parse Content-Type header
 export
@@ -138,7 +139,7 @@ parseContentType opts raw =
         (t, rest) =>
           if null (unpack rest)
             then Err (InvalidFormat str "missing slash")
-            else Ok (t, drop 1 rest)
+            else Ok (t, pack (drop 1 (unpack rest)))
 
 ||| Parse with default options
 export
@@ -182,7 +183,7 @@ mkWellKnown wk =
   let full = show wk
   in case break (== '/') full of
        (t, rest) =>
-         let s = drop 1 rest
+         let s = pack (drop 1 (unpack rest))
              (baseSubtype, suffix) = extractSuffix s
              category = wellKnownCategory wk
          in case mkMediaTypeSafe t baseSubtype suffix category of
@@ -422,7 +423,7 @@ parseAcceptMediaRange range =
          let quality = case qParam of
                          Nothing => 1.0
                          Just qStr =>
-                           let qVal = trim (drop 2 (trim qStr))
+                           let qVal = trim (pack (drop 2 (unpack (trim qStr))))
                            in fromMaybe 1.0 (parseDouble qVal)
          Ok (ct, quality)
 

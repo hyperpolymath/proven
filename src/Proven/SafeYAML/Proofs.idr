@@ -23,7 +23,7 @@ import Data.String
 ||| Predicate: YAML has no dangerous tags
 public export
 data NoDangerousTags : YAMLValue -> Type where
-  postulate MkNoDangerousTags : (val : YAMLValue) -> NoDangerousTags val
+  MkNoDangerousTags : (val : YAMLValue) -> NoDangerousTags val
 
 ||| Compute YAML value nesting depth
 covering
@@ -43,20 +43,20 @@ valueDepth (YObject kvs) = S (foldl max 0 (map (valueDepth . snd) kvs))
 ||| Predicate: YAML has bounded depth
 public export
 data BoundedDepth : Nat -> YAMLValue -> Type where
-  postulate MkBoundedDepth : (maxDepth : Nat) -> (val : YAMLValue) ->
+  MkBoundedDepth : (maxDepth : Nat) -> (val : YAMLValue) ->
                    {auto prf : valueDepth val <= maxDepth = True} ->
                    BoundedDepth maxDepth val
 
 ||| Predicate: Value is scalar (no alias expansion possible)
 public export
 data IsScalar : YAMLValue -> Type where
-  postulate NullScalar : IsScalar YNull
-  postulate BoolScalar : IsScalar (YBool b)
-  postulate IntScalar : IsScalar (YInt i)
-  postulate FloatScalar : IsScalar (YFloat f)
-  postulate StringScalar : IsScalar (YString s)
-  postulate BinaryScalar : IsScalar (YBinary bs)
-  postulate TimestampScalar : IsScalar (YTimestamp ts)
+  NullScalar : IsScalar YNull
+  BoolScalar : IsScalar (YBool b)
+  IntScalar : IsScalar (YInt i)
+  FloatScalar : IsScalar (YFloat f)
+  StringScalar : IsScalar (YString s)
+  BinaryScalar : IsScalar (YBinary bs)
+  TimestampScalar : IsScalar (YTimestamp ts)
 
 --------------------------------------------------------------------------------
 -- Tag Safety Proofs
@@ -102,7 +102,7 @@ javaObjectIsDangerous = Refl
 ||| available, or refactor to a `YAMLTag` enum where decidable
 ||| equality reduces by Refl.
 export
-postulate 0 standardTagsSafe : (tag : String) ->
+0 standardTagsSafe : (tag : String) ->
                      tag `elem` ["!!null", "!!bool", "!!int", "!!float", "!!str", "!!seq", "!!map"] = True ->
                      isDangerousTag tag = False
 
@@ -136,7 +136,7 @@ postulate 0 standardTagsSafe : (tag : String) ->
 ||| or refactor to a `YAMLTag` enum where decidable equality reduces
 ||| by Refl.
 export
-postulate 0 secureDefaultsBlockDangerous : (tag : String) ->
+0 secureDefaultsBlockDangerous : (tag : String) ->
                                  isDangerousTag tag = True ->
                                  isBlockedTag secureDefaults tag = True
 
@@ -288,7 +288,7 @@ parseYAMLWith _ _ = Ok YNull
 ||| pattern is established, at which point this becomes a structural
 ||| `Right (val ** Refl)` over the parser's case-tree.
 export
-postulate 0 parsingNeverCrashes : (input : String) -> (opts : YAMLSecurityOptions) ->
+0 parsingNeverCrashes : (input : String) -> (opts : YAMLSecurityOptions) ->
                         (err : YAMLError ** parseYAMLWith opts input = Err err) `Either`
                         (val : YAMLValue ** parseYAMLWith opts input = Ok val)
 
@@ -406,7 +406,7 @@ Attacks Prevented:
 Example blocked input:
   yaml
   !!python/object/apply:os.system
-  postulate args: ['rm -rf /']
+  args: ['rm -rf /']
 
   !!python/object/new:yaml.UnsafeLoader
 """

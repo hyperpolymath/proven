@@ -156,9 +156,9 @@ public export
 parseSignatureHeader : String -> Maybe WebhookSignature
 parseSignatureHeader s =
   if isPrefixOf "sha256=" s
-    then Just (MkSignature HMAC_SHA256 (strSubstr 7 (length s) s))
+    then Just (MkSignature HMAC_SHA256 (substr 7 (length s) s))
     else if isPrefixOf "sha512=" s
-      then Just (MkSignature HMAC_SHA512 (strSubstr 7 (length s) s))
+      then Just (MkSignature HMAC_SHA512 (substr 7 (length s) s))
       else Nothing
 
 -- ----------------------------------------------------------------

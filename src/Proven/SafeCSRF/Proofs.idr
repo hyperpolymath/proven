@@ -53,7 +53,7 @@ import Data.List
 ||| directly so the length-equality and per-character comparison are
 ||| both type-level structural.
 public export
-postulate 0 constantTimeEqRefl : (s : String) -> constantTimeEqual s s = True
+0 constantTimeEqRefl : (s : String) -> constantTimeEqual s s = True
 
 ||| OWED: `constantTimeEqual a b = constantTimeEqual b a` for every
 ||| `a, b : String`. Operationally true because the length-inequality
@@ -78,7 +78,7 @@ postulate 0 constantTimeEqRefl : (s : String) -> constantTimeEqual s s = True
 ||| awaits a `Data.Char.eqCharSym` reflective lemma symmetric to
 ||| `Boj.SafetyLemmas.charEqSym`.
 public export
-postulate 0 constantTimeEqSym : (a, b : String) -> constantTimeEqual a b = constantTimeEqual b a
+0 constantTimeEqSym : (a, b : String) -> constantTimeEqual a b = constantTimeEqual b a
 
 ||| OWED: if `Not (length a = length b)` then
 ||| `constantTimeEqual a b = False`. Operationally true because the
@@ -103,7 +103,7 @@ postulate 0 constantTimeEqSym : (a, b : String) -> constantTimeEqual a b = const
 ||| is refactored to take a `LengthEq`-tagged input (push the
 ||| length equality into the type and remove the runtime guard).
 public export
-postulate 0 differentLengthUnequal : (a, b : String) ->
+0 differentLengthUnequal : (a, b : String) ->
                            Not (length a = length b) ->
                            constantTimeEqual a b = False
 
@@ -130,7 +130,7 @@ postulate 0 differentLengthUnequal : (a, b : String) ->
 ||| `constantTimeEqRefl → tokenValidatesSelf`); the proof body is
 ||| then `constantTimeEqRefl (tokenString tok)`.
 public export
-postulate 0 tokenValidatesSelf : (tok : CSRFToken) -> validateToken tok (tokenString tok) = True
+0 tokenValidatesSelf : (tok : CSRFToken) -> validateToken tok (tokenString tok) = True
 
 ||| OWED: `validateDoubleSubmit (MkDoubleSubmit val val) = True` for
 ||| every `val : String`. By unfolding,
@@ -147,7 +147,7 @@ postulate 0 tokenValidatesSelf : (tok : CSRFToken) -> validateToken tok (tokenSt
 ||| Discharge once `constantTimeEqRefl` is discharged; the proof
 ||| body is then `constantTimeEqRefl val`.
 public export
-postulate 0 identicalDoubleSubmitValid : (val : String) ->
+0 identicalDoubleSubmitValid : (val : String) ->
                                validateDoubleSubmit (MkDoubleSubmit val val) = True
 
 ||| OWED: if `validateToken tok submitted = False` then
@@ -178,7 +178,7 @@ postulate 0 identicalDoubleSubmitValid : (val : String) ->
 ||| or (b) a Bool-Prop reflective tactic exposes `validateToken`'s
 ||| reduction. Recorded as OWED until one of those lands.
 public export
-postulate 0 fullValidationRequiresToken : (tok : CSRFToken) -> (submitted : String) ->
+0 fullValidationRequiresToken : (tok : CSRFToken) -> (submitted : String) ->
                                 (origins : List String) -> (origin : String) ->
                                 validateToken tok submitted = False ->
                                 fullValidation tok submitted origins origin = False
