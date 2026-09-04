@@ -8,13 +8,13 @@
 ||| foundation for the Ephapax linear rest-pattern feature.
 |||
 ||| Design decision: This solution is strictly more powerful than anything
-||| achievable in  (or TypeScript, OCaml, Haskell without extensions).
-|||  would need dependent types to prove partition correctness AND
+||| achievable in ReScript (or TypeScript, OCaml, Haskell without extensions).
+||| ReScript would need dependent types to prove partition correctness AND
 ||| linear types to enforce single-use field consumption. That is not a
 ||| language extension — it is a fundamentally different language, which is
 ||| what Ephapax is. The Idris2 proof here serves as the formal foundation
 ||| that Ephapax's linear type system will enforce at compile time, and that
-||| a  PPX can approximate (without the guarantees) as a stopgap.
+||| a ReScript PPX can approximate (without the guarantees) as a stopgap.
 |||
 module Proven.SafeRecord.Types
 

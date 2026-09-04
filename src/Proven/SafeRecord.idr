@@ -13,10 +13,10 @@
 |||
 ||| This is the formal foundation for:
 |||   - Ephapax linear rest-patterns: `let { a ⊸ x, ...rest } = record`
-|||   -  PPX: `@rest let { className, ?children, ...otherProps } = props`
+|||   - ReScript PPX: `@rest let { className, ?children, ...otherProps } = props`
 |||
 ||| The proofs here are strictly more powerful than anything expressible
-||| in , TypeScript, OCaml, or Haskell (without extensions).
+||| in ReScript, TypeScript, OCaml, or Haskell (without extensions).
 ||| They require dependent types for the theorems and totality checking
 ||| for the proofs. Ephapax's linear types will additionally enforce
 ||| single-use consumption at the value level.

@@ -243,10 +243,10 @@ data NoHomoglyphs : String -> Type where
 
 ||| Proof that a hostname is not mixed-script
 public export
-data Pu : String -> Type where
-  MkPu : isMixedScript s = False -> Pu s
+data PureScript : String -> Type where
+  MkPureScript : isMixedScript s = False -> PureScript s
 
 ||| Combined IDN safety proof
 public export
 data IDNSafe : String -> Type where
-  MkIDNSafe : NoHomoglyphs s -> Pu s -> IDNSafe s
+  MkIDNSafe : NoHomoglyphs s -> PureScript s -> IDNSafe s
