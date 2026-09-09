@@ -211,7 +211,7 @@ parseClassItem st = case st.input of
   (']' :: _) => Left $ ParseError st.pos "Empty character class"
   (c :: '-' :: ']' :: rest) =>
     -- Trailing dash: treat as literal
-    Right (Union (SingleChar c) (SingleChar '-'), { input := '-' :: ']' :: rest, pos := S st.pos } st)
+    Right (Union (SingleChar c) (SingleChar '-'), { input := ']' :: rest, pos := st.pos + 2 } st)
   (c1 :: '-' :: c2 :: rest) =>
     if c2 == ']'
       then Right (SingleChar c1, { input := '-' :: ']' :: rest, pos := S st.pos } st)
