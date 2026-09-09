@@ -421,6 +421,8 @@ the commit entirely in git's object database:
 
 [source,bash]
 ----
+: "${T:?T must be set}"
+: "${SRC:?SRC must be set}"
 export GIT_INDEX_FILE="$T/tmpidx"
 rm -f "$GIT_INDEX_FILE"
 git read-tree origin/main
@@ -449,6 +451,9 @@ recorded estate-wide as **phantom** and fixed across 15 repos. PR-ing that branc
 === 7.4 A pristine tree without a clone
 [source,bash]
 ----
+: "${TMP:?TMP must be set}"
+mkdir -p "$TMP/clean"
+set -o pipefail
 git archive origin/main | tar -x -C "$TMP/clean"
 ----
 No network, no `.git`, seconds rather than minutes. This is how the <<sweep>> measurement
@@ -461,22 +466,44 @@ Full build:
 [source,bash]
 ----
 #!/bin/bash
-cd /path/to/proven
+: "${T:?T must be set}"
+cd /path/to/proven || exit 1
+IDRIS2_VERSION_OUTPUT=$(idris2 --version 2>&1) || {
+  echo "Unable to resolve Idris2 version" >&2
+  exit 1
+}
+IDRIS2_VERSION=$(printf '%s\n' "$IDRIS2_VERSION_OUTPUT" |
+  sed -nE 's/^Idris 2, version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')
+if [ "$IDRIS2_VERSION" != "0.7.0" ]; then
+  echo "Idris2 0.7.0 required; found: $IDRIS2_VERSION_OUTPUT" >&2
+  exit 1
+fi
 RAW=$T/build.raw
 timeout 2700 idris2 --build-dir bd --build proven.ipkg > "$RAW" 2>&1
 RC=$?
 {
+  echo "IDRIS2_VERSION=$IDRIS2_VERSION"
   echo "BUILD_RC=$RC"
   echo "frontier: $(grep -oE '^[0-9]+/[0-9]+: Building [A-Za-z0-9._]+' "$RAW" | tail -1)"
   echo "errors: $(grep -c '^Error:' "$RAW")   shadow: $(grep -c 'is shadowing' "$RAW")"
   grep -n '^Error:' "$RAW" | head -6
-} > $T/build.log
+} > "$T/build.log"
 ----
 
 Single module:
 
 [source,bash]
 ----
+IDRIS2_VERSION_OUTPUT=$(idris2 --version 2>&1) || {
+  echo "Unable to resolve Idris2 version" >&2
+  exit 1
+}
+IDRIS2_VERSION=$(printf '%s\n' "$IDRIS2_VERSION_OUTPUT" |
+  sed -nE 's/^Idris 2, version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')
+if [ "$IDRIS2_VERSION" != "0.7.0" ]; then
+  echo "Idris2 0.7.0 required; found: $IDRIS2_VERSION_OUTPUT" >&2
+  exit 1
+fi
 timeout 900 idris2 -p contrib --source-dir src --check src/Proven/<Path>.idr
 ----
 
