@@ -9,14 +9,17 @@ updates:
       actions:
         patterns:
           - "*"
+    open-pull-requests-limit: 2
   - package-ecosystem: "cargo"
     directory: "/bindings/rust"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
   - package-ecosystem: "cargo"
     directory: "/bindings/rust/fuzz"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
   - package-ecosystem: "hex"
     directory: "/bindings/elixir"
     schedule:
