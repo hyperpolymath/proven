@@ -1,106 +1,71 @@
-// SPDX-License-Identifier: CC-BY-SA-4.0
-= Contributing to proven
+== Contributing
 
-Thank you for your interest in contributing!
+Thank you for your interest in contributing! We follow a "`Dual-Track`"
+architecture where human-readable documentation lives in the root and
+machine-readable policies live in `+.machine_readable/+`.
 
-== Code of Conduct
+=== How to Contribute
 
-This project follows the https://www.contributor-covenant.org/version/2/1/code_of_conduct/[Contributor Covenant v2.1].
+We welcome contributions in many forms:
 
-== How to Contribute
+* *Code:* Improving the core stack or extensions
+* *Documentation:* Enhancing docs or AI manifests
+* *Testing:* Adding property-based tests or formal proofs
+* *Bug reports:* Filing clear, reproducible issues
+
+=== Getting Started
+
+[arabic]
+. *Read the AI Manifest:* Start with `+0-AI-MANIFEST.a2ml+` (if present)
+to understand the repository structure.
+. *Environment:* Use `+nix develop+` or `+direnv allow+` to set up your
+tools.
+. *Task Runner:* Use `+just+` to see available commands
+(`+just --list+`).
+
+=== Development Workflow
+
+==== Branch Naming
+
+....
+docs/short-description       # Documentation
+test/what-added              # Test additions
+feat/short-description       # New features
+fix/issue-number-description # Bug fixes
+refactor/what-changed        # Code improvements
+security/what-fixed          # Security fixes
+....
+
+==== Commit Messages
+
+We follow https://www.conventionalcommits.org/[Conventional Commits]:
+
+....
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+....
+
+Types: `+feat+`, `+fix+`, `+docs+`, `+test+`, `+refactor+`, `+ci+`,
+`+chore+`, `+security+`
 
 === Reporting Bugs
 
-1. Check existing issues first
-2. Use the bug report template
-3. Include reproduction steps
-4. Specify your environment (OS, language versions)
+Before reporting: 1. Search existing issues 2. Check if it’s already
+fixed in `+main+`
 
-=== Suggesting Features
+When reporting, include: - Clear, descriptive title - Environment
+details (OS, versions, toolchain) - Steps to reproduce - Expected vs
+actual behaviour
 
-1. Open a discussion first
-2. Explain the use case
-3. Consider backward compatibility
+=== Code of Conduct
 
-=== Pull Requests
+All contributors are expected to adhere to our
+link:CODE_OF_CONDUCT.md[Code of Conduct].
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests (`idris2 --build proven.ipkg`)
-5. Commit with conventional commits (`feat:`, `fix:`, `docs:`, etc.)
-6. Push and open a PR
+=== License
 
-== Development Setup
-
-[source,bash]
-----
-# Clone
-git clone https://github.com/hyperpolymath/proven
-cd proven
-
-# Install Idris 2 (via pack)
-pack install-deps
-
-# Install Zig
-# See: https://ziglang.org/download/
-
-# Environment fallback (Guix)
-guix time-machine -C guix/channels.scm -- \
-  shell -m guix/manifest.scm
-
-# Environment fallback (Nix)
-nix-shell nix/shard.nix
-
-# Pin cadence (Guix + Nix)
-# Monthly on the first Saturday, plus CVE-driven updates as needed:
-./scripts/update-env-pins.sh
-
-# Build
-idris2 --build proven.ipkg
-
-# Test
-idris2 --build proven.ipkg
-----
-
-== Code Style
-
-=== Idris 2
-
-- 2-space indentation
-- Explicit type signatures for all exports
-- Document with `|||` doc comments
-- Prove properties where practical
-
-=== Zig
-
-- 4-space indentation
-- Use `zig fmt`
-- Prefer `comptime` verification
-- Document public APIs
-
-=== Python Bindings
-
-- Use Black formatter
-- Type hints required
-- Docstrings for all public functions
-
-== Commit Messages
-
-Follow https://www.conventionalcommits.org/[Conventional Commits]:
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation only
-- `style:` Formatting, no code change
-- `refactor:` Code restructuring
-- `test:` Adding tests
-- `chore:` Maintenance
-
-== Contact
-
-Questions? Reach out at j.d.a.jewell@open.ac.uk or open a GitHub issue.
-
-== License
-
-By contributing, you agree that your contributions will be licensed under MPL-2.0.
+By contributing, you agree that your contributions will be licensed
+under the same license as the project (see LICENSE).

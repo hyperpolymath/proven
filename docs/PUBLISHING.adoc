@@ -1,0 +1,165 @@
+== Publishing Guide
+
+This document describes how to publish proven to package registries.
+
+=== Automated Publishing
+
+Publishing is automated via GitHub Actions. When a version tag is pushed
+(e.g., `+v1.0.0+`), the release workflow automatically:
+
+[arabic]
+. Validates version consistency across all packages
+. Creates a GitHub Release
+. Publishes to all configured registries
+
+==== Trigger a Release
+
+[source,bash]
+----
+# Tag a release
+git tag v1.0.0
+git push origin v1.0.0
+----
+
+Or use manual workflow dispatch in GitHub Actions.
+
+=== Registry Setup
+
+==== Required GitHub Secrets
+
+Configure these secrets in your repository settings (Settings → Secrets
+→ Actions):
+
+[width="100%",cols="25%,30%,45%",options="header",]
+|===
+|Secret |Registry |How to obtain
+|`+CRATES_IO_TOKEN+` |crates.io
+|https://crates.io/settings/tokens[crates.io/settings/tokens]
+
+|`+NPM_TOKEN+` |npm
+|https://www.npmjs.com/settings/~/tokens[npmjs.com/settings/tokens] -
+create Automation token
+|===
+
+==== OIDC Authentication (No Tokens Required)
+
+*JSR* uses OIDC trusted publishing - no token needed; it authenticates
+automatically via GitHub Actions OIDC. (The PyPI publish path was
+removed on 2026-05-27 along with the Python bindings; see the estate
+Python ban in `+hyperpolymath/standards+`.)
+
+==== JSR OIDC Authentication
+
+JSR also uses OIDC - no token needed. The workflow has
+`+id-token: write+` permission which allows JSR to authenticate
+automatically via GitHub Actions.
+
+=== Package Configuration
+
+==== crates.io (Rust)
+
+Location: `+bindings/rust/Cargo.toml+`
+
+[source,toml]
+----
+[package]
+name = "proven"
+version = "0.9.0"
+edition = "2021"
+license = "MPL-2.0"
+repository = "https://github.com/hyperpolymath/proven"
+description = "Formally verified safety library - code that cannot crash"
+keywords = ["safety", "verification", "idris", "dependent-types"]
+categories = ["no-std", "parsing", "encoding"]
+----
+
+==== npm (JavaScript/TypeScript)
+
+Location: `+bindings/javascript/package.json+` and
+`+bindings/typescript/package.json+`
+
+[source,json]
+----
+{
+  "name": "@proven/javascript",
+  "version": "0.9.0",
+  "license": "MPL-2.0"
+}
+----
+
+==== JSR (Deno)
+
+Location: `+bindings/deno/deno.json+`
+
+[source,json]
+----
+{
+  "name": "@hyperpolymath/proven",
+  "version": "0.9.0",
+  "exports": "./mod.ts"
+}
+----
+
+=== Version Bumping
+
+Before releasing, ensure all packages have the same version:
+
+[source,bash]
+----
+# Check current versions
+grep '^version' bindings/rust/Cargo.toml
+jq '.version' bindings/deno/deno.json
+jq '.version' bindings/javascript/package.json
+jq '.version' bindings/typescript/package.json
+----
+
+Update all packages to the new version before tagging.
+
+=== Dry Run
+
+Test publishing without actually publishing:
+
+[arabic]
+. Go to GitHub Actions
+. Select "`Publish to [registry]`" workflow
+. Click "`Run workflow`"
+. Enable "`Dry run`" option
+. Click "`Run workflow`"
+
+=== Troubleshooting
+
+==== crates.io: "`crate already exists`"
+
+The crate name is taken. Either: - Use a different name - Claim
+ownership if you own it
+
+==== npm: "`You do not have permission`"
+
+Ensure your npm token has publish permissions and the scope is correct.
+
+==== JSR: "`Package not found`"
+
+First-time publish requires creating the package:
+
+[source,bash]
+----
+cd bindings/deno
+deno publish --dry-run  # Validates
+deno publish            # Creates and publishes
+----
+
+=== Manual Publishing
+
+For manual publishing (not recommended):
+
+[source,bash]
+----
+# Rust
+cd bindings/rust && cargo publish
+
+# npm
+cd bindings/javascript && npm publish --access public
+
+# JSR
+cd bindings/deno && deno publish
+----

@@ -1,58 +1,212 @@
 [
   {
-    "severity": "high",
+    "severity": "critical",
     "rule_module": "cicd_rules",
     "type": "banned_language_file",
-    "file_pattern": "bindings/go/**/*.go",
-    "tracking_issue": "hyperpolymath/proven#150",
-    "note": "Pre-existing Go binding debt; governance migration is tracked separately from the FFI CI restoration."
-  },
-  {
-    "severity": "high",
-    "rule_module": "cicd_rules",
-    "type": "banned_language_file",
-    "file_pattern": "bindings/vcl/*.go",
-    "tracking_issue": "hyperpolymath/proven#150",
-    "note": "Pre-existing VCL plugin Go implementation; governance migration is tracked separately from the FFI CI restoration."
-  },
-  {
-    "severity": "high",
-    "rule_module": "cicd_rules",
-    "type": "banned_language_file",
-    "file_pattern": "bindings/java/**",
-    "tracking_issue": "hyperpolymath/proven#150",
-    "note": "Pre-existing Java binding debt; governance migration is tracked separately from the FFI CI restoration."
-  },
-  {
-    "severity": "high",
-    "rule_module": "cicd_rules",
-    "type": "banned_language_file",
-    "file_pattern": "bindings/kotlin/**",
-    "tracking_issue": "hyperpolymath/proven#150",
-    "note": "Pre-existing Kotlin binding debt; governance migration is tracked separately from the FFI CI restoration."
-  },
-  {
-    "severity": "high",
-    "rule_module": "cicd_rules",
-    "type": "banned_language_file",
-    "file_pattern": "bindings/gql/neo4j/**",
-    "tracking_issue": "hyperpolymath/proven#150",
-    "note": "Pre-existing Neo4j Java procedure binding debt; governance migration is tracked separately from the FFI CI restoration."
-  },
-  {
-    "severity": "high",
-    "rule_module": "cicd_rules",
-    "type": "banned_language_file",
-    "file_pattern": "bindings/swift/**",
-    "tracking_issue": "hyperpolymath/proven#150",
-    "note": "Pre-existing Swift binding debt; governance migration is tracked separately from the FFI CI restoration."
+    "file_pattern": "bindings/**",
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
   },
   {
     "severity": "high",
     "rule_module": "cicd_rules",
     "type": "banned_language_file",
     "file_pattern": "bindings/dart/**",
-    "tracking_issue": "hyperpolymath/proven#150",
-    "note": "Pre-existing Dart binding debt; governance migration is tracked separately from the FFI CI restoration."
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/go/**/*.go",
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/gql/neo4j/**",
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/java/**",
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/kotlin/**",
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/swift/**",
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
+  },
+  {
+    "severity": "high",
+    "rule_module": "cicd_rules",
+    "type": "banned_language_file",
+    "file_pattern": "bindings/vcl/*.go",
+    "note": "Deliberate deliverable, not drift. This library exists to be called from other languages \u2014 its own description reads \"Call from Python, Rust, JavaScript, Go \u2014 any language.\" The bindings/ tree IS the product; removing it would remove the reason the project exists."
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "ada_unchecked_access",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "as_ptr",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "assert_smaller",
+    "file": "src/Proven/SafeInput.idr",
+    "note": "Provably true, but not visible to the totality checker. In `tokenize`, the branch is guarded by `isDigit c`, so `span isDigit cs` consumes at least one character and `rest` is strictly shorter than `cs`. `span` returns `(List a, List a)` with no type-level relation to its input, so Idris2 cannot see the decrease. Discharge by threading a fuel bound or by a `span` that returns a proof its second component is a suffix \u2014 NOT by leaving the assertion unexamined, since an unchecked `assert_smaller` in a library promising termination is a hole in the central guarantee."
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "from_raw",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "code_safety",
+    "type": "js_eval",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "manually_drop",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "code_safety",
+    "type": "transmute",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "unsafe_block",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "zig_bit_cast",
+    "file": "ffi/beam/src/proven_nif.zig",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file_pattern": "bindings/**",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "zig_ptr_cast",
+    "file": "domain-specific/http/ffi/zig/src/http.zig",
+    "note": "Structural to the FFI boundary. proven's verified core is Idris2/Zig; every binding must cross from a foreign runtime into it, and that crossing is unsafe by construction in the host language \u2014 the guarantee holds on the core's side of the boundary, not on the caller's. This is an ARCHITECTURAL exemption, not deferred work: it does not shrink over time and there is no version of these bindings without it. Findings in the verified core itself are NOT covered here and are listed individually below."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-apiserver/src/Apiserver/Types.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-authserver/src/Authserver/Types.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-irc/src/IRC/Types.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-radius/src/RADIUS/Types.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-socks/src/SOCKS/Types.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "apps/proven-ssh-bastion/src/SSH/Auth.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "src/Proven/SafeEnv/Types.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "critical",
+    "rule_module": "security_errors",
+    "type": "secret_detected",
+    "file": "src/Proven/SafeOTP.idr",
+    "note": "FALSE POSITIVE \u2014 the rule matches the WORDS 'secret'/'password'/'token' in Idris `|||` documentation comments and in type/constructor names (e.g. `Secret : EnvSecurity`, `showSecret`), not in any value. Verified by reading each site 2026-08-06. Listed per-file rather than by a `**/*.idr` pattern on purpose: a pattern would blind this repository to a real secret in any future Idris file. Upstream fix belongs in the Hypatia rule, which should not match inside comments."
+  },
+  {
+    "severity": "medium",
+    "rule_module": "structural_drift",
+    "type": "SD009",
+    "file": "ffi/zig/src/main.zig",
+    "note": "Structural drift in the Zig FFI shim: main.zig/root.zig do not follow the estate module layout. The shim is generated against Zig's own expected entry-point names, which the layout rule does not model."
+  },
+  {
+    "severity": "medium",
+    "rule_module": "structural_drift",
+    "type": "SD009",
+    "file": "ffi/zig/src/root.zig",
+    "note": "Structural drift in the Zig FFI shim: main.zig/root.zig do not follow the estate module layout. The shim is generated against Zig's own expected entry-point names, which the layout rule does not model."
+  },
+  {
+    "severity": "medium",
+    "rule_module": "structural_drift",
+    "type": "SD022",
+    "file": "domain-specific/concat/README.adoc",
+    "note": "Documentation drift in a domain-specific README; tracked as docs work."
   }
 ]
