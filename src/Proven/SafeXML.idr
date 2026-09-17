@@ -142,30 +142,41 @@ simpleDocument root = MkXMLDocument (Just defaultDeclaration) Nothing root
 -- Query Functions
 --------------------------------------------------------------------------------
 
-||| Get element by name (first match)
-public export
-findElement : String -> XMLNode -> Maybe XMLNode
-findElement name node = case node of
-  Element n _ children =>
-    if n.localName == name
-      then Just node
-      else findFirst (findElement name) children
-  _ => Nothing
-  where
-    findFirst : (a -> Maybe b) -> List a -> Maybe b
-    findFirst f [] = Nothing
-    findFirst f (x :: xs) = case f x of
-                              Just y => Just y
-                              Nothing => findFirst f xs
+-- Get element by name (first match)
+-- Defunctionalised 2026-08-27: the `where`-bound `findFirst (findElement name)`
+-- hid the descent. `findElementIn` is the same function, specialised and lifted.
+mutual
+  public export
+  findElement : String -> XMLNode -> Maybe XMLNode
+  findElement name node = case node of
+    Element n _ children =>
+      if n.localName == name
+        then Just node
+        else findElementIn name children
+    _ => Nothing
 
-||| Get all elements by name
-public export
-findElements : String -> XMLNode -> List XMLNode
-findElements name node = case node of
-  Element n _ children =>
-    let found = if n.localName == name then [node] else []
-    in found ++ concatMap (findElements name) children
-  _ => []
+  public export
+  findElementIn : String -> List XMLNode -> Maybe XMLNode
+  findElementIn name [] = Nothing
+  findElementIn name (x :: xs) = case findElement name x of
+                                   Just y => Just y
+                                   Nothing => findElementIn name xs
+
+-- Get all elements by name
+-- Defunctionalised 2026-08-27: `concatMap (findElements name)` hid the descent.
+mutual
+  public export
+  findElements : String -> XMLNode -> List XMLNode
+  findElements name node = case node of
+    Element n _ children =>
+      let found = if n.localName == name then [node] else []
+      in found ++ findElementsIn name children
+    _ => []
+
+  public export
+  findElementsIn : String -> List XMLNode -> List XMLNode
+  findElementsIn name [] = []
+  findElementsIn name (c :: cs) = findElements name c ++ findElementsIn name cs
 
 ||| Get element attribute value
 public export
@@ -177,14 +188,21 @@ getAttribute attrName node = case node of
       Nothing => Nothing
   _ => Nothing
 
-||| Get text content of element
-public export
-getTextContent : XMLNode -> String
-getTextContent node = case node of
-  Text t => t.raw
-  CDATA c => c
-  Element _ _ children => concatMap getTextContent children
-  _ => ""
+-- Get text content of element
+-- Defunctionalised 2026-08-27: `concatMap getTextContent` hid the descent.
+mutual
+  public export
+  getTextContent : XMLNode -> String
+  getTextContent node = case node of
+    Text t => t.raw
+    CDATA c => c
+    Element _ _ children => getTextContentIn children
+    _ => ""
+
+  public export
+  getTextContentIn : List XMLNode -> String
+  getTextContentIn [] = ""
+  getTextContentIn (c :: cs) = getTextContent c ++ getTextContentIn cs
 
 ||| Get all child elements (excluding text/comments)
 public export
@@ -201,21 +219,37 @@ getChildElements node = case node of
 -- Transformation Functions
 --------------------------------------------------------------------------------
 
-||| Map over all elements
-public export
-mapElements : (XMLNode -> XMLNode) -> XMLNode -> XMLNode
-mapElements f node = case node of
-  Element name attrs children =>
-    f (Element name attrs (map (mapElements f) children))
-  other => other
+-- Map over all elements
+-- Defunctionalised 2026-08-27: see filterChildren below.
+mutual
+  public export
+  mapElements : (XMLNode -> XMLNode) -> XMLNode -> XMLNode
+  mapElements f node = case node of
+    Element name attrs children =>
+      f (Element name attrs (mapElementsIn f children))
+    other => other
 
-||| Filter child elements
-public export
-filterChildren : (XMLNode -> Bool) -> XMLNode -> XMLNode
-filterChildren pred node = case node of
-  Element name attrs children =>
-    Element name attrs (filter pred (map (filterChildren pred) children))
-  other => other
+  public export
+  mapElementsIn : (XMLNode -> XMLNode) -> List XMLNode -> List XMLNode
+  mapElementsIn f [] = []
+  mapElementsIn f (c :: cs) = mapElements f c :: mapElementsIn f cs
+
+-- Filter child elements
+-- Defunctionalised 2026-08-27: `map (filterChildren pred)` hid the structural
+-- descent from Idris2's size-change checker. The explicit list helper makes it
+-- visible, DISCHARGING the totality obligation rather than budgeting it.
+mutual
+  public export
+  filterChildren : (XMLNode -> Bool) -> XMLNode -> XMLNode
+  filterChildren pred node = case node of
+    Element name attrs children =>
+      Element name attrs (filter pred (filterChildrenIn pred children))
+    other => other
+
+  public export
+  filterChildrenIn : (XMLNode -> Bool) -> List XMLNode -> List XMLNode
+  filterChildrenIn pred [] = []
+  filterChildrenIn pred (c :: cs) = filterChildren pred c :: filterChildrenIn pred cs
 
 ||| Add attribute to element
 public export
@@ -302,10 +336,10 @@ xml10UTF8 = defaultDeclaration
 ||| Create namespace declaration
 public export
 nsDecl : String -> String -> XMLResult XMLAttr
-nsDecl prefix uri =
-  if null (unpack prefix)
+nsDecl pfx uri =
+  if null (unpack pfx)
     then xmlns uri
-    else xmlnsPrefix prefix uri
+    else xmlnsPrefix pfx uri
 
 --------------------------------------------------------------------------------
 -- Error Helpers

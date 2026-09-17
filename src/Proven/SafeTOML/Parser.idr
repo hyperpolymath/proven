@@ -12,6 +12,8 @@ module Proven.SafeTOML.Parser
 import Proven.Core
 import Proven.SafeTOML.Types
 import Data.List
+import Data.List1
+import Data.Fin
 import Data.String
 
 %default total
@@ -206,10 +208,10 @@ parseFloat s =
 ||| Parse date (YYYY-MM-DD)
 parseDate : String -> TOMLResult TOMLDate
 parseDate s =
-  case split (== '-') s of
+  case forget (Data.String.split (== '-') s) of
     [y, m, d] =>
       case (parseInteger y, parseInteger m, parseInteger d) of
-        (Just year, Just month, Just day) =>
+        (Ok year, Ok month, Ok day) =>
           if month >= 1 && month <= 12 && day >= 1 && day <= 31
             then Ok (MkTOMLDate year (cast month) (cast day))
             else Err (InvalidDateTime s)
@@ -219,13 +221,13 @@ parseDate s =
 ||| Parse time (HH:MM:SS or HH:MM:SS.sss)
 parseTime : String -> TOMLResult TOMLTime
 parseTime s =
-  let (timeStr, msStr) = case span (/= '.') s of
+  let (timeStr, msStr) = case Data.String.span (/= '.') s of
                            (t, "") => (t, "000")
-                           (t, ms) => (t, drop 1 ms)
-  in case split (== ':') timeStr of
+                           (t, ms) => (t, pack (drop 1 (unpack ms)))
+  in case forget (Data.String.split (== ':') timeStr) of
        [h, m, sec] =>
          case (parseInteger h, parseInteger m, parseInteger sec, parseInteger msStr) of
-           (Just hour, Just minute, Just second, Just ms) =>
+           (Ok hour, Ok minute, Ok second, Ok ms) =>
              if hour >= 0 && hour <= 23 &&
                 minute >= 0 && minute <= 59 &&
                 second >= 0 && second <= 60  -- 60 for leap second
@@ -239,8 +241,8 @@ parseDateTime : String -> TOMLResult TOMLDateTime
 parseDateTime s =
   -- Split by 'T' or ' '
   let parts = if isInfixOf "T" s
-                then split (== 'T') s
-                else split (== ' ') s
+                then forget (Data.String.split (== 'T') s)
+                else forget (Data.String.split (== ' ') s)
   in case parts of
        [dateStr, timeAndTz] => do
          datePart <- parseDate dateStr
@@ -253,25 +255,11 @@ parseDateTime s =
                tz)
        _ => Err (InvalidDateTime s)
   where
-    extractTimezone : String -> (String, Maybe String)
-    extractTimezone str =
-      if isSuffixOf "Z" str
-        then (dropLast 1 str, Just "Z")
-        else case findTzOffset str of
-               Just idx =>
-                 let (time, tz) = splitAt idx (unpack str)
-                 in (pack time, Just (pack tz))
-               Nothing => (str, Nothing)
-
-    findTzOffset : String -> Maybe Nat
-    findTzOffset str =
-      let chars = unpack str
-          plusIdx = findIndex (== '+') chars
-          minusIdx = findLastIndex (== '-') chars  -- Last minus to avoid date separators
-      in case (plusIdx, minusIdx) of
-           (Just p, _) => Just p
-           (_, Just m) => if m > 10 then Just m else Nothing  -- After time portion
-           _ => Nothing
+    -- Helpers are ordered dependency-first. Idris2 elaborates `where`-block
+    -- siblings in order, so a helper that is used must appear before its user;
+    -- this block was originally written in exactly the reverse order.
+    dropLast : Nat -> String -> String
+    dropLast n s = pack (take (minus (length (unpack s)) n) (unpack s))
 
     findLastIndex : (a -> Bool) -> List a -> Maybe Nat
     findLastIndex _ [] = Nothing
@@ -281,8 +269,25 @@ parseDateTime s =
         go acc _ [] = acc
         go acc idx (x :: xs) = go (if p x then Just idx else acc) (S idx) xs
 
-    dropLast : Nat -> String -> String
-    dropLast n s = pack (take (minus (length (unpack s)) n) (unpack s))
+    findTzOffset : String -> Maybe Nat
+    findTzOffset str =
+      let chars = unpack str
+          plusIdx = findIndex (== '+') chars
+          minusIdx = findLastIndex (== '-') chars  -- Last minus to avoid date separators
+      in case (plusIdx, minusIdx) of
+           (Just p, _) => Just (finToNat p)  -- findIndex returns Fin, not Nat
+           (_, Just m) => if m > 10 then Just m else Nothing  -- After time portion
+           _ => Nothing
+
+    extractTimezone : String -> (String, Maybe String)
+    extractTimezone str =
+      if isSuffixOf "Z" str
+        then (dropLast 1 str, Just "Z")
+        else case findTzOffset str of
+               Just idx =>
+                 let (time, tz) = splitAt idx (unpack str)
+                 in (pack time, Just (pack tz))
+               Nothing => (str, Nothing)
 
 --------------------------------------------------------------------------------
 -- Array Type Checking
@@ -316,20 +321,32 @@ checkArrayHomogeneity state (x :: y :: xs) =
 -- High-Level Parsing API
 --------------------------------------------------------------------------------
 
+||| Parse TOML with custom options
+|||
+||| Declared here, defined below: `parseTOML` calls it, and Idris2 elaborates
+||| top-level declarations in order, so the signature must precede the use.
+||| Splitting declaration from definition is legal at the top level and avoids
+||| reordering the whole block.
+export
+parseTOMLWith : TOMLSecurityOptions -> String -> TOMLResult TOMLDocument
+
 ||| Parse TOML document with secure defaults
 export
 parseTOML : String -> TOMLResult TOMLDocument
 parseTOML = parseTOMLWith secureDefaults
 
-||| Parse TOML with custom options
-export
-parseTOMLWith : TOMLSecurityOptions -> String -> TOMLResult TOMLDocument
 parseTOMLWith opts input =
   -- Stub implementation - actual parser would be complex
   -- This demonstrates the security checking interface
   let state = initialState opts
   in parseDocument state (lines input)
   where
+    parseKeyValue : ParserState -> String -> List String -> TOMLResult TOMLDocument
+    parseKeyValue state line rest =
+      -- Simplified: just return empty document
+      -- Real implementation would parse key = value pairs
+      Ok []
+
     parseDocument : ParserState -> List String -> TOMLResult TOMLDocument
     parseDocument _ [] = Ok []
     parseDocument state (l :: ls) =
@@ -337,12 +354,6 @@ parseTOMLWith opts input =
       in if null (unpack trimmed) || isPrefixOf "#" trimmed
            then parseDocument ({ line := S state.line } state) ls
            else parseKeyValue state trimmed ls
-
-    parseKeyValue : ParserState -> String -> List String -> TOMLResult TOMLDocument
-    parseKeyValue state line rest =
-      -- Simplified: just return empty document
-      -- Real implementation would parse key = value pairs
-      Ok []
 
 ||| Parse TOML value from string representation
 export
@@ -387,6 +398,33 @@ parseValue s =
 -- Rendering
 --------------------------------------------------------------------------------
 
+-- Rendering helpers.
+--
+-- `join` and `renderKey` were duplicated `where`-block siblings of individual
+-- `renderValue` clauses; they are hoisted to the top level.
+--
+-- `renderItems`/`renderPairs` are mutually recursive with `renderValue`, so
+-- their signatures are declared before it and their clauses follow it. Split
+-- declaration/definition is legal at the Idris2 top level.
+--
+-- They are explicit list recursion rather than `map`: a recursive call handed
+-- to `map` hides the structural descent from the totality checker, which is
+-- why the original `map renderValue xs` / `map renderKV kvs` were rejected.
+
+||| Join strings with a separator
+join : String -> List String -> String
+join _ [] = ""
+join _ [x] = x
+join sep (x :: xs) = x ++ sep ++ join sep xs
+
+||| Render a key, quoting it when it is not a valid bare key
+renderKey : String -> String
+renderKey k = if isValidBareKey k then k else "\"" ++ escapeString k ++ "\""
+
+renderItems : List TOMLValue -> List String
+
+renderPairs : List (String, TOMLValue) -> List String
+
 ||| Render TOML value to string
 export
 renderValue : TOMLValue -> String
@@ -398,23 +436,15 @@ renderValue (TBool False) = "false"
 renderValue (TDateTime dt) = show dt
 renderValue (TDate d) = show d
 renderValue (TTime t) = show t
-renderValue (TArray xs) = "[" ++ join ", " (map renderValue xs) ++ "]"
-  where
-    join : String -> List String -> String
-    join _ [] = ""
-    join _ [x] = x
-    join sep (x :: xs) = x ++ sep ++ join sep xs
-renderValue (TInlineTable kvs) = "{" ++ join ", " (map renderKV kvs) ++ "}"
-  where
-    join : String -> List String -> String
-    join _ [] = ""
-    join _ [x] = x
-    join sep (x :: xs) = x ++ sep ++ join sep xs
-    renderKV : (String, TOMLValue) -> String
-    renderKV (k, v) = renderKey k ++ " = " ++ renderValue v
-    renderKey : String -> String
-    renderKey k = if isValidBareKey k then k else "\"" ++ escapeString k ++ "\""
+renderValue (TArray xs) = "[" ++ join ", " (renderItems xs) ++ "]"
+renderValue (TInlineTable kvs) = "{" ++ join ", " (renderPairs kvs) ++ "}"
 renderValue (TTable _) = "{...}"  -- Tables rendered differently
+
+renderItems [] = []
+renderItems (x :: xs) = renderValue x :: renderItems xs
+
+renderPairs [] = []
+renderPairs ((k, v) :: kvs) = (renderKey k ++ " = " ++ renderValue v) :: renderPairs kvs
 
 ||| Render TOML document
 export

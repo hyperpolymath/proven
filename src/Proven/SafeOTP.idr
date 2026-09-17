@@ -166,12 +166,20 @@ public export
 validCounters : (unixTime : Integer) -> TOTPConfig -> List Integer
 validCounters unixTime config =
   let current = timeCounter unixTime config.period
-      skewInt = cast config.skew
-  in map (\offset => current + offset)
-         (rangeFrom (negate skewInt) skewInt)
+  in map (\offset => current + offset) (symRange config.skew)
   where
-    rangeFrom : Integer -> Integer -> List Integer
-    rangeFrom lo hi = if lo > hi then [] else lo :: rangeFrom (lo + 1) hi
+    -- Restructured 2026-08-27: the previous `rangeFrom : Integer -> Integer ->
+    -- List Integer` recursed on `lo + 1`, which the size-change principle cannot
+    -- see decreasing -- Integer carries no inductive structure. `config.skew` is
+    -- a Nat, and [-s .. s] has exactly 2s+1 elements, so counting down a Nat
+    -- fuel makes the descent structural. Totality is PROVED, not asserted.
+    countUp : Nat -> Integer -> List Integer
+    countUp Z     _  = []
+    countUp (S k) lo = lo :: countUp k (lo + 1)
+
+    -- [-n .. n] as Integers: 2n+1 elements, the same list the old code produced.
+    symRange : Nat -> List Integer
+    symRange n = countUp (n + n + 1) (negate (cast n))
 
 -- ============================================================================
 -- VALIDATION (constant-time)
@@ -224,15 +232,18 @@ totpProvisioningUri issuer account config =
     urlEncode : String -> String
     urlEncode = pack . concatMap encodeChar . unpack
       where
+        -- Idris2 requires definition-before-use inside `where` blocks exactly as
+        -- at top level, so these are ordered leaves-first: hexDigit, then toHex
+        -- (which calls it), then encodeChar (which calls toHex).
+        hexDigit : Int -> Char
+        hexDigit d = if d < 10 then chr (ord '0' + d) else chr (ord 'a' + d - 10)
+        toHex : Int -> String
+        toHex n = pack [hexDigit (n `div` 16), hexDigit (n `mod` 16)]
         encodeChar : Char -> List Char
         encodeChar ' ' = ['+']
         encodeChar c   = if isAlphaNum c || c == '-' || c == '_' || c == '.'
                            then [c]
                            else unpack ("%" ++ toHex (ord c))
-        toHex : Int -> String
-        toHex n = pack [hexDigit (n `div` 16), hexDigit (n `mod` 16)]
-        hexDigit : Int -> Char
-        hexDigit d = if d < 10 then chr (ord '0' + d) else chr (ord 'a' + d - 10)
 
 ||| Generate an HOTP provisioning URI
 public export

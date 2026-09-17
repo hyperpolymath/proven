@@ -250,9 +250,10 @@ renderDeclaration d =
 renderAttr : XMLAttr -> String
 renderAttr a = qualifiedName a.name ++ "=\"" ++ a.value.escaped ++ "\""
 
+-- Render node to string.
+-- Defunctionalised 2026-08-27: `concatMap renderNode` hid the structural
+-- descent, so this needed `covering`. Now genuinely total; `covering` DISCHARGED.
 mutual
-  ||| Render node to string
-  covering
   public export
   renderNode : XMLNode -> String
   renderNode (Element name attrs children) =
@@ -260,15 +261,19 @@ mutual
     in if null children
          then "<" ++ qualifiedName name ++ attrStr ++ "/>"
          else "<" ++ qualifiedName name ++ attrStr ++ ">" ++
-              concatMap renderNode children ++
+              renderNodeList children ++
               "</" ++ qualifiedName name ++ ">"
   renderNode (Text content) = content.escaped
   renderNode (CDATA content) = "<![CDATA[" ++ content ++ "]]>"
   renderNode (Comment content) = "<!--" ++ content ++ "-->"
   renderNode (ProcessingInstruction target dat) = "<?" ++ target ++ " " ++ dat ++ "?>"
 
+  public export
+  renderNodeList : List XMLNode -> String
+  renderNodeList [] = ""
+  renderNodeList (c :: cs) = renderNode c ++ renderNodeList cs
+
 ||| Render document to string
-covering
 public export
 renderDocument : XMLDocument -> String
 renderDocument doc =
@@ -279,9 +284,11 @@ renderDocument doc =
 -- Pretty Printing
 --------------------------------------------------------------------------------
 
+-- Render with indentation.
+-- Defunctionalised 2026-08-27: `concatMap (renderPretty (indent+2))` hid the
+-- structural descent, so this needed `covering` to compile. The explicit list
+-- helper makes the descent visible; `covering` is now DISCHARGED, not budgeted.
 mutual
-  ||| Render with indentation
-  covering
   public export
   renderPretty : Nat -> XMLNode -> String
   renderPretty indent (Element name attrs children) =
@@ -290,7 +297,7 @@ mutual
     in if null children
          then pack ind ++ "<" ++ qualifiedName name ++ attrStr ++ "/>\n"
          else pack ind ++ "<" ++ qualifiedName name ++ attrStr ++ ">\n" ++
-              concatMap (renderPretty (indent + 2)) children ++
+              renderPrettyList (indent + 2) children ++
               pack ind ++ "</" ++ qualifiedName name ++ ">\n"
   renderPretty indent (Text content) = content.escaped
   renderPretty indent (CDATA content) = pack (replicate indent ' ') ++ "<![CDATA[" ++ content ++ "]]>\n"
@@ -298,8 +305,12 @@ mutual
   renderPretty indent (ProcessingInstruction target dat) =
     pack (replicate indent ' ') ++ "<?" ++ target ++ " " ++ dat ++ "?>\n"
 
+  public export
+  renderPrettyList : Nat -> List XMLNode -> String
+  renderPrettyList indent [] = ""
+  renderPrettyList indent (c :: cs) = renderPretty indent c ++ renderPrettyList indent cs
+
 ||| Pretty print document
-covering
 public export
 renderDocumentPretty : XMLDocument -> String
 renderDocumentPretty doc =

@@ -24,7 +24,7 @@ import Data.String
 ||| Predicate: Cookie value has no injection characters
 public export
 data NoInjection : String -> Type where
-  postulate MkNoInjection : (value : String) ->
+  MkNoInjection : (value : String) ->
                   {auto prf : not (hasInjectionChar value) = True} ->
                   NoInjection value
 
@@ -118,7 +118,7 @@ strictSameSiteStrict = Refl
 ||| Predicate: Cookie name is bounded
 public export
 data BoundedName : Nat -> String -> Type where
-  postulate MkBoundedName : (maxLen : Nat) -> (name : String) ->
+  MkBoundedName : (maxLen : Nat) -> (name : String) ->
                   {auto prf : length (unpack name) <= maxLen = True} ->
                   BoundedName maxLen name
 

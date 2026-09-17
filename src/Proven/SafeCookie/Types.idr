@@ -168,7 +168,7 @@ record CookieName where
   ||| The cookie name
   name : String
   ||| Proof name is bounded
-  0 bounded : length (unpack name) <= maxNameLength = True
+  0 bounded : length (unpack name) <= Proven.SafeCookie.Types.maxNameLength = True
 
 public export
 Eq CookieName where
@@ -189,7 +189,7 @@ record CookieValue where
   ||| The cookie value
   value : String
   ||| Proof value is bounded
-  0 bounded : length (unpack value) <= maxValueLength = True
+  0 bounded : length (unpack value) <= Proven.SafeCookie.Types.maxValueLength = True
 
 public export
 Eq CookieValue where

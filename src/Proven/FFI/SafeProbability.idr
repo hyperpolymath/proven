@@ -26,6 +26,7 @@ module Proven.FFI.SafeProbability
 import Proven.SafeProbability
 import Proven.Core
 import Data.String
+import Data.Maybe
 
 %default total
 

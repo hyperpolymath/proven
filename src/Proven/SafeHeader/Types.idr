@@ -44,7 +44,7 @@ record HeaderName where
   ||| Original case (for display)
   originalCase : String
   ||| Proof name is bounded
-  0 bounded : length (unpack name) <= maxNameLength = True
+  0 bounded : length (unpack name) <= Proven.SafeHeader.Types.maxNameLength = True
 
 public export
 Eq HeaderName where
@@ -61,7 +61,7 @@ record HeaderValue where
   ||| The header value (trimmed)
   value : String
   ||| Proof value is bounded
-  0 bounded : length (unpack value) <= maxValueLength = True
+  0 bounded : length (unpack value) <= Proven.SafeHeader.Types.maxValueLength = True
 
 public export
 Eq HeaderValue where
@@ -501,11 +501,13 @@ hasCRLF s = isInfixOf "\r" s || isInfixOf "\n" s
 ||| type level through `decEq`, so the decidability proof is deferred.
 public export
 decHeaderNameBounded : (s : String) ->
-                       Dec (length (unpack s) <= maxNameLength = True)
+                       Dec (length (unpack s) <= Proven.SafeHeader.Types.maxNameLength = True)
+decHeaderNameBounded s = decEq (length (unpack s) <= maxNameLength) True
 
 ||| Decide whether a header value's length is within bound.
 ||| Postulated: see decHeaderNameBounded.
 public export
 decHeaderValueBounded : (s : String) ->
-                        Dec (length (unpack s) <= maxValueLength = True)
+                        Dec (length (unpack s) <= Proven.SafeHeader.Types.maxValueLength = True)
+decHeaderValueBounded s = decEq (length (unpack s) <= maxValueLength) True
 

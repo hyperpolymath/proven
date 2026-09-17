@@ -191,9 +191,9 @@ record MediaType where
   ||| Media category
   category : MediaCategory
   ||| Proof type is bounded
-  0 typeBounded : length (unpack mediaType) <= maxTypeLength = True
+  0 typeBounded : length (unpack mediaType) <= Proven.SafeContentType.Types.maxTypeLength = True
   ||| Proof subtype is bounded
-  0 subtypeBounded : length (unpack subtype) <= maxSubtypeLength = True
+  0 subtypeBounded : length (unpack subtype) <= Proven.SafeContentType.Types.maxSubtypeLength = True
 
 public export
 Eq MediaType where

@@ -74,6 +74,15 @@ find i uf =
   if i >= size uf then Nothing
   else Just (findRoot i uf)
   where
+    -- NOTE: index' MUST precede findRootSimple. Idris2 `where` blocks are
+    -- NOT mutually recursive: a forward reference to a later sibling is a hard
+    -- "Undefined name" error, even at identical indentation with a signature.
+
+    index' : Nat -> List a -> Maybe a
+    index' _ [] = Nothing
+    index' Z (x :: _) = Just x
+    index' (S k) (_ :: xs) = index' k xs
+
     -- Find root without path compression (for totality)
     findRootSimple : Nat -> Nat -> UnionFind -> Nat
     findRootSimple 0 i _ = i  -- Max iterations reached
@@ -83,10 +92,7 @@ find i uf =
         Just (Root _) => i
         Just (Parent p) => findRootSimple fuel p uf
 
-    index' : Nat -> List a -> Maybe a
-    index' _ [] = Nothing
-    index' Z (x :: _) = Just x
-    index' (S k) (_ :: xs) = index' k xs
+
 
     -- Find root with path compression (simplified for totality)
     findRoot : Nat -> UnionFind -> (Nat, UnionFind)
@@ -201,7 +207,10 @@ allSets uf =
   where
     nub : Eq a => List a -> List a
     nub [] = []
-    nub (x :: xs) = x :: nub (filter (/= x) xs)
+    -- TRUSTED: termination; `filter` never grows a list, so the recursive
+    -- argument is at most `xs`, which is a subterm of the pattern `x :: xs`.
+    -- The checker cannot see through `filter`.
+    nub (x :: xs) = x :: nub (assert_smaller xs (filter (/= x) xs))
 
 --------------------------------------------------------------------------------
 -- Batch Operations

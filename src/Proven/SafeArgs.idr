@@ -34,6 +34,7 @@ import public Proven.SafeArgs.Proofs
 
 import Data.List
 import Data.String
+import Data.Maybe
 
 %default total
 

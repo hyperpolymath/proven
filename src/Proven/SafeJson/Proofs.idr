@@ -393,7 +393,7 @@ anyMatchesTAny (JsonObject _) = Refl
 ||| This is guaranteed by the structure of the parser using fuel/depth limit
 public export
 data ParsingTerminates : String -> Type where
-  postulate MkParsingTerminates : (s : String) -> (Either ParseError JsonValue) ->
+  MkParsingTerminates : (s : String) -> (Either ParseError JsonValue) ->
                         ParsingTerminates s
 
 ||| For any input string, parsing terminates
@@ -408,10 +408,10 @@ parsingTotal s = MkParsingTerminates s (parse s)
 ||| Data type for well-formed JSON (syntactically valid)
 public export
 data WellFormedJson : JsonValue -> Type where
-  postulate WFNull : WellFormedJson JsonNull
-  postulate WFBool : (b : Bool) -> WellFormedJson (JsonBool b)
-  postulate WFNumber : (n : Double) -> WellFormedJson (JsonNumber n)
-  postulate WFString : (s : String) -> WellFormedJson (JsonString s)
+  WFNull : WellFormedJson JsonNull
+  WFBool : (b : Bool) -> WellFormedJson (JsonBool b)
+  WFNumber : (n : Double) -> WellFormedJson (JsonNumber n)
+  WFString : (s : String) -> WellFormedJson (JsonString s)
   WFArray : (arr : List JsonValue) ->
             Data.List.Quantifiers.All.All WellFormedJson arr ->
             WellFormedJson (JsonArray arr)

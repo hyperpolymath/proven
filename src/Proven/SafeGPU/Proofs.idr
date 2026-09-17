@@ -15,4 +15,4 @@ module Proven.SafeGPU.Proofs
 %default total
 
 public export
-postulate 0 safeGPUProofsAwaitBaselineRepair : ()
+0 safeGPUProofsAwaitBaselineRepair : ()

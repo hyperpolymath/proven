@@ -49,7 +49,7 @@ digits8Divisor = Refl
 ||| available, or by introducing a class-(J) `charEqRefl` axiom and a
 ||| per-list induction lemma over `go`.
 export
-postulate 0 constantTimeCompareRefl : (s : String) -> constantTimeCompare s s = True
+0 constantTimeCompareRefl : (s : String) -> constantTimeCompare s s = True
 
 ||| OWED: `constantTimeCompare` is symmetric —
 ||| `constantTimeCompare a b = constantTimeCompare b a` for all
@@ -65,7 +65,7 @@ postulate 0 constantTimeCompareRefl : (s : String) -> constantTimeCompare s s = 
 ||| `Data.String` reflective tactic is available, or via a class-(J)
 ||| `charEqSym` axiom paired with a per-list induction over `go`.
 export
-postulate 0 constantTimeCompareSym : (a, b : String) -> constantTimeCompare a b = constantTimeCompare b a
+0 constantTimeCompareSym : (a, b : String) -> constantTimeCompare a b = constantTimeCompare b a
 
 ||| Empty strings compare equal.
 public export
@@ -90,7 +90,7 @@ emptyStringsEqual = Refl
 ||| `constantTimeCompareRefl` is in scope, by `rewrite` on the head of
 ||| the `||`.
 export
-postulate 0 codeValidatesAgainstSelf : (code : OTPCode) -> validateTOTPCode code [code] = True
+0 codeValidatesAgainstSelf : (code : OTPCode) -> validateTOTPCode code [code] = True
 
 ||| OWED: TOTP validation accepts a code if it matches anywhere in
 ||| the candidate list. By definition `validateTOTPCode code codes =
@@ -107,7 +107,7 @@ postulate 0 codeValidatesAgainstSelf : (code : OTPCode) -> validateTOTPCode code
 ||| `rewrite` step for `_ :: _`), once a `Data.List.any` extensionality
 ||| lemma is in `contrib` — or inline the induction here.
 export
-postulate 0 codeInListValidates : (code : OTPCode) -> (codes : List OTPCode) ->
+0 codeInListValidates : (code : OTPCode) -> (codes : List OTPCode) ->
                         any (\e => constantTimeCompare code.code e.code) codes = True ->
                         validateTOTPCode code codes = True
 
@@ -122,7 +122,7 @@ postulate 0 codeInListValidates : (code : OTPCode) -> (codes : List OTPCode) ->
 ||| (String/Char primitive opacity in Idris2 0.8.0). Discharge
 ||| follows immediately once `constantTimeCompareRefl` is in scope.
 export
-postulate 0 identicalHOTPValid : (code : OTPCode) -> validateHOTPCode code code = True
+0 identicalHOTPValid : (code : OTPCode) -> validateHOTPCode code code = True
 
 ||| Validation against empty list always fails.
 public export

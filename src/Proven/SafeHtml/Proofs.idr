@@ -17,44 +17,44 @@ import Data.Nat
 ||| A string that has been HTML-escaped
 public export
 data EscapedHtml : Type where
-  postulate MkEscapedHtml : (content : String) -> EscapedHtml
+  MkEscapedHtml : (content : String) -> EscapedHtml
 
 ||| A string that has been sanitized
 public export
 data SanitizedHtml : Type where
-  postulate MkSanitizedHtml : (content : String) -> SanitizedHtml
+  MkSanitizedHtml : (content : String) -> SanitizedHtml
 
 ||| Proof that escaped HTML does not contain raw '<'
 public export
 data NoRawLT : String -> Type where
-  postulate MkNoRawLT : not (elem '<' (unpack s)) = True -> NoRawLT s
+  MkNoRawLT : not (elem '<' (unpack s)) = True -> NoRawLT s
 
 ||| Proof that escaped HTML does not contain raw '>'
 public export
 data NoRawGT : String -> Type where
-  postulate MkNoRawGT : not (elem '>' (unpack s)) = True -> NoRawGT s
+  MkNoRawGT : not (elem '>' (unpack s)) = True -> NoRawGT s
 
 ||| Proof that escaped HTML does not contain raw '&' (unescaped)
 public export
 data NoRawAmpersand : String -> Type where
-  postulate MkNoRawAmpersand : not (isInfixOf "&" s && not (isInfixOf "&amp;" s || isInfixOf "&lt;" s || isInfixOf "&gt;" s || isInfixOf "&quot;" s || isInfixOf "&#" s)) = True -> NoRawAmpersand s
+  MkNoRawAmpersand : not (isInfixOf "&" s && not (isInfixOf "&amp;" s || isInfixOf "&lt;" s || isInfixOf "&gt;" s || isInfixOf "&quot;" s || isInfixOf "&#" s)) = True -> NoRawAmpersand s
 
 ||| Proof that content contains no script tags
 public export
 data NoScriptTags : String -> Type where
-  postulate MkNoScriptTags : not (isInfixOf "<script" (toLower s)) = True -> NoScriptTags s
+  MkNoScriptTags : not (isInfixOf "<script" (toLower s)) = True -> NoScriptTags s
 
 ||| Proof that a URL has a safe scheme (no javascript:, data:, vbscript:)
 public export
 data SafeScheme : String -> Type where
-  postulate MkSafeScheme : not (isPrefixOf "javascript:" (toLower s) ||
+  MkSafeScheme : not (isPrefixOf "javascript:" (toLower s) ||
                       isPrefixOf "vbscript:" (toLower s) ||
                       isPrefixOf "data:" (toLower s)) = True -> SafeScheme s
 
 ||| Combined XSS-safety proof
 public export
 data XSSSafe : String -> Type where
-  postulate MkXSSSafe : NoRawLT s -> NoRawGT s -> NoScriptTags s -> XSSSafe s
+  MkXSSSafe : NoRawLT s -> NoRawGT s -> NoScriptTags s -> XSSSafe s
 
 ||| Helper: escape a single HTML character
 public export
@@ -81,7 +81,7 @@ escapeChar c = singleton c
 ||| Discharge once a `Data.String` reflective tactic or per-character
 ||| induction lemma over `unpack . concat . map` is available.
 public export
-postulate 0 escapePreservesNoLT : (s : String) -> (escaped : String) ->
+0 escapePreservesNoLT : (s : String) -> (escaped : String) ->
                         escaped = concat (map escapeChar (unpack s)) ->
                         NoRawLT escaped
 
@@ -89,7 +89,7 @@ postulate 0 escapePreservesNoLT : (s : String) -> (escaped : String) ->
 ||| If a string has no dangerous characters, escaping is a no-op
 public export
 data EscapeIdempotent : String -> Type where
-  postulate MkEscapeIdempotent : NoRawLT s -> NoRawGT s -> NoRawAmpersand s ->
+  MkEscapeIdempotent : NoRawLT s -> NoRawGT s -> NoRawAmpersand s ->
                        EscapeIdempotent s
 
 ||| OWED: for every `input`, the corresponding sanitised `output`
@@ -107,13 +107,13 @@ data EscapeIdempotent : String -> Type where
 ||| `isInfixOf` / `toLower` is available, or a per-character
 ||| induction lemma over the sanitiser's output construction.
 public export
-postulate 0 sanitizeRemovesScripts : (input : String) -> (output : String) ->
+0 sanitizeRemovesScripts : (input : String) -> (output : String) ->
                            NoScriptTags output
 
 ||| Proof that attribute escaping prevents quote breakout
 public export
 data SafeAttribute : String -> Type where
-  postulate MkSafeAttribute : not (elem '"' (unpack s)) = True ->
+  MkSafeAttribute : not (elem '"' (unpack s)) = True ->
                     not (elem '\'' (unpack s)) = True ->
                     SafeAttribute s
 
@@ -121,11 +121,11 @@ data SafeAttribute : String -> Type where
 public export
 data WellFormedHtml : Type where
   ||| Empty document is well-formed
-  postulate EmptyDoc : WellFormedHtml
+  EmptyDoc : WellFormedHtml
   ||| Text content (leaf node) is well-formed
-  postulate TextNode : EscapedHtml -> WellFormedHtml
+  TextNode : EscapedHtml -> WellFormedHtml
   ||| Element with children is well-formed if children are
-  postulate ValidElement : (tag : String) ->
+  ValidElement : (tag : String) ->
                  (attrs : List (String, String)) ->
                  (children : List WellFormedHtml) ->
                  WellFormedHtml
@@ -133,6 +133,6 @@ data WellFormedHtml : Type where
 ||| Proof that self-closing tags have no children
 public export
 data SelfClosing : String -> Type where
-  postulate MkSelfClosing : elem tag ["br", "hr", "img", "input", "meta", "link",
+  MkSelfClosing : elem tag ["br", "hr", "img", "input", "meta", "link",
                              "area", "base", "col", "embed", "source",
                              "track", "wbr"] = True -> SelfClosing tag

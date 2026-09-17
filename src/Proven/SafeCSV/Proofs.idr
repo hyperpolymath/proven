@@ -164,15 +164,15 @@ columnByNameFromEmpty _ = Refl
 
 ||| OWED: Default delimiter is comma.
 public export
-postulate 0 defaultDelimiterIsComma : defaultOptions.delimiter = ','
+0 defaultDelimiterIsComma : defaultOptions.delimiter = ','
 
 ||| OWED: Default quote character is double-quote.
 public export
-postulate 0 defaultQuoteIsDoubleQuote : defaultOptions.quote = '"'
+0 defaultQuoteIsDoubleQuote : defaultOptions.quote = '"'
 
 ||| OWED: Default escape character matches quote character (RFC 4180).
 public export
-postulate 0 defaultEscapeMatchesQuote : defaultOptions.escape = defaultOptions.quote
+0 defaultEscapeMatchesQuote : defaultOptions.escape = defaultOptions.quote
 
 --------------------------------------------------------------------------------
 -- Constructor-form witnesses of the same facts

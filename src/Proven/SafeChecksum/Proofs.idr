@@ -119,24 +119,24 @@ xorChecksumEmpty = Refl
 ||| OWED: `sumChecksum []` = 0. Held back by `Integral Nat`'s `mod`
 ||| not reducing `0 \`mod\` 256 = 0` by Refl under Idris2 0.8.0.
 public export
-postulate 0 sumChecksumEmpty : sumChecksum [] = 0
+0 sumChecksumEmpty : sumChecksum [] = 0
 
 ||| OWED: `twosComplement []` = 0. Same blocker as `sumChecksumEmpty`.
 public export
-postulate 0 twosComplementEmpty : twosComplement [] = 0
+0 twosComplementEmpty : twosComplement [] = 0
 
 ||| OWED: at least one known-valid card-number passes Luhn. Discharge
 ||| requires reasoning through `unpack`/`ord` String FFI primitives.
 public export
-postulate 0 luhnValidatesKnownGood :
+0 luhnValidatesKnownGood :
   validateLuhn "4111111111111111" = True
 
 ||| OWED: at least one known-valid ISBN-10 passes its validator.
 public export
-postulate 0 isbn10ValidatesKnownGood :
+0 isbn10ValidatesKnownGood :
   validateISBN10 "0306406152" = True
 
 ||| OWED: at least one known-valid ISBN-13 passes its validator.
 public export
-postulate 0 isbn13ValidatesKnownGood :
+0 isbn13ValidatesKnownGood :
   validateISBN13 "9780306406157" = True

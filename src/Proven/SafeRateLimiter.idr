@@ -71,7 +71,7 @@ tryAcquireTokens count now bucket =
   in if refilled.tokens >= count
        then (Allowed, MkTokenBucket refilled.capacity (minus refilled.tokens count) refilled.refillRate now)
        else let needed = minus count refilled.tokens
-                waitTime = (needed + refilled.refillRate - 1) `div` refilled.refillRate
+                waitTime = (minus (needed + refilled.refillRate) 1) `div` refilled.refillRate
             in (Denied waitTime, refilled)
 
 ||| Check if request would be allowed (without consuming tokens)
@@ -112,7 +112,7 @@ tryRequest now window =
        then (Allowed, MkSlidingWindow pruned.maxRequests pruned.windowSize (now :: pruned.requests))
        else
          let oldest = foldl min now pruned.requests
-             retryAfter = pruned.windowSize - (minus now oldest)
+             retryAfter = minus pruned.windowSize (minus now oldest)
          in (Denied retryAfter, pruned)
 
 ||| Get current request count in window

@@ -30,7 +30,9 @@ import public Proven.SafeYAML.Parser
 import public Proven.SafeYAML.Proofs
 
 import Data.List
+import Data.List1
 import Data.String
+import Data.Maybe
 
 %default total
 
@@ -55,12 +57,12 @@ parseWith = parseYAMLWith
 ||| Parse a YAML stream (multiple documents)
 public export
 parseAll : String -> YAMLResult YAMLStream
-parseAll = parseYAMLStream
+parseAll = parseStream secureDefaults
 
 ||| Parse a YAML stream with custom options
 public export
 parseAllWith : YAMLSecurityOptions -> String -> YAMLResult YAMLStream
-parseAllWith = parseYAMLStreamWith
+parseAllWith = parseStream
 
 --------------------------------------------------------------------------------
 -- Type Coercion
@@ -146,7 +148,7 @@ hasField key _ = False
 ||| Get nested field using dot notation
 public export
 getPath : String -> YAMLValue -> YAMLResult YAMLValue
-getPath path val = go (split (== '.') path) val
+getPath path val = go (forget (Data.String.split (== '.') path)) val
   where
     go : List String -> YAMLValue -> YAMLResult YAMLValue
     go [] v = Ok v
@@ -174,7 +176,7 @@ values _ = []
 public export
 getIndex : Nat -> YAMLValue -> YAMLResult YAMLValue
 getIndex idx (YArray xs) =
-  case index' idx xs of
+  case getAt idx xs of
     Just val => Ok val
     Nothing => Err (TypeMismatch ("index " ++ show idx) "out of bounds")
 getIndex idx val = Err (TypeMismatch "array" (yamlTypeName val))
@@ -216,6 +218,67 @@ hasAnchors yaml = isInfixOf "&" yaml || isInfixOf "*" yaml
 -- Rendering
 --------------------------------------------------------------------------------
 
+-- Rendering helpers.
+--
+-- These were originally `where`-block siblings of `render`. A `where` block
+-- attaches to ONE clause, and `render` has ten, so the helpers were visible
+-- only inside `render (YTimestamp ts) = ts` and undefined in every earlier
+-- clause that called them. They are hoisted to the top level here.
+--
+-- `renderItems`/`renderPairs` are mutually recursive with `render`, so their
+-- signatures are declared before `render` and their clauses follow it: split
+-- declaration/definition is legal at the Idris2 top level, and it avoids
+-- re-indenting the whole block into a `mutual`.
+--
+-- They are also explicit list recursion rather than `map`, because a
+-- recursive call handed to `map` hides the structural descent from the
+-- totality checker.
+
+||| True if a scalar must be quoted to round-trip as YAML
+public export
+needsQuoting : String -> Bool
+needsQuoting s =
+  null (unpack s) ||
+  any (\c => c `elem` [':', '#', '[', ']', '{', '}', ',', '&', '*', '!', '|',
+                       '>', '\'', '"', '%', '@', '`']) (unpack s) ||
+  (s `elem` ["true", "false", "yes", "no", "on", "off", "null", "~"])
+
+||| Escape the characters YAML double-quoted style requires escaping
+public export
+escapeChars : List Char -> List Char
+escapeChars [] = []
+escapeChars ('"' :: rest) = '\\' :: '"' :: escapeChars rest
+escapeChars ('\\' :: rest) = '\\' :: '\\' :: escapeChars rest
+escapeChars ('\n' :: rest) = '\\' :: 'n' :: escapeChars rest
+escapeChars ('\t' :: rest) = '\\' :: 't' :: escapeChars rest
+escapeChars (c :: rest) = c :: escapeChars rest
+
+||| Escape a string for YAML double-quoted style
+public export
+escapeString : String -> String
+escapeString s = pack (escapeChars (unpack s))
+
+||| Render a scalar string, quoting it only when it would not round-trip
+public export
+renderString : String -> String
+renderString s =
+  if needsQuoting s
+    then "\"" ++ escapeString s ++ "\""
+    else s
+
+||| Join strings with a separator
+public export
+joinWith : String -> List String -> String
+joinWith _ [] = ""
+joinWith _ [x] = x
+joinWith sep (x :: xs) = x ++ sep ++ joinWith sep xs
+
+public export
+renderItems : List YAMLValue -> List String
+
+public export
+renderPairs : List (String, YAMLValue) -> List String
+
 ||| Render YAML value to string (simple format)
 public export
 render : YAMLValue -> String
@@ -225,77 +288,63 @@ render (YBool False) = "false"
 render (YInt i) = show i
 render (YFloat f) = show f
 render (YString s) = renderString s
-render (YArray xs) = renderArray xs
-render (YObject kvs) = renderObject kvs
+render (YArray []) = "[]"
+render (YArray xs) = "[" ++ joinWith ", " (renderItems xs) ++ "]"
+render (YObject []) = "{}"
+render (YObject kvs) = "{" ++ joinWith ", " (renderPairs kvs) ++ "}"
 render (YBinary bs) = "!!binary " ++ show (length bs) ++ " bytes"
 render (YTimestamp ts) = ts
-  where
-    needsQuoting : String -> Bool
-    needsQuoting s =
-      null (unpack s) ||
-      any (\c => c `elem` [':', '#', '[', ']', '{', '}', ',', '&', '*', '!', '|', '>', '\'', '"', '%', '@', '`']) (unpack s) ||
-      s `elem` ["true", "false", "yes", "no", "on", "off", "null", "~"]
 
-    renderString : String -> String
-    renderString s =
-      if needsQuoting s
-        then "\"" ++ escapeString s ++ "\""
-        else s
+renderItems [] = []
+renderItems (x :: xs) = render x :: renderItems xs
 
-    escapeString : String -> String
-    escapeString s = pack (go (unpack s))
-      where
-        go : List Char -> List Char
-        go [] = []
-        go ('"' :: rest) = '\\' :: '"' :: go rest
-        go ('\\' :: rest) = '\\' :: '\\' :: go rest
-        go ('\n' :: rest) = '\\' :: 'n' :: go rest
-        go ('\t' :: rest) = '\\' :: 't' :: go rest
-        go (c :: rest) = c :: go rest
+renderPairs [] = []
+renderPairs ((k, v) :: kvs) = (renderString k ++ ": " ++ render v) :: renderPairs kvs
 
-    renderArray : List YAMLValue -> String
-    renderArray [] = "[]"
-    renderArray xs = "[" ++ join ", " (map render xs) ++ "]"
-      where
-        join : String -> List String -> String
-        join _ [] = ""
-        join _ [x] = x
-        join sep (x :: xs) = x ++ sep ++ join sep xs
+-- Block-style rendering. Same treatment as `render` above: the helpers were
+-- `where`-block siblings whose recursion was hidden inside `map`, so they are
+-- hoisted and defunctionalised.
 
-    renderObject : List (String, YAMLValue) -> String
-    renderObject [] = "{}"
-    renderObject kvs = "{" ++ join ", " (map renderKV kvs) ++ "}"
-      where
-        join : String -> List String -> String
-        join _ [] = ""
-        join _ [x] = x
-        join sep (x :: xs) = x ++ sep ++ join sep xs
-        renderKV : (String, YAMLValue) -> String
-        renderKV (k, v) = renderString k ++ ": " ++ render v
+||| Two spaces per nesting level
+public export
+indentLevel : Nat -> String
+indentLevel n = pack (replicate (n * 2) ' ')
+
+public export
+renderBlockItems : Nat -> List YAMLValue -> List String
+
+public export
+renderBlockPairs : Nat -> List (String, YAMLValue) -> List String
+
+public export
+renderBlockAt : Nat -> YAMLValue -> String
+renderBlockAt _ YNull = "null"
+renderBlockAt _ (YBool True) = "true"
+renderBlockAt _ (YBool False) = "false"
+renderBlockAt _ (YInt i) = show i
+renderBlockAt _ (YFloat f) = show f
+renderBlockAt _ (YString s) = show s
+renderBlockAt _ (YBinary bs) = "!!binary " ++ show (length bs) ++ " bytes"
+renderBlockAt _ (YTimestamp ts) = ts
+renderBlockAt _ (YArray []) = "[]"
+renderBlockAt level (YArray xs) = "\n" ++ unlines (renderBlockItems level xs)
+renderBlockAt _ (YObject []) = "{}"
+renderBlockAt level (YObject kvs) = "\n" ++ unlines (renderBlockPairs level kvs)
+
+renderBlockItems _ [] = []
+renderBlockItems level (x :: xs) =
+  (indentLevel level ++ "- " ++ renderBlockAt (S level) x)
+    :: renderBlockItems level xs
+
+renderBlockPairs _ [] = []
+renderBlockPairs level ((k, v) :: kvs) =
+  (indentLevel level ++ k ++ ": " ++ renderBlockAt (S level) v)
+    :: renderBlockPairs level kvs
 
 ||| Render YAML with block style (more readable)
 public export
 renderBlock : YAMLValue -> String
-renderBlock val = go 0 val
-  where
-    indent : Nat -> String
-    indent n = pack (replicate (n * 2) ' ')
-
-    go : Nat -> YAMLValue -> String
-    go _ YNull = "null"
-    go _ (YBool True) = "true"
-    go _ (YBool False) = "false"
-    go _ (YInt i) = show i
-    go _ (YFloat f) = show f
-    go _ (YString s) = show s
-    go _ (YBinary bs) = "!!binary " ++ show (length bs) ++ " bytes"
-    go _ (YTimestamp ts) = ts
-    go level (YArray []) = "[]"
-    go level (YArray xs) =
-      "\n" ++ unlines (map (\x => indent level ++ "- " ++ go (S level) x) xs)
-    go level (YObject []) = "{}"
-    go level (YObject kvs) =
-      "\n" ++ unlines (map (\(k, v) => indent level ++ k ++ ": " ++ go (S level) v) kvs)
+renderBlock val = renderBlockAt 0 val
 
 ||| Render document with optional header
 public export
@@ -334,21 +383,54 @@ mkDocumentWithVersion ver val = MkYAMLDocument (Just ver) [] val
 -- Transformation
 --------------------------------------------------------------------------------
 
+-- The list traversals below are written as explicit recursion rather than
+-- `map`. A recursive call passed to `map` is opaque to the totality checker:
+-- it cannot see that the argument is structurally smaller. Spelling the
+-- recursion out makes the descent visible and the definition total.
+public export
+mapValuesItems : (YAMLValue -> YAMLValue) -> List YAMLValue -> List YAMLValue
+
+public export
+mapValuesPairs : (YAMLValue -> YAMLValue) -> List (String, YAMLValue) ->
+                 List (String, YAMLValue)
+
 ||| Map over all values in structure
 public export
 mapValues : (YAMLValue -> YAMLValue) -> YAMLValue -> YAMLValue
-mapValues f val = case val of
-  YArray xs => f (YArray (map (mapValues f) xs))
-  YObject kvs => f (YObject (map (\(k, v) => (k, mapValues f v)) kvs))
-  other => f other
+mapValues f (YArray xs) = f (YArray (mapValuesItems f xs))
+mapValues f (YObject kvs) = f (YObject (mapValuesPairs f kvs))
+mapValues f other = f other
+
+mapValuesItems f [] = []
+mapValuesItems f (x :: xs) = mapValues f x :: mapValuesItems f xs
+
+mapValuesPairs f [] = []
+mapValuesPairs f ((k, v) :: kvs) = (k, mapValues f v) :: mapValuesPairs f kvs
+
+-- Same defunctionalisation as `mapValues` above, for the same reason.
+public export
+filterFieldsItems : (String -> YAMLValue -> Bool) -> List YAMLValue ->
+                    List YAMLValue
+
+public export
+filterFieldsPairs : (String -> YAMLValue -> Bool) ->
+                    List (String, YAMLValue) -> List (String, YAMLValue)
 
 ||| Filter object fields
 public export
 filterFields : (String -> YAMLValue -> Bool) -> YAMLValue -> YAMLValue
 filterFields pred (YObject kvs) =
-  YObject (filter (uncurry pred) (map (\(k, v) => (k, filterFields pred v)) kvs))
-filterFields pred (YArray xs) = YArray (map (filterFields pred) xs)
+  YObject (filter (uncurry pred) (filterFieldsPairs pred kvs))
+filterFields pred (YArray xs) = YArray (filterFieldsItems pred xs)
 filterFields pred val = val
+
+filterFieldsItems pred [] = []
+filterFieldsItems pred (x :: xs) =
+  filterFields pred x :: filterFieldsItems pred xs
+
+filterFieldsPairs pred [] = []
+filterFieldsPairs pred ((k, v) :: kvs) =
+  (k, filterFields pred v) :: filterFieldsPairs pred kvs
 
 ||| Merge two objects (second wins on conflicts)
 public export

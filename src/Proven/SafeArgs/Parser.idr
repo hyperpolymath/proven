@@ -13,6 +13,7 @@ import Proven.Core
 import Proven.SafeArgs.Types
 import Data.List
 import Data.String
+import Data.Maybe
 
 %default total
 
@@ -50,7 +51,7 @@ classifyArg opts arg =
           if null (unpack val)
             then LongOpt (pack rest)
             else if opts.allowEquals
-              then LongOptEq name (drop 1 val)
+              then LongOptEq name (pack (drop 1 (unpack val)))
               else LongOpt (pack rest)
     ('-' :: c :: []) => ShortOpt c
     ('-' :: c :: rest) =>
@@ -184,120 +185,138 @@ parseArgs opts specs args = do
   finalState <- parseLoop opts specs state
   -- Check required
   checkRequired specs finalState.parsed
+  -- DEFECT FIXED 2026-08-27: the do-block previously ended on checkRequired,
+  -- whose type is ArgResult (), while parseArgs promises ArgResult ParsedArgs.
+  -- The parsed arguments were never returned. Never caught: this module has
+  -- never compiled in its current form.
+  Ok finalState.parsed
   where
-    parseLoop : ParserOptions -> List ArgSpec -> ParserState -> ArgResult ParserState
-    parseLoop opts specs state = case state.remaining of
-      [] => Ok state
-      (arg :: rest) =>
-        if state.afterSeparator
-          then -- Everything after -- is positional
-            let newParsed = ("--rest", RestValues (arg :: rest)) :: state.parsed
-            in Ok ({ remaining := [], parsed := newParsed } state)
-          else case classifyArg opts arg of
-            EndOfOpts =>
-              parseLoop opts specs ({ remaining := rest, afterSeparator := True } state)
+    mutual
+      parseLoop : ParserOptions -> List ArgSpec -> ParserState -> ArgResult ParserState
+      -- TRUSTED: totality; budgeted per TRUSTED-BASE-REDUCTION-POLICY.adoc.
+      -- Measure: length state.remaining, which strictly decreases on all 14
+      -- self-recursive calls (each matches (arg :: rest) and recurses on rest).
+      -- Invisible to size-change termination because every recursive call threads
+      -- the decrease through a RECORD UPDATE ({ remaining := rest } state), which
+      -- is opaque to the structural checker: neither "equal" nor "smaller".
+      -- Production fix: hoist `remaining` out of ParserState into an explicit
+      -- List String argument so the decrease is structurally visible.
+      parseLoop opts specs state = assert_total $ case state.remaining of
+        [] => Ok state
+        (arg :: rest) =>
+          if state.afterSeparator
+            then -- Everything after -- is positional
+              let newParsed = ("--rest", RestValues (arg :: rest)) :: state.parsed
+              in Ok ({ remaining := [], parsed := newParsed } state)
+            else case classifyArg opts arg of
+              EndOfOpts =>
+                parseLoop opts specs ({ remaining := rest, afterSeparator := True } state)
 
-            LongOpt name =>
-              case findByLong specs name of
-                Nothing =>
-                  if opts.allowUnknown
-                    then parseLoop opts specs ({ remaining := rest } state)
-                    else Err (UnknownOption ("--" ++ name))
-                Just spec =>
-                  if spec.argType == Flag
-                    then let newParsed = (specName spec, FlagSet) :: state.parsed
-                         in parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
-                    else case rest of
-                      [] => Err (MissingValue ("--" ++ name))
-                      (val :: rest') => do
-                        validated <- validateAllowed spec val
+              LongOpt name =>
+                case findByLong specs name of
+                  Nothing =>
+                    if opts.allowUnknown
+                      then parseLoop opts specs ({ remaining := rest } state)
+                      else Err (UnknownOption ("--" ++ name))
+                  Just spec =>
+                    if spec.argType == Flag
+                      then let newParsed = (specName spec, FlagSet) :: state.parsed
+                           in parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
+                      else case rest of
+                        [] => Err (MissingValue ("--" ++ name))
+                        (val :: rest') => do
+                          validated <- validateAllowed spec val
+                          let newParsed = (specName spec, OptionValue validated) :: state.parsed
+                          parseLoop opts specs ({ remaining := rest', parsed := newParsed } state)
+
+              LongOptEq name value =>
+                case findByLong specs name of
+                  Nothing =>
+                    if opts.allowUnknown
+                      then parseLoop opts specs ({ remaining := rest } state)
+                      else Err (UnknownOption ("--" ++ name))
+                  Just spec =>
+                    if spec.argType == Flag
+                      then Err (InvalidFormat arg "flags don't take values")
+                      else do
+                        validated <- validateAllowed spec value
                         let newParsed = (specName spec, OptionValue validated) :: state.parsed
-                        parseLoop opts specs ({ remaining := rest', parsed := newParsed } state)
+                        parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
 
-            LongOptEq name value =>
-              case findByLong specs name of
-                Nothing =>
-                  if opts.allowUnknown
-                    then parseLoop opts specs ({ remaining := rest } state)
-                    else Err (UnknownOption ("--" ++ name))
-                Just spec =>
-                  if spec.argType == Flag
-                    then Err (InvalidFormat arg "flags don't take values")
-                    else do
-                      validated <- validateAllowed spec value
-                      let newParsed = (specName spec, OptionValue validated) :: state.parsed
-                      parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
+              ShortOpt c =>
+                case findByShort specs c of
+                  Nothing =>
+                    if opts.allowUnknown
+                      then parseLoop opts specs ({ remaining := rest } state)
+                      else Err (UnknownOption ("-" ++ singleton c))
+                  Just spec =>
+                    if spec.argType == Flag
+                      then let newParsed = (specName spec, FlagSet) :: state.parsed
+                           in parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
+                      else case rest of
+                        [] => Err (MissingValue ("-" ++ singleton c))
+                        (val :: rest') => do
+                          validated <- validateAllowed spec val
+                          let newParsed = (specName spec, OptionValue validated) :: state.parsed
+                          parseLoop opts specs ({ remaining := rest', parsed := newParsed } state)
 
-            ShortOpt c =>
-              case findByShort specs c of
-                Nothing =>
-                  if opts.allowUnknown
-                    then parseLoop opts specs ({ remaining := rest } state)
-                    else Err (UnknownOption ("-" ++ singleton c))
-                Just spec =>
-                  if spec.argType == Flag
-                    then let newParsed = (specName spec, FlagSet) :: state.parsed
-                         in parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
-                    else case rest of
-                      [] => Err (MissingValue ("-" ++ singleton c))
-                      (val :: rest') => do
-                        validated <- validateAllowed spec val
+              ShortOptVal c value =>
+                case findByShort specs c of
+                  Nothing =>
+                    if opts.allowUnknown
+                      then parseLoop opts specs ({ remaining := rest } state)
+                      else Err (UnknownOption ("-" ++ singleton c))
+                  Just spec =>
+                    if spec.argType == Flag
+                      then Err (InvalidFormat arg "flags don't take values")
+                      else do
+                        validated <- validateAllowed spec value
                         let newParsed = (specName spec, OptionValue validated) :: state.parsed
-                        parseLoop opts specs ({ remaining := rest', parsed := newParsed } state)
+                        parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
 
-            ShortOptVal c value =>
-              case findByShort specs c of
-                Nothing =>
-                  if opts.allowUnknown
-                    then parseLoop opts specs ({ remaining := rest } state)
-                    else Err (UnknownOption ("-" ++ singleton c))
-                Just spec =>
-                  if spec.argType == Flag
-                    then Err (InvalidFormat arg "flags don't take values")
-                    else do
-                      validated <- validateAllowed spec value
-                      let newParsed = (specName spec, OptionValue validated) :: state.parsed
-                      parseLoop opts specs ({ remaining := rest, parsed := newParsed } state)
+              BundledOpts chars =>
+                parseBundled opts specs state rest chars
 
-            BundledOpts chars =>
-              parseBundled opts specs state rest chars
+              PositionalArg value =>
+                if opts.stopAtNonOption
+                  then let newParsed = ("--rest", RestValues (arg :: rest)) :: state.parsed
+                       in Ok ({ remaining := [], parsed := newParsed } state)
+                  else let posSpecs = filter (\s => s.argType == Positional) specs
+                       in if state.positionalCount >= length posSpecs
+                            then if opts.allowUnknown
+                                   then parseLoop opts specs ({ remaining := rest } state)
+                                   else Err (TooManyPositional (S state.positionalCount) (length posSpecs))
+                            else let newParsed = ("positional-" ++ show state.positionalCount, PositionalValue value) :: state.parsed
+                                 in parseLoop opts specs ({ remaining := rest
+                                                          , parsed := newParsed
+                                                          , positionalCount := S state.positionalCount } state)
 
-            PositionalArg value =>
-              if opts.stopAtNonOption
-                then let newParsed = ("--rest", RestValues (arg :: rest)) :: state.parsed
-                     in Ok ({ remaining := [], parsed := newParsed } state)
-                else let posSpecs = filter (\s => s.argType == Positional) specs
-                     in if state.positionalCount >= length posSpecs
-                          then if opts.allowUnknown
-                                 then parseLoop opts specs ({ remaining := rest } state)
-                                 else Err (TooManyPositional (S state.positionalCount) (length posSpecs))
-                          else let newParsed = ("positional-" ++ show state.positionalCount, PositionalValue value) :: state.parsed
-                               in parseLoop opts specs ({ remaining := rest
-                                                        , parsed := newParsed
-                                                        , positionalCount := S state.positionalCount } state)
+      parseBundled : ParserOptions -> List ArgSpec -> ParserState -> List String -> List Char -> ArgResult ParserState
+      -- TRUSTED: totality; assert_total on the parseBundled -> parseLoop edge.
+      -- Each cycle takes remaining from (arg :: rest) to rest; the decrease is threaded
+      -- through a record update so the structural checker cannot see it.
+      -- Production fix: hoist `remaining` out of ParserState into an explicit argument.
+      parseBundled opts specs state rest [] = assert_total (parseLoop opts specs ({ remaining := rest } state))
+      parseBundled opts specs state rest (c :: cs) =
+        case findByShort specs c of
+          Nothing =>
+            if opts.allowUnknown
+              then parseBundled opts specs state rest cs
+              else Err (UnknownOption ("-" ++ singleton c))
+          Just spec =>
+            if spec.argType /= Flag
+              then Err (InvalidFormat ("-" ++ pack (c :: cs)) "only flags can be bundled")
+              else let newParsed = (specName spec, FlagSet) :: state.parsed
+                   in parseBundled opts specs ({ parsed := newParsed } state) rest cs
 
-    parseBundled : ParserOptions -> List ArgSpec -> ParserState -> List String -> List Char -> ArgResult ParserState
-    parseBundled opts specs state rest [] = parseLoop opts specs ({ remaining := rest } state)
-    parseBundled opts specs state rest (c :: cs) =
-      case findByShort specs c of
-        Nothing =>
-          if opts.allowUnknown
-            then parseBundled opts specs state rest cs
-            else Err (UnknownOption ("-" ++ singleton c))
-        Just spec =>
-          if spec.argType /= Flag
-            then Err (InvalidFormat ("-" ++ pack (c :: cs)) "only flags can be bundled")
-            else let newParsed = (specName spec, FlagSet) :: state.parsed
-                 in parseBundled opts specs ({ parsed := newParsed } state) rest cs
-
-    checkRequired : List ArgSpec -> ParsedArgs -> ArgResult ()
-    checkRequired [] _ = Ok ()
-    checkRequired (spec :: specs) parsed =
-      if spec.required && isNothing (lookup (specName spec) parsed)
-        then case spec.defaultValue of
-               Just _ => checkRequired specs parsed
-               Nothing => Err (MissingRequired spec)
-        else checkRequired specs parsed
+      checkRequired : List ArgSpec -> ParsedArgs -> ArgResult ()
+      checkRequired [] _ = Ok ()
+      checkRequired (spec :: specs) parsed =
+        if spec.required && isNothing (lookup (specName spec) parsed)
+          then case spec.defaultValue of
+                 Just _ => checkRequired specs parsed
+                 Nothing => Err (MissingRequired spec)
+          else checkRequired specs parsed
 
 --------------------------------------------------------------------------------
 -- Result Access

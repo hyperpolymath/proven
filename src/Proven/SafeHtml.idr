@@ -35,6 +35,16 @@ public export
 data UntrustedContent : Type where
   MkUntrusted : String -> UntrustedContent
 
+||| Check if string is valid attribute name
+||| Must start with letter, contain only valid chars, not be empty
+|||
+||| Forward-declared here because `AttrName`'s constructor (below) mentions it
+||| in an auto-implicit proof obligation, while the body depends on `isAttrChar`
+||| which is defined further down. Idris2 requires definition-before-use at top
+||| level; a lone signature is the sanctioned way to break the cycle.
+public export
+isValidAttrName : String -> Bool
+
 ||| HTML attribute name (validated)
 public export
 data AttrName : Type where
@@ -70,10 +80,6 @@ public export
 isAttrChar : Char -> Bool
 isAttrChar c = isAlpha c || isDigit c || c == '-' || c == '_' || c == ':'
 
-||| Check if string is valid attribute name
-||| Must start with letter, contain only valid chars, not be empty
-public export
-isValidAttrName : String -> Bool
 isValidAttrName s = case strM s of
   StrNil => False
   StrCons c rest => isAlpha c && all isAttrChar (unpack rest)
@@ -165,18 +171,30 @@ public export
 renderAttrs : List HtmlAttr -> String
 renderAttrs = concat . map renderAttr
 
-||| Render an HTML element to TrustedHtml
-public export
-render : HtmlElement -> TrustedHtml
-render (TextNode s) = MkTrustedHtml (escapeHtmlContent s)
-render (RawHtml trusted) = trusted
-render (VoidElement tag attrs) =
-  MkTrustedHtml $ "<" ++ tag ++ renderAttrs attrs ++ " />"
-render (Element tag attrs children) =
-  let childHtml = concat (map (unTrust . render) children)
-  in MkTrustedHtml $ "<" ++ tag ++ renderAttrs attrs ++ ">" ++ childHtml ++ "</" ++ tag ++ ">"
-render (Fragment children) =
-  concatTrusted (map render children)
+-- Defunctionalised 2026-08-27: `map (unTrust . render) children` and
+-- `map render children` hid the structural descent from the totality
+-- checker. `renderAll` is the same traversal, lifted into a mutual block
+-- so the size-change principle can see `c` is a subterm of `c :: cs`.
+-- (A `|||` docstring cannot attach to `mutual` — it is not a declaration.)
+mutual
+  ||| Render an HTML element to TrustedHtml
+  public export
+  render : HtmlElement -> TrustedHtml
+  render (TextNode s) = MkTrustedHtml (escapeHtmlContent s)
+  render (RawHtml trusted) = trusted
+  render (VoidElement tag attrs) =
+    MkTrustedHtml $ "<" ++ tag ++ renderAttrs attrs ++ " />"
+  render (Element tag attrs children) =
+    let childHtml = concat (map unTrust (renderAll children))
+    in MkTrustedHtml $ "<" ++ tag ++ renderAttrs attrs ++ ">" ++ childHtml ++ "</" ++ tag ++ ">"
+  render (Fragment children) =
+    concatTrusted (renderAll children)
+
+  ||| Render every child. Explicitly recursive so the descent is visible.
+  public export
+  renderAll : List HtmlElement -> List TrustedHtml
+  renderAll [] = []
+  renderAll (c :: cs) = render c :: renderAll cs
 
 ||| Render to string (final output)
 public export

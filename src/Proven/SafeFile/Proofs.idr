@@ -25,14 +25,14 @@ import Data.String
 ||| Predicate: Path is bounded
 public export
 data BoundedPath : Nat -> String -> Type where
-  postulate MkBoundedPath : (maxLen : Nat) -> (path : String) ->
+  MkBoundedPath : (maxLen : Nat) -> (path : String) ->
                   {auto prf : length (unpack path) <= maxLen = True} ->
                   BoundedPath maxLen path
 
 ||| Predicate: Path has no traversal
 public export
 data NoTraversal : String -> Type where
-  postulate MkNoTraversal : (path : String) ->
+  MkNoTraversal : (path : String) ->
                   {auto prf : not (isInfixOf ".." path) = True} ->
                   NoTraversal path
 
@@ -63,7 +63,7 @@ traversalCheckPrevents path hasTraversal = ()
 ||| Predicate: Read size is bounded
 public export
 data BoundedRead : Nat -> Nat -> Type where
-  postulate MkBoundedRead : (limit : Nat) -> (size : Nat) ->
+  MkBoundedRead : (limit : Nat) -> (size : Nat) ->
                   {auto prf : size <= limit = True} ->
                   BoundedRead limit size
 
@@ -98,7 +98,7 @@ totalReadPrevents opts handle additional tooMuch = ()
 ||| `length (unpack (pack xs)) = length xs`, plus the `List.take` length
 ||| lemma from `Data.List`.
 export
-postulate 0 boundedReadAtMostLimit : (limit : Nat) -> (content : String) ->
+0 boundedReadAtMostLimit : (limit : Nat) -> (content : String) ->
                            length (unpack (pack (take limit (unpack content)))) <= limit = True
 
 --------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ postulate 0 boundedReadAtMostLimit : (limit : Nat) -> (content : String) ->
 ||| Predicate: Write size is bounded
 public export
 data BoundedWrite : Nat -> Nat -> Type where
-  postulate MkBoundedWrite : (limit : Nat) -> (size : Nat) ->
+  MkBoundedWrite : (limit : Nat) -> (size : Nat) ->
                    {auto prf : size <= limit = True} ->
                    BoundedWrite limit size
 
@@ -262,7 +262,7 @@ writeTrackingMonotonic h bytes = plusGteOriginal h.bytesWritten bytes
 ||| reflective tactic gives `isInfixOf "\0" (pack xs) = elem '\0' xs`
 ||| plus the `filter` exclusion lemma.
 export
-postulate 0 sanitizedNoNull : (s : String) ->
+0 sanitizedNoNull : (s : String) ->
                     not (isInfixOf "\0" (Operations.sanitizeContent s)) = True
 
 --------------------------------------------------------------------------------

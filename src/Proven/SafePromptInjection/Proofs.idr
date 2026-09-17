@@ -157,7 +157,7 @@ cleanIsSafe = Refl
 ||| than hidden. Discharging it needs an `unpack`/structural-recursion
 ||| bridge lemma (tracked in PROOF-NEEDS.md).
 public export
-postulate 0 escapeNeutralisesAllDelimitersBridge :
+0 escapeNeutralisesAllDelimitersBridge :
      (s : String)
   -> elem '<' (unpack (escapePromptDelimiters s)) = True
   -> elem '\\' (unpack (escapePromptDelimiters s)) = True

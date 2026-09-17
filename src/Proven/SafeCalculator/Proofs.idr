@@ -36,4 +36,4 @@ module Proven.SafeCalculator.Proofs
 ||| `Proven.SafeMath.Proofs` baseline is repaired this file should be
 ||| rewritten with concrete proofs of the items above.
 public export
-postulate 0 safeCalculatorProofsAwaitBaselineRepair : ()
+0 safeCalculatorProofsAwaitBaselineRepair : ()

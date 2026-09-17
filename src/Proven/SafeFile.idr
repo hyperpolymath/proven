@@ -418,7 +418,7 @@ public export
 safeForLog : String -> String
 safeForLog path =
   if length (unpack path) > 100
-    then take 100 path ++ "..."
+    then pack (take 100 (unpack path)) ++ "..."
     else path
 
 --------------------------------------------------------------------------------

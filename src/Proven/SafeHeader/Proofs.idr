@@ -11,6 +11,7 @@ module Proven.SafeHeader.Proofs
 
 import Proven.Core
 import Proven.SafeHeader.Types
+import Proven.SafeHeader.Parser
 import Data.List
 import Data.String
 
@@ -23,7 +24,7 @@ import Data.String
 ||| Predicate: Header value has no CRLF
 public export
 data NoCRLF : String -> Type where
-  postulate MkNoCRLF : (value : String) ->
+  MkNoCRLF : (value : String) ->
              {auto prf : not (hasCRLF value) = True} ->
              NoCRLF value
 
@@ -46,12 +47,8 @@ crlfCheckPreventsInjection value hasCrlf = ()
 ||| once `HeaderValue` carries an erased `NoCRLF` proof field that this
 ||| lemma can simply project.
 export
-postulate 0 headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
+0 headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
 
-||| Helper: render a header to its wire format
-public export
-renderHeader : Header -> String
-renderHeader h = h.name.originalCase ++ ": " ++ h.value.value
 
 ||| OWED: Concatenating a CRLF-free header name, the literal `": "`, and
 ||| a CRLF-free header value produces a CRLF-free wire-format string.
@@ -64,7 +61,7 @@ renderHeader h = h.name.originalCase ++ ": " ++ h.value.value
 ||| tactic supplies `isInfixOf_append : isInfixOf p (a ++ b) = isInfixOf p a || isInfixOf p b`,
 ||| or via per-character induction on `unpack (renderHeader h)`.
 export
-postulate 0 renderedHeaderSafe : (h : Header) ->
+0 renderedHeaderSafe : (h : Header) ->
                        not (hasCRLF (renderHeader h)) = True
 
 --------------------------------------------------------------------------------
@@ -74,7 +71,7 @@ postulate 0 renderedHeaderSafe : (h : Header) ->
 ||| Predicate: Header name is valid token
 public export
 data ValidToken : String -> Type where
-  postulate MkValidToken : (name : String) ->
+  MkValidToken : (name : String) ->
                  {auto prf : isValidToken name = True} ->
                  ValidToken name
 
@@ -105,7 +102,7 @@ tokenValidationPrevents name invalid = ()
 ||| Predicate: Header value is bounded
 public export
 data BoundedValue : Nat -> String -> Type where
-  postulate MkBoundedValue : (maxLen : Nat) -> (value : String) ->
+  MkBoundedValue : (maxLen : Nat) -> (value : String) ->
                    {auto prf : length (unpack value) <= maxLen = True} ->
                    BoundedValue maxLen value
 
@@ -152,9 +149,9 @@ totalSizePrevents opts size tooLarge = ()
 ||| hand-rewriting via `plusLteMonotone` over the two `.bounded`
 ||| projections.
 export
-postulate 0 singleHeaderBounded : (h : Header) ->
+0 singleHeaderBounded : (h : Header) ->
                         length (unpack h.name.originalCase) + 2 + length (unpack h.value.value) <=
-                        maxNameLength + 2 + maxValueLength = True
+                        Proven.SafeHeader.Types.maxNameLength + 2 + Proven.SafeHeader.Types.maxValueLength = True
 
 --------------------------------------------------------------------------------
 -- Dangerous Header Proofs
@@ -248,7 +245,7 @@ strictBlocksDangerous = Refl
 ||| pre-validated `HeaderName` (so the proof becomes a projection of
 ||| the constructor invariant).
 export
-postulate 0 wellKnownNamesValid : (h : WellKnownHeader) ->
+0 wellKnownNamesValid : (h : WellKnownHeader) ->
                         isValidToken (show h) = True
 
 ||| Theorem: Security headers are categorized correctly

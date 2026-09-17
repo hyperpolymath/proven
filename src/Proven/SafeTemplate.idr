@@ -125,30 +125,44 @@ htmlEscape s = concatMap escapeChar (unpack s)
     escapeChar '\'' = "&#x27;"
     escapeChar c = singleton c
 
-||| Render a template expression to string
-public export
-renderExpr : TemplateExpr -> TemplateContext -> String
-renderExpr (Literal s) _ = s
-renderExpr (Variable name) ctx =
-  case lookupVar name ctx of
-    Just val => show val
-    Nothing => ""
-renderExpr (Conditional cond thenExprs elseExprs) ctx =
-  case lookupVar cond ctx of
-    Just val => if isTruthy val
-                  then concatMap (\e => renderExpr e ctx) thenExprs
-                  else concatMap (\e => renderExpr e ctx) elseExprs
-    Nothing => concatMap (\e => renderExpr e ctx) elseExprs
-renderExpr (Loop var collection body) ctx =
-  case lookupVar collection ctx of
-    Just (TList items) =>
-      concatMap (\item =>
-        let innerCtx = (var, item) :: ctx
-        in concatMap (\e => renderExpr e innerCtx) body
-      ) items
-    _ => ""
-renderExpr (Escape inner) ctx = htmlEscape (renderExpr inner ctx)
-renderExpr (Comment _) _ = ""
+-- Render a template expression to string
+--
+-- Defunctionalised into a mutual group. The recursion previously ran through
+-- `concatMap`, which hides the structural descent from the totality checker;
+-- explicit list recursion makes the descent visible without a totality escape.
+mutual
+  public export
+  renderExpr : TemplateExpr -> TemplateContext -> String
+  renderExpr (Literal s) _ = s
+  renderExpr (Variable name) ctx =
+    case lookupVar name ctx of
+      Just val => show val
+      Nothing => ""
+  renderExpr (Conditional cond thenExprs elseExprs) ctx =
+    case lookupVar cond ctx of
+      Just val => if isTruthy val
+                    then renderExprs thenExprs ctx
+                    else renderExprs elseExprs ctx
+      Nothing => renderExprs elseExprs ctx
+  renderExpr (Loop var collection body) ctx =
+    case lookupVar collection ctx of
+      Just (TList items) => renderLoop items var body ctx
+      _ => ""
+  renderExpr (Escape inner) ctx = htmlEscape (renderExpr inner ctx)
+  renderExpr (Comment _) _ = ""
+
+  ||| Render each expression in order and concatenate
+  public export
+  renderExprs : List TemplateExpr -> TemplateContext -> String
+  renderExprs [] _ = ""
+  renderExprs (e :: es) ctx = renderExpr e ctx ++ renderExprs es ctx
+
+  ||| Render the loop body once per item, with the loop variable bound
+  public export
+  renderLoop : List TemplateValue -> String -> List TemplateExpr -> TemplateContext -> String
+  renderLoop [] _ _ _ = ""
+  renderLoop (item :: items) var body ctx =
+    renderExprs body ((var, item) :: ctx) ++ renderLoop items var body ctx
 
 ||| A complete template
 public export
@@ -160,22 +174,35 @@ record Template where
 ||| Render a complete template
 public export
 renderTemplate : Template -> TemplateContext -> String
-renderTemplate tmpl ctx = concatMap (\e => renderExpr e ctx) (templateBody tmpl)
+renderTemplate tmpl ctx = renderExprs (templateBody tmpl) ctx
+
+-- Is a single template expression free of dangerous constructs?
+--
+-- Lifted out of `isTemplateSafe`'s `where` block and paired with an explicit
+-- list recursion: the previous `all exprSafe xs` routed the recursion through
+-- a higher-order function and defeated the totality checker.
+mutual
+  public export
+  exprSafe : TemplateExpr -> Bool
+  exprSafe (Literal s) = not (hasDangerousPattern s)
+  exprSafe (Variable name) = isValidVarName name
+  exprSafe (Conditional cond thenE elseE) =
+    isValidVarName cond && allExprSafe thenE && allExprSafe elseE
+  exprSafe (Loop var coll body) =
+    isValidVarName var && isValidVarName coll && allExprSafe body
+  exprSafe (Escape inner) = exprSafe inner
+  exprSafe (Comment _) = True
+
+  ||| Are all expressions in the list free of dangerous constructs?
+  public export
+  allExprSafe : List TemplateExpr -> Bool
+  allExprSafe [] = True
+  allExprSafe (e :: es) = exprSafe e && allExprSafe es
 
 ||| Validate a template has no dangerous expressions
 public export
 isTemplateSafe : Template -> Bool
-isTemplateSafe tmpl = all exprSafe (templateBody tmpl)
-  where
-    exprSafe : TemplateExpr -> Bool
-    exprSafe (Literal s) = not (hasDangerousPattern s)
-    exprSafe (Variable name) = isValidVarName name
-    exprSafe (Conditional cond thenE elseE) =
-      isValidVarName cond && all exprSafe thenE && all exprSafe elseE
-    exprSafe (Loop var coll body) =
-      isValidVarName var && isValidVarName coll && all exprSafe body
-    exprSafe (Escape inner) = exprSafe inner
-    exprSafe (Comment _) = True
+isTemplateSafe tmpl = allExprSafe (templateBody tmpl)
 
 -- ----------------------------------------------------------------
 -- Proof types

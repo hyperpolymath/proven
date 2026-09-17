@@ -236,7 +236,7 @@ timestamp = SQLTimestamp
 public export
 countAll : SQLDialect -> String -> Result SQLError ParameterizedQuery
 countAll dialect tableName = do
-  tbl <- mkIdentifier tableName |> maybeToResult (InvalidIdentifier tableName "Invalid table name")
+  tbl <- maybeToResult (InvalidIdentifier tableName "Invalid table name") (mkIdentifier tableName)
   let q = MkQuery [Literal ("SELECT COUNT(*) FROM " ++ quoteIdentifier dialect tbl)] [] [] dialect
   Ok q
 
@@ -244,8 +244,8 @@ countAll dialect tableName = do
 public export
 countWhere : SQLDialect -> String -> String -> SQLValue -> Result SQLError ParameterizedQuery
 countWhere dialect tableName col val = do
-  tbl <- mkIdentifier tableName |> maybeToResult (InvalidIdentifier tableName "Invalid table name")
-  c <- mkIdentifier col |> maybeToResult (InvalidIdentifier col "Invalid column name")
+  tbl <- maybeToResult (InvalidIdentifier tableName "Invalid table name") (mkIdentifier tableName)
+  c <- maybeToResult (InvalidIdentifier col "Invalid column name") (mkIdentifier col)
   let q = MkQuery
             [Literal ("SELECT COUNT(*) FROM " ++ quoteIdentifier dialect tbl ++
                       " WHERE " ++ quoteIdentifier dialect c ++ " = " ++
@@ -257,8 +257,8 @@ countWhere dialect tableName col val = do
 public export
 exists : SQLDialect -> String -> String -> SQLValue -> Result SQLError ParameterizedQuery
 exists dialect tableName col val = do
-  tbl <- mkIdentifier tableName |> maybeToResult (InvalidIdentifier tableName "Invalid table name")
-  c <- mkIdentifier col |> maybeToResult (InvalidIdentifier col "Invalid column name")
+  tbl <- maybeToResult (InvalidIdentifier tableName "Invalid table name") (mkIdentifier tableName)
+  c <- maybeToResult (InvalidIdentifier col "Invalid column name") (mkIdentifier col)
   let q = MkQuery
             [Literal ("SELECT EXISTS(SELECT 1 FROM " ++ quoteIdentifier dialect tbl ++
                       " WHERE " ++ quoteIdentifier dialect c ++ " = " ++
@@ -298,9 +298,9 @@ public export
 upsertPostgres : String -> List String -> List (String, SQLValue) ->
                  Result SQLError ParameterizedQuery
 upsertPostgres tableName conflictCols colVals = do
-  tbl <- mkIdentifier tableName |> maybeToResult (InvalidIdentifier tableName "Invalid table name")
-  cols <- traverse (\(n, _) => mkIdentifier n |> maybeToResult (InvalidIdentifier n "Invalid column")) colVals
-  conflicts <- traverse (\n => mkIdentifier n |> maybeToResult (InvalidIdentifier n "Invalid conflict column")) conflictCols
+  tbl <- maybeToResult (InvalidIdentifier tableName "Invalid table name") (mkIdentifier tableName)
+  cols <- traverse (\(n, _) => maybeToResult (InvalidIdentifier n "Invalid column") (mkIdentifier n)) colVals
+  conflicts <- traverse (\n => maybeToResult (InvalidIdentifier n "Invalid conflict column") (mkIdentifier n)) conflictCols
 
   let quotedCols = map (quoteIdentifier PostgreSQL) cols
       quotedConflicts = map (quoteIdentifier PostgreSQL) conflicts
@@ -310,12 +310,12 @@ upsertPostgres tableName conflictCols colVals = do
       updateCols = filter (\c => not (identifierName c `elem` conflictCols)) cols
       updateParts = zipWith (\c, i => quoteIdentifier PostgreSQL c ++ " = EXCLUDED." ++ quoteIdentifier PostgreSQL c)
                             updateCols [0 .. minus (length updateCols) 1]
-      updateClause = if null updateParts then "DO NOTHING" else "DO UPDATE SET " ++ join ", " updateParts
+      updateClause = if null updateParts then "DO NOTHING" else "DO UPDATE SET " ++ joinBy ", " updateParts
 
       q = "INSERT INTO " ++ quoteIdentifier PostgreSQL tbl ++
-          " (" ++ join ", " quotedCols ++ ") VALUES (" ++
-          join ", " placeholders ++ ") ON CONFLICT (" ++
-          join ", " quotedConflicts ++ ") " ++ updateClause
+          " (" ++ joinBy ", " quotedCols ++ ") VALUES (" ++
+          joinBy ", " placeholders ++ ") ON CONFLICT (" ++
+          joinBy ", " quotedConflicts ++ ") " ++ updateClause
 
       vals = map snd colVals
   Ok (MkQuery [Literal q] vals [] PostgreSQL)
@@ -324,8 +324,8 @@ upsertPostgres tableName conflictCols colVals = do
 public export
 upsertMySQL : String -> List (String, SQLValue) -> Result SQLError ParameterizedQuery
 upsertMySQL tableName colVals = do
-  tbl <- mkIdentifier tableName |> maybeToResult (InvalidIdentifier tableName "Invalid table name")
-  cols <- traverse (\(n, _) => mkIdentifier n |> maybeToResult (InvalidIdentifier n "Invalid column")) colVals
+  tbl <- maybeToResult (InvalidIdentifier tableName "Invalid table name") (mkIdentifier tableName)
+  cols <- traverse (\(n, _) => maybeToResult (InvalidIdentifier n "Invalid column") (mkIdentifier n)) colVals
 
   let quotedCols = map (quoteIdentifier MySQL) cols
       paramCount = length colVals
@@ -333,9 +333,9 @@ upsertMySQL tableName colVals = do
       updateParts = map (\c => quoteIdentifier MySQL c ++ " = VALUES(" ++ quoteIdentifier MySQL c ++ ")") cols
 
       q = "INSERT INTO " ++ quoteIdentifier MySQL tbl ++
-          " (" ++ join ", " quotedCols ++ ") VALUES (" ++
-          join ", " placeholders ++ ") ON DUPLICATE KEY UPDATE " ++
-          join ", " updateParts
+          " (" ++ joinBy ", " quotedCols ++ ") VALUES (" ++
+          joinBy ", " placeholders ++ ") ON DUPLICATE KEY UPDATE " ++
+          joinBy ", " updateParts
 
       vals = map snd colVals
   Ok (MkQuery [Literal q] vals [] MySQL)
@@ -366,7 +366,7 @@ rollbackTransaction dialect = MkQuery [Literal "ROLLBACK"] [] [] dialect
 public export
 savepoint : SQLDialect -> String -> Result SQLError ParameterizedQuery
 savepoint dialect name = do
-  ident <- mkIdentifier name |> maybeToResult (InvalidIdentifier name "Invalid savepoint name")
+  ident <- maybeToResult (InvalidIdentifier name "Invalid savepoint name") (mkIdentifier name)
   case dialect of
     MSSQL => Ok (MkQuery [Literal ("SAVE TRANSACTION " ++ identifierName ident)] [] [] dialect)
     _ => Ok (MkQuery [Literal ("SAVEPOINT " ++ identifierName ident)] [] [] dialect)
@@ -375,7 +375,7 @@ savepoint dialect name = do
 public export
 rollbackToSavepoint : SQLDialect -> String -> Result SQLError ParameterizedQuery
 rollbackToSavepoint dialect name = do
-  ident <- mkIdentifier name |> maybeToResult (InvalidIdentifier name "Invalid savepoint name")
+  ident <- maybeToResult (InvalidIdentifier name "Invalid savepoint name") (mkIdentifier name)
   case dialect of
     MSSQL => Ok (MkQuery [Literal ("ROLLBACK TRANSACTION " ++ identifierName ident)] [] [] dialect)
     _ => Ok (MkQuery [Literal ("ROLLBACK TO SAVEPOINT " ++ identifierName ident)] [] [] dialect)
