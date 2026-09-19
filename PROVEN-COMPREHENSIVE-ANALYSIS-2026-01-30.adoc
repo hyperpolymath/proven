@@ -165,7 +165,7 @@ Testing:
 * *Test Files:* 29 property tests + 20 unit tests ✓
 * *Fuzzing:* ClusterFuzzLite integration ✓
 * *CI/CD:* GitHub Actions workflows ✓
-* *Documentation:* README.adoc ✓, CONTRIBUTING.adoc ✓, SECURITY.md ✓
+* *Documentation:* README.adoc ✓, .github/CONTRIBUTING.md ✓, SECURITY.md ✓
 
 ==== Language Bindings (89 targets)
 
@@ -422,7 +422,7 @@ BSD)
 * META.scm (ADRs, design rationale)
 * ECOSYSTEM.scm (project relationships)
 * README.adoc (excellent, detailed)
-* CONTRIBUTING.adoc ✓
+* .github/CONTRIBUTING.md ✓
 * CODE_OF_CONDUCT.md ✓
 * SECURITY.md ✓
 * CHANGELOG.md ✓
@@ -514,7 +514,7 @@ Based on Rhodium Standard Repositories (RSR):
 * [x] META.scm present with ADRs
 * [x] ECOSYSTEM.scm present
 * [x] README.adoc comprehensive
-* [x] CONTRIBUTING.adoc
+* [x] .github/CONTRIBUTING.md
 * [x] CODE_OF_CONDUCT.md
 * [x] SECURITY.md
 * [x] LICENSE files (MPL-2.0-or-later)
