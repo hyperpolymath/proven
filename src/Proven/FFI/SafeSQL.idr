@@ -51,13 +51,13 @@ decodeSQLDialect _ = Nothing
 
 ||| Encode Result ParameterizedQuery as (status, sql, paramCount)
 encodeQueryResult : Result SQLError ParameterizedQuery -> (Int, String, Int)
-encodeQueryResult (Err err) = (1, friendlyError err, 0)
+encodeQueryResult (Err err) = (1, show err, 0)
 encodeQueryResult (Ok query) =
   (0, toSQL query, cast (length (getParams query)))
 
 ||| Encode Result () as (status, error)
 encodeValidationResult : Result SQLError () -> (Int, String)
-encodeValidationResult (Err err) = (1, friendlyError err)
+encodeValidationResult (Err err) = (1, show err)
 encodeValidationResult (Ok ()) = (0, "")
 
 --------------------------------------------------------------------------------
@@ -95,10 +95,10 @@ proven_idris_sql_select_from dialectInt tableName =
     Nothing => (1, "Invalid SQL dialect", 0)
     Just dialect =>
       case selectFrom dialect tableName of
-        Err err => (1, friendlyError err, 0)
+        Err err => (1, show err, 0)
         Ok builder =>
           case build builder of
-            Err err => (1, friendlyError err, 0)
+            Err err => (1, show err, 0)
             Ok query => encodeQueryResult (Ok query)
 
 export
@@ -122,14 +122,14 @@ proven_idris_sql_is_valid_identifier name =
 export
 proven_idris_sql_validate_table_name : String -> (Int, String)
 proven_idris_sql_validate_table_name name =
-  case mkTableName name of
+  case mkIdentifier name of
     Nothing => (1, "Invalid table name: " ++ name)
     Just _ => (0, name)
 
 export
 proven_idris_sql_validate_column_name : String -> (Int, String)
 proven_idris_sql_validate_column_name name =
-  case mkColumnName name of
+  case mkIdentifier name of
     Nothing => (1, "Invalid column name: " ++ name)
     Just _ => (0, name)
 
@@ -143,22 +143,23 @@ proven_idris_sql_analyze_for_injection text =
   case analyzeForInjection text of
     Safe => 0           -- Safe
     Warning _ => 1      -- Warning (suspicious but might be OK)
-    Critical _ => 2     -- Critical (definitely injection)
+    Dangerous _ => 2    -- Likely injection
+    Critical _ => 2     -- Definite injection
 
 export
 proven_idris_sql_has_sql_keywords : String -> Int
 proven_idris_sql_has_sql_keywords text =
-  encodeBool (hasSQLKeywords text)
+  encodeBool (any (\kw => isInfixOf kw (toUpper text)) dangerousKeywords)
 
 export
 proven_idris_sql_has_comment_syntax : String -> Int
 proven_idris_sql_has_comment_syntax text =
-  encodeBool (hasCommentSyntax text)
+  encodeBool (isInfixOf "--" text || isInfixOf "/*" text || isInfixOf "*/" text)
 
 export
 proven_idris_sql_has_string_escape : String -> Int
 proven_idris_sql_has_string_escape text =
-  encodeBool (hasStringEscape text)
+  encodeBool (isInfixOf "\\" text || isInfixOf "'" text || isInfixOf "\"" text)
 
 --------------------------------------------------------------------------------
 -- Error Classification

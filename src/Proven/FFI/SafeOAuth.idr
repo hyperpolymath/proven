@@ -11,6 +11,8 @@
 module Proven.FFI.SafeOAuth
 
 import Proven.SafeOAuth
+import Data.String
+import Data.List1
 
 %default total
 
@@ -63,7 +65,7 @@ proven_idris_oauth_is_secure_redirect_uri = encodeBool . isSecureRedirectUri
 export
 proven_idris_oauth_is_valid_redirect_uri : String -> String -> Int
 proven_idris_oauth_is_valid_redirect_uri uri allowedCsv =
-  let allowed = split (== ',') allowedCsv
+  let allowed = forget (split (== ',') allowedCsv)
   in encodeBool (isValidRedirectUri uri allowed)
 
 --------------------------------------------------------------------------------
@@ -96,7 +98,7 @@ proven_idris_oauth_validate_code_exchange : String -> String -> String -> String
 proven_idris_oauth_validate_code_exchange sentState receivedState redirectUri allowedCsv =
   case (mkOAuthState sentState, mkOAuthState receivedState) of
     (Just s, Just r) =>
-      let allowed = split (== ',') allowedCsv
+      let allowed = forget (split (== ',') allowedCsv)
       in case validateCodeExchange s r redirectUri allowed of
         Left StateMismatch => (1, "State mismatch (CSRF)")
         Left InsecureRedirect => (1, "Insecure redirect URI")

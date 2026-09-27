@@ -11,6 +11,7 @@ module Proven.SafeGit.Proofs
 import Proven.SafeGit
 
 %default total
+%unbound_implicits off
 
 ||| DISCHARGED: spec anchor — the 9 ref characters forbidden by
 ||| git-check-ref-format. `forbiddenRefChars` is `public export` with

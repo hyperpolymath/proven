@@ -98,12 +98,12 @@ proven_idris_string_is_blank s =
 export
 proven_idris_string_contains : String -> String -> Int
 proven_idris_string_contains needle haystack =
-  encodeBool (contains needle haystack)
+  encodeBool (containsSubstr needle haystack)
 
 export
 proven_idris_string_starts_with : String -> String -> Int
-proven_idris_string_starts_with prefix s =
-  encodeBool (startsWith prefix s)
+proven_idris_string_starts_with prefixText s =
+  encodeBool (startsWith prefixText s)
 
 export
 proven_idris_string_ends_with : String -> String -> Int
@@ -116,7 +116,7 @@ proven_idris_string_ends_with suffix s =
 
 export
 proven_idris_string_trim : String -> String
-proven_idris_string_trim s = trim s
+proven_idris_string_trim s = Proven.SafeString.trim s
 
 export
 proven_idris_string_trim_left : String -> String
@@ -129,12 +129,12 @@ proven_idris_string_trim_right s = trimRight s
 export
 proven_idris_string_pad_left : Int -> Int -> String -> String
 proven_idris_string_pad_left targetLen padCharCode s =
-  padLeft (decodeNat targetLen) (decodeChar padCharCode) s
+  Proven.SafeString.padLeft (decodeNat targetLen) (decodeChar padCharCode) s
 
 export
 proven_idris_string_pad_right : Int -> Int -> String -> String
 proven_idris_string_pad_right targetLen padCharCode s =
-  padRight (decodeNat targetLen) (decodeChar padCharCode) s
+  Proven.SafeString.padRight (decodeNat targetLen) (decodeChar padCharCode) s
 
 export
 proven_idris_string_truncate : Int -> String -> String

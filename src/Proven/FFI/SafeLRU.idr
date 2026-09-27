@@ -88,8 +88,7 @@ proven_idris_lru_fill_ratio_percent currentSize capacity =
 export
 proven_idris_lru_is_nearly_full : Int -> Int -> Int -> Int
 proven_idris_lru_is_nearly_full currentSize capacity threshold =
-  let percent = cast (currentSize * 100) / cast capacity
-  in encodeBool (percent >= cast threshold)
+  encodeBool (capacity > 0 && currentSize * 100 >= threshold * capacity)
 
 --------------------------------------------------------------------------------
 -- Hit Rate Calculation
@@ -97,24 +96,24 @@ proven_idris_lru_is_nearly_full currentSize capacity threshold =
 
 export
 proven_idris_lru_hit_rate : Int -> Int -> Double
-proven_idris_lru_hit_rate hits total =
-  if total == 0 then 0.0
-  else cast hits / cast total
+proven_idris_lru_hit_rate hits totalCount =
+  if totalCount == 0 then 0.0
+  else cast hits / cast totalCount
 
 export
 proven_idris_lru_hit_rate_percent : Int -> Int -> Double
-proven_idris_lru_hit_rate_percent hits total =
-  proven_idris_lru_hit_rate hits total * 100.0
+proven_idris_lru_hit_rate_percent hits totalCount =
+  proven_idris_lru_hit_rate hits totalCount * 100.0
 
 export
 proven_idris_lru_miss_rate : Int -> Int -> Double
-proven_idris_lru_miss_rate hits total =
-  1.0 - proven_idris_lru_hit_rate hits total
+proven_idris_lru_miss_rate hits totalCount =
+  1.0 - proven_idris_lru_hit_rate hits totalCount
 
 export
 proven_idris_lru_miss_rate_percent : Int -> Int -> Double
-proven_idris_lru_miss_rate_percent hits total =
-  proven_idris_lru_miss_rate hits total * 100.0
+proven_idris_lru_miss_rate_percent hits totalCount =
+  proven_idris_lru_miss_rate hits totalCount * 100.0
 
 --------------------------------------------------------------------------------
 -- Eviction Statistics
@@ -180,11 +179,11 @@ proven_idris_lru_optimal_capacity_for_hit_rate avgAccesses targetHitRate =
 
 export
 proven_idris_lru_recommend_resize : Int -> Int -> Int -> Int -> Int
-proven_idris_lru_recommend_resize currentSize capacity hits total =
-  let hitRate = proven_idris_lru_hit_rate hits total
+proven_idris_lru_recommend_resize currentSize capacity hits totalCount =
+  let hitRate = proven_idris_lru_hit_rate hits totalCount
       targetHitRate = 0.85  -- Target 85% hit rate
   in if hitRate < targetHitRate
-       then cast (cast capacity * 1.5)  -- Increase capacity by 50%
+       then cast (the Double (cast capacity) * 1.5)  -- Increase capacity by 50%
        else capacity
 
 --------------------------------------------------------------------------------
@@ -193,8 +192,8 @@ proven_idris_lru_recommend_resize currentSize capacity hits total =
 
 export
 proven_idris_lru_is_efficient : Int -> Int -> Double -> Int
-proven_idris_lru_is_efficient hits total minHitRate =
-  let rate = proven_idris_lru_hit_rate hits total
+proven_idris_lru_is_efficient hits totalCount minHitRate =
+  let rate = proven_idris_lru_hit_rate hits totalCount
   in encodeBool (rate >= minHitRate)
 
 export

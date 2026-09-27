@@ -46,7 +46,7 @@ encodeMaybeIPv6 (Just ip) = (0, show ip)
 ||| Encode Maybe Port as (status, error)
 encodeMaybePort : Maybe Port -> (Int, String)
 encodeMaybePort Nothing = (1, "Invalid port number")
-encodeMaybePort (Just port) = (0, show (portToNat port))
+encodeMaybePort (Just port) = (0, show (portValue port))
 
 ||| Encode Maybe MACAddress as (status, address)
 encodeMaybeMAC : Maybe MACAddress -> (Int, String)
@@ -99,7 +99,7 @@ proven_idris_ipv4_is_broadcast : String -> Int
 proven_idris_ipv4_is_broadcast s =
   case parseIPv4 s of
     Nothing => 0
-    Just ip => ip == broadcast
+    Just ip => encodeBool (isBroadcastIPv4 ip)
 
 export
 proven_idris_ipv4_is_global : String -> Int
@@ -156,7 +156,7 @@ proven_idris_ipv6_is_global : String -> Int
 proven_idris_ipv6_is_global s =
   case parseIPv6 s of
     Nothing => 0
-    Just ip => encodeBool (isGlobalIPv6 ip)
+    Just ip => encodeBool (isGlobalUnicastIPv6 ip)
 
 export
 proven_idris_ipv6_is_multicast : String -> Int
@@ -213,7 +213,7 @@ proven_idris_port_is_well_known : Int -> Int
 proven_idris_port_is_well_known n =
   case mkPort (cast n) of
     Nothing => 0
-    Just port => encodeBool (isWellKnownPort port)
+    Just port => encodeBool (isSystemPort port)
 
 export
 proven_idris_port_is_registered : Int -> Int
@@ -227,14 +227,14 @@ proven_idris_port_is_ephemeral : Int -> Int
 proven_idris_port_is_ephemeral n =
   case mkPort (cast n) of
     Nothing => 0
-    Just port => encodeBool (isEphemeralPort port)
+    Just port => encodeBool (isDynamicPort port)
 
 export
 proven_idris_port_is_privileged : Int -> Int
 proven_idris_port_is_privileged n =
   case mkPort (cast n) of
     Nothing => 0
-    Just port => encodeBool (isPrivilegedPort port)
+    Just port => encodeBool (isSystemPort port)
 
 --------------------------------------------------------------------------------
 -- MAC Address Operations

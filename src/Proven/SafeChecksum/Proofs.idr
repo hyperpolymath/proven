@@ -46,6 +46,7 @@ import Data.List
 import Data.Bits
 
 %default total
+%unbound_implicits off
 
 --------------------------------------------------------------------------------
 -- Spec-anchor constants (CRC32 IEEE 802.3, Adler-32 modulus)

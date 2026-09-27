@@ -34,7 +34,7 @@ encodeResult (Just x) = (0, x)
 export
 proven_idris_math_div : Integer -> Integer -> (Int, Integer)
 proven_idris_math_div numerator denominator =
-  encodeResult (div numerator denominator)
+  encodeResult (safeDiv numerator denominator)
 
 export
 proven_idris_math_div_or : Integer -> Integer -> Integer -> Integer
@@ -44,7 +44,7 @@ proven_idris_math_div_or def numerator denominator =
 export
 proven_idris_math_mod : Integer -> Integer -> (Int, Integer)
 proven_idris_math_mod numerator denominator =
-  encodeResult (mod numerator denominator)
+  encodeResult (safeMod numerator denominator)
 
 --------------------------------------------------------------------------------
 -- Checked Arithmetic (Overflow Detection)
@@ -145,8 +145,8 @@ proven_idris_math_max a b =
 
 export
 proven_idris_math_percent_of : Integer -> Integer -> (Int, Integer)
-proven_idris_math_percent_of percent total =
-  encodeResult (percentOf percent total)
+proven_idris_math_percent_of percent totalValue =
+  encodeResult (percentOf percent totalValue)
 
 export
 proven_idris_math_as_percent : Integer -> Integer -> (Int, Integer)

@@ -99,6 +99,22 @@ Eq SQLValue where
 -- Safe Identifier
 --------------------------------------------------------------------------------
 
+||| Maximum supported identifier length.  This is enforced by
+||| `isValidIdentifier` and exposed through the FFI.
+public export
+maxIdentifierLength : Nat
+maxIdentifierLength = 128
+
+||| Maximum rendered query length accepted by `validate`.
+public export
+maxQueryLength : Nat
+maxQueryLength = 1048576
+
+||| Maximum positional parameter count accepted by `validate`.
+public export
+maxParamCount : Nat
+maxParamCount = 65535
+
 ||| A validated SQL identifier (table name, column name, etc.)
 ||| Only allows alphanumeric characters and underscores
 public export
@@ -134,7 +150,7 @@ isValidIdentifier s =
     StrCons c rest =>
       (isAlpha c || c == '_') &&
       all isIdentifierChar (unpack rest) &&
-      length s <= 128  -- Reasonable max length
+      length s <= maxIdentifierLength
 
 ||| SQL reserved words that cannot be used as identifiers without quoting
 public export

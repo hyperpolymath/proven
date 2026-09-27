@@ -20,6 +20,7 @@ module Proven.FFI.SafeCron
 import Proven.SafeCron
 import Proven.Core
 import Data.String
+import Data.List1
 
 %default total
 
@@ -31,6 +32,12 @@ import Data.String
 encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
+
+||| Check an FFI integer before converting it to a natural-number cron field.
+||| In particular, negative inputs must not be accepted through a saturating cast.
+inIntBounds : FieldBounds -> Int -> Bool
+inIntBounds bounds value =
+  value >= cast bounds.minVal && value <= cast bounds.maxVal
 
 ||| Encode field type
 encodeCronFieldType : CronField -> Int
@@ -91,27 +98,27 @@ proven_idris_cron_day_of_week_max = cast dayOfWeekBounds.maxVal
 export
 proven_idris_cron_is_valid_minute : Int -> Int
 proven_idris_cron_is_valid_minute val =
-  encodeBool (inBounds minuteBounds (cast val))
+  encodeBool (inIntBounds minuteBounds val)
 
 export
 proven_idris_cron_is_valid_hour : Int -> Int
 proven_idris_cron_is_valid_hour val =
-  encodeBool (inBounds hourBounds (cast val))
+  encodeBool (inIntBounds hourBounds val)
 
 export
 proven_idris_cron_is_valid_day_of_month : Int -> Int
 proven_idris_cron_is_valid_day_of_month val =
-  encodeBool (inBounds dayOfMonthBounds (cast val))
+  encodeBool (inIntBounds dayOfMonthBounds val)
 
 export
 proven_idris_cron_is_valid_month : Int -> Int
 proven_idris_cron_is_valid_month val =
-  encodeBool (inBounds monthBounds (cast val))
+  encodeBool (inIntBounds monthBounds val)
 
 export
 proven_idris_cron_is_valid_day_of_week : Int -> Int
 proven_idris_cron_is_valid_day_of_week val =
-  encodeBool (inBounds dayOfWeekBounds (cast val))
+  encodeBool (inIntBounds dayOfWeekBounds val)
 
 export
 proven_idris_cron_validate_single : Int -> Int -> Int -> Int
@@ -136,11 +143,11 @@ export
 proven_idris_cron_is_valid_time : Int -> Int -> Int -> Int -> Int -> Int
 proven_idris_cron_is_valid_time minute hour dayOfMonth month dayOfWeek =
   encodeBool (
-    inBounds minuteBounds (cast minute) &&
-    inBounds hourBounds (cast hour) &&
-    inBounds dayOfMonthBounds (cast dayOfMonth) &&
-    inBounds monthBounds (cast month) &&
-    inBounds dayOfWeekBounds (cast dayOfWeek)
+    inIntBounds minuteBounds minute &&
+    inIntBounds hourBounds hour &&
+    inIntBounds dayOfMonthBounds dayOfMonth &&
+    inIntBounds monthBounds month &&
+    inIntBounds dayOfWeekBounds dayOfWeek
   )
 
 export
@@ -165,7 +172,7 @@ proven_idris_cron_is_too_frequent cronStr =
 export
 proven_idris_cron_estimate_interval_minutes : String -> Int
 proven_idris_cron_estimate_interval_minutes cronStr =
-  let parts = split (== ' ') cronStr
+  let parts = filter (/= "") (forget (split (== ' ') cronStr))
   in case parts of
     [minute, _, _, _, _] =>
       if minute == "*" then 1  -- Every minute
@@ -179,12 +186,9 @@ proven_idris_cron_estimate_interval_minutes cronStr =
   where
     parseStep : String -> Maybe Nat
     parseStep s =
-      case split (== '/') s of
-        [_, stepStr] => parsePositive stepStr
+      case forget (split (== '/') s) of
+        [_, stepStr] => parsePositive {a = Nat} stepStr
         _ => Nothing
-
-    parsePositive : String -> Maybe Nat
-    parsePositive s = parsePositive (cast {to = Integer} s)
 
 export
 proven_idris_cron_is_at_least_hourly : String -> Int
@@ -310,7 +314,7 @@ proven_idris_cron_is_monthly cronStr =
 export
 proven_idris_cron_field_count : String -> Int
 proven_idris_cron_field_count cronStr =
-  cast (length (split (== ' ') cronStr))
+  cast (length (filter (/= "") (forget (split (== ' ') cronStr))))
 
 export
 proven_idris_cron_has_five_fields : String -> Int

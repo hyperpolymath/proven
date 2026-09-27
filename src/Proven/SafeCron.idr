@@ -64,18 +64,23 @@ record FieldBounds where
   minVal : Nat
   maxVal : Nat
 
+public export
 minuteBounds : FieldBounds
 minuteBounds = MkBounds 0 59
 
+public export
 hourBounds : FieldBounds
 hourBounds = MkBounds 0 23
 
+public export
 dayOfMonthBounds : FieldBounds
 dayOfMonthBounds = MkBounds 1 31
 
+public export
 monthBounds : FieldBounds
 monthBounds = MkBounds 1 12
 
+public export
 dayOfWeekBounds : FieldBounds
 dayOfWeekBounds = MkBounds 0 6
 

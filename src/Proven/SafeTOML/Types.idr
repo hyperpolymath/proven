@@ -134,62 +134,69 @@ data TOMLValue : Type where
   ||| Table (standard or array of tables)
   TTable : List (String, TOMLValue) -> TOMLValue
 
-public export covering
+tomlJoinStrings : String -> List String -> String
+tomlJoinStrings _ [] = ""
+tomlJoinStrings _ [x] = x
+tomlJoinStrings sep (x :: xs) = x ++ sep ++ tomlJoinStrings sep xs
+
+-- Expose recursion through array and inline-table spines explicitly.  This is
+-- total over the TOML tree and avoids an opaque `map show` recursion.
+mutual
+  tomlToString : TOMLValue -> String
+  tomlToString (TString s) = show s
+  tomlToString (TInt i) = show i
+  tomlToString (TFloat f) = show f
+  tomlToString (TBool True) = "true"
+  tomlToString (TBool False) = "false"
+  tomlToString (TDateTime dt) = show dt
+  tomlToString (TDate d) = show d
+  tomlToString (TTime t) = show t
+  tomlToString (TArray xs) = "[" ++ tomlJoinStrings ", " (tomlValuesToStrings xs) ++ "]"
+  tomlToString (TInlineTable kvs) =
+    "{" ++ tomlJoinStrings ", " (tomlPairsToStrings kvs) ++ "}"
+  tomlToString (TTable kvs) = "[table: " ++ show (length kvs) ++ " keys]"
+
+  tomlValuesToStrings : List TOMLValue -> List String
+  tomlValuesToStrings [] = []
+  tomlValuesToStrings (x :: xs) = tomlToString x :: tomlValuesToStrings xs
+
+  tomlPairsToStrings : List (String, TOMLValue) -> List String
+  tomlPairsToStrings [] = []
+  tomlPairsToStrings ((key, value) :: rest) =
+    (key ++ " = " ++ tomlToString value) :: tomlPairsToStrings rest
+
+public export
 Show TOMLValue where
-  show (TString s) = show s
-  show (TInt i) = show i
-  show (TFloat f) = show f
-  show (TBool True) = "true"
-  show (TBool False) = "false"
-  show (TDateTime dt) = show dt
-  show (TDate d) = show d
-  show (TTime t) = show t
-  show (TArray xs) = "[" ++ join ", " (map show xs) ++ "]"
-    where
-      join : String -> List String -> String
-      join _ [] = ""
-      join _ [x] = x
-      join sep (x :: xs) = x ++ sep ++ join sep xs
-  show (TInlineTable kvs) = "{" ++ join ", " (map showKV kvs) ++ "}"
-    where
-      join : String -> List String -> String
-      join _ [] = ""
-      join _ [x] = x
-      join sep (x :: xs) = x ++ sep ++ join sep xs
-      showKV : (String, TOMLValue) -> String
-      showKV (k, v) = k ++ " = " ++ show v
-  show (TTable kvs) = "[table: " ++ show (length kvs) ++ " keys]"
+  show = tomlToString
 
-||| Equality helper for lists of TOML values (structurally recursive)
-covering
-tomlListEq : List TOMLValue -> List TOMLValue -> Bool
+mutual
+  tomlEq : TOMLValue -> TOMLValue -> Bool
+  tomlEq (TString a) (TString b) = a == b
+  tomlEq (TInt a) (TInt b) = a == b
+  tomlEq (TFloat a) (TFloat b) = a == b
+  tomlEq (TBool a) (TBool b) = a == b
+  tomlEq (TDateTime a) (TDateTime b) = a == b
+  tomlEq (TDate a) (TDate b) = a == b
+  tomlEq (TTime a) (TTime b) = a == b
+  tomlEq (TArray a) (TArray b) = tomlListEq a b
+  tomlEq (TInlineTable a) (TInlineTable b) = tomlPairsEq a b
+  tomlEq (TTable a) (TTable b) = tomlPairsEq a b
+  tomlEq _ _ = False
 
-||| Equality helper for TOML key-value pairs (structurally recursive)
-covering
-tomlPairsEq : List (String, TOMLValue) -> List (String, TOMLValue) -> Bool
+  tomlListEq : List TOMLValue -> List TOMLValue -> Bool
+  tomlListEq [] [] = True
+  tomlListEq (x :: xs) (y :: ys) = tomlEq x y && tomlListEq xs ys
+  tomlListEq _ _ = False
 
-public export covering
+  tomlPairsEq : List (String, TOMLValue) -> List (String, TOMLValue) -> Bool
+  tomlPairsEq [] [] = True
+  tomlPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
+    k1 == k2 && tomlEq v1 v2 && tomlPairsEq ps1 ps2
+  tomlPairsEq _ _ = False
+
+public export
 Eq TOMLValue where
-  TString a == TString b = a == b
-  TInt a == TInt b = a == b
-  TFloat a == TFloat b = a == b
-  TBool a == TBool b = a == b
-  TDateTime a == TDateTime b = a == b
-  TDate a == TDate b = a == b
-  TTime a == TTime b = a == b
-  TArray a == TArray b = tomlListEq a b
-  TInlineTable a == TInlineTable b = tomlPairsEq a b
-  TTable a == TTable b = tomlPairsEq a b
-  _ == _ = False
-
-tomlListEq [] [] = True
-tomlListEq (x :: xs) (y :: ys) = x == y && tomlListEq xs ys
-tomlListEq _ _ = False
-
-tomlPairsEq [] [] = True
-tomlPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
-  k1 == k2 && v1 == v2 && tomlPairsEq ps1 ps2
-tomlPairsEq _ _ = False
+  (==) = tomlEq
 
 --------------------------------------------------------------------------------
 -- TOML Document

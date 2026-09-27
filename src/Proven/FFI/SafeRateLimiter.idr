@@ -65,8 +65,8 @@ export
 proven_idris_ratelimit_tokens_after_refill : Int -> Int -> Int -> Int -> Int
 proven_idris_ratelimit_tokens_after_refill currentTokens refillRate elapsedTime capacity =
   let newTokens = proven_idris_ratelimit_tokens_to_add refillRate elapsedTime capacity
-      total = currentTokens + newTokens
-  in if total > capacity then capacity else total
+      tokenTotal = currentTokens + newTokens
+  in if tokenTotal > capacity then capacity else tokenTotal
 
 export
 proven_idris_ratelimit_can_acquire : Int -> Int -> Int
@@ -179,10 +179,10 @@ proven_idris_ratelimit_recommend_refill_rate targetRequestsPerSec intervalSize =
   targetRequestsPerSec * intervalSize
 
 export
-proven_idris_ratelimit_recommend_window_size : Int -> Int
+proven_idris_ratelimit_recommend_window_size : Int -> Int -> Int
 proven_idris_ratelimit_recommend_window_size targetRequestsPerSec maxBurst =
-  -- Window size should be large enough to smooth out bursts
-  if targetRequestsPerSec == 0 then maxBurst
+  -- Window size should be large enough to smooth out bursts.
+  if targetRequestsPerSec <= 0 then max 0 maxBurst
   else max maxBurst (maxBurst `div` targetRequestsPerSec)
 
 --------------------------------------------------------------------------------
@@ -204,8 +204,7 @@ proven_idris_ratelimit_request_utilization currentCount maxRequests =
 export
 proven_idris_ratelimit_is_throttled : Int -> Int -> Int -> Int
 proven_idris_ratelimit_is_throttled currentCount maxRequests threshold =
-  let percent = cast (currentCount * 100) / cast maxRequests
-  in encodeBool (percent >= cast threshold)
+  encodeBool (maxRequests > 0 && currentCount * 100 >= threshold * maxRequests)
 
 --------------------------------------------------------------------------------
 -- Time Calculations

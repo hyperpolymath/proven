@@ -377,18 +377,18 @@ export
 proven_idris_pool_should_expand : Int -> Int -> Int -> Int
 proven_idris_pool_should_expand inUse available maxSize =
   -- Should expand if utilization > 80% and not at max
-  let total = inUse + available
-      utilization = if total == 0 then 0.0
-                     else cast inUse / cast total
-  in encodeBool (utilization > 0.8 && total < maxSize)
+  let poolSize = inUse + available
+      utilization = if poolSize == 0 then 0.0
+                     else cast inUse / cast poolSize
+  in encodeBool (utilization > 0.8 && poolSize < maxSize)
 
 export
 proven_idris_pool_should_shrink : Int -> Int -> Int
 proven_idris_pool_should_shrink inUse available =
   -- Should shrink if many resources idle
-  let total = inUse + available
-      utilization = if total == 0 then 0.0
-                     else cast inUse / cast total
+  let poolSize = inUse + available
+      utilization = if poolSize == 0 then 0.0
+                     else cast inUse / cast poolSize
   in encodeBool (utilization < 0.2 && available > 5)
 
 --------------------------------------------------------------------------------

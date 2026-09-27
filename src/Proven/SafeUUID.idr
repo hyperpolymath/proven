@@ -88,24 +88,28 @@ parse s =
 
     extractVersion : String -> UUIDVersion
     extractVersion hex =
-      case strIndex hex 12 of
-        Just '1' => V1
-        Just '2' => V2
-        Just '3' => V3
-        Just '4' => V4
-        Just '5' => V5
-        Just c => Unknown (cast (ord c - ord '0'))
-        Nothing => Unknown 0
+      case drop 12 (unpack hex) of
+        '1' :: _ => V1
+        '2' :: _ => V2
+        '3' :: _ => V3
+        '4' :: _ => V4
+        '5' :: _ => V5
+        c :: _ => Unknown (cast (ord c - ord '0'))
+        [] => Unknown 0
 
     extractVariant : String -> UUIDVariant
     extractVariant hex =
-      case strIndex hex 16 >>= hexToNibble of
-        Just n =>
+      case drop 16 (unpack hex) of
+        c :: _ => variantFromNibble (hexToNibble c)
+        [] => RFC4122
+      where
+        variantFromNibble : Maybe Nat -> UUIDVariant
+        variantFromNibble (Just n) =
           if n < 8 then NCS
           else if n < 12 then RFC4122
           else if n < 14 then Microsoft
           else Future
-        Nothing => RFC4122
+        variantFromNibble Nothing = RFC4122
 
 ||| Validate a UUID string
 public export

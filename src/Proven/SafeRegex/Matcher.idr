@@ -116,6 +116,11 @@ getCapture st groupId =
 -- Character Matching
 --------------------------------------------------------------------------------
 
+||| Match a character class with the supplied regex flags.
+||| The signature precedes `matchCharClass` deliberately: Idris2 resolves
+||| top-level names in declaration order.
+matchesClassWithFlags : Char -> CharClass -> RegexFlags -> Bool
+
 ||| Match a character class at current position
 public export
 matchCharClass : MatchState -> CharClass -> Bool
@@ -126,11 +131,10 @@ matchCharClass st cls =
       let c' = if st.flags.caseInsensitive then toLower c else c
       in matchesClassWithFlags c' cls st.flags
 
-||| Match character class with flags
-matchesClassWithFlags : Char -> CharClass -> RegexFlags -> Bool
+-- Definition for the forward declaration above.
 matchesClassWithFlags c cls flags =
   case cls of
-    Char x =>
+    SingleChar x =>
       let x' = if flags.caseInsensitive then toLower x else x
       in c == x'
     Range from to =>
@@ -194,188 +198,140 @@ data MatchAttempt : Type where
   ||| Step limit exceeded - abort
   StepLimitExceeded : Nat -> MatchAttempt
 
-||| Match a regex against input starting at current position
-||| Uses fuel for totality
-public export
-matchRegex : (fuel : Nat) -> Regex -> MatchState -> MatchAttempt
-matchRegex Z _ st = StepLimitExceeded st.steps
-matchRegex (S fuel) r st =
-  case step st of
-    Nothing => StepLimitExceeded st.steps
-    Just st' => matchRegex' fuel r st'
-  where
-    matchRegex' : Nat -> Regex -> MatchState -> MatchAttempt
+-- Keeping the mutually recursive helpers at top level makes every fuel
+-- decrease visible to Idris2's totality checker; a `where` block would attach
+-- only to one equation.
+mutual
+  ||| Match a regex against input starting at current position.
+  ||| Every recursive path consumes fuel.
+  public export
+  matchRegex : (fuel : Nat) -> Regex -> MatchState -> MatchAttempt
+  matchRegex Z _ st = StepLimitExceeded st.steps
+  matchRegex (S fuel) r st =
+    case step st of
+      Nothing => StepLimitExceeded st.steps
+      Just st' => matchRegexStep fuel r st'
 
-    -- Empty matches empty string
-    matchRegex' _ Empty st = Success st
+  matchRegexStep : Nat -> Regex -> MatchState -> MatchAttempt
+  matchRegexStep _ Empty st = Success st
+  matchRegexStep _ Never st = Failure st
+  matchRegexStep _ (Match cls) st =
+    if matchCharClass st cls
+      then Success (advance st 1)
+      else Failure st
+  matchRegexStep fuel (Seq r1 r2) st =
+    case matchRegex fuel r1 st of
+      Success st' => matchRegex fuel r2 st'
+      Failure st' => Failure st'
+      StepLimitExceeded n => StepLimitExceeded n
+  matchRegexStep fuel (Alt r1 r2) st =
+    case matchRegex fuel r1 st of
+      Success st' => Success st'
+      Failure _ => matchRegex fuel r2 st
+      StepLimitExceeded n => StepLimitExceeded n
+  matchRegexStep fuel (Quant r q) st =
+    matchQuantified fuel r q 0 st
+  matchRegexStep fuel (Group gid r) st =
+    let startPos = st.position
+    in case matchRegex fuel r st of
+         Success st' => Success (saveCapture st' gid startPos st'.position)
+         other => other
+  matchRegexStep fuel (NCGroup r) st = matchRegex fuel r st
+  matchRegexStep _ StartAnchor st =
+    if st.flags.multiline
+      then if atLineStart st then Success st else Failure st
+      else if atStart st then Success st else Failure st
+  matchRegexStep _ EndAnchor st =
+    if st.flags.multiline
+      then if atLineEnd st then Success st else Failure st
+      else if atEnd st then Success st else Failure st
+  matchRegexStep _ WordBoundary st =
+    if atWordBoundary st then Success st else Failure st
+  matchRegexStep _ (BackRef gid) st =
+    case getCapture st gid of
+      Nothing => Failure st
+      Just (_, _, text) =>
+        let textLen = length text
+        in if st.position + textLen <= st.inputLen &&
+              substring st st.position (st.position + textLen) == text
+             then Success (advance st textLen)
+             else Failure st
+  matchRegexStep fuel (Lookahead True r) st =
+    case matchRegex fuel r st of
+      Success _ => Success st
+      Failure st' => Failure st'
+      StepLimitExceeded n => StepLimitExceeded n
+  matchRegexStep fuel (Lookahead False r) st =
+    case matchRegex fuel r st of
+      Success _ => Failure st
+      Failure _ => Success st
+      StepLimitExceeded n => StepLimitExceeded n
+  matchRegexStep fuel (Lookbehind positive r) st =
+    matchLookbehind fuel r st positive
 
-    -- Never fails
-    matchRegex' _ Never st = Failure st
+  matchQuantified : Nat -> Regex -> Quantifier -> Nat -> MatchState -> MatchAttempt
+  matchQuantified Z _ _ _ st = StepLimitExceeded st.steps
+  matchQuantified (S fuel) r q count st =
+    case step st of
+      Nothing => StepLimitExceeded st.steps
+      Just st' =>
+        let atMax = case q.maxCount of
+                      Nothing => False
+                      Just m => count >= m
+        in if atMax
+             then Success st'
+             else if q.greedy
+               then matchQuantifiedGreedy fuel r q count st'
+               else matchQuantifiedLazy fuel r q count st'
 
-    -- Match character class
-    matchRegex' _ (Match cls) st =
-      if matchCharClass st cls
-        then Success (advance st 1)
-        else Failure st
+  matchQuantifiedGreedy : Nat -> Regex -> Quantifier -> Nat -> MatchState -> MatchAttempt
+  matchQuantifiedGreedy Z _ _ _ st = StepLimitExceeded st.steps
+  matchQuantifiedGreedy (S fuel) r q count st =
+    case matchRegex fuel r st of
+      Success st' =>
+        case matchQuantified fuel r q (S count) st' of
+          Success st'' => Success st''
+          Failure _ =>
+            if count >= q.minCount then Success st' else Failure st
+          StepLimitExceeded n => StepLimitExceeded n
+      Failure _ =>
+        if count >= q.minCount then Success st else Failure st
+      StepLimitExceeded n => StepLimitExceeded n
 
-    -- Sequence: match r1 then r2
-    matchRegex' fuel (Seq r1 r2) st =
-      case matchRegex fuel r1 st of
-        Success st' => matchRegex fuel r2 st'
-        Failure st' => Failure st'
-        StepLimitExceeded n => StepLimitExceeded n
+  matchQuantifiedLazy : Nat -> Regex -> Quantifier -> Nat -> MatchState -> MatchAttempt
+  matchQuantifiedLazy Z _ _ _ st = StepLimitExceeded st.steps
+  matchQuantifiedLazy (S fuel) r q count st =
+    if count >= q.minCount
+      then Success st
+      else case matchRegex fuel r st of
+             Success st' => matchQuantified fuel r q (S count) st'
+             other => other
 
-    -- Alternative: try r1, if fails try r2
-    matchRegex' fuel (Alt r1 r2) st =
-      case matchRegex fuel r1 st of
-        Success st' => Success st'
-        Failure _ => matchRegex fuel r2 st
-        StepLimitExceeded n => StepLimitExceeded n
+  matchLookbehind : Nat -> Regex -> MatchState -> Bool -> MatchAttempt
+  matchLookbehind Z _ st _ = StepLimitExceeded st.steps
+  matchLookbehind (S fuel) r st positive =
+    tryLookbehindFrom fuel r st st.position positive
 
-    -- Quantifier: match r multiple times
-    matchRegex' fuel (Quant r q) st =
-      matchQuantified fuel r q 0 st
-
-    -- Capturing group
-    matchRegex' fuel (Group gid r) st =
-      let startPos = st.position
-      in case matchRegex fuel r st of
-           Success st' => Success (saveCapture st' gid startPos st'.position)
-           other => other
-
-    -- Non-capturing group
-    matchRegex' fuel (NCGroup r) st = matchRegex fuel r st
-
-    -- Start anchor
-    matchRegex' _ StartAnchor st =
-      if st.flags.multiline
-        then if atLineStart st then Success st else Failure st
-        else if atStart st then Success st else Failure st
-
-    -- End anchor
-    matchRegex' _ EndAnchor st =
-      if st.flags.multiline
-        then if atLineEnd st then Success st else Failure st
-        else if atEnd st then Success st else Failure st
-
-    -- Word boundary
-    matchRegex' _ WordBoundary st =
-      if atWordBoundary st then Success st else Failure st
-
-    -- Backreference
-    matchRegex' fuel (BackRef gid) st =
-      case getCapture st gid of
-        Nothing => Failure st  -- Group not captured yet
-        Just (_, _, text) =>
-          let textLen = length text
-          in if st.position + textLen <= st.inputLen &&
-                substring st st.position (st.position + textLen) == text
-               then Success (advance st textLen)
-               else Failure st
-
-    -- Positive lookahead (?=...)
-    matchRegex' fuel (Lookahead True r) st =
-      case matchRegex fuel r st of
-        Success _ => Success st  -- Match but don't consume
-        Failure st' => Failure st'
-        StepLimitExceeded n => StepLimitExceeded n
-
-    -- Negative lookahead (?!...)
-    matchRegex' fuel (Lookahead False r) st =
-      case matchRegex fuel r st of
-        Success _ => Failure st  -- Lookahead should NOT match
-        Failure _ => Success st
-        StepLimitExceeded n => StepLimitExceeded n
-
-    -- Positive lookbehind (?<=...)
-    matchRegex' fuel (Lookbehind True r) st =
-      -- Simplified: try matching from various positions behind
-      matchLookbehind fuel r st True
-
-    -- Negative lookbehind (?<!...)
-    matchRegex' fuel (Lookbehind False r) st =
-      matchLookbehind fuel r st False
-
-    -- Match quantified expression
-    matchQuantified : Nat -> Regex -> Quantifier -> Nat -> MatchState -> MatchAttempt
-    matchQuantified Z _ _ _ st = StepLimitExceeded st.steps
-    matchQuantified (S fuel) r q count st =
-      case step st of
-        Nothing => StepLimitExceeded st.steps
-        Just st' =>
-          -- Check if we've reached max count
-          let atMax = case q.maxCount of
-                        Nothing => False
-                        Just m => count >= m
-          in if atMax
-               then Success st'
-               else if q.greedy
-                 then matchQuantifiedGreedy fuel r q count st'
-                 else matchQuantifiedLazy fuel r q count st'
-
-    -- Greedy quantifier matching
-    matchQuantifiedGreedy : Nat -> Regex -> Quantifier -> Nat -> MatchState -> MatchAttempt
-    matchQuantifiedGreedy Z _ _ _ st = StepLimitExceeded st.steps
-    matchQuantifiedGreedy (S fuel) r q count st =
-      -- Try to match one more
-      case matchRegex fuel r st of
-        Success st' =>
-          -- Successfully matched, try for more (greedy)
-          case matchQuantified fuel r q (S count) st' of
-            Success st'' => Success st''
-            Failure _ =>
-              -- Backtrack: if we have enough, succeed here
-              if count >= q.minCount
-                then Success st'
-                else Failure st
-            StepLimitExceeded n => StepLimitExceeded n
-        Failure _ =>
-          -- Can't match more, check if we have enough
-          if count >= q.minCount
-            then Success st
-            else Failure st
-        StepLimitExceeded n => StepLimitExceeded n
-
-    -- Lazy quantifier matching
-    matchQuantifiedLazy : Nat -> Regex -> Quantifier -> Nat -> MatchState -> MatchAttempt
-    matchQuantifiedLazy Z _ _ _ st = StepLimitExceeded st.steps
-    matchQuantifiedLazy (S fuel) r q count st =
-      -- First check if we have minimum
-      if count >= q.minCount
-        then Success st  -- Lazy: stop as soon as minimum is satisfied
-        else case matchRegex fuel r st of
-               Success st' => matchQuantified fuel r q (S count) st'
-               other => other
-
-    -- Lookbehind matching (simplified)
-    matchLookbehind : Nat -> Regex -> MatchState -> Bool -> MatchAttempt
-    matchLookbehind Z _ st _ = StepLimitExceeded st.steps
-    matchLookbehind (S fuel) r st positive =
-      -- Try matching from positions behind current
-      let tryFrom = tryLookbehindFrom fuel r st st.position positive
-      in tryFrom
-
-    tryLookbehindFrom : Nat -> Regex -> MatchState -> Nat -> Bool -> MatchAttempt
-    tryLookbehindFrom Z _ st _ _ = StepLimitExceeded st.steps
-    tryLookbehindFrom (S fuel) r st 0 positive =
-      -- Try from position 0
-      let testSt = { position := 0 } st
-      in case matchRegex fuel r testSt of
-           Success st' =>
-             if st'.position == st.position
-               then if positive then Success st else Failure st
-               else if positive then Failure st else Success st
-           Failure _ => if positive then Failure st else Success st
-           StepLimitExceeded n => StepLimitExceeded n
-    tryLookbehindFrom (S fuel) r st pos positive =
-      let testSt = { position := minus pos 1 } st
-      in case matchRegex fuel r testSt of
-           Success st' =>
-             if st'.position == st.position
-               then if positive then Success st else Failure st
-               else tryLookbehindFrom fuel r st (minus pos 1) positive
-           Failure _ => tryLookbehindFrom fuel r st (minus pos 1) positive
-           StepLimitExceeded n => StepLimitExceeded n
+  tryLookbehindFrom : Nat -> Regex -> MatchState -> Nat -> Bool -> MatchAttempt
+  tryLookbehindFrom Z _ st _ _ = StepLimitExceeded st.steps
+  tryLookbehindFrom (S fuel) r st 0 positive =
+    let testSt = { position := 0 } st
+    in case matchRegex fuel r testSt of
+         Success st' =>
+           if st'.position == st.position
+             then if positive then Success st else Failure st
+             else if positive then Failure st else Success st
+         Failure _ => if positive then Failure st else Success st
+         StepLimitExceeded n => StepLimitExceeded n
+  tryLookbehindFrom (S fuel) r st pos positive =
+    let testSt = { position := minus pos 1 } st
+    in case matchRegex fuel r testSt of
+         Success st' =>
+           if st'.position == st.position
+             then if positive then Success st else Failure st
+             else tryLookbehindFrom fuel r st (minus pos 1) positive
+         Failure _ => tryLookbehindFrom fuel r st (minus pos 1) positive
+         StepLimitExceeded n => StepLimitExceeded n
 
 --------------------------------------------------------------------------------
 -- High-Level Matching API
@@ -404,42 +360,44 @@ matchAt sr input pos flags =
 ||| Find first match in input string
 public export
 findFirst : SafeRegex -> String -> RegexFlags -> MatchResult
-findFirst sr input flags = findFrom 0
+findFirst sr input flags = findFrom (S inputLen) 0
   where
     inputLen : Nat
     inputLen = length input
 
-    findFrom : Nat -> MatchResult
-    findFrom pos =
+    findFrom : (fuel : Nat) -> Nat -> MatchResult
+    findFrom Z _ = noMatch 0
+    findFrom (S fuel) pos =
       if pos > inputLen
         then noMatch 0
         else case matchAt sr input pos flags of
                result@(MkMatchResult True _ _ _) => result
                MkMatchResult False _ _ steps =>
                  if pos < inputLen
-                   then findFrom (S pos)
+                   then findFrom fuel (S pos)
                    else noMatch steps
 
 ||| Find all matches in input string
 public export
 findAll : SafeRegex -> String -> RegexFlags -> List MatchResult
-findAll sr input flags = findFrom 0
+findAll sr input flags = findFrom (S inputLen) 0
   where
     inputLen : Nat
     inputLen = length input
 
-    findFrom : Nat -> List MatchResult
-    findFrom pos =
+    findFrom : (fuel : Nat) -> Nat -> List MatchResult
+    findFrom Z _ = []
+    findFrom (S fuel) pos =
       if pos > inputLen
         then []
         else case matchAt sr input pos flags of
                result@(MkMatchResult True (Just (_, end)) _ _) =>
-                 result :: findFrom (max (S pos) end)
+                 result :: findFrom fuel (max (S pos) end)
                MkMatchResult False _ _ _ =>
                  if pos < inputLen
-                   then findFrom (S pos)
+                   then findFrom fuel (S pos)
                    else []
-               _ => findFrom (S pos)
+               _ => findFrom fuel (S pos)
 
 ||| Test if regex matches anywhere in input
 public export
@@ -468,42 +426,44 @@ replaceFirst sr input replacement =
 ||| Replace all matches
 public export
 replaceAll : SafeRegex -> String -> String -> String
-replaceAll sr input replacement = go 0 ""
+replaceAll sr input replacement = go (S inputLen) 0 ""
   where
     inputLen : Nat
     inputLen = length input
 
-    go : Nat -> String -> String
-    go pos acc =
+    go : (fuel : Nat) -> Nat -> String -> String
+    go Z pos acc = acc ++ substr pos (minus inputLen pos) input
+    go (S fuel) pos acc =
       if pos >= inputLen
         then acc ++ substr pos (minus inputLen pos) input
         else case matchAt sr input pos defaultFlags of
                MkMatchResult True (Just (start, end)) _ _ =>
                  let before = substr pos (minus start pos) input
                      newPos = max (S pos) end
-                 in go newPos (acc ++ before ++ replacement)
+                 in go fuel newPos (acc ++ before ++ replacement)
                _ =>
                  if pos < inputLen
-                   then go (S pos) (acc ++ singleton (assert_total $ strIndex input (cast pos)))
+                   then go fuel (S pos) (acc ++ singleton (assert_total $ strIndex input (cast pos)))
                    else acc
 
 ||| Split string by regex
 public export
 split : SafeRegex -> String -> List String
-split sr input = go 0 []
+split sr input = go (S inputLen) 0 []
   where
     inputLen : Nat
     inputLen = length input
 
-    go : Nat -> List String -> List String
-    go pos acc =
+    go : (fuel : Nat) -> Nat -> List String -> List String
+    go Z pos acc = reverse (substr pos (minus inputLen pos) input :: acc)
+    go (S fuel) pos acc =
       if pos >= inputLen
         then reverse (substr pos (minus inputLen pos) input :: acc)
         else case matchAt sr input pos defaultFlags of
                MkMatchResult True (Just (start, end)) _ _ =>
                  let part = substr pos (minus start pos) input
                      newPos = max (S pos) end
-                 in go newPos (part :: acc)
+                 in go fuel newPos (part :: acc)
                _ =>
                  reverse (substr pos (minus inputLen pos) input :: acc)
 

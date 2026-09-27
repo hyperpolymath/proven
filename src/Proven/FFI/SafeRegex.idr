@@ -134,43 +134,43 @@ proven_idris_regex_quick_replace_all pattern input replacement =
 
 export
 proven_idris_regex_email_pattern : String
-proven_idris_regex_email_pattern = emailPattern
+proven_idris_regex_email_pattern = emailPatternSource
 
 export
 proven_idris_regex_url_pattern : String
-proven_idris_regex_url_pattern = urlPattern
+proven_idris_regex_url_pattern = urlPatternSource
 
 export
 proven_idris_regex_ipv4_pattern : String
-proven_idris_regex_ipv4_pattern = ipv4Pattern
+proven_idris_regex_ipv4_pattern = ipv4PatternSource
 
 export
 proven_idris_regex_uuid_pattern : String
-proven_idris_regex_uuid_pattern = uuidPattern
+proven_idris_regex_uuid_pattern = uuidPatternSource
 
 export
 proven_idris_regex_integer_pattern : String
-proven_idris_regex_integer_pattern = integerPattern
+proven_idris_regex_integer_pattern = integerPatternSource
 
 export
 proven_idris_regex_decimal_pattern : String
-proven_idris_regex_decimal_pattern = decimalPattern
+proven_idris_regex_decimal_pattern = decimalPatternSource
 
 export
 proven_idris_regex_identifier_pattern : String
-proven_idris_regex_identifier_pattern = identifierPattern
+proven_idris_regex_identifier_pattern = identifierPatternSource
 
 export
 proven_idris_regex_hex_color_pattern : String
-proven_idris_regex_hex_color_pattern = hexColorPattern
+proven_idris_regex_hex_color_pattern = hexColorPatternSource
 
 export
 proven_idris_regex_date_pattern : String
-proven_idris_regex_date_pattern = datePattern
+proven_idris_regex_date_pattern = datePatternSource
 
 export
 proven_idris_regex_time_pattern : String
-proven_idris_regex_time_pattern = timePattern
+proven_idris_regex_time_pattern = timePatternSource
 
 --------------------------------------------------------------------------------
 -- Complexity Level Constants

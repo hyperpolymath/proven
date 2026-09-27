@@ -48,60 +48,67 @@ data YAMLValue : Type where
   ||| Timestamp value
   YTimestamp : String -> YAMLValue
 
-public export covering
+joinStrings : String -> List String -> String
+joinStrings _ [] = ""
+joinStrings _ [x] = x
+joinStrings sep (x :: xs) = x ++ sep ++ joinStrings sep xs
+
+-- These helpers are mutually recursive over the YAML tree and the lists held
+-- by its collection constructors.  Making that structure explicit avoids the
+-- opaque `map show` call that previously forced the Show instance to covering.
+mutual
+  yamlToString : YAMLValue -> String
+  yamlToString YNull = "null"
+  yamlToString (YBool True) = "true"
+  yamlToString (YBool False) = "false"
+  yamlToString (YInt i) = show i
+  yamlToString (YFloat f) = show f
+  yamlToString (YString s) = show s
+  yamlToString (YArray xs) = "[" ++ joinStrings ", " (yamlValuesToStrings xs) ++ "]"
+  yamlToString (YObject kvs) = "{" ++ joinStrings ", " (yamlPairsToStrings kvs) ++ "}"
+  yamlToString (YBinary bs) = "!!binary " ++ show (length bs) ++ " bytes"
+  yamlToString (YTimestamp ts) = "!!timestamp " ++ ts
+
+  yamlValuesToStrings : List YAMLValue -> List String
+  yamlValuesToStrings [] = []
+  yamlValuesToStrings (x :: xs) = yamlToString x :: yamlValuesToStrings xs
+
+  yamlPairsToStrings : List (String, YAMLValue) -> List String
+  yamlPairsToStrings [] = []
+  yamlPairsToStrings ((key, value) :: rest) =
+    (key ++ ": " ++ yamlToString value) :: yamlPairsToStrings rest
+
+public export
 Show YAMLValue where
-  show YNull = "null"
-  show (YBool True) = "true"
-  show (YBool False) = "false"
-  show (YInt i) = show i
-  show (YFloat f) = show f
-  show (YString s) = show s
-  show (YArray xs) = "[" ++ join ", " (map show xs) ++ "]"
-    where
-      join : String -> List String -> String
-      join _ [] = ""
-      join _ [x] = x
-      join sep (x :: xs) = x ++ sep ++ join sep xs
-  show (YObject kvs) = "{" ++ join ", " (map showKV kvs) ++ "}"
-    where
-      join : String -> List String -> String
-      join _ [] = ""
-      join _ [x] = x
-      join sep (x :: xs) = x ++ sep ++ join sep xs
-      showKV : (String, YAMLValue) -> String
-      showKV (k, v) = k ++ ": " ++ show v
-  show (YBinary bs) = "!!binary " ++ show (length bs) ++ " bytes"
-  show (YTimestamp ts) = "!!timestamp " ++ ts
+  show = yamlToString
 
-||| Equality helper for lists of YAML values (structurally recursive)
-covering
-yamlListEq : List YAMLValue -> List YAMLValue -> Bool
+mutual
+  yamlEq : YAMLValue -> YAMLValue -> Bool
+  yamlEq YNull YNull = True
+  yamlEq (YBool a) (YBool b) = a == b
+  yamlEq (YInt a) (YInt b) = a == b
+  yamlEq (YFloat a) (YFloat b) = a == b
+  yamlEq (YString a) (YString b) = a == b
+  yamlEq (YArray a) (YArray b) = yamlListEq a b
+  yamlEq (YObject a) (YObject b) = yamlPairsEq a b
+  yamlEq (YBinary a) (YBinary b) = a == b
+  yamlEq (YTimestamp a) (YTimestamp b) = a == b
+  yamlEq _ _ = False
 
-||| Equality helper for YAML object pairs (structurally recursive)
-covering
-yamlPairsEq : List (String, YAMLValue) -> List (String, YAMLValue) -> Bool
+  yamlListEq : List YAMLValue -> List YAMLValue -> Bool
+  yamlListEq [] [] = True
+  yamlListEq (x :: xs) (y :: ys) = yamlEq x y && yamlListEq xs ys
+  yamlListEq _ _ = False
 
-public export covering
+  yamlPairsEq : List (String, YAMLValue) -> List (String, YAMLValue) -> Bool
+  yamlPairsEq [] [] = True
+  yamlPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
+    k1 == k2 && yamlEq v1 v2 && yamlPairsEq ps1 ps2
+  yamlPairsEq _ _ = False
+
+public export
 Eq YAMLValue where
-  YNull == YNull = True
-  YBool a == YBool b = a == b
-  YInt a == YInt b = a == b
-  YFloat a == YFloat b = a == b
-  YString a == YString b = a == b
-  YArray a == YArray b = yamlListEq a b
-  YObject a == YObject b = yamlPairsEq a b
-  YBinary a == YBinary b = a == b
-  YTimestamp a == YTimestamp b = a == b
-  _ == _ = False
-
-yamlListEq [] [] = True
-yamlListEq (x :: xs) (y :: ys) = x == y && yamlListEq xs ys
-yamlListEq _ _ = False
-
-yamlPairsEq [] [] = True
-yamlPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
-  k1 == k2 && v1 == v2 && yamlPairsEq ps1 ps2
-yamlPairsEq _ _ = False
+  (==) = yamlEq
 
 --------------------------------------------------------------------------------
 -- YAML Document
@@ -115,7 +122,7 @@ record YAMLDocument where
   tags : List (String, String)  -- Tag handles
   value : YAMLValue
 
-public export covering
+public export
 Show YAMLDocument where
   show doc = case doc.version of
                Just v => "%YAML " ++ v ++ "\n---\n" ++ show doc.value

@@ -141,12 +141,12 @@ proven_idris_header_is_size_error errorMsg =
 
 export
 proven_idris_header_max_name_length : Int
-proven_idris_header_max_name_length = cast maxHeaderNameLength
+proven_idris_header_max_name_length = cast maxNameLength
 
 export
 proven_idris_header_max_value_length : Int
-proven_idris_header_max_value_length = cast maxHeaderValueLength
+proven_idris_header_max_value_length = cast maxValueLength
 
 export
 proven_idris_header_max_total_size : Int
-proven_idris_header_max_total_size = cast maxTotalHeaderSize
+proven_idris_header_max_total_size = cast maxTotalSize

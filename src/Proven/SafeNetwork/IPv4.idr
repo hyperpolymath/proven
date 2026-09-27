@@ -174,6 +174,12 @@ isDocumentationIPv4 (MkIPv4 198 51 100 _) = True
 isDocumentationIPv4 (MkIPv4 203 0 113 _) = True
 isDocumentationIPv4 _ = False
 
+||| Check if IPv4 is in the RFC 2544 benchmarking range (198.18.0.0/15).
+public export
+isBenchmarkingIPv4 : IPv4 -> Bool
+isBenchmarkingIPv4 (MkIPv4 198 second _ _) = second == 18 || second == 19
+isBenchmarkingIPv4 _ = False
+
 ||| Check if IPv4 is globally routable
 public export
 isGlobalIPv4 : IPv4 -> Bool
@@ -184,7 +190,8 @@ isGlobalIPv4 ip =
   not (isMulticastIPv4 ip) &&
   not (isBroadcastIPv4 ip) &&
   not (isReservedIPv4 ip) &&
-  not (isDocumentationIPv4 ip)
+  not (isDocumentationIPv4 ip) &&
+  not (isBenchmarkingIPv4 ip)
 
 --------------------------------------------------------------------------------
 -- Network Classes (Historical)

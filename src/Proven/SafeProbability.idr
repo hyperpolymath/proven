@@ -55,8 +55,8 @@ certain = MkProb 1.0
 
 ||| Impossible event (probability = 0)
 public export
-impossible : Probability
-impossible = MkProb 0.0
+impossibleEvent : Probability
+impossibleEvent = MkProb 0.0
 
 ||| Fair coin flip (probability = 0.5)
 public export
@@ -112,8 +112,8 @@ toOdds (MkProb p) =
 public export
 fromOdds : Odds -> Probability
 fromOdds (MkOdds f a) =
-  let total = f + a
-  in MkProb (if total == 0.0 then 0.0 else f / total)
+  let sumOdds = f + a
+  in MkProb (if sumOdds == 0.0 then 0.0 else f / sumOdds)
 
 ||| Express odds as ratio (e.g., "3 to 2")
 public export
@@ -150,10 +150,10 @@ bernoulli _ _ = 0.0
 
 ||| Binomial coefficient (n choose k)
 binomial : Nat -> Nat -> Nat
-binomial n k =
-  if k > n then 0
-  else if k == 0 || k == n then 1
-  else binomial (minus n 1) (minus k 1) + binomial (minus n 1) k
+binomial Z Z = 1
+binomial Z (S _) = 0
+binomial (S _) Z = 1
+binomial (S n) (S k) = binomial n k + binomial n (S k)
 
 ||| Binomial distribution: P(X = k) for n trials with probability p
 public export

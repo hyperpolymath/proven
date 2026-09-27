@@ -231,36 +231,36 @@ proven_idris_tx_can_rollback_to_savepoint status savepointOpCount =
 
 export
 proven_idris_tx_success_rate : Int -> Int -> Double
-proven_idris_tx_success_rate committed total =
-  if total == 0 then 0.0
-  else cast committed / cast total
+proven_idris_tx_success_rate committed totalCount =
+  if totalCount == 0 then 0.0
+  else cast committed / cast totalCount
 
 export
 proven_idris_tx_success_rate_percent : Int -> Int -> Double
-proven_idris_tx_success_rate_percent committed total =
-  proven_idris_tx_success_rate committed total * 100.0
+proven_idris_tx_success_rate_percent committed totalCount =
+  proven_idris_tx_success_rate committed totalCount * 100.0
 
 export
 proven_idris_tx_rollback_rate : Int -> Int -> Double
-proven_idris_tx_rollback_rate rolledBack total =
-  if total == 0 then 0.0
-  else cast rolledBack / cast total
+proven_idris_tx_rollback_rate rolledBack totalCount =
+  if totalCount == 0 then 0.0
+  else cast rolledBack / cast totalCount
 
 export
 proven_idris_tx_rollback_rate_percent : Int -> Int -> Double
-proven_idris_tx_rollback_rate_percent rolledBack total =
-  proven_idris_tx_rollback_rate rolledBack total * 100.0
+proven_idris_tx_rollback_rate_percent rolledBack totalCount =
+  proven_idris_tx_rollback_rate rolledBack totalCount * 100.0
 
 export
 proven_idris_tx_failure_rate : Int -> Int -> Double
-proven_idris_tx_failure_rate failed total =
-  if total == 0 then 0.0
-  else cast failed / cast total
+proven_idris_tx_failure_rate failed totalCount =
+  if totalCount == 0 then 0.0
+  else cast failed / cast totalCount
 
 export
 proven_idris_tx_failure_rate_percent : Int -> Int -> Double
-proven_idris_tx_failure_rate_percent failed total =
-  proven_idris_tx_failure_rate failed total * 100.0
+proven_idris_tx_failure_rate_percent failed totalCount =
+  proven_idris_tx_failure_rate failed totalCount * 100.0
 
 export
 proven_idris_tx_average_operations : Int -> Int -> Double
@@ -282,9 +282,9 @@ proven_idris_tx_conflict_count count = count
 
 export
 proven_idris_tx_conflict_rate : Int -> Int -> Double
-proven_idris_tx_conflict_rate conflicts total =
-  if total == 0 then 0.0
-  else cast conflicts / cast total
+proven_idris_tx_conflict_rate conflicts totalCount =
+  if totalCount == 0 then 0.0
+  else cast conflicts / cast totalCount
 
 export
 proven_idris_tx_should_retry : Int -> Int -> Int

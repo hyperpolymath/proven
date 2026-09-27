@@ -81,7 +81,8 @@ proven_idris_mcp_max_result_size = cast maxResultSize
 
 export
 proven_idris_mcp_is_result_size_ok : Int -> Int
-proven_idris_mcp_is_result_size_ok size = encodeBool (cast size <= maxResultSize)
+proven_idris_mcp_is_result_size_ok size =
+  encodeBool (size >= 0 && size <= cast maxResultSize)
 
 --------------------------------------------------------------------------------
 -- MCP Role Info
@@ -89,8 +90,8 @@ proven_idris_mcp_is_result_size_ok size = encodeBool (cast size <= maxResultSize
 
 export
 proven_idris_mcp_role_name : Int -> String
-proven_idris_mcp_role_name 0 = show User
-proven_idris_mcp_role_name 1 = show Assistant
-proven_idris_mcp_role_name 2 = show System
-proven_idris_mcp_role_name 3 = show Tool
+proven_idris_mcp_role_name 0 = show Proven.SafeMCP.User
+proven_idris_mcp_role_name 1 = show Proven.SafeMCP.Assistant
+proven_idris_mcp_role_name 2 = show Proven.SafeMCP.System
+proven_idris_mcp_role_name 3 = show Proven.SafeMCP.Tool
 proven_idris_mcp_role_name _ = "unknown"

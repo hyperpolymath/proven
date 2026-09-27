@@ -35,6 +35,7 @@ import Data.List
 import Data.String
 
 %default total
+%unbound_implicits off
 
 --------------------------------------------------------------------------------
 -- Per-character escape soundness (one Refl each — no quantifier gap)

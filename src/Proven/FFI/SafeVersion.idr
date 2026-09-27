@@ -24,6 +24,7 @@ module Proven.FFI.SafeVersion
 import Proven.SafeVersion
 import Proven.Core
 import Data.String
+import Data.List1
 
 %default total
 
@@ -67,12 +68,16 @@ proven_idris_version_is_valid s = encodeBool (isValid s)
 export
 proven_idris_version_has_prerelease : String -> Int
 proven_idris_version_has_prerelease s =
-  encodeBool (isInfixOf "-" s && not (isInfixOf "+" (takeWhile (/= '+') s)))
+  case parse s of
+    Nothing => 0
+    Just v => encodeBool (not (isNil v.prerelease))
 
 export
 proven_idris_version_has_build : String -> Int
 proven_idris_version_has_build s =
-  encodeBool (isInfixOf "+" s)
+  case parse s of
+    Nothing => 0
+    Just v => encodeBool (not (isNil v.build))
 
 --------------------------------------------------------------------------------
 -- Formatting
@@ -81,8 +86,8 @@ proven_idris_version_has_build s =
 export
 proven_idris_version_format : Int -> Int -> Int -> String -> String -> String
 proven_idris_version_format major minor patch prerelease build =
-  let pre = if prerelease == "" then [] else split (== '.') prerelease
-      bld = if build == "" then [] else split (== '.') build
+  let pre = if prerelease == "" then [] else forget (split (== '.') prerelease)
+      bld = if build == "" then [] else forget (split (== '.') build)
       v = MkSemVer (cast major) (cast minor) (cast patch) pre bld
   in format v
 
@@ -164,7 +169,7 @@ proven_idris_version_with_prerelease versionStr prerelease =
   case parse versionStr of
     Nothing => versionStr
     Just v =>
-      let pre = if prerelease == "" then [] else split (== '.') prerelease
+      let pre = if prerelease == "" then [] else forget (split (== '.') prerelease)
       in format (withPrerelease pre v)
 
 export
@@ -173,7 +178,7 @@ proven_idris_version_with_build versionStr build =
   case parse versionStr of
     Nothing => versionStr
     Just v =>
-      let bld = if build == "" then [] else split (== '.') build
+      let bld = if build == "" then [] else forget (split (== '.') build)
       in format (withBuild bld v)
 
 export
