@@ -45,15 +45,9 @@ encodeBool True = 1
 
 ||| Encode dimension as 7-tuple
 encodeDimension : Dimension -> (Int, Int, Int, Int, Int, Int, Int)
-encodeDimension d = (
-  cast d.length,
-  cast d.mass,
-  cast d.time,
-  cast d.current,
-  cast d.temperature,
-  cast d.amount,
-  cast d.luminosity
-)
+encodeDimension d =
+  (cast d.length, cast d.mass, cast d.time, cast d.current,
+   cast d.temperature, cast d.amount, cast d.luminosity)
 
 ||| Decode 7-tuple to dimension
 decodeDimension : Int -> Int -> Int -> Int -> Int -> Int -> Int -> Dimension

@@ -182,52 +182,52 @@ hasRedosRisk pattern =
 ||| Pre-built safe email pattern
 public export
 safeEmailPattern : Either RegexError SafeRegex
-safeEmailPattern = parseSafe emailPattern
+safeEmailPattern = Right emailPattern
 
 ||| Pre-built safe URL pattern
 public export
 safeUrlPattern : Either RegexError SafeRegex
-safeUrlPattern = parseSafe urlPattern
+safeUrlPattern = Right urlPattern
 
 ||| Pre-built safe IPv4 pattern
 public export
 safeIpv4Pattern : Either RegexError SafeRegex
-safeIpv4Pattern = parseSafe ipv4Pattern
+safeIpv4Pattern = Right ipv4Pattern
 
 ||| Pre-built safe UUID pattern
 public export
 safeUuidPattern : Either RegexError SafeRegex
-safeUuidPattern = parseSafe uuidPattern
+safeUuidPattern = Right uuidPattern
 
 ||| Pre-built safe integer pattern
 public export
 safeIntegerPattern : Either RegexError SafeRegex
-safeIntegerPattern = parseSafe integerPattern
+safeIntegerPattern = parseSafe integerPatternSource
 
 ||| Pre-built safe decimal pattern
 public export
 safeDecimalPattern : Either RegexError SafeRegex
-safeDecimalPattern = parseSafe decimalPattern
+safeDecimalPattern = parseSafe decimalPatternSource
 
 ||| Pre-built safe identifier pattern (programming language identifiers)
 public export
 safeIdentifierPattern : Either RegexError SafeRegex
-safeIdentifierPattern = parseSafe identifierPattern
+safeIdentifierPattern = parseSafe identifierPatternSource
 
 ||| Pre-built safe hex color pattern
 public export
 safeHexColorPattern : Either RegexError SafeRegex
-safeHexColorPattern = parseSafe hexColorPattern
+safeHexColorPattern = parseSafe hexColorPatternSource
 
 ||| Pre-built safe date pattern (YYYY-MM-DD)
 public export
 safeDatePattern : Either RegexError SafeRegex
-safeDatePattern = parseSafe datePattern
+safeDatePattern = parseSafe datePatternSource
 
 ||| Pre-built safe time pattern (HH:MM:SS)
 public export
 safeTimePattern : Either RegexError SafeRegex
-safeTimePattern = parseSafe timePattern
+safeTimePattern = parseSafe timePatternSource
 
 --------------------------------------------------------------------------------
 -- Monad-like Operations for Pattern Composition

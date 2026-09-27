@@ -11,6 +11,7 @@ import Data.Nat
 import Data.List
 
 %default total
+%unbound_implicits off
 
 --------------------------------------------------------------------------------
 -- Address Classification Properties

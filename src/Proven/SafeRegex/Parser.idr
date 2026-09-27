@@ -454,27 +454,70 @@ parseSafeStrict pattern = do
   r <- parseRegex pattern
   safeStrict r
 
+||| Canonical source strings for the common pre-built patterns.  Keeping these
+||| beside the compiled values prevents the FFI and convenience APIs from
+||| drifting onto different expressions.
+public export
+emailPatternSource : String
+emailPatternSource = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+
+public export
+urlPatternSource : String
+urlPatternSource = "^https?://[a-zA-Z0-9.-]+(/[a-zA-Z0-9._~:/?#@!$&'()*+,;=-]*)?$"
+
+public export
+ipv4PatternSource : String
+ipv4PatternSource = "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+
+public export
+uuidPatternSource : String
+uuidPatternSource = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+
+public export
+integerPatternSource : String
+integerPatternSource = "^-?[0-9]+$"
+
+public export
+decimalPatternSource : String
+decimalPatternSource = "^-?[0-9]+(\\.[0-9]+)?$"
+
+public export
+identifierPatternSource : String
+identifierPatternSource = "^[a-zA-Z_][a-zA-Z0-9_]*$"
+
+public export
+hexColorPatternSource : String
+hexColorPatternSource = "^#[0-9a-fA-F]{6}$"
+
+public export
+datePatternSource : String
+datePatternSource = "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+
+public export
+timePatternSource : String
+timePatternSource = "^[0-9]{2}:[0-9]{2}:[0-9]{2}$"
+
 ||| Common pre-built safe patterns
 public export
 emailPattern : SafeRegex
-emailPattern = case parseSafe "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" of
+emailPattern = case parseSafe emailPatternSource of
   Right sr => sr
   Left _ => MkSafeRegex Empty (MkComplexityAnalysis Linear 0 0 0 False False []) 1000
 
 public export
 urlPattern : SafeRegex
-urlPattern = case parseSafe "^https?://[a-zA-Z0-9.-]+(/[a-zA-Z0-9._~:/?#@!$&'()*+,;=-]*)?$" of
+urlPattern = case parseSafe urlPatternSource of
   Right sr => sr
   Left _ => MkSafeRegex Empty (MkComplexityAnalysis Linear 0 0 0 False False []) 1000
 
 public export
 ipv4Pattern : SafeRegex
-ipv4Pattern = case parseSafe "^([0-9]{1,3}\\.){3}[0-9]{1,3}$" of
+ipv4Pattern = case parseSafe ipv4PatternSource of
   Right sr => sr
   Left _ => MkSafeRegex Empty (MkComplexityAnalysis Linear 0 0 0 False False []) 1000
 
 public export
 uuidPattern : SafeRegex
-uuidPattern = case parseSafe "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" of
+uuidPattern = case parseSafe uuidPatternSource of
   Right sr => sr
   Left _ => MkSafeRegex Empty (MkComplexityAnalysis Linear 0 0 0 False False []) 1000

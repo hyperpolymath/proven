@@ -28,6 +28,7 @@ module Proven.SafeArchive.Proofs
 import Proven.SafeArchive
 
 %default total
+%unbound_implicits off
 
 --------------------------------------------------------------------------------
 -- EntryType enum self-equality

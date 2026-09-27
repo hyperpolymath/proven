@@ -163,18 +163,28 @@ getNamedParams q = q.namedParams
 ||| Validate a query before execution
 public export
 validate : ParameterizedQuery -> Result SQLError ParameterizedQuery
-validate q = do
-  _ <- validateParams q
-  _ <- validateQuerySafety q
-  Ok q
+validate q =
+  if length (unpack (toSQL q)) > maxQueryLength
+    then Err (InvalidQuery "Query exceeds maximum length")
+  else if length q.params > maxParamCount
+    then Err (InvalidQuery "Query exceeds maximum parameter count")
+  else do
+    _ <- validateParams q
+    _ <- validateQuerySafety q
+    Ok q
 
 ||| Validate strictly (rejects SQLRaw)
 public export
 validateStrict : ParameterizedQuery -> Result SQLError ParameterizedQuery
-validateStrict q = do
-  _ <- validateParams q
-  _ <- validateQueryStrict q
-  Ok q
+validateStrict q =
+  if length (unpack (toSQL q)) > maxQueryLength
+    then Err (InvalidQuery "Query exceeds maximum length")
+  else if length q.params > maxParamCount
+    then Err (InvalidQuery "Query exceeds maximum parameter count")
+  else do
+    _ <- validateParams q
+    _ <- validateQueryStrict q
+    Ok q
 
 --------------------------------------------------------------------------------
 -- Convenience Value Constructors

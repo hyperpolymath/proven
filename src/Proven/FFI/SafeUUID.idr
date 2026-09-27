@@ -12,13 +12,15 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
--- UUID version encoding: V1=1, V2=2, V3=3, V4=4, V5=5
+-- UUID version encoding: known versions preserve their number; other nibbles
+-- preserve the version value discovered by the parser.
 encodeVersion : UUIDVersion -> Int
 encodeVersion V1 = 1
 encodeVersion V2 = 2
 encodeVersion V3 = 3
 encodeVersion V4 = 4
 encodeVersion V5 = 5
+encodeVersion (Unknown n) = cast n
 
 -- UUID variant encoding: NCS=0, RFC4122=1, Microsoft=2, Future=3
 encodeVariant : UUIDVariant -> Int

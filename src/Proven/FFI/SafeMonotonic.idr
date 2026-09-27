@@ -285,8 +285,8 @@ proven_idris_monotonic_delta current previous =
 
 export
 proven_idris_monotonic_average : Int -> Int -> Int
-proven_idris_monotonic_average total count =
-  if count == 0 then 0 else total `div` count
+proven_idris_monotonic_average sum count =
+  if count == 0 then 0 else sum `div` count
 
 export
 proven_idris_lamport_clock_drift : Int -> Int -> Int

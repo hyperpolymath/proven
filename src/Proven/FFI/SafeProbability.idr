@@ -49,7 +49,7 @@ proven_idris_prob_certain = certain.value
 
 export
 proven_idris_prob_impossible : Double
-proven_idris_prob_impossible = impossible.value
+proven_idris_prob_impossible = impossibleEvent.value
 
 export
 proven_idris_prob_fair : Double

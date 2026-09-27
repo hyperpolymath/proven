@@ -26,6 +26,7 @@ import Proven.SafeFile.Types
 import Proven.SafeFile.Operations
 import Proven.Core
 import Data.String
+import Data.List1
 
 %default total
 
@@ -88,13 +89,13 @@ proven_idris_file_has_dangerous_pattern path =
 export
 proven_idris_file_is_in_allowed_dir : String -> String -> Int
 proven_idris_file_is_in_allowed_dir allowedDirs path =
-  let dirs = split (== ',') allowedDirs
+  let dirs = forget (split (== ',') allowedDirs)
   in encodeBool (isInAllowedDir dirs path)
 
 export
 proven_idris_file_is_blocked_path : String -> String -> Int
 proven_idris_file_is_blocked_path blockedPaths path =
-  let paths = split (== ',') blockedPaths
+  let paths = forget (split (== ',') blockedPaths)
   in encodeBool (isBlockedPath paths path)
 
 --------------------------------------------------------------------------------
@@ -120,7 +121,7 @@ proven_idris_file_extension path = encodeMaybeString (extension path)
 export
 proven_idris_file_join_path : String -> String
 proven_idris_file_join_path componentsStr =
-  let components = split (== ',') componentsStr
+  let components = forget (split (== ',') componentsStr)
   in joinPath components
 
 export

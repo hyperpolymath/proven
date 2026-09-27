@@ -315,4 +315,4 @@ proven_idris_args_extract_equals_value arg =
     (_, val) =>
       if null (unpack val)
         then (1, "no equals sign found")
-        else (0, drop 1 val)
+        else (0, pack (drop 1 (unpack val)))

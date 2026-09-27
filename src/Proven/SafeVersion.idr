@@ -9,6 +9,7 @@ module Proven.SafeVersion
 import public Proven.Core
 import Data.String
 import Data.List
+import Data.List1
 import Data.Maybe
 
 %default total
@@ -52,7 +53,7 @@ comparePrerelease (a :: as) (b :: bs) =
   where
     parseNum : String -> Maybe Nat
     parseNum s = if all isDigit (unpack s) && s /= ""
-                   then Just (cast (parseInteger s))
+                   then map cast (parseInteger s)
                    else Nothing
 
 public export
@@ -92,23 +93,23 @@ parse s =
 
     parseDotted : String -> List String
     parseDotted "" = []
-    parseDotted str = split (== '.') str
+    parseDotted str = forget (split (== '.') str)
+
+    parseN : String -> Maybe Nat
+    parseN str =
+      if all isDigit (unpack str) && str /= ""
+        then map cast (parseInteger str)
+        else Nothing
 
     parseCore : String -> Maybe (Nat, Nat, Nat)
     parseCore str =
-      case split (== '.') str of
+      case forget (split (== '.') str) of
         [maj, min, pat] => do
           major <- parseN maj
           minor <- parseN min
           patch <- parseN pat
           Just (major, minor, patch)
         _ => Nothing
-
-    parseN : String -> Maybe Nat
-    parseN str =
-      if all isDigit (unpack str) && str /= ""
-        then Just (cast (parseInteger str))
-        else Nothing
 
 ||| Check if a string is a valid semantic version
 public export

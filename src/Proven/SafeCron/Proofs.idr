@@ -11,6 +11,7 @@ module Proven.SafeCron.Proofs
 import Proven.SafeCron
 
 %default total
+%unbound_implicits off
 
 --------------------------------------------------------------------------------
 -- CronField Show anchors

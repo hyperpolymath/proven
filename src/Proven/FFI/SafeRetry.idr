@@ -46,6 +46,25 @@ encodeBool : Bool -> Int
 encodeBool False = 0
 encodeBool True = 1
 
+||| Convert an FFI retry count to bounded structural fuel.  Public validation
+||| caps retry policies at 100 attempts; calculations apply the same cap so an
+||| unchecked foreign caller cannot trigger unbounded recursion.
+boundedRetryFuel : Int -> Nat
+boundedRetryFuel count =
+  if count <= 0 then 0
+  else if count > 100 then 100
+  else cast count
+
+intPower : Int -> Nat -> Int
+intPower _ Z = 1
+intPower base (S exponent) = base * intPower base exponent
+
+sumExponentialDelays : Nat -> Int -> Int -> Int -> Int
+sumExponentialDelays Z _ _ accumulator = accumulator
+sumExponentialDelays (S remaining) delay multiplier accumulator =
+  sumExponentialDelays remaining (delay * multiplier) multiplier
+    (accumulator + delay)
+
 --------------------------------------------------------------------------------
 -- Backoff Strategy Encoding
 --------------------------------------------------------------------------------
@@ -87,11 +106,7 @@ proven_idris_retry_linear_delay initial increment attempt =
 export
 proven_idris_retry_exponential_delay : Int -> Int -> Int -> Int
 proven_idris_retry_exponential_delay initial multiplier attempt =
-  initial * power multiplier attempt
-  where
-    power : Int -> Int -> Int
-    power _ 0 = 1
-    power b n = if n > 0 then b * power b (n - 1) else 1
+  initial * intPower multiplier (boundedRetryFuel attempt)
 
 export
 proven_idris_retry_delay_with_cap : Int -> Int -> Int
@@ -224,13 +239,8 @@ proven_idris_retry_average_delay totalDelay totalOps =
 export
 proven_idris_retry_max_total_delay : Int -> Int -> Int -> Int
 proven_idris_retry_max_total_delay maxAttempts initialDelay multiplier =
-  -- Calculate max delay for exponential backoff
-  let helper : Int -> Int -> Int -> Int
-      helper 0 _ acc = acc
-      helper n delay acc =
-        let nextDelay = delay * multiplier
-        in helper (n - 1) nextDelay (acc + delay)
-  in helper maxAttempts initialDelay 0
+  -- Calculate the delay with the same 100-attempt limit as policy validation.
+  sumExponentialDelays (boundedRetryFuel maxAttempts) initialDelay multiplier 0
 
 export
 proven_idris_retry_recommend_max_attempts : Int -> Int

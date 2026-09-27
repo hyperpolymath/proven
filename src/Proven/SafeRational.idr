@@ -41,10 +41,24 @@ Show RationalError where
 -- Helper Functions
 --------------------------------------------------------------------------------
 
-||| Greatest common divisor
+||| Greatest common divisor.  The subtraction algorithm carries an explicit
+||| `a + b + 1` budget, so totality does not depend on the covering Integer
+||| remainder operation.
 gcd : Integer -> Integer -> Integer
-gcd a 0 = abs a
-gcd a b = gcd b (a `mod` b)
+gcd a b =
+  let left : Nat = cast (abs a)
+      right : Nat = cast (abs b)
+  in cast (gcdNatFuel (S (left + right)) left right)
+  where
+    gcdNatFuel : (fuel : Nat) -> Nat -> Nat -> Nat
+    gcdNatFuel Z left right = if left == 0 then right else left
+    gcdNatFuel (S fuel) Z right = right
+    gcdNatFuel (S fuel) left Z = left
+    gcdNatFuel (S fuel) left right =
+      if left == right then left
+      else if left > right
+        then gcdNatFuel fuel (minus left right) right
+        else gcdNatFuel fuel left (minus right left)
 
 ||| Normalize a rational to lowest terms with positive denominator
 normalize : Integer -> Integer -> Rational
@@ -226,20 +240,32 @@ public export
 fromDouble : (maxDenom : Integer) -> Double -> Rational
 fromDouble maxDenom x =
   if x == 0 then zero
-  else if x < 0 then negate (fromDouble maxDenom (-x))
-  else findBest 0 1 1 0
+  else
+    let target = if x < 0 then -x else x
+        budget : Nat = S (cast (abs maxDenom))
+        result = findBest budget target 0 1 1 0
+    in if x < 0 then negate result else result
   where
-    findBest : Integer -> Integer -> Integer -> Integer -> Rational
-    findBest a b c d =
-      let mediant_n = a + c
-          mediant_d = b + d
-      in if mediant_d > maxDenom
-           then if abs (toDouble (MkRational a b) - x) < abs (toDouble (MkRational c d) - x)
-                  then MkRational a b
-                  else MkRational c d
-           else if toDouble (MkRational mediant_n mediant_d) < x
-                  then findBest mediant_n mediant_d c d
-                  else findBest a b mediant_n mediant_d
+    closer : Double -> Integer -> Integer -> Integer -> Integer -> Rational
+    closer target a b c d =
+      if b == 0 then MkRational c d
+      else if d == 0 then MkRational a b
+      else if abs (toDouble (MkRational a b) - target) <
+              abs (toDouble (MkRational c d) - target)
+        then MkRational a b
+        else MkRational c d
+
+    findBest : (fuel : Nat) -> Double ->
+               Integer -> Integer -> Integer -> Integer -> Rational
+    findBest Z target a b c d = closer target a b c d
+    findBest (S fuel) target a b c d =
+      let mediantN = a + c
+          mediantD = b + d
+      in if mediantD > maxDenom
+           then closer target a b c d
+           else if toDouble (MkRational mediantN mediantD) < target
+                  then findBest fuel target mediantN mediantD c d
+                  else findBest fuel target a b mediantN mediantD
 
 ||| Floor division (towards negative infinity)
 public export
