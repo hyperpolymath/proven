@@ -14,6 +14,8 @@ import Proven.Core
 import Data.So
 import Data.Vect
 import Data.Bits
+import Data.Nat
+import Data.Nat.Division
 
 %default total
 
@@ -27,8 +29,13 @@ natPow _ Z = 1
 natPow b (S e) = b * natPow b e
 
 -- ============================================================================
--- RANGE PROOF POSTULATES
+-- RANGE LEMMAS
 -- ============================================================================
+--
+-- Prime-field (Nat) lemmas below are PROVED. The binary-field (Bits64) lemmas
+-- are stated only where they are TRUE (n < 64; 2^64 wraps to 0 in Bits64) but
+-- remain OWED: Bits64 comparison is a primitive the type checker cannot reduce
+-- for a symbolic n. They are erased (quantity 0) and never run.
 
 ||| GT p 1 implies NonZero p — p >= 2 means p is a successor.
 ||| Eliminates need for believe_me when converting GT constraints to NonZero.
@@ -36,38 +43,43 @@ export
 gt1ImpliesNonZero : {0 p : Nat} -> GT p 1 -> NonZero p
 gt1ImpliesNonZero (LTESucc _) = SIsNonZero
 
-||| n mod p < p for any NonZero p
-modLtPrime : (n, p : Nat) -> {auto 0 _ : NonZero p} -> So (n `mod` p < p)
+||| A strict Nat inequality makes the Boolean comparison `a < b` true.
+0 ltSo : {a, b : Nat} -> LT a b -> So (a < b)
+ltSo {a = Z}   {b = S _}  (LTESucc _) = Oh
+ltSo {a = S _} {b = S _}  (LTESucc p) = ltSo p
+
+||| n mod p < p for any NonZero p (via contrib's boundModNatNZ)
+0 modLtPrime : (n, p : Nat) -> (0 nz : NonZero p) -> So (modNatNZ n p nz < p)
+modLtPrime n p nz = ltSo (boundModNatNZ n p nz)
 
 ||| 0 < p for any NonZero p
-zeroLtNonZero : (p : Nat) -> {auto 0 _ : NonZero p} -> So (0 < p)
+0 zeroLtNonZero : (p : Nat) -> {auto 0 _ : NonZero p} -> So (0 < p)
+zeroLtNonZero (S _) = Oh
 
 ||| 1 < p when p > 1
-oneLtGt1 : (p : Nat) -> {auto 0 _ : GT p 1} -> So (1 < p)
-
-||| Bitwise AND with (2^n - 1) mask yields a value < 2^n
-maskLtPow2 : (b : Bits64) -> (n : Nat) -> So (b .&. (cast {to=Bits64} (natPow 2 n) - 1) < cast {to=Bits64} (natPow 2 n))
-
-||| 0 < 2^n for any n
-zeroLtPow2 : (n : Nat) -> So (the Bits64 0 < cast (natPow 2 n))
-
-||| 1 < 2^n when n > 0
-oneLtPow2 : (n : Nat) -> {auto 0 _ : GT n 0} -> So (the Bits64 1 < cast (natPow 2 n))
-
-||| XOR of two values both < 2^n stays < 2^n
-xorLtPow2 : (a, b : Bits64) -> (n : Nat) ->
-             {auto 0 _ : So (a < cast {to=Bits64} (natPow 2 n))} ->
-             {auto 0 _ : So (b < cast {to=Bits64} (natPow 2 n))} ->
-             So ((a `xor` b) < cast {to=Bits64} (natPow 2 n))
-
-||| Polynomial reduction modulo an irreducible of degree n yields result < 2^n
-polyModLtPow2 : (result : Bits64) -> (n : Nat) -> So (result < cast {to=Bits64} (natPow 2 n))
-
-||| A modular-inverse result in [0, p) satisfies So (v < p)
-inverseInRange : (v, p : Nat) -> So (v < p)
+0 oneLtGt1 : (p : Nat) -> {auto 0 prf : GT p 1} -> So (1 < p)
+oneLtGt1 _ = ltSo prf
 
 ||| 0 < p when p > 1 (derives from GT p 1 without needing NonZero)
-zeroLtGt1 : (p : Nat) -> {auto 0 _ : GT p 1} -> So (0 < p)
+0 zeroLtGt1 : (p : Nat) -> {auto 0 prf : GT p 1} -> So (0 < p)
+zeroLtGt1 (S _) = Oh
+
+||| OWED (true for n < 64): masking with (2^n - 1) yields a value < 2^n
+0 maskLtPow2 : (b : Bits64) -> (n : Nat) -> {auto 0 _ : LT n 64} ->
+               So (b .&. (cast {to=Bits64} (natPow 2 n) - 1) < cast {to=Bits64} (natPow 2 n))
+
+||| OWED (true for n < 64): 0 < 2^n
+0 zeroLtPow2 : (n : Nat) -> {auto 0 _ : LT n 64} -> So (the Bits64 0 < cast (natPow 2 n))
+
+||| OWED (true for 0 < n < 64): 1 < 2^n
+0 oneLtPow2 : (n : Nat) -> {auto 0 _ : GT n 0} -> {auto 0 _ : LT n 64} ->
+              So (the Bits64 1 < cast (natPow 2 n))
+
+||| OWED (true for all n): XOR of two values both < 2^n stays < 2^n
+0 xorLtPow2 : (a, b : Bits64) -> (n : Nat) ->
+              {auto 0 _ : So (a < cast {to=Bits64} (natPow 2 n))} ->
+              {auto 0 _ : So (b < cast {to=Bits64} (natPow 2 n))} ->
+              So ((a `xor` b) < cast {to=Bits64} (natPow 2 n))
 
 -- ============================================================================
 -- PRIME FIELD GF(p)
@@ -84,7 +96,7 @@ record PrimeFieldElement (p : Nat) where
 ||| Create an element (reduces modulo p)
 export
 pfElement : (p : Nat) -> {auto prf : NonZero p} -> Nat -> PrimeFieldElement p
-pfElement p n = MkPFE (n `mod` p) (modLtPrime n p)
+pfElement p n = MkPFE (modNatNZ n p prf) (modLtPrime n p prf)
 
 ||| Zero element
 export
@@ -107,27 +119,27 @@ pfValue e = e.value
 
 ||| Addition in GF(p)
 export
-pfAdd : {p : Nat} -> {auto 0 _ : NonZero p} ->
+pfAdd : {p : Nat} -> {auto 0 nz : NonZero p} ->
         PrimeFieldElement p -> PrimeFieldElement p -> PrimeFieldElement p
-pfAdd a b = MkPFE ((a.value + b.value) `mod` p) (modLtPrime (a.value + b.value) p)
+pfAdd a b = MkPFE (modNatNZ (a.value + b.value) p nz) (modLtPrime (a.value + b.value) p nz)
 
 ||| Subtraction in GF(p)
 export
-pfSub : {p : Nat} -> {auto 0 _ : NonZero p} ->
+pfSub : {p : Nat} -> {auto 0 nz : NonZero p} ->
         PrimeFieldElement p -> PrimeFieldElement p -> PrimeFieldElement p
-pfSub a b = MkPFE ((minus (a.value + p) b.value) `mod` p) (modLtPrime (minus (a.value + p) b.value) p)
+pfSub a b = MkPFE (modNatNZ (minus (a.value + p) b.value) p nz) (modLtPrime (minus (a.value + p) b.value) p nz)
 
 ||| Negation in GF(p)
 export
-pfNeg : {p : Nat} -> {auto 0 _ : NonZero p} ->
+pfNeg : {p : Nat} -> {auto 0 nz : NonZero p} ->
         PrimeFieldElement p -> PrimeFieldElement p
-pfNeg a = MkPFE ((minus p a.value) `mod` p) (modLtPrime (minus p a.value) p)
+pfNeg a = MkPFE (modNatNZ (minus p a.value) p nz) (modLtPrime (minus p a.value) p nz)
 
 ||| Multiplication in GF(p)
 export
-pfMul : {p : Nat} -> {auto 0 _ : NonZero p} ->
+pfMul : {p : Nat} -> {auto 0 nz : NonZero p} ->
         PrimeFieldElement p -> PrimeFieldElement p -> PrimeFieldElement p
-pfMul a b = MkPFE ((a.value * b.value) `mod` p) (modLtPrime (a.value * b.value) p)
+pfMul a b = MkPFE (modNatNZ (a.value * b.value) p nz) (modLtPrime (a.value * b.value) p nz)
 
 ||| Extended Euclidean algorithm for computing modular inverse
 ||| Returns (gcd, x, y) such that a*x + b*y = gcd
@@ -141,14 +153,14 @@ extendedGcd a b =
 ||| Modular inverse (returns None if not coprime with p)
 export
 covering
-pfInverse : {p : Nat} -> {auto 0 _ : NonZero p} ->
+pfInverse : {p : Nat} -> {auto 0 nz : NonZero p} ->
             PrimeFieldElement p -> Maybe (PrimeFieldElement p)
 pfInverse a =
   if a.value == 0 then Nothing
   else let (g, x, _) = extendedGcd (cast a.value) (cast p)
        in if g /= 1 then Nothing
           else let v = cast {to = Nat} ((x `mod` cast p + cast p) `mod` cast p)
-               in Just (MkPFE v (inverseInRange v p))
+               in Just (MkPFE (modNatNZ v p nz) (modLtPrime v p nz))
 
 ||| Division in GF(p) (returns None if divisor is zero)
 export
@@ -187,17 +199,17 @@ record BinaryFieldElement (n : Nat) where
 
 ||| Create a binary field element (masks to n bits)
 export
-bfElement : (n : Nat) -> {auto prf : LTE n 64} -> Bits64 -> BinaryFieldElement n
+bfElement : (n : Nat) -> {auto 0 prf : LT n 64} -> Bits64 -> BinaryFieldElement n
 bfElement n b = MkBFE (b .&. (cast {to=Bits64} (natPow 2 n) - 1)) (maskLtPow2 b n)
 
 ||| Zero element
 export
-bfZero : (n : Nat) -> BinaryFieldElement n
+bfZero : (n : Nat) -> {auto 0 _ : LT n 64} -> BinaryFieldElement n
 bfZero n = MkBFE 0 (zeroLtPow2 n)
 
 ||| One element
 export
-bfOne : (n : Nat) -> {auto prf : GT n 0} -> BinaryFieldElement n
+bfOne : (n : Nat) -> {auto 0 _ : GT n 0} -> {auto 0 _ : LT n 64} -> BinaryFieldElement n
 bfOne n = MkBFE 1 (oneLtPow2 n)
 
 ||| Get the bits
@@ -253,18 +265,23 @@ polyModReduction val irr n =
     go mask x =
       if x <= mask then x
       else let deg = highestBit x
-               shift : Integer = cast deg - cast n
+               -- highestBit counts bits, so the top set bit is at index deg - 1
+               shift : Integer = cast deg - 1 - cast n
            in if shift < 0 then x
               else go mask (x `xor` (prim__shl_Bits64 irr (cast {to = Bits64} shift)))
 
-||| Multiplication in GF(2^n) with irreducible polynomial
+||| Multiplication in GF(2^n) with irreducible polynomial.
+||| Returns Nothing when the reduction does not land below 2^n, which happens
+||| when `irr` is not a degree-n polynomial (the range is checked, not assumed).
 export
 covering
-bfMulWithIrr : {n : Nat} -> Bits64 -> BinaryFieldElement n -> BinaryFieldElement n -> BinaryFieldElement n
+bfMulWithIrr : {n : Nat} -> Bits64 -> BinaryFieldElement n -> BinaryFieldElement n -> Maybe (BinaryFieldElement n)
 bfMulWithIrr irr a b =
   let prod = polyMul a.bfBitsVal b.bfBitsVal
       reduced = polyModReduction prod irr n
-  in MkBFE reduced (polyModLtPow2 reduced n)
+  in case choose (reduced < cast {to=Bits64} (natPow 2 n)) of
+       Left inRange => Just (MkBFE reduced inRange)
+       Right _ => Nothing
 
 -- Common irreducible polynomials
 -- GF(2^8): x^8 + x^4 + x^3 + x + 1 (AES polynomial)

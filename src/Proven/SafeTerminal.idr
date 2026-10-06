@@ -327,12 +327,12 @@ cleanupShellTerminal term attr pgid = do
 --                     (n : Int ** pgid = MkPgid n && n > 0)
 -- -- Implementation: Process groups always have positive IDs
 
-||| Proof: Setting attributes and getting returns same value
-public export
-setGetIdempotent : (fd : TermFd) -> (attr : TermAttr) ->
-                   setTermAttr fd attr >>
-                   getTermAttr fd = Ok attr
--- Implementation: Get should return what was set (modulo race conditions)
+-- REMOVED: `setGetIdempotent : (fd : TermFd) -> (attr : TermAttr) ->
+--            setTermAttr fd attr >> getTermAttr fd = Ok attr`
+-- was a bodyless (postulated) claim that is FALSE: for a negative fd both calls
+-- return `Err (InvalidFd fd)`, never `Ok attr`; and the pure getTermAttr does
+-- not observe what setTermAttr set. It cannot be restated until the terminal
+-- state is modelled.
 
 --------------------------------------------------------------------------------
 -- Utilities
