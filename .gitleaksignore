@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# Gitleaks false positives: test fixtures, not credentials.
+# Fingerprint format is file:rule:line (the CI scan runs with --no-git), so an
+# entry stops matching if its line moves. Re-run the scan after editing these files.
+
+# Placeholder Stripe-prefixed strings (live and test prefix, "abc123def456" body)
+# used only to prove detectFormat classifies the prefix as StripeKey.
+src/Proven/SafeAPIKey/Proofs.idr:stripe-access-token:41
+src/Proven/SafeAPIKey/Proofs.idr:stripe-access-token:46
+
+# The public jwt.io example token (sub 1234567890, "John Doe"), used to test decoding.
+tests/unit/SafeJWTUnit.idr:jwt:37
