@@ -261,11 +261,10 @@ safeClosePipe tracked =
 --                (isAbsolute validated = True, containsTraversal validated = False)
 -- -- Implementation deferred
 
-||| Proof: Pipe creation produces distinct file descriptors
-public export
-pipeEndsDistinct : (p : PipePair) ->
-                   So (p.readEnd /= p.writeEnd)
--- Implementation deferred
+-- REMOVED: `pipeEndsDistinct : (p : PipePair) -> So (p.readEnd /= p.writeEnd)`
+-- was a bodyless (postulated) claim that is FALSE: `MkPipe fd fd True` is a
+-- PipePair with equal ends. A true version must constrain how PipePair is
+-- constructed (e.g. carry the distinctness in the record) before it is stated.
 
 -- ||| Proof: Safe closure prevents deadlocks
 -- public export
