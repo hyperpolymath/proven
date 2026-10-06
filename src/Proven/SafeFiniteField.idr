@@ -270,18 +270,28 @@ polyModReduction val irr n =
            in if shift < 0 then x
               else go mask (x `xor` (prim__shl_Bits64 irr (cast {to = Bits64} shift)))
 
+||| Number of significant bits in a word (0 for 0); a polynomial of degree d
+||| has bit length d + 1.
+covering
+bitLength : Bits64 -> Nat
+bitLength 0 = 0
+bitLength x = S (bitLength (x `shiftR` 1))
+
 ||| Multiplication in GF(2^n) with irreducible polynomial.
-||| Returns Nothing when the reduction does not land below 2^n, which happens
-||| when `irr` is not a degree-n polynomial (the range is checked, not assumed).
+||| Returns Nothing unless `irr` has degree exactly n: any other polynomial
+||| would make the reduction loop without progress. The result's range is then
+||| checked, not assumed.
 export
 covering
 bfMulWithIrr : {n : Nat} -> Bits64 -> BinaryFieldElement n -> BinaryFieldElement n -> Maybe (BinaryFieldElement n)
 bfMulWithIrr irr a b =
-  let prod = polyMul a.bfBitsVal b.bfBitsVal
-      reduced = polyModReduction prod irr n
-  in case choose (reduced < cast {to=Bits64} (natPow 2 n)) of
-       Left inRange => Just (MkBFE reduced inRange)
-       Right _ => Nothing
+  if bitLength irr /= S n then Nothing
+  else
+    let prod = polyMul a.bfBitsVal b.bfBitsVal
+        reduced = polyModReduction prod irr n
+    in case choose (reduced < cast {to=Bits64} (natPow 2 n)) of
+         Left inRange => Just (MkBFE reduced inRange)
+         Right _ => Nothing
 
 -- Common irreducible polynomials
 -- GF(2^8): x^8 + x^4 + x^3 + x + 1 (AES polynomial)
