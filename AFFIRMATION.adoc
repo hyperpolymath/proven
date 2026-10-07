@@ -3,8 +3,17 @@
 = AFFIRMATION — proven, as of 2026-10-07T10:30Z
 :toc: macro
 :toclevels: 2
+:status: DRAFT — agent-authored, NOT affirmed by the owner
 
 _the No-Bullshit file: what we affirm was true and checkable at this moment._
+
+[IMPORTANT]
+.Status: DRAFT. Not affirmed by the owner
+====
+An agent wrote and committed this file (c25c3b5e, merged as 6071d0ba). The owner has not yet
+affirmed it. Until the owner re-anchors it and lands it with a signed `git commit -S`, treat
+every claim below as an agent report, not as the owner's affirmation.
+====
 
 [NOTE]
 ====
@@ -126,8 +135,8 @@ Triage of these is in issue #230.
 | Branch | main
 | Timestamp (UTC) | 2026-10-07T10:30Z
 | Toolchain | Idris2 0.8.0, via the CI container `snazzybucket/idris2:latest`; GNU grep for the counts
-| Affirmed by | Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>. Drafted by Claude Code from the evidence above, and affirmed by the owner's signed merge
+| Affirmed by | Not yet affirmed. Drafted and committed by Claude Code from the evidence above. The owner affirms by re-anchoring this file and landing it with `git commit -S`
 |===
 
-_Landed by a signed git commit. Verify with `git log --show-signature` that the
+_Once affirmed, this file is landed by the owner's signed git commit. Verify with `git log --show-signature` that the
 commit introducing this file has the anchor SHA above as its parent._
