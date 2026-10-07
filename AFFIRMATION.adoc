@@ -1,0 +1,133 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+= AFFIRMATION — proven, as of 2026-10-07T10:30Z
+:toc: macro
+:toclevels: 2
+
+_the No-Bullshit file: what we affirm was true and checkable at this moment._
+
+[NOTE]
+====
+An *affirmation* is a solemn declaration of the truth of a statement, made by
+someone who _declines to swear an oath_ — our truth-as-best-believed at a
+stamped instant, binding on our honesty, not a claim of infallibility. It is the
+third of the README / EXPLAINME / AFFIRMATION trio:
+
+[cols="1,3,2",options="header"]
+|===
+| File | Answers | Tense
+| `README.adoc` | _Where is this going, and why?_ — steering, intent, vision | future / aspirational
+| `EXPLAINME.adoc` | _How is it built, and what's the evidence?_ — engineering | descriptive / mechanism
+| *`AFFIRMATION.adoc`* (this file) | _What can we honestly affirm was *true and checkable* at a stamped moment?_ | a frozen instant, falsifiable
+|===
+
+This file is *optional*. Delete it rather than carry an affirmation you have not
+re-verified — a stale affirmation is worse than none.
+====
+
+toc::[]
+
+== What this is, and how it works
+
+*What it is.* A short, dated, signed snapshot of what hyperpolymath can honestly
+and verifiably claim about *proven* at one exact commit. Nothing here is
+marketing and nothing is a promise about the future — those live in the README.
+This file is the receipt.
+
+*What the project is.* A library of safe operations written in Idris2 with
+dependent types, intended to be fully proven and exposed to other languages
+through a Zig FFI. *It is not fully proven today.* The sections below say how far
+it is from that.
+
+*How it stays trustworthy.* Every claim below comes from the project's own CI at
+the anchor commit, or from a grep run against the tree at that commit, and the
+evidence column names which. The file is landed by a signed commit.
+
+*We are fallible.* This is our best honest belief, not a proof of its own
+correctness.
+
+== The epistemic contract (read this before you trust _or_ attack)
+
+This document records hyperpolymath's *best belief* at the timestamp below. It is
+*not a guarantee of correctness.* The only guarantee is *no intentional
+overclaim*. Where the README says more than this file does, this file wins.
+
+*Standing invitation to refute.* Bring a counter-example, a failing run, or a
+contradicting source, and open an issue.
+
+== What we affirm
+
+[cols="3,1,4",options="header"]
+|===
+| Claim | Status | Evidence (command / run)
+
+| `proven.ipkg` typechecks: 305 of 305 modules build under Idris2 0.8.0
+| affirmed
+| CI job `verify-idris-build` (architecture-enforcement.yml), job id 112464109461 at the anchor: last line `305/305: Building Proven (src/Proven.idr)`, success
+
+| The proof-check job passes
+| affirmed, one commit earlier
+| `idris2-ci.yml` job `proof-check (0.8.0)` = success at a32c3b65. That workflow did not run at the anchor, which changed only `.gitleaksignore`
+
+| No `believe_me` and no `idris_crash` in code under `src/`
+| affirmed
+| `grep -rnw --include=*.idr believe_me src`, then dropping comment and doc-comment lines: 0. The same for `idris_crash`: 0. The 48 raw matches are all comments
+
+| The known false postulates in `SafeFiniteField`, `SafePipe` and `SafeTerminal` are removed or restated true
+| affirmed
+| #228 (ced0ca5f) and #229 (a32c3b65)
+
+| The secret scan is clean
+| affirmed
+| `scan / gitleaks` = success at the anchor. Three test-fixture false positives are ignored by fingerprint in `.gitleaksignore` (#231)
+|===
+
+== What we do NOT claim
+
+* *"Mathematically proven" (the README) is not affirmed.* `PROOF-NEEDS.adoc`
+  (sampled proven-rate) found a discharged theorem in 1 of 32 sampled modules,
+  about 3%.
+* *Declarations without a body act as postulates.* The recon at 8542e84c counted
+  383, 55 of them reached at runtime. #228 and #229 removed some. They were *not
+  re-counted at this anchor*.
+* *Escape hatches remain in code:* 20 `assert_total` and 2 `assert_smaller`
+  (grep, comments excluded, at the anchor). 17 of them are undocumented (SafeXML, SafeYAML and
+  SafeRegex parsers), per the #230 triage.
+* *The cryptographic hash primitives are stubs.* `src/Proven/SafeCrypto/Hash.idr`
+  has its 9 `%foreign` lines commented out, so sha256, sha512, sha3 and blake2b
+  have no implementation.
+* *The test suite does not build.* `idris2-ci.yml` job `build (0.8.0)` failed at
+  a32c3b65, because `tests.ipkg` still calls names renamed in bdb18639
+  (2026-05-11). No property test has run since then.
+* *Not every module is built.* At 8542e84c the recon found about 79 `.idr` files
+  under `src/` in no `.ipkg`, so CI never typechecks them. Not re-counted at this anchor.
+* *At 8542e84c (recon, not re-counted here):* about 15 theorem statements are
+  weakened by unbound implicits (52 warnings), and 71 "theorems" conclude only `()`.
+* *Red checks at the anchor:*
+** `governance / Workflow security linter`;
+** `governance / Validate Hypatia Baseline`;
+** `governance / Trusted-base reduction policy`;
+** `GitHub Pages / build`;
+** `mirror / mirror-gitea`, `mirror-disroot` and `mirror-bitbucket`.
+
++
+Triage of these is in issue #230.
+
+* *The CI container is unpinned:* `snazzybucket/idris2:latest`.
+
+[#verifiable-anchor]
+== Verifiable anchor
+
+[cols="1,3"]
+|===
+| Project | proven
+| Repository | https://github.com/hyperpolymath/proven
+| Commit (SHA) | 53600326ca31f6f99767c5371cc77af2dade996c (the parent of the commit that adds this file)
+| Branch | main
+| Timestamp (UTC) | 2026-10-07T10:30Z
+| Toolchain | Idris2 0.8.0, via the CI container `snazzybucket/idris2:latest`; GNU grep for the counts
+| Affirmed by | Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>. Drafted by Claude Code from the evidence above, and affirmed by the owner's signed merge
+|===
+
+_Landed by a signed git commit. Verify with `git log --show-signature` that the
+commit introducing this file has the anchor SHA above as its parent._
