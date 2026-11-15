@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+= Native libproven / Rustler ABI boundary
+
+This repository currently has a *broken consumer boundary*, not a missing
+search directory alone. `bindings/elixir/native/proven_nif/src/lib.rs`
+declares 66 `proven_*` C ABI functions. The current
+`ffi/zig/src/main.zig` exports 17 `proven_*` functions and does not
+define most of the required functions, such as `proven_math_div`.
+The shared name `proven_init` also has incompatible return types:
+Rust declares `i32` while Zig returns an optional `*Handle`.
+These are source observations, not a verified inventory of any
+generated Idris2 RefC C output.
+
+== A mandatory precondition, not a substitute for proof
+
+Run `bash scripts/check-native-nif-exports.sh /path/to/libproven.so`
+*after* the authentic Idris2 -> RefC -> Zig library build.
+For a static library, pass `libproven.a` instead.
+
+The checker extracts required C symbols from the Rust `extern "C"` block
+and confirms that the compiled library *defines* all of them. Missing
+names cause exit 1; missing tools/inputs or unreadable artifacts cause
+exit 2 (NOT RUN); only a complete symbol list gives exit 0.
+
+The script expressly **does not verify ABI types, memory ownership,
+verified Idris2 provenance, dynamic dependencies, or behavioural
+semantics**. Its positive controls are fixture libraries, not
+`libproven` evidence. Type/layout compatibility must additionally be
+checked against an authoritative C header, with compiled calls and
+negative fixtures, before declaring the full interface safe.
+Actual runtime behaviour must be exercised from Elixir and Rust.
+
+== Required upstream repairs
+
+. Resolve the currently private `nextgen-languages/language-bridges`
+  dependency with correctly scoped credentials or a reviewed vendor pin.
+. Produce genuine Idris2 RefC code, with pinned compiler/runtime inputs,
+  and include the required ABI implementation in the Zig linker.
+. Agree whether the consumer links a static or shared `libproven`.
+  The Zig build currently emits a static target while Rust explicitly
+  requests `dylib=proven`.
+. Repair all 66 function contracts, including `proven_init` return
+  type and correct ownership of returned buffers.
+. Check exported symbols on *the exact artifact to be consumed*; run
+  typed calls against it and the real Elixir/Rustler integration.
+. Publish immutable, attestable artifact provenance and a pinned,
+  reproducible consumer configuration. Never silently substitute
+  `build_standalone.zig`, which builds a narrower pure Zig ABI.
+
+== Positive and negative gate controls
+
+`bash tests/check-native-nif-exports.sh` runs six isolated cases:
+a defined shared and static fixture, deliberately missing symbols,
+missing input, an empty contract, and a corrupt binary. These tests
+establish only that the name-presence gate fails closed; they do
+not certify this repository's actual `libproven` ABI.
