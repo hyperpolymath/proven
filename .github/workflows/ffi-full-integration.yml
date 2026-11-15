@@ -19,6 +19,7 @@ on:
       - 'bindings/elixir/native/proven_nif/src/lib.rs'
       - 'scripts/check-native-nif-exports.sh'
       - 'tests/check-native-nif-exports.sh'
+      - 'tests/check-refc-staging.sh'
   pull_request:
     branches: [main]
     paths:
@@ -30,6 +31,7 @@ on:
       - 'bindings/elixir/native/proven_nif/src/lib.rs'
       - 'scripts/check-native-nif-exports.sh'
       - 'tests/check-native-nif-exports.sh'
+      - 'tests/check-refc-staging.sh'
   workflow_dispatch:
 concurrency:
   group: ffi-full-integration-${{ github.ref }}
@@ -48,6 +50,9 @@ jobs:
         # This proves the validator detects missing exports. It does NOT
         # imply any real libproven artifact was built or validated.
         run: bash tests/check-native-nif-exports.sh
+      - name: RefC staging regression controls
+        # Planted empty/stale compiler outputs must not become fake evidence.
+        run: bash tests/check-refc-staging.sh
 
   idris-refc-zig:
     name: Idris -> RefC -> Zig
