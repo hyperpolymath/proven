@@ -40,10 +40,10 @@ trap 'rm -rf -- "$tmp"' EXIT
 awk '
   /^[[:space:]]*extern "C"[[:space:]]*\{/ { in_extern=1; next }
   in_extern && /^[[:space:]]*\}/ { in_extern=0 }
-  in_extern && /^[[:space:]]*fn[[:space:]]+proven_[A-Za-z0-9_]+[[:space:]]*\(/ {
+  in_extern && /^[[:space:]]*((pub(\([^)]*\))?|safe|unsafe)[[:space:]]+)*fn[[:space:]]+proven_[A-Za-z0-9_]+[[:space:]]*\(/ {
     line=$0
-    sub(/^[[:space:]]*fn[[:space:]]+/, "", line)
-    sub(/\(.*/, "", line)
+    sub(/^[[:space:]]*((pub(\([^)]*\))?|safe|unsafe)[[:space:]]+)*fn[[:space:]]+/, "", line)
+    sub(/[[:space:]]*\(.*/, "", line)
     print line
   }
 ' "$nif" | LC_ALL=C sort -u > "$tmp/required"
@@ -71,7 +71,12 @@ esac
 
 # Use only defined symbols; never mistake an undefined (U) reference for
 # evidence that a function exists. nm --defined-only excludes those.
-awk '{ if ($NF ~ /^proven_[A-Za-z0-9_]+$/) print $NF }' "$tmp/nm" |
+# Default-version definitions satisfy unversioned consumers; single-@ aliases do not.
+awk '{
+  symbol=$NF
+  sub(/@@[^@[:space:]]+$/, "", symbol)
+  if (symbol ~ /^proven_[A-Za-z0-9_]+$/) print symbol
+}' "$tmp/nm" |
   LC_ALL=C sort -u > "$tmp/defined"
 
 LC_ALL=C comm -23 "$tmp/required" "$tmp/defined" > "$tmp/missing"

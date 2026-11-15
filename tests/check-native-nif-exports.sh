@@ -18,7 +18,7 @@ cat > "$tmp/lib.rs" <<'EOF'
 #[link(name = "proven")]
 extern "C" {
     fn proven_init() -> i32;
-    fn proven_math_div(a: i64, b: i64) -> i64;
+    pub fn proven_math_div(a: i64, b: i64) -> i64;
 }
 fn wrapper_not_a_required_export() {}
 EOF
@@ -50,6 +50,25 @@ expect() {
 expect 'all exported symbols (shared)' 0 'symbols_present_only' bash "$driver" "$tmp/good.so" "$tmp/lib.rs"
 expect 'all exported symbols (static)' 0 'symbols_present_only' bash "$driver" "$tmp/good.a" "$tmp/lib.rs"
 expect 'planted missing symbol is refused' 1 'missing C ABI symbol: proven_math_div' bash "$driver" "$tmp/bad.so" "$tmp/lib.rs"
+# Each qualified declaration must still require the missing division export.
+for qualifier in 'pub(crate)' 'pub(super)' 'pub(in crate::ffi)' safe unsafe 'pub safe' 'pub(crate) unsafe'; do
+  printf 'extern "C" {\n    %s fn proven_math_div(a: i64, b: i64) -> i64;\n}\n' "$qualifier" > "$tmp/qualified.rs"
+  expect "qualified declaration ($qualifier)" 1 'missing C ABI symbol: proven_math_div' bash "$driver" "$tmp/bad.so" "$tmp/qualified.rs"
+done
+
+cat > "$tmp/versions.map" <<'EOF'
+PROVEN_1 { global: proven_*; local: *; };
+EOF
+cc -shared -fPIC -Wl,--version-script="$tmp/versions.map" -o "$tmp/default-version.so" "$tmp/good.c"
+expect 'default-version exports satisfy contract' 0 'symbols_present_only' bash "$driver" "$tmp/default-version.so" "$tmp/lib.rs"
+
+cat > "$tmp/nondefault.c" <<'EOF'
+int proven_init(void) { return 0; }
+long div_impl(long a, long b) { return b ? a / b : 0; }
+__asm__(".symver div_impl,proven_math_div@PROVEN_1");
+EOF
+cc -shared -fPIC -Wl,--version-script="$tmp/versions.map" -o "$tmp/nondefault-version.so" "$tmp/nondefault.c"
+expect 'single-@ export does not satisfy contract' 1 'missing C ABI symbol: proven_math_div' bash "$driver" "$tmp/nondefault-version.so" "$tmp/lib.rs"
 expect 'missing library is NOT RUN' 2 'not_run:missing_input' bash "$driver" "$tmp/nonexistent.so" "$tmp/lib.rs"
 : > "$tmp/empty.rs"
 expect 'empty consumer contract is NOT RUN' 2 'not_run:empty_contract' bash "$driver" "$tmp/good.so" "$tmp/empty.rs"
@@ -57,4 +76,4 @@ expect 'empty consumer contract is NOT RUN' 2 'not_run:empty_contract' bash "$dr
 # An invalid artifact must not be accepted merely because it has a .so suffix.
 printf 'not an ELF binary\n' > "$tmp/invalid.so"
 expect 'unreadable artifact is NOT RUN' 2 'not_run:unreadable_shared_lib' bash "$driver" "$tmp/invalid.so" "$tmp/lib.rs"
-echo 'native-nif-symbol-controls: 6 cases passed (actual ABI not yet verified)'
+echo 'native-nif-symbol-controls: 15 cases passed (actual ABI not yet verified)'
