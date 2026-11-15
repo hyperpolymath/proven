@@ -70,10 +70,11 @@ jobs:
           set -euo pipefail
           if [ -z "$LANGUAGE_BRIDGES_TOKEN" ]; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::LANGUAGE_BRIDGES_TOKEN is not configured; skipping private full FFI integration."
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "::error title=Full FFI not run::LANGUAGE_BRIDGES_TOKEN is absent; genuine Idris2/RefC/Zig integration cannot be verified."
+            echo "PROVEN_FFI_CLASS=not_run:missing_private_dependency"
+            exit 2
           fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
       - name: Checkout language-bridges
         if: steps.bridge-token.outputs.available == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
