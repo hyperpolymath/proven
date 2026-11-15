@@ -16,6 +16,9 @@ on:
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'bindings/elixir/native/proven_nif/src/lib.rs'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'tests/check-native-nif-exports.sh'
   pull_request:
     branches: [main]
     paths:
@@ -24,11 +27,28 @@ on:
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'bindings/elixir/native/proven_nif/src/lib.rs'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'tests/check-native-nif-exports.sh'
   workflow_dispatch:
 concurrency:
   group: ffi-full-integration-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  nif-abi-symbol-controls:
+    name: Native ABI symbol validator (planted controls only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout proven
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          persist-credentials: false
+      - name: Execute real positive and negative controls
+        # This proves the validator detects missing exports. It does NOT
+        # imply any real libproven artifact was built or validated.
+        run: bash tests/check-native-nif-exports.sh
+
   idris-refc-zig:
     name: Idris -> RefC -> Zig
     runs-on: ubuntu-latest
@@ -126,3 +146,13 @@ jobs:
             -Didris-c-support="$C_SUPPORT" \
             -Didris-support-lib="$SUPPORT_LIB"
           ls -la zig-out/lib/libproven.*
+      - name: Verify the genuine built artifact exports every Rustler NIF symbol
+        if: steps.bridge-token.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          artifact="$GITHUB_WORKSPACE/ffi/zig/zig-out/lib/libproven.a"
+          if [ ! -f "$artifact" ]; then
+            echo "::error::Missing actual libproven.a, not a successful integration."
+            exit 1
+          fi
+          bash scripts/check-native-nif-exports.sh "$artifact"
