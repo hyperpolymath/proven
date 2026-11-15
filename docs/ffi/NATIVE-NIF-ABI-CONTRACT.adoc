@@ -12,6 +12,29 @@ Rust declares `i32` while Zig returns an optional `*Handle`.
 These are source observations, not a verified inventory of any
 generated Idris2 RefC C output.
 
+== Actual Idris2 RefC package scope
+
+On 2026-11-15 an isolated checkout ran `idris2 --build proven-ffi.ipkg`
+and `idris2 --codegen refc --build proven-ffi.ipkg` using Idris2
+0.8.0. Both compiled successfully. The package currently lists
+`Proven.Core`, `Proven.SafeUrl.Parser`,
+`Proven.FFI.SafeUrl` and `Proven.FFI.Main`; compilation also loads
+the imported SafeUrl/Query modules. `Proven.FFI.Main` references
+*SafeUrl only*. This package does not presently include an Idris2 FFI
+implementation for the Rustler NIF's math, crypto, string and other
+API families. A successfully generated `proven-ffi.c` is **not** a
+complete 66-function Idris-backed ABI.
+
+The existing `scripts/build-refc.sh` also previously scanned
+`build/exec` and its parent `build` (double-counting the same
+source), and could report success even when the compiler produced no
+C. It now requires at least one *fresh* generated C source, deduplicates
+the scan, and replaces stale staged sources. The four fake-compiler
+controls in `tests/check-refc-staging.sh` exercise empty, stale,
+fresh and failed generation, while an independent live Idris2/RefC
+build has confirmed one generated source file. Neither fixture
+testing nor one generated C source proves complete ABI parity.
+
 == A mandatory precondition, not a substitute for proof
 
 Run `bash scripts/check-native-nif-exports.sh /path/to/libproven.so`
