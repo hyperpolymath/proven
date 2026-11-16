@@ -74,6 +74,16 @@ D and OCaml CI obtain this real shared-library profile through
 Evidence in `build/header-evidence` records versions, source/SDK hashes and
 positive/negative logs.
 
+A header rebuild invalidates the previous kernel, archives, copied headers
+and identity before checking the compiler. Every failure leaves a FAIL marker;
+Zig accepts a header bundle only after its producer writes PASS. Three more
+controls plant stale bundles and simulate a wrong compiler, zero-exit errors
+and absent output; the producer must remove them and Zig must refuse them.
+The identity hashes the copied Idris sources and both sets of SDK headers.
+Use one producer per output directory; concurrent publication to a shared
+bundle directory is not supported. The marker records build completion,
+not a source-to-proof certificate.
+
 The RefC ABI now has 14 passing Zig tests, including all 256 immediate-word
 round trips and rejection of invalid tags/ranges. Chapel's smoke, contract,
 unit and detached tests pass with either-CR-or-LF semantics and embedded NUL.

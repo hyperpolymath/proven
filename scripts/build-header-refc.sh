@@ -5,6 +5,29 @@
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 out=${1:-"$root/build/header-refc"}
+mkdir -p "$out"
+out=$(cd "$out" && pwd)
+# The bundle is script-owned. Rebuilding invalidates the old result before
+# tool checks, so ignoring a failed rebuild cannot silently reuse its kernel.
+rm -f "$out/result.txt"
+printf 'INCOMPLETE\n' > "$out/result.txt"
+invalidate() {
+  rm -f "$out/kernel.c" "$out/libidris2_refc.a" "$out/libidris2_support.a" "$out/identity.log"
+  for dir in "$out/refc" "$out/support"; do
+    if [[ -d "$dir" ]]; then find "$dir" -maxdepth 1 -type f -name '*.h' -delete; fi
+  done
+}
+work=''
+finish() {
+  result=$?
+  if [[ $result -ne 0 ]]; then
+    invalidate
+    printf 'FAIL: exit %s\n' "$result" > "$out/result.txt"
+  fi
+  if [[ -n "$work" ]]; then rm -rf -- "$work"; fi
+}
+trap finish EXIT
+invalidate
 idris=${IDRIS2:-idris2}
 idris=$(command -v "$idris")
 idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")")
@@ -12,10 +35,7 @@ idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")"
   echo 'FAIL: header ABI profile requires Idris2 b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b' >&2; exit 1;
 }
 [[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'FAIL: only native Linux x86_64 is qualified' >&2; exit 1; }
-mkdir -p "$out"
-out=$(cd "$out" && pwd)
 work=$(mktemp -d -t proven-header-refc.XXXXXXXX)
-trap 'rm -rf -- "$work"' EXIT
 mkdir -p "$work/src/Proven/SafeHeader" "$work/src/Proven/FFI"
 cp "$root/src/Proven/SafeHeader/ByteKernel.idr" "$work/src/Proven/SafeHeader/"
 cp "$root/src/Proven/FFI/HeaderKernelMain.idr" "$work/src/Proven/FFI/"
@@ -46,6 +66,8 @@ cp "$runtime/libidris2_refc.a" "${support_libs[0]}" "$out/"
 cp "$work/build/exec/header-kernel.c" "$out/kernel.c"
 {
   "$idris" --version
-  sha256sum "$root/src/Proven/SafeHeader/ByteKernel.idr" "$root/src/Proven/FFI/HeaderKernelMain.idr" "$out/kernel.c" "$out/"*.a "$out/refc/"*.h
+  (cd "$work"; sha256sum src/Proven/SafeHeader/ByteKernel.idr src/Proven/FFI/HeaderKernelMain.idr)
+  sha256sum "$out/kernel.c" "$out/"*.a "$out/refc/"*.h "$out/support/"*.h
 } > "$out/identity.log"
+echo PASS > "$out/result.txt"
 printf 'RefC header kernel: %s\n' "$out"

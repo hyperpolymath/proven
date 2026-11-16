@@ -16,6 +16,10 @@ const std = @import("std");
 
 fn attachHeader(b: *std.Build, mod: *std.Build.Module, path: []const u8) void {
     if (!std.fs.path.isAbsolute(path)) @panic("-Dheader-refc must be an absolute SDK bundle path");
+    const result = std.fs.cwd().readFileAlloc(b.allocator, b.fmt("{s}/result.txt", .{path}), 16) catch
+        @panic("header RefC bundle is incomplete; rebuild it with scripts/build-header-refc.sh");
+    if (!std.mem.eql(u8, result, "PASS\n"))
+        @panic("header RefC bundle is incomplete; rebuild it with scripts/build-header-refc.sh");
     mod.addIncludePath(.{ .cwd_relative = b.fmt("{s}/refc", .{path}) });
     mod.addIncludePath(.{ .cwd_relative = b.fmt("{s}/support", .{path}) });
     mod.addCSourceFile(.{

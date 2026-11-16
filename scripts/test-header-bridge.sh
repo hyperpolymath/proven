@@ -41,6 +41,8 @@ if "$zig" build test --build-file build_standalone.zig -Dheader-refc="$work/bund
   echo 'FAIL: ABI tests accepted the always-clean kernel' >&2; exit 1
 fi
 grep -q 'TestExpectedEqual' "$evidence/mutant.log"
+grep -q '/support/idris_support.h' "$evidence/identity.log"
+EVIDENCE_DIR="$evidence/staging-controls" ZIG="$zig" bash "$root/scripts/test-header-staging.sh"
 sha256sum -c "$evidence/inputs.sha256" > "$evidence/input-recheck.log"
 echo PASS > "$evidence/result.txt"
 printf 'PASS: Idris totality/holes; unavailable backend refusal; actual RefC ABI; 256 single bytes; 65536 pairs; boundary corpus; rejecting mutant.\nEvidence: %s\n' "$evidence"
