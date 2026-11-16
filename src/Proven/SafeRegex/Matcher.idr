@@ -49,8 +49,8 @@ record MatchState where
 public export
 initState : String -> Nat -> RegexFlags -> MatchState
 initState s maxSteps flags =
-  let chars = unpack s
-  in MkMatchState 0 0 maxSteps [] s chars Refl (length chars) flags
+  let st = MkMatchState 0 0 maxSteps [] s (unpack s) Refl 0 flags
+  in { inputLen := length st.inputChars } st
 
 ||| Increment step counter
 public export
