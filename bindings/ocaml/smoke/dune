@@ -3,4 +3,10 @@
 
 (executable
  (name hello_smoke)
+ (modules hello_smoke)
+ (libraries proven.wired))
+
+(executable
+ (name full_api_probe)
+ (modules full_api_probe)
  (libraries proven))
