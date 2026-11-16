@@ -42,7 +42,10 @@ cp "$root/src/Proven/FFI/HeaderKernelMain.idr" "$work/src/Proven/FFI/"
 if ! (cd "$work"; "$idris" -Werror --total --source-dir src --codegen refc -o header-kernel src/Proven/FFI/HeaderKernelMain.idr) > "$out/build.log" 2>&1; then
   cat "$out/build.log" >&2; exit 1
 fi
-if grep -q '^Error:' "$out/build.log" || [[ ! -s "$work/build/exec/header-kernel.c" ]]; then
+if grep -q '^Error:' "$out/build.log"; then
+  cat "$out/build.log" >&2; echo 'FAIL: header compiler diagnostics' >&2; exit 1
+fi
+if [[ ! -s "$work/build/exec/header-kernel.c" ]]; then
   cat "$out/build.log" >&2; echo 'FAIL: no valid RefC output' >&2; exit 1
 fi
 grep -q 'Proven_SafeHeader_ByteKernel_headerStep' "$work/build/exec/header-kernel.c"

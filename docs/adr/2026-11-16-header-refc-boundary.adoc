@@ -202,3 +202,16 @@ closure. Then the header loop needs a prefix invariant, bounds and progress
 proof, with an explicit RefC-call contract. UAA's real two-slot callback registry
 is a second consumer for state transitions, refusal and borrowed lifetimes;
 its differential execution is not yet an Atoma source-to-proof certificate.
+
+Review refinements remove repeated full-input scans: the regex state now
+carries an erased equality tying its cached characters to the original String;
+lookups use that cache. Constructing MatchState directly therefore requires the
+new equality witness (initState supplies it). This is an internal Idris source
+API change, with no C ABI layout change. List indexing still has linear cost;
+no constant-time or complete resource bound is claimed. YAML quoted strings
+now descend structurally through their suffix. XML attributes spend the declared
+per-element attribute allowance, permitting zero attributes at a zero limit and
+rejecting the first excess attribute without scanning the remaining document.
+The strict executable corpus includes flat XML/YAML sequences and exact zero/
+one-attribute limits. The remaining element/collection fuel completeness debt
+is unchanged.

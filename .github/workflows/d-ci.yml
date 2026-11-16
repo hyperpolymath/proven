@@ -64,7 +64,7 @@ jobs:
                       echo "::error file=.github/workflows/d-ci.yml::detachability violation: $p"
                       forbidden=1
                       ;;
-                  tests/*|scripts/*|src/*)
+                  tests/*|scripts/*|./scripts/*|src/*)
                       echo "::error file=.github/workflows/d-ci.yml::undeclared producer or root test dependency: $p"
                       forbidden=1
                       ;;

@@ -19,6 +19,8 @@ if [[ $1 == --version ]]; then
   if [[ $PROVEN_HEADER_TEST_MODE == version ]]; then echo 'wrong compiler';
   else echo 'Idris 2, version 0.8.0-b6cbc25d5'; fi
 elif [[ $PROVEN_HEADER_TEST_MODE == diagnostic ]]; then
+  mkdir -p build/exec
+  echo 'Proven_SafeHeader_ByteKernel_headerStep' > build/exec/header-kernel.c
   echo 'Error: injected header compiler diagnostic with successful exit'
 fi
 exit 0
@@ -42,7 +44,7 @@ for mode in version diagnostic empty; do
   grep -q 'header RefC bundle is incomplete' "$evidence/$mode-consumer.log"
 done
 grep -q 'requires Idris2' "$evidence/version.log"
-grep -q 'Error: injected header compiler diagnostic' "$evidence/diagnostic.log"
+grep -q '^FAIL: header compiler diagnostics' "$evidence/diagnostic.log"
 grep -q 'no valid RefC output' "$evidence/empty.log"
 echo PASS > "$evidence/result.txt"
 echo 'PASS: failed header producers remove stale artifacts and Zig refuses their bundles'
