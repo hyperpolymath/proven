@@ -50,6 +50,14 @@ decode (word true lo b hi) with allZero lo | allZero hi
 nothing≠just : ∀ {A B : Set} {b : A} → nothing ≡ just b → B
 nothing≠just ()
 
+cong : ∀ {A B : Set} (f : A → B) {x y : A} → x ≡ y → f x ≡ f y
+cong f refl = refl
+fromMaybe : Byte → Maybe Byte → Byte
+fromMaybe fallback nothing = fallback
+fromMaybe fallback (just b) = b
+just-injective : ∀ {a b : Byte} → just a ≡ just b → a ≡ b
+just-injective {b = b} p = cong (fromMaybe b) p
+
 round-trip : (b : Byte) → decode (encode b) ≡ just b
 round-trip b = refl
 accepted-canonical : (w : Word) (b : Byte) → decode w ≡ just b → w ≡ encode b
@@ -57,8 +65,8 @@ accepted-canonical (word false lo p hi) b ()
 accepted-canonical (word true lo p hi) b ok with allZero lo in lo-ok | allZero hi in hi-ok
 ... | false | _ = nothing≠just ok
 ... | true | false = nothing≠just ok
-... | true | true with ok
-... | refl rewrite allZero-sound lo lo-ok | allZero-sound hi hi-ok = refl
+... | true | true rewrite allZero-sound lo lo-ok | allZero-sound hi hi-ok =
+  cong encode (just-injective ok)
 
 null-word : Word
 null-word = word false (zeros 31) (zeros 8) (zeros 24)
