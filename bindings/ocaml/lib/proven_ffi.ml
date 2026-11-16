@@ -280,55 +280,48 @@ let () = seal retry_config
 (* Opaque pointer types for stateful objects                                  *)
 (* -------------------------------------------------------------------------- *)
 
+(* Keep pointee types incomplete. Sealing an empty C struct is unsupported;
+   these declarations are used only behind pointers, never allocated here. *)
+
 (** Opaque handle for BoundedBuffer. *)
 type bounded_buffer
 let bounded_buffer : bounded_buffer structure typ = structure "BoundedBuffer"
-let () = seal bounded_buffer
 
 (** Opaque handle for RateLimiter. *)
 type rate_limiter
 let rate_limiter : rate_limiter structure typ = structure "RateLimiter"
-let () = seal rate_limiter
 
 (** Opaque handle for CircuitBreaker. *)
 type circuit_breaker
 let circuit_breaker : circuit_breaker structure typ = structure "CircuitBreaker"
-let () = seal circuit_breaker
 
 (** Opaque handle for MonotonicCounter. *)
 type monotonic_counter
 let monotonic_counter : monotonic_counter structure typ = structure "MonotonicCounter"
-let () = seal monotonic_counter
 
 (** Opaque handle for StateMachine. *)
 type state_machine
 let state_machine : state_machine structure typ = structure "StateMachine"
-let () = seal state_machine
 
 (** Opaque handle for Tensor2D. *)
 type tensor_2d
 let tensor_2d : tensor_2d structure typ = structure "Tensor2D"
-let () = seal tensor_2d
 
 (** Opaque handle for LRUCache. *)
 type lru_cache
 let lru_cache : lru_cache structure typ = structure "LRUCache"
-let () = seal lru_cache
 
 (** Opaque handle for Graph. *)
 type graph
 let graph : graph structure typ = structure "Graph"
-let () = seal graph
 
 (** Opaque handle for BoundedQueue. *)
 type bounded_queue
 let bounded_queue : bounded_queue structure typ = structure "BoundedQueue"
-let () = seal bounded_queue
 
 (** Opaque handle for BloomFilter. *)
 type bloom_filter
 let bloom_filter : bloom_filter structure typ = structure "BloomFilter"
-let () = seal bloom_filter
 
 (* -------------------------------------------------------------------------- *)
 (* Struct: BufferResult { status: i32, buffer: *BoundedBuffer }               *)

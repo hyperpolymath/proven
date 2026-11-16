@@ -30,6 +30,8 @@ jobs:
         with:
           path: |
             ~/.cabal
+            ~/.local/state/cabal
+            ~/.cache/cabal
             ~/.opam
             ~/.local/header-proof-tools
           key: header-theory-ubuntu2404-systemghc-agda2643-lean4150-rocq920-ocaml511-${{ hashFiles('.github/workflows/header-theory.yml') }}

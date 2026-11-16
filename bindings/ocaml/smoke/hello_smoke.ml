@@ -19,6 +19,15 @@ let () =
     exit 1
   end;
 
+  (* Exact bytes, including lone breaks, embedded NUL and non-UTF-8. *)
+  List.iter (fun (value, expected) ->
+    if SafeHeader.has_crlf value <> expected then begin
+      print_endline "FAIL: SafeHeader byte-span counterexample";
+      exit 1
+    end
+  ) ["application/json", false; "\r", true; "\n", true;
+     "a\000\rZ", true; "\255\000\128", false];
+
   (* Library identification. *)
   let major = Version.major () in
   let minor = Version.minor () in

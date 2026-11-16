@@ -195,7 +195,7 @@ module SafeString = struct
     let p = cstring_of_string s in
     unwrap_string_result (F.proven_string_escape_sql p (Unsigned.Size_t.of_int (String.length s)))
 
-  (** Escape a string for HTML (< > & " '). *)
+  (** Escape HTML angle brackets, ampersands and quotation marks. *)
   let escape_html (s : string) : string option =
     let p = cstring_of_string s in
     unwrap_string_result (F.proven_string_escape_html p (Unsigned.Size_t.of_int (String.length s)))

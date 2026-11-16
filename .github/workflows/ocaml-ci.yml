@@ -93,14 +93,14 @@ jobs:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
           dune-cache: true
       - name: Install dependencies
-        run: opam install dune ctypes ctypes-foreign
+        run: opam install --yes dune ctypes.0.24.0 ctypes-foreign.0.24.0 alcotest
       - name: OCaml build
         working-directory: proven/bindings/ocaml
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/proven/ffi/zig/zig-out/lib
         run: |
           set -euo pipefail
-          dune build
+          opam exec -- dune build
       - name: Upload libproven.so artefact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
@@ -147,7 +147,7 @@ jobs:
         with:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
       - name: Install dependencies
-        run: opam install dune ctypes ctypes-foreign
+        run: opam install --yes dune ctypes.0.24.0 ctypes-foreign.0.24.0 alcotest
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
@@ -164,7 +164,7 @@ jobs:
           PROVEN_INCLUDE_PATH: ${{ github.workspace }}/bindings/c/include
           LD_LIBRARY_PATH: ${{ github.workspace }}/lib
         run: |
-          dune build smoke/hello_smoke.exe
+          opam exec -- dune build smoke/hello_smoke.exe
           ./_build/default/smoke/hello_smoke.exe
   ocaml-detachable-build:
     runs-on: ubuntu-22.04
