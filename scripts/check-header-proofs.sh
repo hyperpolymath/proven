@@ -41,6 +41,23 @@ cp "$work/header/coq/ProvenHeader.v" "$base/coq/"
 [[ $(grep -c 'Closed under the global context' "$evidence/coq.log") == 4 ]]
 (cd "$base/coq"; coqchk -silent ProvenHeader) > "$evidence/coqchk.log" 2>&1
 
+# RefC word partition: 1 tag + 31 low bits + 8 payload bits + 24 high bits.
+# These are model theorems. Importer/compiler/pointer-carrier refinement is owed.
+agda --safe --without-K --cubical-compatible --double-check --warning=error -i "$work/header/agda" "$work/header/agda/RefCBits8.agda" > "$evidence/bits8-agda.log" 2>&1
+agda --safe --cubical --double-check --warning=error -i "$work/header/agda" -i "$work/header/cubical" "$work/header/cubical/RefCBits8Cubical.agda" > "$evidence/bits8-cubical.log" 2>&1
+(cd "$work/header/lean4"; lean -o RefCBits8.olean RefCBits8.lean) > "$evidence/bits8-lean.log" 2>&1
+[[ $(grep -c 'does not depend on any axioms' "$evidence/bits8-lean.log") == 3 ]]
+if grep -Eq 'sorry|warning:|error:' "$evidence/bits8-lean.log"; then exit 1; fi
+(cd "$work/header/coq"; coqc RefCBits8.v) > "$evidence/bits8-coq.log" 2>&1
+[[ $(grep -c 'Closed under the global context' "$evidence/bits8-coq.log") == 3 ]]
+(cd "$work/header/coq"; coqchk -silent RefCBits8) > "$evidence/bits8-coqchk.log" 2>&1
+# Mutating the tag in the encode definition must invalidate round-trip.
+sed -e 's/module RefCBits8 where/module RefCBits8Mutant where/' \
+    -e 's/encode b = word true/encode b = word false/' \
+    "$work/header/agda/RefCBits8.agda" > "$work/RefCBits8Mutant.agda"
+if agda --safe --without-K --cubical-compatible --double-check --warning=error -i "$work" "$work/RefCBits8Mutant.agda" > "$evidence/bits8-reject.log" 2>&1; then exit 1; fi
+grep -q 'nothing != just' "$evidence/bits8-reject.log"
+
 # Explicitly false witnesses must be rejected, not skipped or admitted.
 cat > "$work/Reject.agda" <<'AGDA'
 {-# OPTIONS --safe --without-K --cubical-compatible #-}
