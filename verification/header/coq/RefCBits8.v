@@ -2,7 +2,7 @@
    Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
    Hand re-proof of RefCBits8.agda. No source refinement is claimed. *)
 From Stdlib Require Import Bool Arith.
-Module RefCBits8.
+Module CodecBits8.
 Inductive Bits : nat -> Type :=
 | bnil : Bits 0
 | bcons : forall {n}, bool -> Bits n -> Bits (S n).
@@ -39,4 +39,4 @@ Proof. reflexivity. Qed.
 Print Assumptions round_trip.
 Print Assumptions accepted_canonical.
 Print Assumptions null_rejected.
-End RefCBits8.
+End CodecBits8.

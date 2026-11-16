@@ -11,6 +11,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'scripts/test-totality-regressions.sh'
       - 'proven.ipkg'
       - 'tests.ipkg'
       - '.github/workflows/idris2-ci.yml'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'scripts/test-totality-regressions.sh'
       - 'proven.ipkg'
       - 'tests.ipkg'
       - '.github/workflows/idris2-ci.yml'

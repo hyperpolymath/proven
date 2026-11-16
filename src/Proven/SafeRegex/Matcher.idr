@@ -5,7 +5,8 @@
 ||| by tracking steps and enforcing configurable limits based on complexity.
 |||
 ||| The matcher uses a backtracking algorithm but with strict step counting
-||| to prevent catastrophic backtracking from causing denial of service.
+||| to bound search transitions. List traversal and input decoding have their
+||| own costs; a step limit alone is not a complete CPU or memory bound.
 module Proven.SafeRegex.Matcher
 
 import Proven.Core
@@ -37,6 +38,8 @@ record MatchState where
   input : String
   ||| Input as list of characters (for efficient access)
   inputChars : List Char
+  ||| Erased witness: the cache describes the authoritative input String.
+  0 charsMatchInput : inputChars = unpack input
   ||| Length of input
   inputLen : Nat
   ||| Regex flags
@@ -47,7 +50,7 @@ public export
 initState : String -> Nat -> RegexFlags -> MatchState
 initState s maxSteps flags =
   let chars = unpack s
-  in MkMatchState 0 0 maxSteps [] s chars (length chars) flags
+  in MkMatchState 0 0 maxSteps [] s chars Refl (length chars) flags
 
 ||| Increment step counter
 public export
@@ -68,7 +71,7 @@ currentChar : MatchState -> Maybe Char
 currentChar st =
   if st.position >= st.inputLen
     then Nothing
-    else head' (drop st.position (unpack st.input))
+    else head' (drop st.position st.inputChars)
 
 ||| Get character at specific position
 public export
@@ -76,7 +79,7 @@ charAt : MatchState -> Nat -> Maybe Char
 charAt st pos =
   if pos >= st.inputLen
     then Nothing
-    else head' (drop pos (unpack st.input))
+    else head' (drop pos st.inputChars)
 
 ||| Check if at end of input
 public export
@@ -426,24 +429,24 @@ replaceFirst sr input replacement =
 ||| Replace all matches
 public export
 replaceAll : SafeRegex -> String -> String -> String
-replaceAll sr input replacement = go (S inputLen) 0 ""
+replaceAll sr input replacement = go (unpack input) (S inputLen) 0 ""
   where
     inputLen : Nat
     inputLen = length input
 
-    go : (fuel : Nat) -> Nat -> String -> String
-    go Z pos acc = acc ++ substr pos (minus inputLen pos) input
-    go (S fuel) pos acc =
+    go : List Char -> (fuel : Nat) -> Nat -> String -> String
+    go chars Z pos acc = acc ++ substr pos (minus inputLen pos) input
+    go chars (S fuel) pos acc =
       if pos >= inputLen
         then acc ++ substr pos (minus inputLen pos) input
         else case matchAt sr input pos defaultFlags of
                MkMatchResult True (Just (start, end)) _ _ =>
                  let before = substr pos (minus start pos) input
                      newPos = max (S pos) end
-                 in go fuel newPos (acc ++ before ++ replacement)
+                 in go chars fuel newPos (acc ++ before ++ replacement)
                _ =>
-                 case head' (drop pos (unpack input)) of
-                   Just c => go fuel (S pos) (acc ++ singleton c)
+                 case head' (drop pos chars) of
+                   Just c => go chars fuel (S pos) (acc ++ singleton c)
                    Nothing => acc
 
 ||| Split string by regex

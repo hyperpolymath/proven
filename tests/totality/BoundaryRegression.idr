@@ -37,6 +37,13 @@ nestedYAML : Nat -> String
 nestedYAML Z = "true"
 nestedYAML (S n) = "[" ++ nestedYAML n ++ "]"
 
+xmlSiblings : Nat -> String
+xmlSiblings Z = ""
+xmlSiblings (S n) = "<a/>" ++ xmlSiblings n
+quotedItems : Nat -> String
+quotedItems Z = "\"x\""
+quotedItems (S n) = "\"x\"," ++ quotedItems n
+
 main : IO ()
 main = do
   check "tree order including asymmetric levels" (levelorder tree == [1,2,3,4,5,6])
@@ -60,6 +67,12 @@ main = do
   check "XML nested and sibling/attribute paths"
     (isOk (parseXML (nestedXML 20)) &&
      isOk (parseXML "<r a='v'><a/><b>text</b><!--ok--><![CDATA[x]]></r>"))
+  check "XML flat elements and exact attribute limits"
+    (isOk (parseXML ("<r>" ++ xmlSiblings 128 ++ "</r>")) &&
+     isOk (parseXMLWith ({ maxAttributesPerElement := 0 } Proven.SafeXML.Types.secureDefaults) "<r/>" ) &&
+     isErr (parseXMLWith ({ maxAttributesPerElement := 0 } Proven.SafeXML.Types.secureDefaults) "<r a='x'/>" ) &&
+     isOk (parseXMLWith ({ maxAttributesPerElement := 1 } Proven.SafeXML.Types.secureDefaults) "<r a='x'/>" ) &&
+     isErr (parseXMLWith ({ maxAttributesPerElement := 1 } Proven.SafeXML.Types.secureDefaults) "<r a='x' b='y'/>" ))
   check "XML malformed and security refusals"
     (isErr (parseXML "<a></b>") && isErr (parseXML "<a>") &&
      isErr (parseXML "<!DOCTYPE r SYSTEM 'external'><r/>"))
@@ -67,6 +80,8 @@ main = do
   check "YAML flow collections and quoted escape"
     (isOk (parseYAML (nestedYAML 20)) &&
      isOk (parseYAML "{\"key\": [true, false, \"a\\n\"]}"))
+  check "YAML flat quoted sequence"
+    (isOk (parseYAML ("[" ++ quotedItems 128 ++ "]")))
   check "YAML malformed/forbidden-anchor refusals"
     (isErr (parseYAML "[true") && isErr (parseYAML "\"unclosed") &&
      isErr (parseYAML "&a true"))

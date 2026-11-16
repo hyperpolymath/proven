@@ -188,10 +188,11 @@ parseAttribute st = do
   (value, st5) <- parseAttrValue st4
   Ok (MkXMLAttr name value, st5)
 
-||| Parse attributes until > or />
+||| Parse attributes until > or />, spending one remaining attribute slot.
+||| Delimiters are checked before the allowance, so a zero limit permits
+||| an empty attribute list. This never recounts the remaining document.
 parseAttributes : Nat -> ParserState -> XMLResult (List XMLAttr, ParserState)
-parseAttributes Z st = Err (MalformedXML "Attribute parsing budget exhausted")
-parseAttributes (S fuel) st =
+parseAttributes slots st =
   let st' = skipWhitespace st
   in case peek st' of
        Just '>' => Ok ([], st')
@@ -200,20 +201,12 @@ parseAttributes (S fuel) st =
                      _ => Err (MalformedXML "Expected '>' after '/'")
        Just c =>
          if isXMLNameStartChar c
-           then do
-             -- Check attribute count limit.
-             -- REPAIRED 2026-08-27: was `if length [] >= st.options.maxAttributesPerElement`.
-             -- `length []` is 0, so the guard reduced to `0 >= n` and could NEVER fire:
-             -- the per-element attribute cap was declared but unenforced. `[]` also had
-             -- no determined element type, leaving an unsolved hole -- which is why this
-             -- module never compiled and never entered any .ipkg. The count is now taken
-             -- after recursion, which is the per-element count `maxAttributesPerElement`
-             -- names. `>=` on a pre-increment count becomes `>` on the total.
-             (attr, st1) <- parseAttribute st'
-             (rest, st2) <- parseAttributes fuel st1
-             if length (attr :: rest) > st.options.maxAttributesPerElement
-               then Err (MalformedXML "Too many attributes")
-               else Ok (attr :: rest, st2)
+           then case slots of
+             Z => Err (MalformedXML "Too many attributes")
+             S remaining => do
+               (attr, st1) <- parseAttribute st'
+               (rest, st2) <- parseAttributes remaining st1
+               Ok (attr :: rest, st2)
            else Err (MalformedXML ("Unexpected character in attributes: " ++ singleton c))
        Nothing => Err (MalformedXML "Unexpected end of input in attributes")
 
@@ -324,7 +317,7 @@ mutual
     checkDepth st
     st1 <- expect "<" st
     (name, st2) <- parseName st1
-    (attrs, st3) <- parseAttributes (S (length st2.input)) st2
+    (attrs, st3) <- parseAttributes st2.options.maxAttributesPerElement st2
     -- Check for self-closing or start tag
     case peekN 2 st3 of
       ['/', '>'] => do

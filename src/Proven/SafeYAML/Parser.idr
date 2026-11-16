@@ -195,38 +195,39 @@ parseFloat st =
     parseDoubleMaybe : String -> Maybe Double
     parseDoubleMaybe s = Just 0.0  -- Simplified; real impl would parse
 
-||| Parse quoted string
+||| Parse quoted string by structural descent on its remaining characters.
 parseQuotedString : Char -> ParserState -> YAMLResult (String, ParserState)
 parseQuotedString quote st =
   case consume st of
     (Just c, st1) =>
       if c /= quote
         then Err (SyntaxError ("Expected " ++ singleton quote) st.line st.col)
-        else parseContent (S (length st1.input)) [] st1
+        else parseContent st1.input [] st1
     (Nothing, _) => Err (SyntaxError "Unexpected end of input" st.line st.col)
   where
-    parseContent : Nat -> List Char -> ParserState -> YAMLResult (String, ParserState)
-    parseContent Z acc st = Err (SyntaxError "String parsing budget exhausted" st.line st.col)
-    parseContent (S fuel) acc st =
-      case consume st of
-        (Nothing, _) => Err (SyntaxError "Unclosed string" st.line st.col)
-        (Just c, st') =>
-          if c == quote
-            then Ok (pack (reverse acc), st')
-            else if c == '\\'
-              then case consume st' of
-                     (Just escaped, st'') =>
-                       let unescaped = case escaped of
-                                         'n' => '\n'
-                                         't' => '\t'
-                                         'r' => '\r'
-                                         '\\' => '\\'
-                                         '"' => '"'
-                                         '\'' => '\''
-                                         _ => escaped
-                       in parseContent fuel (unescaped :: acc) st''
-                     (Nothing, _) => Err (SyntaxError "Unclosed escape" st.line st.col)
-              else parseContent fuel (c :: acc) st'
+    -- The explicit suffix and the private state start together and consume
+    -- one or two characters together. No full-suffix length scan is needed.
+    parseContent : List Char -> List Char -> ParserState -> YAMLResult (String, ParserState)
+    parseContent [] acc st = Err (SyntaxError "Unclosed string" st.line st.col)
+    parseContent (c :: cs) acc st =
+      let (_, st') = consume st
+      in if c == quote
+           then Ok (pack (reverse acc), st')
+           else if c == '\\'
+             then case cs of
+               [] => Err (SyntaxError "Unclosed escape" st.line st.col)
+               escaped :: rest =>
+                 let (_, st'') = consume st'
+                     unescaped = case escaped of
+                       'n' => '\n'
+                       't' => '\t'
+                       'r' => '\r'
+                       '\\' => '\\'
+                       '"' => '"'
+                       '\'' => '\''
+                       _ => escaped
+                 in parseContent rest (unescaped :: acc) st''
+             else parseContent cs (c :: acc) st'
 
 ||| Parse unquoted string (plain scalar)
 parsePlainScalar : ParserState -> YAMLResult (String, ParserState)
