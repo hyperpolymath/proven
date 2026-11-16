@@ -393,8 +393,10 @@ bool proven_network_ipv4_is_loopback(ProvenIPv4Address addr);
  * ============================================================================ */
 
 /**
- * @brief Check for CRLF injection characters in header value.
- * @return Result with detection status (true = CRLF found).
+ * @brief Detect either CR (13) or LF (10) in the exact byte span.
+ * Embedded NUL and non-UTF-8 bytes are data. ptr must name len readable bytes.
+ * @return Status 0 and true if either byte occurs; -1 for null ptr (even len=0),
+ * -99 if built without the Idris backend, -7 for an invalid backend result.
  */
 ProvenBoolResult proven_header_has_crlf(const uint8_t* ptr, size_t len);
 

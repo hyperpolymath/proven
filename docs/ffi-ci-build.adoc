@@ -1,5 +1,15 @@
 == FFI CI build: standalone surface and full Idris→Zig pipeline
 
+=== Header boundary qualification (2026-11-16)
+
+The standalone build now has an explicit header backend choice. Without
+`-Dheader-refc`, header detection returns status -99. With the native SDK bundle
+from `scripts/build-header-refc.sh`, it links the actual Idris byte kernel.
+`header-refc.yml` checks this public path without the private bridge dependency.
+The older whole-library descriptions below do not qualify every export.
+See link:adr/2026-11-16-header-refc-boundary.adoc[the header boundary decision]
+for supported versions, executable evidence and outstanding proof obligations.
+
 `+proven+`’s FFI layer compiles Idris 2 to C via the RefC backend and
 wraps it in a stable C ABI with Zig
 (`+Idris2 --codegen refc → .c → zig build → libproven+`). There are
@@ -13,8 +23,9 @@ wraps it in a stable C ABI with Zig
 + generated RefC C |local dev, full integration CI
 
 |`+ffi/zig/build_standalone.zig+` |`+libproven_ffi.a+` from
-`+src/main.zig+` only (pure-Zig C-ABI surface) |none |*CI* (`+e2e.yml+`,
-`+zig-ffi.yml+`)
+the common C ABI surface; header unavailable unless a RefC bundle is supplied
+|none for unavailable profile; pinned native RefC SDK for header profile
+|*CI* (`+e2e.yml+`, `+zig-ffi.yml+`, `+header-refc.yml+`)
 |===
 
 === Why E2E uses the standalone build (ADR-003)
@@ -28,10 +39,9 @@ wraps it in a stable C ABI with Zig
 
 That points at a *private, cross-owner bridge repo*. `+e2e.yml+` stays
 on `+build_standalone.zig+` so the broad E2E and benchmark jobs keep
-running without private credentials. `+build_standalone.zig+` compiles
-`+src/main.zig+` alone — and that file imports only `+std+`/`+builtin+`
-— so it needs neither the bridge nor the generated RefC, giving CI a
-real (if narrower) Zig FFI build + unit-test signal.
+running without private credentials. Its unavailable-backend profile needs
+neither the private bridge nor generated RefC. The separate public header
+gate compiles the Idris kernel and exercises the exported ABI.
 
 `+e2e.yml+` and `+zig-ffi.yml+` therefore run, with Zig provisioned by
 `+mlugg/setup-zig@v1+` at `+0.15.2+` (the `+build.zig.zon+` minimum):

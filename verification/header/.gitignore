@@ -1,0 +1,9 @@
+# Generated prover artifacts are never proof sources.
+*.agdai
+*.olean
+*.ilean
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux

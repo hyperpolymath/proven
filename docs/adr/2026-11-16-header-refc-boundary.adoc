@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Exact-byte Idris header boundary
+
+== Repaired behavior
+
+`proven_header_has_crlf` detects either CR (13) or LF (10), including lone
+characters. The previous Zig implementation detected only adjacent CRLF and
+disagreed with `Proven.SafeHeader.Types.hasCRLF` on CR, LF and embedded CR.
+The repair invokes compiled Idris for each byte transition. Zig only walks
+the caller's slice, marshals state/byte values, and validates the returned state.
+It does not duplicate the predicate.
+
+The byte span is authoritative. NUL is data, invalid UTF-8 is data, and no
+String conversion or character truncation occurs. A null pointer returns -1
+even at length zero. Callers must supply a readable span; arbitrary pointer
+validity is not established by this API. Success returns status 0; an absent
+Idris backend returns -99; a noncanonical RefC state returns -7. Consumers must
+check status before interpreting the Boolean.
+
+== Source and ABI decision
+
+`Proven.SafeHeader.ByteKernel.headerStep` owns the concrete transition.
+State 0 is clean and state 1 means a forbidden byte has been seen.
+`stepEncodes` and `scanEncodes` relate the Bits8 transition to the typed Boolean
+state machine; `scanAppend` proves arbitrary chunk splitting for the Idris fold.
+`HeaderKernelMain` is a dynamic code-generation root that retains the named
+`%noinline` symbol. It is not the library entry point and is never called by
+the Zig API. A normal Idris module export alone does not establish C reachability.
+
+The qualified profile is native Linux x86_64 GNU, Zig 0.15.2 and Idris2 commit
+`b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b`. The build copies the compiler's own
+RefC SDK and imports `idris2_vp_int_shift` from its actual header. Bits8 values
+are immediate tagged words. The bridge accepts only canonical 0/1 results and
+uses the runtime trampoline. No borrowed Idris String or heap list crosses
+this boundary. Generated C `main` is renamed when linked into the library.
+
+`scripts/build-header-refc.sh` needs no private `language-bridges` dependency.
+The standalone library without its bundle deliberately refuses header checks.
+The whole-library RefC build still has a private dependency and is not qualified
+by this header-only result. Other legacy exports are not repaired or verified
+by this work.
+
+== Reproduction and evidence
+
+[source,shell]
+----
+bash scripts/test-header-bridge.sh
+bash scripts/check-header-proofs.sh /path/to/sholes
+----
+
+The first command requires the qualified Idris and Zig on PATH (or `IDRIS2`
+and `ZIG`). It runs the actual C ABI for all 256 single bytes and 65,536 byte
+pairs, null/empty spans, embedded NUL, non-UTF-8, explicit prefix lengths and
+an 8,192-byte boundary case. An ABI-compatible always-clean generated-C mutant
+must fail assertions, not merely fail compilation. The unavailable profile
+must return -99. `header-refc.yml` runs this gate on every PR and main push.
+Evidence in `build/header-evidence` records versions, source/SDK hashes and
+positive/negative logs.
+
+The second command imports only committed proof sources from Sholes
+`c28993a73d1c78830c6d92f563fae638d22bb7f7` into a clean scratch directory.
+`verification/header` proves the numeric-byte classifier, the unbounded state
+fold, chunk composition and preservation by Sholes canonicalization. Required
+profiles are Agda 2.6.4.3 with `--safe --cubical-compatible --double-check`,
+the separate full Cubical consumer, Lean 4.15.0 and Rocq 9.2 plus `coqchk`.
+The Lean/Rocq sources are hand re-proofs of the Agda statement. The checker
+script audits named theorem assumptions and requires three false witnesses
+to be rejected. `header-theory.yml` runs this separate theory gate. The RefC
+job checks the Idris implementation and executable ABI; neither job proves
+the remaining source/compiler refinement theorem.
+
+== Remaining proof obligations
+
+. Relate primitive Idris Bits8 equality and its compiled representation to the
+  structurally finite Agda model for all values, with a source-bound witness.
+. Prove the actual Zig loop implements the Idris fold, including bounds,
+  state preservation, pointer validity preconditions and ABI correspondence.
+. Establish compiler/lowering refinement or document the precise trusted
+  compilation boundary. Tests and model theorems do not establish this theorem.
+. Transport and audit statement identity across proof assistants. Matching
+  hand re-proofs are not automatic proof-object translation.
+. Add the matching alternate checker and qualify additional target/compiler
+  profiles independently. Full Cubical is a stronger profile of Agda, not an
+  independent kernel; no successful Lean4Lean run is claimed here.
+
+Atoma's original five-case diagnostic now links the real RefC library and
+can confirm that the observed mismatch is repaired. Atoma's current closed
+u8 source subset does not cover this loop; its source-to-proof milestone
+remains INCOMPLETE. The model proof and executable evidence must not be
+promoted to a whole-library or v1 verification claim.

@@ -138,6 +138,7 @@ modules = Proven
         -- SafeHeader
         , Proven.SafeHeader
         , Proven.SafeHeader.Types
+        , Proven.SafeHeader.ByteKernel
         , Proven.SafeHeader.Parser
         , Proven.SafeHeader.Proofs
         -- SafeCookie

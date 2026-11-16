@@ -56,11 +56,12 @@ fn configureRefC(
                         "-std=c11",
                         "-fno-strict-aliasing",
                         "-D_GNU_SOURCE",
+                        "-Dmain=proven_refc_codegen_main",
                     },
                 });
             }
         } else |_| {
-            // Directory doesn't exist yet (pre-RefC build)
+            @panic("missing RefC source directory; build Idris before linking");
         }
     }
 
@@ -124,6 +125,8 @@ pub fn build(b: *std.Build) void {
         "idris-support-lib",
         "Path to libidris2_support.{a,so} directory",
     );
+    if (refc_path == null or refc_runtime_path == null or c_support_path == null or support_lib_path == null)
+        @panic("the full FFI build requires all four Idris RefC paths; use build_standalone.zig for explicit unavailable-backend behavior");
 
     // ======================================================================
     // Get idris2-zig-ffi dependency
@@ -140,7 +143,7 @@ pub fn build(b: *std.Build) void {
     // ======================================================================
 
     const proven_mod = b.addModule("proven", .{
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = b.path("src/main_refc.zig"),
         .target = target,
         .optimize = optimize,
         .imports = &.{

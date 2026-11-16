@@ -23,4 +23,5 @@ executable = proven-ffi
 modules = Proven.Core
         , Proven.SafeUrl.Parser
         , Proven.FFI.SafeUrl
+        , Proven.SafeHeader.ByteKernel
         , Proven.FFI.Main
