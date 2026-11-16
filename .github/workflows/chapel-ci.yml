@@ -3,25 +3,11 @@
 #
 # Chapel CI — proven binding-tier-1 pilot.
 #
-# This workflow is the DETACHABLE-HARNESS TEMPLATE for proven binding CI.
-# It is intentionally narrow: it references ONLY paths under
-# bindings/chapel/, ffi/zig/, and bindings/c/include/proven.h.  No
-# root-level test fixtures, no sibling-binding tooling, no surprise
-# dependencies.  See docs/adr/0001-binding-ci-template.md for the full
-# detachability contract.
-#
-# Replication template (search/replace for the next binding):
-#   chapel              -> <lang>                 (e.g. crystal, nim, ocaml)
-#   Chapel              -> <Lang>                 (display name)
-#   bindings/chapel/    -> bindings/<lang>/
-#   chapel-ci.yml       -> <lang>-ci.yml
-#   Chapel 2.3.0        -> <toolchain pin>
-#   ubuntu22.amd64.deb  -> <toolchain installer>
-#   chpl --version      -> <toolchain version probe>
-#
-# Quality posture: every job is strict (no continue-on-error).  PRs that
-# break Chapel are blocked from merge.
-
+# Library producer: a sparse checkout of this binding, ffi/zig, the C header,
+# scripts/build-header-refc.sh, src/Proven/SafeHeader/ByteKernel.idr and
+# src/Proven/FFI/HeaderKernelMain.idr. The actual sparse build checks this closure.
+# Consumer harnesses detach with their binding, C header and supplied .so artifact.
+# See docs/adr/0001-binding-ci-template.adoc; the producer is not a binding-only build.
 name: Chapel CI
 permissions:
   actions: read
@@ -32,6 +18,9 @@ on:
     paths:
       - 'bindings/chapel/**'
       - 'ffi/zig/**'
+      - 'scripts/build-header-refc.sh'
+      - 'src/Proven/SafeHeader/ByteKernel.idr'
+      - 'src/Proven/FFI/HeaderKernelMain.idr'
       - 'bindings/c/include/proven.h'
       - '.github/workflows/chapel-ci.yml'
   pull_request:
@@ -39,6 +28,9 @@ on:
     paths:
       - 'bindings/chapel/**'
       - 'ffi/zig/**'
+      - 'scripts/build-header-refc.sh'
+      - 'src/Proven/SafeHeader/ByteKernel.idr'
+      - 'src/Proven/FFI/HeaderKernelMain.idr'
       - 'bindings/c/include/proven.h'
       - '.github/workflows/chapel-ci.yml'
   workflow_dispatch:
@@ -97,18 +89,18 @@ jobs:
               # from prose ("see bindings/c/include/proven.h.").
               p="${raw%[.,;:)]}"
               case "$p" in
-                  bindings/chapel/*|ffi/zig/*|bindings/c/include|bindings/c/include/proven.h|.github/workflows/chapel-ci.yml)
+                  bindings/chapel/*|ffi/zig/*|bindings/c/include|bindings/c/include/proven.h|.github/workflows/chapel-ci.yml|./scripts/symbol-audit.sh|scripts/build-header-refc.sh|src/Proven/SafeHeader/ByteKernel.idr|src/Proven/FFI/HeaderKernelMain.idr)
                       ;;
                   bindings/*/*)
                       echo "::error file=.github/workflows/chapel-ci.yml::detachability violation: $p"
                       forbidden=1
                       ;;
-                  tests/*)
-                      echo "::error file=.github/workflows/chapel-ci.yml::detachability violation (root-level tests/): $p"
+                  tests/*|scripts/*|src/*)
+                      echo "::error file=.github/workflows/chapel-ci.yml::undeclared producer or root test dependency: $p"
                       forbidden=1
                       ;;
               esac
-          done < <(grep -oE '(bindings/[a-zA-Z0-9_-]+/[A-Za-z0-9_./-]*|tests/[A-Za-z0-9_./-]+)' \
+          done < <(grep -oE '(\./scripts/[A-Za-z0-9_./-]+|bindings/[a-zA-Z0-9_-]+/[A-Za-z0-9_./-]*|tests/[A-Za-z0-9_./-]+|scripts/[A-Za-z0-9_./-]+|src/[A-Za-z0-9_./-]+)' \
                      .github/workflows/chapel-ci.yml | sort -u)
           [ "$forbidden" -eq 0 ]
           echo "detachability-guard: OK"
@@ -125,6 +117,14 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           path: proven
+          sparse-checkout: |
+            bindings/chapel
+            bindings/c/include/proven.h
+            ffi/zig
+            scripts/build-header-refc.sh
+            src/Proven/SafeHeader/ByteKernel.idr
+            src/Proven/FFI/HeaderKernelMain.idr
+          sparse-checkout-cone-mode: false
       - name: Setup Zig ${{ env.ZIG_VERSION }}
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:

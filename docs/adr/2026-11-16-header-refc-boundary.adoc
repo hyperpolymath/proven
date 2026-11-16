@@ -83,12 +83,16 @@ binding checks, not new source-refinement proofs.
 
 OCaml's package now compiles: the CI uses its opam environment, the smoke
 executable has a Dune target, and opaque pointee types remain incomplete.
-Its full smoke still fails honestly on the missing `proven_deinit` symbol.
-It eagerly binds the entire API, and its global lifecycle signatures also
+The new `proven.wired` library binds only the five manifest symbols. Its
+header wrapper preserves exact bytes and checks status; its independent
+smoke exercises all byte pairs without loading the broad API. The separate
+`ocaml-full-api` job still fails honestly on missing `proven_deinit`.
+The broad module eagerly binds the entire API, and its lifecycle signatures also
 disagree with the legacy handle-based Zig exports. Do not add dummy exports
 or enable unchecked lazy calls to hide this. A subsequent capability-scoped
 binding or a real, consistently specified lifecycle implementation is needed
-before claiming OCaml compatibility. No OCaml runtime pass is claimed here.
+before claiming full OCaml compatibility. The wired module's runtime evidence
+qualifies only its explicit profile.
 
 The second command imports only committed proof sources from Sholes
 `c28993a73d1c78830c6d92f563fae638d22bb7f7` into a clean scratch directory.
