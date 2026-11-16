@@ -6,7 +6,8 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 out=${1:-"$root/build/header-refc"}
 idris=${IDRIS2:-idris2}
-command -v "$idris" >/dev/null
+idris=$(command -v "$idris")
+idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")")
 [[ $("$idris" --version) == 'Idris 2, version 0.8.0-b6cbc25d5' ]] || {
   echo 'FAIL: header ABI profile requires Idris2 b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b' >&2; exit 1;
 }

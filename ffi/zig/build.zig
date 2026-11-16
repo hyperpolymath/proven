@@ -14,7 +14,7 @@
 //!   -Didris-c-support=<path>      Path to Idris2 C support headers (idris_support.h, etc.)
 //!   -Didris-support-lib=<path>    Path to libidris2_support.{a,so}
 //!
-//! Uses idris2-zig-ffi for generic Idris 2 FFI infrastructure.
+//! RefC marshaling lives in src/refc and uses the compiler's actual SDK.
 
 const std = @import("std");
 
@@ -40,7 +40,7 @@ fn configureRefC(
             defer dir.close();
             var c_files: std.ArrayListUnmanaged([]const u8) = .empty;
             var iter = dir.iterate();
-            while (iter.next() catch null) |entry| {
+            while (iter.next() catch @panic("cannot enumerate RefC translation units")) |entry| {
                 if (entry.kind == .file) {
                     const name = entry.name;
                     if (std.mem.endsWith(u8, name, ".c")) {
@@ -48,7 +48,8 @@ fn configureRefC(
                     }
                 }
             }
-            if (c_files.items.len > 0) {
+            if (c_files.items.len == 0) @panic("empty RefC source directory; refusing an unwired library");
+            {
                 mod.addCSourceFiles(.{
                     .root = .{ .cwd_relative = rp },
                     .files = c_files.items,
@@ -129,16 +130,6 @@ pub fn build(b: *std.Build) void {
         @panic("the full FFI build requires all four Idris RefC paths; use build_standalone.zig for explicit unavailable-backend behavior");
 
     // ======================================================================
-    // Get idris2-zig-ffi dependency
-    // ======================================================================
-
-    const idris2_zig_ffi_dep = b.dependency("idris2_zig_ffi", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const idris2_zig_ffi_mod = idris2_zig_ffi_dep.module("idris2_zig_ffi");
-
-    // ======================================================================
     // Main library module
     // ======================================================================
 
@@ -146,9 +137,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/main_refc.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{
-            .{ .name = "idris2_zig_ffi", .module = idris2_zig_ffi_mod },
-        },
     });
 
     proven_mod.addIncludePath(b.path("include"));

@@ -4,12 +4,13 @@
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 zig=${ZIG:-zig}
-command -v "$zig" >/dev/null
+zig=$(command -v "$zig")
+zig=$(cd "$(dirname "$zig")" && printf '%s/%s' "$PWD" "$(basename "$zig")")
 evidence=${EVIDENCE_DIR:-"$root/build/header-evidence"}
 mkdir -p "$evidence"
 evidence=$(cd "$evidence" && pwd)
 rm -f "$evidence/result.txt"
-find "$root/ffi/zig/src" -maxdepth 1 -name '*.zig' -type f -exec sha256sum {} + > "$evidence/inputs.sha256"
+find "$root/ffi/zig/src" -name '*.zig' -type f -exec sha256sum {} + > "$evidence/inputs.sha256"
 sha256sum "$root/ffi/zig/build_standalone.zig" "$root/src/Proven/SafeHeader/ByteKernel.idr" "$root/src/Proven/FFI/HeaderKernelMain.idr" >> "$evidence/inputs.sha256"
 sha256sum "$root/tests/ffi/header_byte_bridge.c" "$root/bindings/c/include/proven.h" >> "$evidence/inputs.sha256"
 work=$(mktemp -d -t proven-header-check.XXXXXXXX)

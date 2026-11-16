@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 //
-// build_standalone.zig — standalone build for proven FFI without the Idris2 RefC
-// pipeline dependency (idris2_zig_ffi from nextgen-languages/language-bridges).
+// build_standalone.zig — build the legacy surface with an optional qualified
+// Idris header bundle, without requiring whole-package RefC code generation.
 //
 // Without -Dheader-refc the header export refuses with -99. Passing a native
 // SDK bundle from scripts/build-header-refc.sh selects the real Idris kernel.

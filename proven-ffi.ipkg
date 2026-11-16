@@ -12,6 +12,7 @@ sourceloc = "https://github.com/hyperpolymath/proven"
 bugtracker = "https://github.com/hyperpolymath/proven/issues"
 
 depends = contrib
+opts = "--total -Werror"
 
 sourcedir = "src"
 builddir = "build"

@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Proven RefC ABI marshaling
+
+This directory owns the small ABI helpers actually used by Proven's Zig
+bridge. `bits8.zig` encodes and validates immediate Bits8 words using the
+matched Idris compiler's `_datatypes.h`. It does not implement a safety
+predicate, allocate Idris objects, or invent an alternative runtime.
+
+The declared `nextgen-languages/language-bridges/bridges/idris2` dependency
+could not be located. No production source called that dependency; the
+legacy integration sketch imported it without using it. This directory is
+a new, scoped implementation, not a recovery of the missing repository.
+Keeping it beside its actual consumer avoids a private checkout or token.
+
+Current qualification: Idris2 b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b,
+Zig 0.15.2, native Linux x86_64 GNU. `scripts/test-header-bridge.sh` tests
+all 256 marshaled values and rejects noncanonical tags/ranges, then runs
+the real generated Idris function through the public byte-span ABI.
+The full package integration gate remains separate from that qualification.
+
+Only extract a separate shared repository when a second real consumer
+needs this same ABI profile. Strings, heap objects, closures, ownership,
+threading and other compiler/target profiles need their own contracts
+and executable evidence before being added here.
