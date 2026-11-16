@@ -37,9 +37,21 @@ this boundary. Generated C `main` is renamed when linked into the library.
 
 `scripts/build-header-refc.sh` needs no private `language-bridges` dependency.
 The standalone library without its bundle deliberately refuses header checks.
-The whole-library RefC build still has a private dependency and is not qualified
-by this header-only result. Other legacy exports are not repaired or verified
-by this work.
+The default build now uses local `ffi/zig/src/refc` ABI helpers and the actual
+compiler SDK. The old private dependency was declared but had no production
+call sites; it has been removed. The local directory is a new scoped
+implementation, not a reconstruction of the missing repository's contents.
+Other legacy exports are not repaired or verified by this work.
+
+`scripts/build-refc.sh` builds `proven-ffi.ipkg` in an isolated source tree,
+with totality and warnings-as-errors enabled by the package. It accepts one
+fresh generated C translation unit, requires the header symbol, and records
+the exact SDK paths and hashes. It never scans the caller's existing build
+tree for C files. The `FFI Full Integration` job now runs without a token,
+including on fork PRs. "Full" here means the declared FFI package and its
+import cone, not every library module or every declared public C function.
+Three controls reject zero-exit compiler errors, absent output and a wrong
+compiler even when an old C file and a PASS receipt have been planted.
 
 == Reproduction and evidence
 
@@ -61,6 +73,22 @@ D and OCaml CI obtain this real shared-library profile through
 `ffi/zig/actions/refc-library`; their detached jobs consume that artifact.
 Evidence in `build/header-evidence` records versions, source/SDK hashes and
 positive/negative logs.
+
+The RefC ABI now has 14 passing Zig tests, including all 256 immediate-word
+round trips and rejection of invalid tags/ranges. Chapel's smoke, contract,
+unit and detached tests pass with either-CR-or-LF semantics and embedded NUL.
+D's smoke calls the header C ABI directly using its real result struct;
+its build, tests, symbol audit and detached checks pass. These are executable
+binding checks, not new source-refinement proofs.
+
+OCaml's package now compiles: the CI uses its opam environment, the smoke
+executable has a Dune target, and opaque pointee types remain incomplete.
+Its full smoke still fails honestly on the missing `proven_deinit` symbol.
+It eagerly binds the entire API, and its global lifecycle signatures also
+disagree with the legacy handle-based Zig exports. Do not add dummy exports
+or enable unchecked lazy calls to hide this. A subsequent capability-scoped
+binding or a real, consistently specified lifecycle implementation is needed
+before claiming OCaml compatibility. No OCaml runtime pass is claimed here.
 
 The second command imports only committed proof sources from Sholes
 `c28993a73d1c78830c6d92f563fae638d22bb7f7` into a clean scratch directory.
@@ -93,3 +121,17 @@ can confirm that the observed mismatch is repaired. Atoma's current closed
 u8 source subset does not cover this loop; its source-to-proof milestone
 remains INCOMPLETE. The model proof and executable evidence must not be
 promoted to a whole-library or v1 verification claim.
+
+== Repository-wide blockers outside the repaired profile
+
+The safety gate still reports 20 existing `assert_total` uses. The licence
+gate rejects five existing `Palimpsest-MPL-1.0` headers in SafeYAML/Parser,
+SafeRegex/Parser and Matcher, SafeSQL/Builder and SafeXML/Parser. Those files
+are unchanged by this repair; licence changes require the owner and are not
+part of this patch. The older Idris property suite also references unavailable
+SafeMath operations and incompatible result types. These failures remain
+visible and prevent a whole-repository green claim.
+
+The repository instructions name `./hypatia-v2`, but that executable is not
+present in this checkout. No successful local scan with that command is
+claimed. Existing hosted security checks remain enabled.

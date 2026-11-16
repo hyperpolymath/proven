@@ -13,6 +13,8 @@ on:
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
   pull_request:
     paths:
@@ -20,6 +22,8 @@ on:
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
   workflow_dispatch:
 concurrency:
@@ -61,6 +65,8 @@ jobs:
             -Didris-c-support="$IDRIS2_C_SUPPORT" \
             -Didris-support-lib="$IDRIS2_SUPPORT_LIB" 2>&1 | tee ../../build/refc/zig-tests.log
           test -s zig-out/lib/libproven.a
+      - name: Reject stale output and misleading compiler success
+        run: bash scripts/test-refc-staging.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

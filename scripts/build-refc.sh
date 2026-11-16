@@ -5,8 +5,6 @@
 set -euo pipefail
 root=${PROVEN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
 root=$(cd "$root" && pwd)
-idris=$(command -v "${IDRIS2:-idris2}")
-idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")")
 ipkg=${IPKG:-proven-ffi.ipkg}
 for arg in "$@"; do
   case "$arg" in
@@ -15,11 +13,6 @@ for arg in "$@"; do
     *) echo "FAIL: unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
-[[ $("$idris" --version) == 'Idris 2, version 0.8.0-b6cbc25d5' ]] || {
-  echo 'FAIL: full RefC profile requires Idris2 b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b' >&2; exit 1;
-}
-[[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'FAIL: native Linux x86_64 required' >&2; exit 1; }
-test -f "$root/$ipkg"
 out="$root/build/refc"
 mkdir -p "$out"
 rm -f "$out/result.txt" "$out/sdk.env"
@@ -33,6 +26,13 @@ finish() {
   rm -rf -- "$work"
 }
 trap finish EXIT
+idris=$(command -v "${IDRIS2:-idris2}")
+idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")")
+[[ $("$idris" --version) == 'Idris 2, version 0.8.0-b6cbc25d5' ]] || {
+  echo 'FAIL: full RefC profile requires Idris2 b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b' >&2; exit 1;
+}
+[[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'FAIL: native Linux x86_64 required' >&2; exit 1; }
+test -f "$root/$ipkg"
 cp -R "$root/src" "$work/src"
 cp "$root/$ipkg" "$work/package.ipkg"
 if ! (cd "$work"; "$idris" --codegen refc --build package.ipkg) > "$out/build.log" 2>&1; then
