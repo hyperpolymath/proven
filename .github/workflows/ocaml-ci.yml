@@ -211,6 +211,7 @@ jobs:
           name: libproven-x86_64-linux-gnu
           path: lib/
       - name: Build + Run full_api_probe
+        if: ${{ !cancelled() }}
         working-directory: bindings/ocaml
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/lib
@@ -219,6 +220,18 @@ jobs:
         run: |
           opam exec -- dune build smoke/full_api_probe.exe
           ./_build/default/smoke/full_api_probe.exe
+      - name: Audit every declared full-API symbol
+        if: ${{ !cancelled() }}
+        working-directory: bindings/ocaml
+        env:
+          PROVEN_LIB_PATH: ${{ github.workspace }}/lib
+        run: bash scripts/full-api-audit.sh
+      - name: Preserve full-API availability inventory
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ocaml-full-api-audit
+          path: bindings/ocaml/_build/full-api-audit/
   ocaml-detachable-build:
     runs-on: ubuntu-22.04
     needs: ocaml-build

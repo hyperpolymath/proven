@@ -2,9 +2,8 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Mathematical proofs for SafeMath operations
 |||
-||| This module contains proofs that verify properties of our safe
-||| arithmetic operations. These proofs are checked by the Idris 2
-||| compiler, guaranteeing correctness.
+||| Checked arithmetic lemmas and explicitly named outstanding obligations.
+||| An obligation is a Type, not a proof value that callers may assume.
 |||
 ||| Updated for Idris 2 0.8.0 compatibility:
 ||| - Delegated to Data.Nat stdlib proofs where possible (stdlib now uses
@@ -183,8 +182,10 @@ modLtDivisor n (S d) = boundModNatNZ n (S d) ItIsSucc
 ||| `covering`), or (b) we rewrite the signature against
 ||| `Data.Nat.Factor.gcdUnproven` (which IS total) and prove agreement
 ||| with `Data.Nat.gcd` on every input.
+||| This names the outstanding proposition; it does not provide a witness.
 public export
-0 gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
+GcdZeroRightObligation : Type
+GcdZeroRightObligation = (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
 
 ||| OWED: GCD is commutative — `gcd a b = gcd b a`. The base cases
 ||| (`gcd 0 (S b)` vs `gcd (S b) 0`) would be trivially `Refl` if
@@ -201,5 +202,7 @@ public export
 ||| through `Data.Nat.Factor.gcdUnproven` (which IS total) and prove
 ||| agreement with `Data.Nat.gcd` on every input — at which point
 ||| both `gcdZeroRight` and `gcdCommutative` discharge together.
+||| This names the outstanding proposition; it does not provide a witness.
 public export
-0 gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}
+GcdCommutativeObligation : Type
+GcdCommutativeObligation = (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}

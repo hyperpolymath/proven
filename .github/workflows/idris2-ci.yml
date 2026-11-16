@@ -83,7 +83,7 @@ jobs:
           cd tests/properties
           for source in *Props.idr; do
             echo "::group::$source"
-            if ! idris2 -p proven --check "$source" 2>&1 | tee "/tmp/$source.log"; then
+            if ! idris2 -p proven -p contrib -p network --check "$source" 2>&1 | tee "/tmp/$source.log"; then
               fail=1
             fi
             if grep -q '^Error:' "/tmp/$source.log"; then fail=1; fi
