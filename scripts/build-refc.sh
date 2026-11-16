@@ -121,6 +121,11 @@ fi
 
 mkdir -p "$REFC_OUTPUT_DIR"
 
+# A successful compiler exit is not enough: the C must be produced by THIS
+# invocation. A prior run's generated file cannot serve as fresh evidence.
+REFC_BUILD_STAMP=$(mktemp "$PROVEN_ROOT/build/.refc-start.XXXXXXXX")
+trap 'rm -f "$REFC_BUILD_STAMP"' EXIT
+
 # ---------------------------------------------------------------------------
 # Step 1: Compile Idris2 to C via RefC backend
 # ---------------------------------------------------------------------------
@@ -150,50 +155,42 @@ fi
 EXEC_DIR="$PROVEN_ROOT/build/exec"
 BUILD_DIR="$PROVEN_ROOT/build"
 
-# Find all generated .c files from the RefC compilation
+# Only include RefC output created by the current compiler invocation.
+# Do not also scan BUILD_DIR: it contains EXEC_DIR AND the previously staged
+# build/refc directory, which made the old implementation double-count outputs
+# and accept stale C as though Idris2 had generated it again.
 GENERATED_C_FILES=()
 GENERATED_H_FILES=()
 
-# RefC puts generated C code in the output directory
-for dir in "$EXEC_DIR" "$BUILD_DIR"; do
-    if [ -d "$dir" ]; then
-        while IFS= read -r -d '' f; do
-            GENERATED_C_FILES+=("$f")
-        done < <(find "$dir" -name "*.c" -print0 2>/dev/null)
-
-        while IFS= read -r -d '' f; do
-            GENERATED_H_FILES+=("$f")
-        done < <(find "$dir" -name "*.h" -print0 2>/dev/null)
-    fi
-done
-
-if [ ${#GENERATED_C_FILES[@]} -eq 0 ]; then
-    log "WARNING: No .c files found in build directory."
-    log "The RefC backend may have placed output in a different location."
-    log "Checking alternative locations..."
-
-    # Check if RefC created a single output binary instead of .c files
-    if [ -f "$EXEC_DIR/proven-ffi" ]; then
-        log "Found compiled binary at $EXEC_DIR/proven-ffi"
-        log "Note: RefC may have compiled directly. Re-run with --codegen refc --cg-opt --no-compile for .c output."
-    fi
-else
-    log "Found ${#GENERATED_C_FILES[@]} generated C file(s):"
-    for f in "${GENERATED_C_FILES[@]}"; do
-        verbose "  $(realpath --relative-to="$PROVEN_ROOT" "$f")"
-    done
+if [ -d "$EXEC_DIR" ]; then
+    while IFS= read -r -d '' f; do
+        GENERATED_C_FILES+=("$f")
+    done < <(find "$EXEC_DIR" -type f -name '*.c' -newer "$REFC_BUILD_STAMP" -print0 2>/dev/null)
+    while IFS= read -r -d '' f; do
+        GENERATED_H_FILES+=("$f")
+    done < <(find "$EXEC_DIR" -type f -name '*.h' -newer "$REFC_BUILD_STAMP" -print0 2>/dev/null)
 fi
 
-if [ ${#GENERATED_H_FILES[@]} -gt 0 ]; then
-    log "Found ${#GENERATED_H_FILES[@]} generated header file(s):"
-    for f in "${GENERATED_H_FILES[@]}"; do
-        verbose "  $(realpath --relative-to="$PROVEN_ROOT" "$f")"
-    done
+if [ "${#GENERATED_C_FILES[@]}" -eq 0 ]; then
+    die "RefC generated no fresh C source; cannot claim a build artifact. No prior staged output may be reused."
+fi
+
+log "Found ${#GENERATED_C_FILES[@]} fresh generated C file(s):"
+for f in "${GENERATED_C_FILES[@]}"; do
+    verbose "  $(realpath --relative-to="$PROVEN_ROOT" "$f")"
+done
+
+if [ "${#GENERATED_H_FILES[@]}" -gt 0 ]; then
+    log "Found ${#GENERATED_H_FILES[@]} fresh generated header file(s):"
 fi
 
 # ---------------------------------------------------------------------------
 # Step 3: Copy/symlink generated files to build/refc/ for Zig consumption
 # ---------------------------------------------------------------------------
+
+# Remove stale staged C/H only after verifying fresh RefC output exists.
+# This directory is owned by this build script and must represent one run.
+find "$REFC_OUTPUT_DIR" -maxdepth 1 -type f \( -name '*.c' -o -name '*.h' \) -delete
 
 # Copy generated C files into a clean staging directory that Zig can reference
 for f in "${GENERATED_C_FILES[@]}"; do

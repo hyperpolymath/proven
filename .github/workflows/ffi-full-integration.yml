@@ -16,6 +16,10 @@ on:
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'bindings/elixir/native/proven_nif/src/lib.rs'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/check-refc-staging.sh'
   pull_request:
     branches: [main]
     paths:
@@ -24,11 +28,32 @@ on:
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'bindings/elixir/native/proven_nif/src/lib.rs'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/check-refc-staging.sh'
   workflow_dispatch:
 concurrency:
   group: ffi-full-integration-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  nif-abi-symbol-controls:
+    name: Native ABI symbol validator (planted controls only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout proven
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          persist-credentials: false
+      - name: Execute real positive and negative controls
+        # This proves the validator detects missing exports. It does NOT
+        # imply any real libproven artifact was built or validated.
+        run: bash tests/check-native-nif-exports.sh
+      - name: RefC staging regression controls
+        # Planted empty/stale compiler outputs must not become fake evidence.
+        run: bash tests/check-refc-staging.sh
+
   idris-refc-zig:
     name: Idris -> RefC -> Zig
     runs-on: ubuntu-latest
@@ -50,10 +75,11 @@ jobs:
           set -euo pipefail
           if [ -z "$LANGUAGE_BRIDGES_TOKEN" ]; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::LANGUAGE_BRIDGES_TOKEN is not configured; skipping private full FFI integration."
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "::error title=Full FFI not run::LANGUAGE_BRIDGES_TOKEN is absent; genuine Idris2/RefC/Zig integration cannot be verified."
+            echo "PROVEN_FFI_CLASS=not_run:missing_private_dependency"
+            exit 2
           fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
       - name: Checkout language-bridges
         if: steps.bridge-token.outputs.available == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
@@ -126,3 +152,13 @@ jobs:
             -Didris-c-support="$C_SUPPORT" \
             -Didris-support-lib="$SUPPORT_LIB"
           ls -la zig-out/lib/libproven.*
+      - name: Verify the genuine built artifact exports every Rustler NIF symbol
+        if: steps.bridge-token.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          artifact="$GITHUB_WORKSPACE/ffi/zig/zig-out/lib/libproven.a"
+          if [ ! -f "$artifact" ]; then
+            echo "::error::Missing actual libproven.a, not a successful integration."
+            exit 1
+          fi
+          bash scripts/check-native-nif-exports.sh "$artifact"
