@@ -67,8 +67,33 @@ jobs:
         run: idris2 --build proven.ipkg
       - name: Install proven library (required for tests.ipkg)
         run: idris2 --install proven.ipkg
+      - name: Check totality repairs against actual source
+        run: bash scripts/test-totality-regressions.sh
+      - name: Preserve totality regression evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: totality-regressions
+          path: build/totality-regressions/
+      - name: Diagnose every property module
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          fail=0
+          cd tests/properties
+          for source in *Props.idr; do
+            echo "::group::$source"
+            if ! idris2 -p proven --check "$source" 2>&1 | tee "/tmp/$source.log"; then
+              fail=1
+            fi
+            if grep -q '^Error:' "/tmp/$source.log"; then fail=1; fi
+            echo "::endgroup::"
+          done
+          exit "$fail"
       - name: Build property-test suite (tests.ipkg)
         run: idris2 --build tests.ipkg
+      - name: Execute property-test suite
+        run: build/tests/exec/proven_tests
       - name: Type check all modules
         run: |
           idris2 --check src/Proven.idr

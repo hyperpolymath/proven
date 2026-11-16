@@ -149,3 +149,24 @@ visible and prevent a whole-repository green claim.
 The repository instructions name `./hypatia-v2`, but that executable is not
 present in this checkout. No successful local scan with that command is
 claimed. Existing hosted security checks remain enabled.
+
+== Follow-up: totality and executable property repairs
+
+The 20 production totality assertions are replaced by explicit list recursion
+(argument parsing), total list lookup (regex), structural level merging (tree
+traversal), and error-returning input-derived recursion budgets (XML/YAML).
+The budgets establish termination; completeness and equivalence with an
+unbounded reference parser remain separate proof obligations. Exhaustion never
+returns a successful truncated parse. No full XML/YAML standards claim follows.
+
+The old arithmetic suite referred to nonexistent APIs and reported success
+without execution. It now uses the actual Maybe-returning API, retains two
+definitional zero-denominator proofs, and executes boundary arithmetic checks.
+Its old general arithmetic, bounded-value and nonempty-list claims remain owed;
+finite checks do not discharge them. Other legacy property modules are diagnosed
+individually by remote CI without removing the full suite gate.
+
+The totality-regression script builds from a fresh source copy, requires
+totality and no reported holes, executes malformed-input and semantic
+regressions, and retains source identities, compiler output and a result marker.
+These are regression receipts, not Atoma source-to-proof certificates.
