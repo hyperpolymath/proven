@@ -5,16 +5,22 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 sholes=${1:?usage: check-header-proofs.sh /path/to/sholes-git-checkout}
 pin=c28993a73d1c78830c6d92f563fae638d22bb7f7
-for tool in agda lean coqc coqchk git; do command -v "$tool" >/dev/null; done
-[[ $(agda --version) == 'Agda version 2.6.4.3' ]]
-lean --version | grep -q 'version 4.15.0,'
-[[ $(coqc --version | head -1) == 'The Rocq Prover, version 9.2' ]]
 evidence=${EVIDENCE_DIR:-"$root/build/header-proof-evidence"}
 mkdir -p "$evidence"
 evidence=$(cd "$evidence" && pwd)
 rm -f "$evidence/result.txt"
+work=''
+finish() {
+  result=$?
+  if [[ $result -ne 0 ]]; then printf 'FAIL: exit %s\n' "$result" > "$evidence/result.txt"; fi
+  if [[ -n "$work" ]]; then rm -rf -- "$work"; fi
+}
+trap finish EXIT
+for tool in agda lean coqc coqchk git; do command -v "$tool" >/dev/null; done
+[[ $(agda --version) == 'Agda version 2.6.4.3' ]]
+lean --version | grep -q 'version 4.15.0,'
+[[ $(coqc --version | head -1) == 'The Rocq Prover, version 9.2' ]]
 work=$(mktemp -d -t proven-header-proof.XXXXXXXX)
-trap 'rm -rf -- "$work"' EXIT
 # Only committed, pinned upstream proof sources enter the proof environment.
 git -C "$sholes" archive "$pin" verification/proofs | tar -x -C "$work"
 cp -R "$root/verification/header" "$work/header"
@@ -26,7 +32,9 @@ cp "$work/header/lean4/ProvenHeader.lean" "$base/lean4/"
 (cd "$base/lean4"; lean -o Sholes/Core.olean Sholes/Core.lean) > "$evidence/lean-upstream.log" 2>&1
 (cd "$base/lean4"; LEAN_PATH="$base/lean4" lean -o ProvenHeader.olean ProvenHeader.lean) > "$evidence/lean.log" 2>&1
 [[ $(grep -c 'does not depend on any axioms' "$evidence/lean.log") == 4 ]]
-! grep -Eq 'sorry|warning:|error:' "$evidence/lean.log"
+if grep -Eq 'sorry|warning:|error:' "$evidence/lean.log"; then
+  echo 'FAIL: Lean diagnostic audit' >&2; exit 1
+fi
 cp "$work/header/coq/ProvenHeader.v" "$base/coq/"
 (cd "$base/coq"; coqc Sholes_Core.v; coqc Sholes_Wire.v) > "$evidence/coq-upstream.log" 2>&1
 (cd "$base/coq"; coqc ProvenHeader.v) > "$evidence/coq.log" 2>&1

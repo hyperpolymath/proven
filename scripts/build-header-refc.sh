@@ -27,7 +27,7 @@ fi
 grep -q 'Proven_SafeHeader_ByteKernel_headerStep' "$work/build/exec/header-kernel.c"
 (cd "$work"; printf ':m\n:q\n' | "$idris" --no-banner --source-dir src src/Proven/SafeHeader/ByteKernel.idr) > "$out/holes.log" 2>&1
 grep -q 'No holes' "$out/holes.log"
-! grep -q '^Error:' "$out/holes.log"
+if grep -q '^Error:' "$out/holes.log"; then cat "$out/holes.log" >&2; exit 1; fi
 prefix=$("$idris" --prefix)
 mapfile -t runtimes < <(find "$prefix" -path '*/support/refc/runtime.h' -type f)
 mapfile -t supports < <(find "$prefix" -path '*/support/c/idris_support.h' -type f)

@@ -119,7 +119,7 @@ jobs:
   chapel-build:
     runs-on: ubuntu-22.04
     needs: detachability-guard
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
@@ -129,33 +129,13 @@ jobs:
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      - name: Build libproven.so (WIRED-subset fixture)
+      - name: Build libproven.so with the actual Idris header backend
+        uses: ./proven/ffi/zig/actions/refc-library
+      - name: Audit the library symbols
         working-directory: proven/ffi/zig
-        # NOTE: ffi/zig/build.zig depends on `idris2_zig_ffi` (relative
-        # path to a sibling estate repo).  That dep is not resolvable
-        # from a fresh clone in CI (the same issue blocks zig-ffi.yml on
-        # main), and resolving it is out of scope for the Chapel pilot.
-        # All exports in src/main.zig are pure-Zig — none consume
-        # idris2_zig_ffi.  We compile main.zig directly with
-        # `zig build-lib -dynamic -lc`, producing a libproven.so with
-        # the WIRED 5 symbols (proven_path_has_traversal,
-        # proven_header_has_crlf, proven_free_string, proven_version,
-        # proven_build_info).  When proven#88 lands the real
-        # Idris-backed exports, this step swaps to
-        # `zig build -Dtarget=...`.
         run: |
           set -euo pipefail
-          mkdir -p zig-out/lib
-          zig build-lib -dynamic -O ReleaseSafe \
-              -fPIC \
-              --name proven \
-              -femit-bin=zig-out/lib/libproven.so \
-              src/main.zig -lc
-          ls -la zig-out/lib/
-          nm -D --defined-only zig-out/lib/libproven.so \
-              | awk '$2 ~ /^[TWV]$/ { print $3 }' \
-              | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' \
-              | sort -u | tee /tmp/wired-exports.txt
+          nm -D --defined-only zig-out/lib/libproven.so | awk '$2 ~ /^[TWV]$/ { print $3 }' | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' | sort -u | tee /tmp/wired-exports.txt
           test "$(wc -l < /tmp/wired-exports.txt)" -eq 5
       - name: Install Chapel ${{ env.CHAPEL_VERSION }} (SHA-pinned .deb)
         run: |

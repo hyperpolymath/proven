@@ -55,6 +55,10 @@ pairs, null/empty spans, embedded NUL, non-UTF-8, explicit prefix lengths and
 an 8,192-byte boundary case. An ABI-compatible always-clean generated-C mutant
 must fail assertions, not merely fail compilation. The unavailable profile
 must return -99. `header-refc.yml` runs this gate on every PR and main push.
+The gate also builds `libproven.so` and compiles a caller against the public C
+header to exercise result layout, status codes and exact-byte spans. Chapel,
+D and OCaml CI obtain this real shared-library profile through
+`ffi/zig/actions/refc-library`; their detached jobs consume that artifact.
 Evidence in `build/header-evidence` records versions, source/SDK hashes and
 positive/negative logs.
 

@@ -11,6 +11,7 @@ evidence=$(cd "$evidence" && pwd)
 rm -f "$evidence/result.txt"
 find "$root/ffi/zig/src" -maxdepth 1 -name '*.zig' -type f -exec sha256sum {} + > "$evidence/inputs.sha256"
 sha256sum "$root/ffi/zig/build_standalone.zig" "$root/src/Proven/SafeHeader/ByteKernel.idr" "$root/src/Proven/FFI/HeaderKernelMain.idr" >> "$evidence/inputs.sha256"
+sha256sum "$root/tests/ffi/header_byte_bridge.c" "$root/bindings/c/include/proven.h" >> "$evidence/inputs.sha256"
 work=$(mktemp -d -t proven-header-check.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
 bash "$root/scripts/build-header-refc.sh" "$work/bundle"
@@ -21,6 +22,9 @@ cd "$root/ffi/zig"
 "$zig" build test --build-file build_standalone.zig --summary all > "$evidence/unavailable.log" 2>&1
 "$zig" build test --build-file build_standalone.zig -Dheader-refc="$work/bundle" --summary all > "$evidence/refc.log" 2>&1
 "$zig" build --build-file build_standalone.zig -Dheader-refc="$work/bundle" > "$evidence/build.log" 2>&1
+"$zig" build --build-file build_standalone.zig -Dshared=true -Dheader-refc="$work/bundle" --prefix "$work/shared" > "$evidence/shared-build.log" 2>&1
+cc -Wall -Wextra -Werror -I "$root/bindings/c/include" "$root/tests/ffi/header_byte_bridge.c" "$work/shared/lib/libproven.so" -Wl,-rpath,"$work/shared/lib" -o "$work/c-abi" > "$evidence/c-build.log" 2>&1
+"$work/c-abi" > "$evidence/c-abi.log" 2>&1
 
 # A valid but wrong implementation must fail the exported-ABI tests.
 # Rename only within this private generated bundle and supply an ABI-compatible

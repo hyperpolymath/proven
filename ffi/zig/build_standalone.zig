@@ -32,6 +32,7 @@ fn attachHeader(b: *std.Build, mod: *std.Build.Module, path: []const u8) void {
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const shared = b.option(bool, "shared", "Build libproven.so for C ABI consumers") orelse false;
     const header = b.option([]const u8, "header-refc", "Absolute bundle from scripts/build-header-refc.sh; absent means header operations return -99");
     if (header != null and (!target.query.isNative() or target.result.os.tag != .linux or target.result.cpu.arch != .x86_64 or target.result.abi != .gnu))
         @panic("header RefC profile currently supports native Linux x86_64 GNU only");
@@ -51,9 +52,9 @@ pub fn build(b: *std.Build) void {
     if (header) |path| attachHeader(b, proven_mod, path);
 
     const lib = b.addLibrary(.{
-        .name = "proven_ffi",
+        .name = if (shared) "proven" else "proven_ffi",
         .root_module = proven_mod,
-        .linkage = .static,
+        .linkage = if (shared) .dynamic else .static,
     });
     b.installArtifact(lib);
 
