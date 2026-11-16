@@ -138,13 +138,16 @@ promoted to a whole-library or v1 verification claim.
 
 == Repository-wide blockers outside the repaired profile
 
-The safety gate still reports 20 existing `assert_total` uses. The licence
-gate rejects five existing `Palimpsest-MPL-1.0` headers in SafeYAML/Parser,
-SafeRegex/Parser and Matcher, SafeSQL/Builder and SafeXML/Parser. Those files
-are unchanged by this repair; licence changes require the owner and are not
-part of this patch. The older Idris property suite also references unavailable
-SafeMath operations and incompatible result types. These failures remain
-visible and prevent a whole-repository green claim.
+The safety gate now passes after removing 20 production totality assertions.
+The licence gate still rejects five existing `Palimpsest-MPL-1.0` headers in
+SafeYAML/Parser, SafeRegex/Parser and Matcher, SafeSQL/Builder and SafeXML/Parser.
+Their licence headers remain unchanged pending the owner's decision. The old
+property suite contains further unavailable APIs, invalid propositions and
+unproved declarations; repairing SafeMath does not qualify the other modules.
+The full OCaml symbol audit at `3424d6d` required 146 distinct symbols: nine
+were present and 137 missing. Presence alone does not establish signature
+compatibility; the lifecycle signature conflict is also unresolved. These
+failures prevent a whole-repository green claim and must not be hidden.
 
 The repository instructions name `./hypatia-v2`, but that executable is not
 present in this checkout. No successful local scan with that command is
@@ -170,3 +173,32 @@ The totality-regression script builds from a fresh source copy, requires
 totality and no reported holes, executes malformed-input and semantic
 regressions, and retains source identities, compiler output and a result marker.
 These are regression receipts, not Atoma source-to-proof certificates.
+
+== Next source-to-proof step: canonical Bits8 word representation
+
+`verification/header/*/RefCBits8.*` defines a 64-bit word partition with tag
+bit 0, zero bits 1..31, an eight-bit payload at 32..39, and zero bits 40..63.
+The compatible Agda development states and proves byte round-trip, canonical
+representation of every accepted word, and null rejection. Lean and Rocq are
+separate hand re-proofs of those statements; their assumption audits and
+`coqchk` are mandatory. Full Cubical checks paths obtained from the compatible
+proofs. Changing the encoded tag is a required rejecting Agda control.
+These claims require a successful current CI run; writing the files is not a
+successful replay receipt.
+
+The actual Zig codec now refuses any target/SDK profile other than 64-bit
+words with shift 32. Executable tests retain all 256 round-trips and reject
+flipping the tag or setting each of the 55 unused bits for each byte. The
+universal model theorem covers all bit combinations; these executable tests
+are finite implementation evidence. Neither establishes source/model
+correspondence, the pointer-carrier ABI assumption, generated RefC semantics,
+or compiler correctness. In particular, the model's word partition does not
+prove a C pointer points to an object and the carrier must never be dereferenced.
+
+Atoma must next import the actual codec AST and SDK constant into typed
+bitvector semantics, reject changed widths/shifts/casts/guards, and produce a
+receipt binding those obligations and theorem identities to the full source
+closure. Then the header loop needs a prefix invariant, bounds and progress
+proof, with an explicit RefC-call contract. UAA's real two-slot callback registry
+is a second consumer for state transitions, refusal and borrowed lifetimes;
+its differential execution is not yet an Atoma source-to-proof certificate.

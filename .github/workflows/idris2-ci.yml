@@ -63,10 +63,6 @@ jobs:
           make install
       - name: Add Idris 2 to PATH
         run: echo "$HOME/.idris2/bin" >> $GITHUB_PATH
-      - name: Build proven library
-        run: idris2 --build proven.ipkg
-      - name: Install proven library (required for tests.ipkg)
-        run: idris2 --install proven.ipkg
       - name: Check totality repairs against actual source
         run: bash scripts/test-totality-regressions.sh
       - name: Preserve totality regression evidence
@@ -75,6 +71,12 @@ jobs:
         with:
           name: totality-regressions
           path: build/totality-regressions/
+      - name: Build proven library
+        if: ${{ !cancelled() }}
+        run: idris2 --build proven.ipkg
+      - name: Install proven library (required for tests.ipkg)
+        if: ${{ !cancelled() }}
+        run: idris2 --install proven.ipkg
       - name: Diagnose every property module
         if: ${{ !cancelled() }}
         run: |

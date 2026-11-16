@@ -23,6 +23,7 @@ import Syntax.PreorderReasoning
 
 %default total
 
+public export
 nonZeroSuccessor : {n : Nat} -> NonZero (S n)
 nonZeroSuccessor = %search
 
@@ -150,8 +151,8 @@ lteAntisym (LTESucc ab) (LTESucc ba) = cong S (lteAntisym ab ba)
 ||| Proved via Data.Nat.Division.DivisionTheoremUniqueness:
 ||| n = n * 1 + 0 is the unique decomposition, so divNatNZ n 1 = n.
 public export
-divByOne : (n : Nat) -> divNatNZ n 1 nonZeroSuccessor = n
-divByOne n = fst $ DivisionTheoremUniqueness n 1 nonZeroSuccessor n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
+divByOne : (n : Nat) -> divNatNZ n 1 Proven.SafeMath.Proofs.nonZeroSuccessor = n
+divByOne n = fst $ DivisionTheoremUniqueness n 1 Proven.SafeMath.Proofs.nonZeroSuccessor n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
   where
     nTimesOnePlusZero : (k : Nat) -> k = k * 1 + 0
     nTimesOnePlusZero k = sym $ Calc $
@@ -164,7 +165,7 @@ divByOne n = fst $ DivisionTheoremUniqueness n 1 nonZeroSuccessor n 0 (LTESucc L
 ||| fuel-based induction over mod''.
 public export
 modLtDivisor : (n, d : Nat) -> {auto 0 ok : NonZero d} -> LT (modNatNZ n d ok) d
-modLtDivisor n (S d) = boundModNatNZ n (S d) nonZeroSuccessor
+modLtDivisor n (S d) = boundModNatNZ n (S d) Proven.SafeMath.Proofs.nonZeroSuccessor
 
 --------------------------------------------------------------------------------
 -- GCD Properties
