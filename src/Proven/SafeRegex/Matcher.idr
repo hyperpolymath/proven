@@ -68,7 +68,7 @@ currentChar : MatchState -> Maybe Char
 currentChar st =
   if st.position >= st.inputLen
     then Nothing
-    else Just $ assert_total $ strIndex st.input (cast st.position)
+    else head' (drop st.position (unpack st.input))
 
 ||| Get character at specific position
 public export
@@ -76,7 +76,7 @@ charAt : MatchState -> Nat -> Maybe Char
 charAt st pos =
   if pos >= st.inputLen
     then Nothing
-    else Just $ assert_total $ strIndex st.input (cast pos)
+    else head' (drop pos (unpack st.input))
 
 ||| Check if at end of input
 public export
@@ -442,9 +442,9 @@ replaceAll sr input replacement = go (S inputLen) 0 ""
                      newPos = max (S pos) end
                  in go fuel newPos (acc ++ before ++ replacement)
                _ =>
-                 if pos < inputLen
-                   then go fuel (S pos) (acc ++ singleton (assert_total $ strIndex input (cast pos)))
-                   else acc
+                 case head' (drop pos (unpack input)) of
+                   Just c => go fuel (S pos) (acc ++ singleton c)
+                   Nothing => acc
 
 ||| Split string by regex
 public export

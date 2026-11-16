@@ -114,19 +114,18 @@ postorder (Node v l r) = postorder l ++ postorder r ++ [v]
 ||| Level-order (breadth-first) traversal
 public export
 levelorder : BinaryTree a -> List a
-levelorder tree = bfs [tree]
+levelorder tree = concat (levels tree)
   where
-    bfs : List (BinaryTree a) -> List a
-    bfs [] = []
-    bfs (Leaf :: rest) = bfs rest
-    -- TRUSTED: totality; budgeted per TRUSTED-BASE-REDUCTION-POLICY.adoc.
-    -- Breadth-first queue: `rest ++ [l, r]` GROWS the argument, so no structural
-    -- measure exists. Termination is on total remaining node count, which is not
-    -- an argument. A fuel parameter was REJECTED: the correct bound is 2n+1 queue
-    -- pops for n internal nodes, and an off-by-one fuel would silently TRUNCATE
-    -- the traversal -- a correctness bug no test would catch. Declared debt is
-    -- preferable to silent wrongness.
-    bfs (Node v l r :: rest) = v :: assert_total (bfs (rest ++ [l, r]))
+    -- Combine equal depths, preserving left-to-right order. Both recursive
+    -- functions descend on explicit data; no queue bound can truncate a tree.
+    mergeLevels : List (List a) -> List (List a) -> List (List a)
+    mergeLevels [] ys = ys
+    mergeLevels xs [] = xs
+    mergeLevels (x :: xs) (y :: ys) = (x ++ y) :: mergeLevels xs ys
+
+    levels : BinaryTree a -> List (List a)
+    levels Leaf = []
+    levels (Node v l r) = [v] :: mergeLevels (levels l) (levels r)
 
 --------------------------------------------------------------------------------
 -- Binary Search Tree Operations
