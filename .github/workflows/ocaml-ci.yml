@@ -222,10 +222,9 @@ jobs:
           ./_build/default/smoke/full_api_probe.exe
       - name: Audit every declared full-API symbol
         if: ${{ !cancelled() }}
-        working-directory: bindings/ocaml
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/lib
-        run: bash scripts/full-api-audit.sh
+        run: bash bindings/ocaml/scripts/full-api-audit.sh
       - name: Preserve full-API availability inventory
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
