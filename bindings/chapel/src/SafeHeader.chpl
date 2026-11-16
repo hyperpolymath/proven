@@ -3,10 +3,9 @@
 //
 // SafeHeader - HTTP header safety via libproven FFI.
 //
-// All computation is performed in the libproven C ABI (currently a Zig
-// implementation under ffi/zig/src/main.zig; the Idris2 backing for this
-// primitive lands as part of the proven#88 export ramp).  This module is
-// a thin wrapper; it does NOT reimplement any logic.
+// The qualified libproven profile calls the Idris byte kernel through RefC.
+// A library built without that backend returns -99, mapped to absent below.
+// This module only marshals the byte span and status.
 //
 // Status: WIRED.  proven_header_has_crlf is exported by libproven 0.9.0
 // and verified by chapel-symbol-audit.
@@ -16,14 +15,14 @@ module SafeHeader {
   public use LibProven;
 
   /**
-   * Check whether a header value contains a CRLF injection sequence ("\r\n").
+   * Check whether a header value contains either CR or LF, including lone bytes.
    *
    * CRLF injection allows attackers to inject additional HTTP headers or
    * begin a response body when user input is reflected into a header.
    *
    * :arg value: Candidate header value.
    * :returns: ``absent(bool)`` on FFI error; otherwise ``some(true)`` if
-   *           CRLF found, ``some(false)`` if safe.
+   *           CR or LF found, ``some(false)`` if neither occurs.
    */
   proc hasCrlf(value: string): Maybe(bool) {
     var (ptr, len) = toCBytes(value);

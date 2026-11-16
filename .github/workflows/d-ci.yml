@@ -195,6 +195,7 @@ jobs:
           PROVEN_LIB_PATH: ${{ github.workspace }}/lib
           PROVEN_INCLUDE_PATH: ${{ github.workspace }}/bindings/c/include
           LD_LIBRARY_PATH: ${{ github.workspace }}/lib
+          LIBRARY_PATH: ${{ github.workspace }}/lib
         run: dub test
   d-detachable-build:
     runs-on: ubuntu-22.04
