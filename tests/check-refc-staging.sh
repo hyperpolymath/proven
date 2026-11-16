@@ -38,9 +38,11 @@ chmod +x "$tmp/fake-idris2"
 
 run_case() {
   local action=$1 want=$2 expected=$3 rc=0
+  local -a args=(--clean)
+  if [[ ${4:-} == no-clean ]]; then args=(); fi
   env IDRIS2="$tmp/fake-idris2" PROVEN_ROOT="$project" \
     FAKE_IDRIS_PREFIX="$prefix" FAKE_ACTION="$action" \
-    bash "$script" --clean > "$tmp/output.log" 2>&1 || rc=$?
+    bash "$script" "${args[@]}" > "$tmp/output.log" 2>&1 || rc=$?
   if [[ "$rc" != "$want" ]] || ! grep -Fq "$expected" "$tmp/output.log"; then
     printf 'FAILED: action %s expected exit %s and text %q, got %s\n' "$action" "$want" "$expected" "$rc" >&2
     cat "$tmp/output.log" >&2
@@ -63,5 +65,11 @@ grep -Fq 'generated this run' "$project/build/refc/proven-ffi.c" || {
   echo 'FAILED: expected fresh content not staged' >&2
   exit 1
 }
+printf '/* unrelated stale stage */\n' > "$project/build/refc/old.c"
+run_case write 0 'Found 1 fresh generated C file(s)' no-clean
+[[ ! -e "$project/build/refc/old.c" ]] || {
+  echo 'FAILED: stale C persisted in output stage without --clean' >&2
+  exit 1
+}
 run_case fail 13 'planted RefC compiler failure'
-echo 'RefC staging: 4 negative/positive cases passed; no real codegen proof claimed.'
+echo 'RefC staging: 5 negative/positive cases passed; no real codegen proof claimed.'

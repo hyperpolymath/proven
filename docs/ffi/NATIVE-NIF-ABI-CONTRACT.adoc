@@ -29,7 +29,7 @@ The existing `scripts/build-refc.sh` also previously scanned
 `build/exec` and its parent `build` (double-counting the same
 source), and could report success even when the compiler produced no
 C. It now requires at least one *fresh* generated C source, deduplicates
-the scan, and replaces stale staged sources. The four fake-compiler
+the scan, and replaces stale staged sources. The five fake-compiler
 controls in `tests/check-refc-staging.sh` exercise empty, stale,
 fresh and failed generation, while an independent live Idris2/RefC
 build has confirmed one generated source file. Neither fixture
