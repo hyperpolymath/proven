@@ -12,10 +12,9 @@
 ||| - `minus n 0` no longer reduces on abstract `n`; case-split required
 ||| - `div`/`mod`/`gcd` internal representations changed; some properties
 |||   are stated without proof pending upstream proof availability
-||| - `SIsNonZero` was replaced by `ItIsSucc` here; REVERTED 2026-08-27. On the
-|||   toolchain that actually builds this repo (Idris 2 0.7.0), `NonZero` and
-|||   `IsSucc` are distinct types and `divNatNZ`/`modNatNZ` require `SIsNonZero`.
-|||   VERSION-SENSITIVE: re-adjudicate if the build ever runs on the 0.8.0 CI pins.
+||| - The CI contract is Idris 2 0.8.0. Its Data.Nat defines NonZero = IsSucc
+|||   and deprecates SIsNonZero in favour of ItIsSucc. Use the constructor
+|||   directly so the proof cone also passes the warnings-as-errors gate.
 module Proven.SafeMath.Proofs
 
 import Proven.Core
@@ -150,8 +149,8 @@ lteAntisym (LTESucc ab) (LTESucc ba) = cong S (lteAntisym ab ba)
 ||| Proved via Data.Nat.Division.DivisionTheoremUniqueness:
 ||| n = n * 1 + 0 is the unique decomposition, so divNatNZ n 1 = n.
 public export
-divByOne : (n : Nat) -> divNatNZ n 1 SIsNonZero = n
-divByOne n = fst $ DivisionTheoremUniqueness n 1 SIsNonZero n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
+divByOne : (n : Nat) -> divNatNZ n 1 ItIsSucc = n
+divByOne n = fst $ DivisionTheoremUniqueness n 1 ItIsSucc n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
   where
     nTimesOnePlusZero : (k : Nat) -> k = k * 1 + 0
     nTimesOnePlusZero k = sym $ Calc $
@@ -164,7 +163,7 @@ divByOne n = fst $ DivisionTheoremUniqueness n 1 SIsNonZero n 0 (LTESucc LTEZero
 ||| fuel-based induction over mod''.
 public export
 modLtDivisor : (n, d : Nat) -> {auto 0 ok : NonZero d} -> LT (modNatNZ n d ok) d
-modLtDivisor n (S d) = boundModNatNZ n (S d) SIsNonZero
+modLtDivisor n (S d) = boundModNatNZ n (S d) ItIsSucc
 
 --------------------------------------------------------------------------------
 -- GCD Properties
