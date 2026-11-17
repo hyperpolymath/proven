@@ -184,7 +184,7 @@ parseArgs opts specs args = do
   let state = initialState args
   finalState <- parseLoop opts specs args state
   -- Check required
-  checkRequired specs finalState.parsed
+  checkRequired 0 specs finalState.parsed
   -- DEFECT FIXED 2026-08-27: the do-block previously ended on checkRequired,
   -- whose type is ArgResult (), while parseArgs promises ArgResult ParsedArgs.
   -- The parsed arguments were never returned. Never caught: this module has
@@ -300,14 +300,20 @@ parseArgs opts specs args = do
               else let newParsed = (specName spec, FlagSet) :: state.parsed
                    in parseBundled opts specs ({ parsed := newParsed } state) cs
 
-      checkRequired : List ArgSpec -> ParsedArgs -> ArgResult ()
-      checkRequired [] _ = Ok ()
-      checkRequired (spec :: specs) parsed =
-        if spec.required && isNothing (lookup (specName spec) parsed)
-          then case spec.defaultValue of
-                 Just _ => checkRequired specs parsed
-                 Nothing => Err (MissingRequired spec)
-          else checkRequired specs parsed
+      -- The i-th Positional spec is satisfied by the value parseLoop stored
+      -- under "positional-i" (the key getPositional reads), not by specName.
+      -- `pos` counts the Positional specs seen so far; it only feeds the key.
+      checkRequired : Nat -> List ArgSpec -> ParsedArgs -> ArgResult ()
+      checkRequired _ [] _ = Ok ()
+      checkRequired pos (spec :: specs) parsed =
+        let isPos = spec.argType == Positional
+            key = if isPos then "positional-" ++ show pos else specName spec
+            pos' = if isPos then S pos else pos
+        in if spec.required && isNothing (lookup key parsed)
+             then case spec.defaultValue of
+                    Just _ => checkRequired pos' specs parsed
+                    Nothing => Err (MissingRequired spec)
+             else checkRequired pos' specs parsed
 
 --------------------------------------------------------------------------------
 -- Result Access

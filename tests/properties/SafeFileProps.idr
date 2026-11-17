@@ -109,7 +109,9 @@ runFileProperties = do
     (getExtension (sanitize "bad\0file.txt") == Just "txt")
   check "extension extraction"
     (getExtension "archive.tar.gz" == Just "gz" && getExtension "README" == Nothing)
-  -- Suspected library defect (reported, expectation kept): `validatePath`
-  -- accepts the empty path and returns a `SafePath` for "".
+  -- Regression (fixed): `validatePath` used to accept the empty path and
+  -- return a `SafePath` for "".
   check "empty path rejected" (not (accepted ""))
+  check "single-character paths still accepted"
+    (accepted "a" && accepted "/" && accepted ".")
   putStrLn ""

@@ -98,12 +98,18 @@ runArgsProperties = do
   check "shell metacharacters in option values carried verbatim"
     (all (\v => okAnd (\a => getValue a "output" == Just v)
                       (parse [outputOption] ["--output", v])) metaValues)
-  -- Last: currently FAILS (suspected library defect, reported). Positional
-  -- specs are required, but checkRequired looks them up under specName
-  -- "<positional>" while values are stored as "positional-N".
+  -- Regression (fixed): positional specs are required, but checkRequired
+  -- looked them up under specName "<positional>" while values are stored
+  -- as "positional-N".
   check "positional args collected in order"
     (okAnd (\a => getPos a 0 == Just "cmd" && getPos a 1 == Just "arg1" &&
                   getPos a 2 == Just "arg2")
            (parse [mkPositional "cmd", mkPositional "a1", mkPositional "a2"]
                   ["cmd", "arg1", "arg2"]))
+  check "missing required positional still rejected"
+    (isErr (parse [mkPositional "cmd", mkPositional "a1"] ["cmd"]) &&
+     isErr (parse [mkPositional "cmd"] []))
+  check "positionals interleaved with flags are satisfied"
+    (okAnd (\a => isSet a "verbose" && getPos a 0 == Just "x")
+           (parse [verboseFlag, mkPositional "cmd"] ["-v", "x"]))
   putStrLn ""

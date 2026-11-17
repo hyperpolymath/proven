@@ -151,4 +151,8 @@ runUUIDProperties = do
      not (isValid "550e8400-e29b-41d4-a716-4466554400000") && not (isValid ""))
   check "prop_versionExtractable: hex version nibble 'a' is version 10"
     (versionOf "550e8400-e29b-a1d4-a716-446655440000" == Just (Unknown 10))
+  check "prop_versionExtractable: version nibble is case-insensitive hex ('F' and 'f' are 15)"
+    (versionOf "550e8400-e29b-F1d4-a716-446655440000" == Just (Unknown 15) &&
+     versionOf "550e8400-e29b-f1d4-a716-446655440000" == Just (Unknown 15) &&
+     versionOf "550e8400-e29b-91d4-a716-446655440000" == Just (Unknown 9))
   putStrLn ""

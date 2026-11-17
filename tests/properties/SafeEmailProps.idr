@@ -84,8 +84,12 @@ runEmailProperties = do
   check "normalize lower-cases the domain of a validated address"
     (map (getDomain . normalize) (validateEmail "User@Example.COM") == Just "example.com" &&
      map (getLocalPart . normalize) (validateEmail "User@Example.COM") == Just "User")
-  -- Suspected library defect (reported, expectation kept): `parseLocalPart`
-  -- tests `all isAtomChar` over the whole dot-atom, but `isAtomChar` excludes
-  -- '.', so every dotted local part is rejected.
+  -- Regression (fixed): `parseLocalPart` used to test `all isAtomChar` over
+  -- the whole dot-atom, but `isAtomChar` excludes '.', so every dotted local
+  -- part was rejected.
   check "dots in local part validate" (accepts "first.last@example.com")
+  check "dot-atom with several atoms validates" (accepts "a.b.c@example.com")
+  check "trailing dot in local part rejected" (not (accepts "a.@example.com"))
+  check "lone-dot and dot-led local parts rejected"
+    (not (accepts ".@example.com") && not (accepts ".a@example.com"))
   putStrLn ""

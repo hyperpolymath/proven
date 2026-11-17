@@ -107,10 +107,12 @@ parseLocalPart s =
            in parseQuoted inner
       else parseAtom s
   where
+    ||| RFC 5322 §3.2.3 dot-atom-text = 1*atext *("." 1*atext): atext or '.',
+    ||| with no leading, trailing or consecutive dots.
     parseAtom : String -> Either EmailParseError String
     parseAtom str =
       let chars = unpack str
-      in if all isAtomChar chars &&
+      in if all (\c => isAtomChar c || c == '.') chars &&
             not (isPrefixOf "." str) &&
             not (isSuffixOf "." str) &&
             not (isInfixOf ".." str)
