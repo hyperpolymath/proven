@@ -1,0 +1,194 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# libproven C ABI status ledger. One row per symbol declared in proven.h or
+# exported by libproven. proven.h is the target ABI; this file says which part
+# of it actually exists. Columns are tab-separated:
+#
+#   symbol  status  backend  note
+#
+# status   exported    in proven.h, exported, signature matches the header
+#          conflict    exported under the header name with an incompatible signature
+#          owed        in proven.h, not exported; an outstanding ABI obligation
+#          undeclared  exported, absent from proven.h
+# backend  idris-refc  computed by the compiled Idris core through RefC
+#          zig-legacy  computed in Zig; not an Idris-verified implementation
+#          -           no implementation
+#
+# Bindings may bind only `exported` rows. Checkers fail if an exported row is
+# missing from the library, an owed row appears in it, or a header symbol or
+# library export has no row. Move a row only together with the code change.
+#
+# Rows describe the qualified profile: build_standalone.zig -Dheader-refc on
+# native Linux x86_64 GNU. Without -Dheader-refc, proven_header_has_crlf is
+# still exported but refuses with status -99 (no Idris backend).
+# Producer check: scripts/check-abi-ledger.sh (run by test-header-bridge.sh).
+proven_angle_deg_to_rad	owed	-	-
+proven_angle_normalize_degrees	owed	-	-
+proven_angle_normalize_radians	owed	-	-
+proven_angle_rad_to_deg	owed	-	-
+proven_bloom_add	owed	-	-
+proven_bloom_contains	owed	-	-
+proven_bloom_create	owed	-	-
+proven_bloom_free	owed	-	-
+proven_buffer_append	owed	-	-
+proven_buffer_create	owed	-	-
+proven_buffer_free	owed	-	-
+proven_buffer_get	owed	-	-
+proven_build_info	exported	zig-legacy	-
+proven_calculator_eval	owed	-	-
+proven_callback_clear_all	owed	-	-
+proven_callback_count	owed	-	-
+proven_callback_fire	owed	-	-
+proven_callback_register	owed	-	-
+proven_callback_unregister	owed	-	-
+proven_checksum_crc32	owed	-	-
+proven_checksum_verify_crc32	owed	-	-
+proven_circuit_breaker_allow	owed	-	-
+proven_circuit_breaker_create	owed	-	-
+proven_circuit_breaker_failure	owed	-	-
+proven_circuit_breaker_free	owed	-	-
+proven_circuit_breaker_state	owed	-	-
+proven_circuit_breaker_success	owed	-	-
+proven_color_parse_hex	owed	-	-
+proven_color_rgb_to_hsl	owed	-	-
+proven_color_to_hex	owed	-	-
+proven_content_type_can_sniff_dangerous	owed	-	-
+proven_content_type_free	owed	-	-
+proven_content_type_is_json	owed	-	-
+proven_content_type_is_xml	owed	-	-
+proven_content_type_parse	owed	-	-
+proven_content_type_render	owed	-	-
+proven_cookie_build_delete	owed	-	-
+proven_cookie_build_set_cookie	owed	-	-
+proven_cookie_get_prefix	owed	-	-
+proven_cookie_has_injection	owed	-	-
+proven_cookie_validate_name	owed	-	-
+proven_cookie_validate_value	owed	-	-
+proven_crypto_constant_time_eq	owed	-	-
+proven_crypto_random_bytes	owed	-	-
+proven_currency_format	owed	-	-
+proven_currency_parse	owed	-	-
+proven_datetime_days_in_month	owed	-	-
+proven_datetime_format_iso8601	owed	-	-
+proven_datetime_is_leap_year	owed	-	-
+proven_datetime_parse	owed	-	-
+proven_deinit	owed	-	-
+proven_digest_parse	owed	-	-
+proven_digest_to_string	owed	-	-
+proven_digest_verify	owed	-	-
+proven_email_is_valid	owed	-	-
+proven_ffi_abi_version	exported	zig-legacy	-
+proven_float_div	owed	-	-
+proven_float_is_finite	owed	-	-
+proven_float_is_nan	owed	-	-
+proven_float_ln	owed	-	-
+proven_float_sqrt	owed	-	-
+proven_free	undeclared	zig-legacy	-
+proven_free_string	exported	zig-legacy	-
+proven_geo_distance	owed	-	-
+proven_geo_in_bounds	owed	-	-
+proven_geo_validate	owed	-	-
+proven_get_string	undeclared	zig-legacy	-
+proven_graph_add_edge	owed	-	-
+proven_graph_create	owed	-	-
+proven_graph_free	owed	-	-
+proven_graph_has_edge	owed	-	-
+proven_header_build_csp	owed	-	-
+proven_header_build_hsts	owed	-	-
+proven_header_codegen_main	undeclared	idris-refc	RefC program main renamed by -Dmain; not an API; should not be exported
+proven_header_has_crlf	exported	idris-refc	-
+proven_header_is_dangerous	owed	-	-
+proven_header_is_valid_name	owed	-	-
+proven_header_render	owed	-	-
+proven_hex_decode	owed	-	-
+proven_hex_encode	owed	-	-
+proven_hex_free	owed	-	-
+proven_http_parse_www_authenticate	owed	-	-
+proven_http_url_decode	owed	-	-
+proven_http_url_encode	owed	-	-
+proven_init	conflict	zig-legacy	header int32_t(void); export ?*Handle(void)
+proven_is_initialized	conflict	zig-legacy	header bool(void); export u32(?*Handle)
+proven_json_get_type	owed	-	-
+proven_json_is_valid	owed	-	-
+proven_last_error	undeclared	zig-legacy	-
+proven_lru_create	owed	-	-
+proven_lru_free	owed	-	-
+proven_lru_get	owed	-	-
+proven_lru_put	owed	-	-
+proven_math_abs_safe	owed	-	-
+proven_math_add_checked	owed	-	-
+proven_math_clamp	owed	-	-
+proven_math_div	owed	-	-
+proven_math_mod	owed	-	-
+proven_math_mul_checked	owed	-	-
+proven_math_pow_checked	owed	-	-
+proven_math_sub_checked	owed	-	-
+proven_ml_clamp	owed	-	-
+proven_ml_leaky_relu	owed	-	-
+proven_ml_relu	owed	-	-
+proven_ml_sigmoid	owed	-	-
+proven_ml_softmax	owed	-	-
+proven_module_count	owed	-	-
+proven_monotonic_create	owed	-	-
+proven_monotonic_free	owed	-	-
+proven_monotonic_next	owed	-	-
+proven_network_ipv4_is_loopback	owed	-	-
+proven_network_ipv4_is_private	owed	-	-
+proven_network_parse_ipv4	owed	-	-
+proven_password_is_common	owed	-	-
+proven_password_validate	owed	-	-
+proven_path_has_traversal	exported	zig-legacy	-
+proven_path_sanitize_filename	owed	-	-
+proven_phone_format_e164	owed	-	-
+proven_phone_parse	owed	-	-
+proven_probability_and	owed	-	-
+proven_probability_create	owed	-	-
+proven_probability_not	owed	-	-
+proven_probability_or_exclusive	owed	-	-
+proven_process	undeclared	zig-legacy	-
+proven_process_array	undeclared	zig-legacy	-
+proven_queue_create	owed	-	-
+proven_queue_free	owed	-	-
+proven_queue_pop	owed	-	-
+proven_queue_push	owed	-	-
+proven_queue_size	owed	-	-
+proven_rate_limiter_create	owed	-	-
+proven_rate_limiter_free	owed	-	-
+proven_rate_limiter_try_acquire	owed	-	-
+proven_register_callback	undeclared	zig-legacy	-
+proven_registry_has_registry	owed	-	-
+proven_registry_parse	owed	-	-
+proven_registry_to_string	owed	-	-
+proven_retry_delay	owed	-	-
+proven_retry_should_retry	owed	-	-
+proven_state_machine_allow	owed	-	-
+proven_state_machine_create	owed	-	-
+proven_state_machine_free	owed	-	-
+proven_state_machine_state	owed	-	-
+proven_state_machine_transition	owed	-	-
+proven_string_escape_html	owed	-	-
+proven_string_escape_js	owed	-	-
+proven_string_escape_sql	owed	-	-
+proven_string_is_valid_utf8	owed	-	-
+proven_tensor_create	owed	-	-
+proven_tensor_free	owed	-	-
+proven_tensor_get	owed	-	-
+proven_tensor_matmul	owed	-	-
+proven_tensor_set	owed	-	-
+proven_unit_convert_length	owed	-	-
+proven_unit_convert_temp	owed	-	-
+proven_url_free	owed	-	-
+proven_url_parse	owed	-	-
+proven_uuid_is_nil	owed	-	-
+proven_uuid_parse	owed	-	-
+proven_uuid_to_string	owed	-	-
+proven_uuid_v4	owed	-	-
+proven_uuid_version	owed	-	-
+proven_version	exported	zig-legacy	-
+proven_version_compare	owed	-	-
+proven_version_free	owed	-	-
+proven_version_major	exported	zig-legacy	-
+proven_version_minor	exported	zig-legacy	-
+proven_version_parse	owed	-	-
+proven_version_patch	exported	zig-legacy	-
