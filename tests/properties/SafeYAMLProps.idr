@@ -3,13 +3,16 @@
 module SafeYAMLProps
 
 import Proven.Core
--- `Proven.SafeYAML` re-exports `Proven.SafeYAML.Parser`, which proven.ipkg does
--- not list and so is not installed. Import the installed sub-modules directly;
--- parser-level properties are stated as obligations indexed by the parser.
+-- Parser-level properties are stated as obligations indexed by the parser and
+-- exercised on `parseYAMLWith` below. Security properties are executed on flow
+-- syntax: block collections are a known defect, and a rejection caused by that
+-- defect would be vacuous evidence.
 import Proven.SafeYAML.Types
 import Proven.SafeYAML.Proofs
+import Proven.SafeYAML.Parser
 import Data.List
 import System
+import KnownDefects
 
 %default total
 
@@ -77,16 +80,15 @@ mutual
   yamlPairsDepth ((_, v) :: kvs) = max (yamlNestingDepth v) (yamlPairsDepth kvs)
 
 ||| OWED: a flat mapping parses to that mapping (was prop_validYAMLParses).
-||| Blocked by: Proven.SafeYAML.Parser is not in proven.ipkg, so it is not
-||| installed and cannot be imported here; instantiate with `parseYAMLWith` once
-||| it is. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser's fuelled String loops; executed below
+||| on `parseYAMLWith`. This names the proposition; it is not a witness.
 public export
 YamlMappingParsesObligation : YAMLParser -> Type
 YamlMappingParsesObligation p =
   p Types.secureDefaults "key: value" = Ok (YObject [("key", YString "value")])
 
 ||| OWED: an indented mapping nests (was prop_nestedYAMLParses).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 YamlNestedParsesObligation : YAMLParser -> Type
 YamlNestedParsesObligation p =
@@ -94,21 +96,21 @@ YamlNestedParsesObligation p =
     = Ok (YObject [("parent", YObject [("child", YString "value")])])
 
 ||| OWED: a block sequence parses to an array (was prop_listYAMLParses).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 YamlSequenceParsesObligation : YAMLParser -> Type
 YamlSequenceParsesObligation p =
   p Types.secureDefaults "- item1\n- item2" = Ok (YArray [YString "item1", YString "item2"])
 
 ||| OWED: an unclosed flow sequence is rejected (was prop_invalidYAMLFails).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 YamlUnclosedRejectedObligation : YAMLParser -> Type
 YamlUnclosedRejectedObligation p = isErr (p Types.secureDefaults "key: [unclosed") = True
 
 ||| OWED: a self-referential alias bomb is rejected both with anchors disabled
 ||| and with anchors enabled (was prop_yamlBombBlocked).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 YamlBombRejectedObligation : YAMLParser -> Type
 YamlBombRejectedObligation p =
@@ -116,7 +118,7 @@ YamlBombRejectedObligation p =
   , isErr (p Types.standardSecurity "a: &a [*a, *a, *a, *a, *a]") ) = (True, True)
 
 ||| OWED: language object tags are rejected (was prop_codeExecBlocked and
-||| prop_unsafeTagsBlocked). Blocked by: parser not installed.
+||| prop_unsafeTagsBlocked). Blocked by: no proof over the parser; executed below.
 ||| This names the proposition; it is not a witness.
 public export
 YamlObjectTagsRejectedObligation : YAMLParser -> Type
@@ -126,7 +128,7 @@ YamlObjectTagsRejectedObligation p =
 
 ||| OWED: every accepted value respects the configured depth limit (was
 ||| prop_maxDepthEnforced; `nestingDepth`/`maxYAMLDepth` never existed).
-||| Blocked by: parser not installed, and its fuelled loops over String
+||| Blocked by: the parser's fuelled loops over String
 ||| primitives would need a dedicated invariant proof.
 ||| This names the proposition; it is not a witness.
 public export
@@ -136,7 +138,7 @@ YamlDepthBoundObligation p =
   p opts input = Ok v -> LTE (yamlNestingDepth v) opts.maxDepth
 
 ||| OWED: a literal block scalar keeps its line breaks (was prop_multilinePreserved).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 YamlBlockScalarObligation : YAMLParser -> Type
 YamlBlockScalarObligation p =
@@ -147,7 +149,7 @@ YamlBlockScalarObligation p =
 ||| OWED: a benign anchor/alias resolves when anchors are enabled, and is
 ||| refused under secure defaults, which disable anchors (was
 ||| prop_anchorAliasSafe, which wrongly expected success under secure defaults).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 YamlAnchorAliasObligation : YAMLParser -> Type
 YamlAnchorAliasObligation p =
@@ -165,6 +167,21 @@ check label True = putStrLn ("PASS (execution): " ++ label)
 check label False = do
   putStrLn ("FAIL: " ++ label)
   exitFailure
+
+private
+yamlIs : YAMLValue -> YAMLResult YAMLValue -> Bool
+yamlIs v (Ok w) = v == w
+yamlIs _ (Err _) = False
+
+private
+isDangerous : YAMLResult YAMLValue -> Bool
+isDangerous (Err (DangerousTag _)) = True
+isDangerous _ = False
+
+private
+isSyntaxError : YAMLResult YAMLValue -> Bool
+isSyntaxError (Err (SyntaxError _ _ _)) = True
+isSyntaxError _ = False
 
 ||| Test runner for YAML properties
 export
@@ -186,4 +203,32 @@ runYAMLProperties = do
   check "yamlNestingDepth counts collection levels"
     (yamlNestingDepth (YObject [("p", YObject [("c", YString "v")])]) == 2 &&
      yamlNestingDepth (YString "x") == 0)
+  -- Parser, flow syntax (non-vacuous evidence)
+  check "flow mapping parses to that mapping"
+    (yamlIs (YObject [("key", YString "value")]) (parseYAMLWith Types.secureDefaults "{key: value}"))
+  check "flow sequence parses to an array"
+    (yamlIs (YArray [YString "a", YString "b"]) (parseYAMLWith Types.secureDefaults "[a, b]"))
+  check "unclosed flow sequence rejected with a syntax error"
+    (isSyntaxError (parseYAMLWith Types.secureDefaults "[unclosed"))
+  check "language object tags rejected as dangerous (prop_codeExecBlocked)"
+    (isDangerous (parseYAMLWith Types.secureDefaults "!!python/object:os.system ['ls']") &&
+     isDangerous (parseYAMLWith Types.secureDefaults "!!python/object/apply:os.system ['ls']"))
+  check "anchors refused under secure defaults (prop_yamlBombBlocked, configuration)"
+    (isDangerous (parseYAMLWith Types.secureDefaults "[&a [x, y], *a, *a]"))
+  check "benign alias resolves under standardSecurity"
+    (yamlIs (YArray [YString "x", YString "x"]) (parseYAMLWith Types.standardSecurity "[&a x, *a]"))
+  check "self-referential alias rejected under standardSecurity (prop_yamlBombBlocked)"
+    (isErr (parseYAMLWith Types.standardSecurity "&a [*a, *a, *a]"))
+  -- Block syntax: known defect (see KnownDefects); correct expectations kept.
+  knownDefect YamlBlockCollectionsRejected "block mapping key: value parses"
+    (yamlIs (YObject [("key", YString "value")]) (parseYAMLWith Types.secureDefaults "key: value"))
+  knownDefect YamlBlockCollectionsRejected "indented block mapping nests"
+    (yamlIs (YObject [("parent", YObject [("child", YString "value")])])
+            (parseYAMLWith Types.secureDefaults "parent:\n  child: value"))
+  knownDefect YamlBlockCollectionsRejected "block sequence parses to an array"
+    (yamlIs (YArray [YString "item1", YString "item2"]) (parseYAMLWith Types.secureDefaults "- item1\n- item2"))
+  knownDefect YamlBlockCollectionsRejected "literal block scalar keeps line breaks"
+    (case parseYAMLWith Types.secureDefaults "text: |\n  line1\n  line2" of
+       Ok (YObject [("text", YString t)]) => isPrefixOf "line1\nline2" t
+       _ => False)
   putStrLn ""

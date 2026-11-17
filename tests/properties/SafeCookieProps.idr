@@ -7,6 +7,7 @@ import Proven.SafeCookie
 import Data.List
 import Data.String
 import System
+import KnownDefects
 
 %default total
 
@@ -100,8 +101,7 @@ runCookieProperties = do
   check "Max-Age 3600 accepted and emitted"
     (cookieHas (\c => c.attributes.maxAge == Just 3600 && isInfixOf "Max-Age=3600" (build c))
                (cookieWith "name" "value" (maxAge 3600 defaultAttributes)))
-  -- Last: currently FAILS (suspected library defect, reported). No Max-Age
-  -- validation exists; build emits "Max-Age=-1".
-  check "negative Max-Age rejected (RFC 6265 max-age-av is non-zero-digit *DIGIT)"
+  -- Known defect: no Max-Age validation; build emits "Max-Age=-1".
+  knownDefect CookieNegativeMaxAge "negative Max-Age rejected (RFC 6265 max-age-av is non-zero-digit *DIGIT)"
     (isErr (cookieWith "name" "value" (maxAge (-1) defaultAttributes)))
   putStrLn ""

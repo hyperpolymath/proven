@@ -3,14 +3,15 @@
 module SafeXMLProps
 
 import Proven.Core
--- `Proven.SafeXML` re-exports `Proven.SafeXML.Parser`, which proven.ipkg does
--- not list and so is not installed. Import the installed sub-modules directly;
--- parser-level properties are stated as obligations indexed by the parser.
+-- Parser-level properties are stated as obligations indexed by the parser and
+-- exercised on `parseXMLWith` below.
 import Proven.SafeXML.Types
 import Proven.SafeXML.Builder
 import Proven.SafeXML.Proofs
+import Proven.SafeXML.Parser
 import Data.String
 import System
+import KnownDefects
 
 %default total
 
@@ -50,29 +51,28 @@ XMLParser : Type
 XMLParser = XMLSecurityOptions -> String -> XMLResult XMLDocument
 
 ||| OWED: a well-formed document parses under secure defaults (was
-||| prop_validXMLParses). Blocked by: Proven.SafeXML.Parser is not in
-||| proven.ipkg, so it is not installed and cannot be imported here; instantiate
-||| with `parseXMLWith` once it is. This names the proposition; it is not a witness.
+||| prop_validXMLParses). Blocked by: no proof over the parser's String
+||| loops; executed below on `parseXMLWith`. This names the proposition; it is not a witness.
 public export
 XmlWellFormedAcceptedObligation : XMLParser -> Type
 XmlWellFormedAcceptedObligation p =
   isOk (p secureDefaults "<root><child>text</child></root>") = True
 
 ||| OWED: an unclosed element is rejected (was prop_unclosedTagFails).
-||| Blocked by: parser not installed (see above). This names the proposition;
+||| Blocked by: no proof over the parser; executed below. This names the proposition;
 ||| it is not a witness.
 public export
 XmlUnclosedRejectedObligation : XMLParser -> Type
 XmlUnclosedRejectedObligation p = isErr (p secureDefaults "<root><child>") = True
 
 ||| OWED: mismatched tags are rejected (was prop_mismatchedTagsFail).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 XmlMismatchedRejectedObligation : XMLParser -> Type
 XmlMismatchedRejectedObligation p = isErr (p secureDefaults "<root></other>") = True
 
 ||| OWED: an XXE payload is rejected (was prop_xxeBlocked).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 XmlXxeRejectedObligation : XMLParser -> Type
 XmlXxeRejectedObligation p =
@@ -80,7 +80,7 @@ XmlXxeRejectedObligation p =
     "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><root>&xxe;</root>") = True
 
 ||| OWED: a billion-laughs payload is rejected (was prop_billionLaughsBlocked).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 XmlBillionLaughsRejectedObligation : XMLParser -> Type
 XmlBillionLaughsRejectedObligation p =
@@ -88,7 +88,7 @@ XmlBillionLaughsRejectedObligation p =
     "<!DOCTYPE lolz [<!ENTITY lol \"lol\"><!ENTITY lol2 \"&lol;&lol;\">]><lolz>&lol2;</lolz>") = True
 
 ||| OWED: an external DTD reference is rejected (was prop_externalDTDBlocked).
-||| Blocked by: parser not installed. This names the proposition; it is not a witness.
+||| Blocked by: no proof over the parser; executed below. This names the proposition; it is not a witness.
 public export
 XmlExternalDtdRejectedObligation : XMLParser -> Type
 XmlExternalDtdRejectedObligation p =
@@ -96,8 +96,8 @@ XmlExternalDtdRejectedObligation p =
 
 ||| OWED: with DTDs disabled, any input carrying a DOCTYPE is rejected; entity
 ||| definitions need a DTD, so this bounds entity expansion (was
-||| prop_entityExpansionLimited; `entityCount` never existed). Blocked by: parser
-||| not installed, and `isInfixOf` over an abstract String does not reduce.
+||| prop_entityExpansionLimited; `entityCount` never existed). Blocked by: no
+||| proof over the parser, and `isInfixOf` over an abstract String does not reduce.
 ||| This names the proposition; it is not a witness.
 public export
 XmlDtdRejectedObligation : XMLParser -> Type
@@ -146,6 +146,23 @@ noMarkupInjected s =
             not (isInfixOf "<script>" out)
     Err _ => False
 
+
+private
+xxeDoc, lolDoc, extDtdDoc : String
+xxeDoc = "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><root>&xxe;</root>"
+lolDoc = "<!DOCTYPE lolz [<!ENTITY lol \"lol\"><!ENTITY lol2 \"&lol;&lol;\">]><lolz>&lol2;</lolz>"
+extDtdDoc = "<!DOCTYPE foo SYSTEM \"http://evil.com/xxe.dtd\"><foo/>"
+
+private
+isXxe : XMLResult XMLDocument -> Bool
+isXxe (Err (ExternalEntityDetected _)) = True
+isXxe _ = False
+
+private
+isDtdNotAllowed : XMLResult XMLDocument -> Bool
+isDtdNotAllowed (Err DTDNotAllowed) = True
+isDtdNotAllowed _ = False
+
 ||| Test runner for XML properties
 export
 runXMLProperties : IO ()
@@ -174,4 +191,18 @@ runXMLProperties = do
   check "prop_escapeAttrSafe: escaped attribute values carry no raw quote or bracket"
     (all (\s => all (\c => not (c `elem` ['"', '\'', '<', '>']))
                     (unpack (xmlAttrValue s).escaped)) hostile)
+  -- Parser (instances of the obligations above)
+  check "prop_validXMLParses: well-formed document accepted"
+    (isOk (parseXMLWith secureDefaults "<root><child>text</child></root>"))
+  check "prop_unclosedTagFails" (isErr (parseXMLWith secureDefaults "<root><child>"))
+  check "prop_mismatchedTagsFail" (isErr (parseXMLWith secureDefaults "<root></other>"))
+  check "prop_xxeBlocked: external entity rejected as ExternalEntityDetected"
+    (isXxe (parseXMLWith secureDefaults xxeDoc))
+  check "prop_billionLaughsBlocked: rejected" (isErr (parseXMLWith secureDefaults lolDoc))
+  check "prop_externalDTDBlocked: rejected" (isErr (parseXMLWith secureDefaults extDtdDoc))
+  -- Known defect: those two rejections come from the DOCTYPE never being parsed.
+  knownDefect XmlDoctypeUnparsed "billion laughs rejected as DTDNotAllowed"
+    (isDtdNotAllowed (parseXMLWith secureDefaults lolDoc))
+  knownDefect XmlDoctypeUnparsed "external DTD rejected as DTDNotAllowed"
+    (isDtdNotAllowed (parseXMLWith secureDefaults extDtdDoc))
   putStrLn ""
