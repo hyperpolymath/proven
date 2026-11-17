@@ -16,7 +16,7 @@ image:https://img.shields.io/badge/bindings-120+_targets-orange[120+ Binding Tar
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
 image:https://img.shields.io/badge/believe__me-0-brightgreen[believe_me = 0]
 image:https://img.shields.io/badge/assert__total%20%2B%20assert__smaller-22-orange[22 assert_total/assert_smaller sites]
-image:https://img.shields.io/badge/bindings-18_of_120+_complete-yellow[18 of 120+ binding targets complete]
+image:https://img.shields.io/badge/bindings-16_of_120+_complete-yellow[16 of 120+ binding targets complete]
 image:https://api.thegreenwebfoundation.org/greencheckimage/jewell.nexus[Green Hosting,link="https://www.thegreenwebfoundation.org/green-web-check/?url=jewell.nexus"]
 
 == License
@@ -136,7 +136,7 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 
 | Binding Targets
 | 120+
-| Languages, platforms, and paradigms (18 complete, 102 scaffolded)
+| Languages, platforms, and paradigms (16 complete, 102 scaffolded)
 
 | believe_me Count
 | 0
@@ -151,7 +151,7 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | Not totality-checked by default
 
 | Completion
-| 18 of 120+ binding targets
+| 16 of 120+ binding targets
 | 102 targets are scaffolded with FFI stubs; apps, hardware and convenience layers are early (see link:TOPOLOGY.adoc[TOPOLOGY.adoc])
 |===
 
@@ -235,7 +235,7 @@ Every one of these will crash your app or create a security hole.
 ----
 from proven import SafeMath, SafeJson, SafeUrl, SafePassword, SafeRegex, SafeHtml, SafeCommand, SafeSql
 
-# Cannot crash. Ever. Mathematically proven.
+# Design goal: no exceptions. Totality-checked only where the module is `total` (see Proof status).
 result = SafeMath.div(10, user_input)  # Returns None if zero, not an exception
 data = SafeJson.get(response, "key")  # Returns None if missing, typed if present
 url = SafeUrl.parse(user_url)  # Returns structured error or valid URL
@@ -298,13 +298,13 @@ This is the core insight: instead of runtime crashes, we get compile-time errors
 | Regular Code | Proven Code (where a function is `total` with no escape hatch; see <<proof-status>>)
 
 | "I think this won’t crash"
-| "The compiler proved this cannot crash"
+| "The compiler checked that this terminates and handles every input"
 
 | "I tested it and it worked"
-| "Every possible input was checked at compile time"
+| "Every input case is covered, checked at compile time"
 
 | "It passed code review"
-| "A theorem prover verified it"
+| "The Idris2 type checker accepted its types (named theorems: see AFFIRMATION.adoc)"
 |===
 
 === Want to Learn More?
@@ -1840,10 +1840,10 @@ Notable additions beyond traditional languages:
 ┌─────────────────────────────────────────────────────────────────┐
 │                 Idris 2 Verified Core (v1.1.0)                  │
 │                                                                 │
-│  • 104 modules with dependent types: compiler PROVES code       │
-│    is correct                                                   │
-│  • Total functions: every input produces valid output           │
-│  • No runtime exceptions: impossible by construction            │
+│  • 104 modules with dependent types; the compiler checks the    │
+│    stated types, not full functional correctness                │
+│  • `total` functions terminate and cover every input            │
+│  • Escape hatches remain in 7 modules (see Proof status)        │
 │  • ECHIDNA integration for CI verification                      │
 │                                                                 │
 │  Used by: aerospace, automotive, financial, blockchain          │
@@ -1871,7 +1871,7 @@ If you find a bug in proven, you’ve likely found a bug in either:
 1. The language bindings (our bug, please report)
 2. The Idris 2 compiler (extremely rare)
 3. Your understanding of the function (check the docs)
-The core logic is mathematically proven. But the bindings are written by humans.
+The core logic is type-checked, and totality-checked where it is `total` (see <<proof-status>>). The bindings are written by humans.
 
 Q: Why not just use existing libraries?::
 [cols="1,1"]
@@ -1895,7 +1895,7 @@ Q: Why not just use existing libraries?::
 |===
 
 Q: Is this production ready?::
-Yes, as of v1.0.0. All core modules and bindings are complete. Security audit passed, comprehensive test suite, and ECHIDNA integration for proof verification.
+Partly. The Idris2 core modules are implemented, with the totality limits listed in <<proof-status>>. Of the 120+ binding targets, 16 are complete and 102 are scaffolds that are not ready for use. Rust and C are the production focus; the other bindings are research-stage. Check the status table before choosing a binding for production.
 
 Q: I'm using Rust... isn't my code invincible anyway?
 
@@ -1947,7 +1947,7 @@ Crashes are a choice. Choose otherwise.
 === v1.0.0
 
 * ✅ Initial release with 74 core modules and dependent type proofs
-* 120+ binding targets via Zig FFI (18 complete, 102 scaffolded)
+* 120+ binding targets via Zig FFI (16 complete, 102 scaffolded)
 * ✅ Complete test suite with fuzzing
 * ✅ Security audit passed
 * ✅ CI/CD infrastructure

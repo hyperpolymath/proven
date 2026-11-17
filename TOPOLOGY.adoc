@@ -69,8 +69,8 @@
           │                  LANGUAGE BINDINGS (15%)                     │
           │                  (Thin Wrappers — FFI Calls Only)           │
           │                                                             │
-          │  ✅ Complete (18): Python, Rust, JavaScript, Deno,          │
-          │     ReScript, Gleam, Julia, Swift, Kotlin, Go, Elixir,      │
+          │  ✅ Complete (16): Rust, JavaScript, Deno, Gleam,           │
+          │     Julia, Swift, Kotlin, Go, Elixir,                       │
           │     Zig, Lua, Ruby, Nim, OCaml, Haskell, Ada               │
           │                                                             │
           │  ░░ Scaffolded (102): C, C++, Erlang, Dart, Java,          │
