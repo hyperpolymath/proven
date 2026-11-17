@@ -117,4 +117,17 @@ runHeaderProperties = do
     (isErr (header "X-A\r\nSet-Cookie" "evil"))
   check "colon in header name rejected (default options)"
     (isErr (header "Invalid:Header" "v"))
+  -- Regression checks for the name rules (RFC 9110 s5.1 / RFC 9112 s5.1):
+  -- CTL, SP, DEL and ':' are rejected in every mode; strictTokens only
+  -- decides whether other visible non-tchar characters are allowed.
+  check "CR/LF in header name reported as injection"
+    (case header "X-A\r\nSet-Cookie" "evil" of
+       Err e => isInjection e
+       Ok _ => False)
+  check "whitespace/NUL in header name rejected (no 'Transfer-Encoding ' bypass)"
+    (isErr (header "Transfer-Encoding " "chunked") && isErr (header "X A" "v") &&
+     isErr (header "X-A\0" "v"))
+  check "non-token visible name char: default accepts, strict rejects"
+    (isOk (header "X(A)" "v") && not (strictName "X(A)"))
+  check "security header preset still builds" (isOk (addSecurityHeaders empty))
   putStrLn ""

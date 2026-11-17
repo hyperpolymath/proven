@@ -72,14 +72,9 @@ validatePassword : (policy : PasswordPolicy) ->
                    RawPassword ->
                    Either (List PolicyViolation) (ValidPassword policy)
 validatePassword policy (MkRawPassword value) =
-  case checkPolicy policy value of
-    -- Postulate: if checkPolicy returns [], the policy is met.
-    -- Proof depends on checkPolicy being a correct decision procedure for MeetsPolicy.
-    [] => Right (MkValidPassword value (trustCheckPolicy policy value))
-    violations => Left violations
-  where
-    -- Awaiting formal proof: checkPolicy [] implies MeetsPolicy
-    trustCheckPolicy : (p : PasswordPolicy) -> (v : String) -> MeetsPolicy p v
+  -- `decideMeetsPolicy` returns the violation list unchanged when it is
+  -- non-empty, and otherwise the evidence `checkPolicy policy value = []`.
+  map (MkValidPassword value) (decideMeetsPolicy policy value)
 
 ||| Check if password meets minimum requirements
 public export

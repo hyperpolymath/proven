@@ -99,10 +99,9 @@ runPasswordProperties = do
      rejectedWith (\vs => length vs == 1) "UPPERCASE123!" &&
      rejectedWith (\vs => length vs == 1) "NoDigitsHere!" &&
      rejectedWith (\vs => length vs == 1) "NoSpecial123")
-  -- Kept last: on an accepted password, validatePassword evaluates the
-  -- bodyless `trustCheckPolicy` in its where-clause (the proof argument of
-  -- MkValidPassword is not erased), which aborts at runtime with
-  -- "Encountered undefined name ...trustCheckPolicy". Suspected library defect.
+  -- Regression (fixed): an accepted password used to evaluate a bodyless
+  -- `trustCheckPolicy` and abort at runtime; MeetsPolicy now carries the
+  -- erased evidence checkPolicy policy password = [] (decideMeetsPolicy).
   putStrLn "running: validatePassword strictPolicy accepts \"Str0ng!Pass#2024\""
   check "strong password accepted by validatePassword"
     (case validatePassword strictPolicy (MkRawPassword "Str0ng!Pass#2024") of
