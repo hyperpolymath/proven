@@ -77,45 +77,74 @@ public export
 maxE164Length : Nat
 maxE164Length = 15
 
-||| Validate an E.164 phone number string
-||| Format: +CC NNNNNNNNNN (max 15 digits total)
+||| Visual separators accepted between the digits of a written international
+||| number. ITU-T E.123 international notation is "+" then digit groups
+||| separated by spaces; hyphens, dots and parentheses are common display
+||| punctuation.
+||| Any other character (e.g. a letter) makes the input invalid instead of
+||| being silently dropped.
 public export
-isValidE164 : String -> Bool
-isValidE164 s =
-  let stripped = stripFormatting s
-  in isPrefixOf "+" s &&
-     length stripped >= 7 && length stripped <= maxE164Length &&
-     isDigitsOnly stripped
+isPhoneSeparator : Char -> Bool
+isPhoneSeparator c = c == ' ' || c == '-' || c == '.' || c == '(' || c == ')'
 
-||| Parse an E.164 phone number
+||| The complete set of 2-digit E.164 country codes (ITU-T E.164 list of
+||| assigned country codes, Annex to the ITU Operational Bulletin). Zones 1
+||| (NANP) and 7 are 1-digit codes; every other code is 3 digits.
+public export
+twoDigitCountryCodes : List Nat
+twoDigitCountryCodes =
+  [ 20, 27
+  , 30, 31, 32, 33, 34, 36, 39
+  , 40, 41, 43, 44, 45, 46, 47, 48, 49
+  , 51, 52, 53, 54, 55, 56, 57, 58
+  , 60, 61, 62, 63, 64, 65, 66
+  , 81, 82, 84, 86
+  , 90, 91, 92, 93, 94, 95, 98
+  ]
+
+||| Length of the country code that starts the given digits. E.164 country
+||| codes form a prefix code (none is a prefix of another; ITU-T E.164 §6),
+||| so the leading digits alone determine it: a longest/known-prefix match,
+||| not "try 1 digit first". No country code starts with 0.
+public export
+countryCodeLength : List Char -> Maybe Nat
+countryCodeLength ('0' :: _) = Nothing
+countryCodeLength ('1' :: _) = Just 1
+countryCodeLength ('7' :: _) = Just 1
+countryCodeLength (a :: b :: _) =
+  let twoDigits = cast {to=Nat} (ord a - ord '0') * 10 + cast {to=Nat} (ord b - ord '0')
+  in if elem twoDigits twoDigitCountryCodes then Just 2 else Just 3
+countryCodeLength _ = Nothing
+
+||| Parse an E.164 phone number: "+", then 7..15 digits (ITU-T E.164 §6:
+||| at most 15 digits including the country code), optionally separated by
+||| `isPhoneSeparator` characters. The country code is split off by prefix
+||| match (`countryCodeLength`), leaving a subscriber part of at least 4 digits.
 public export
 parseE164 : String -> Maybe PhoneNumber
 parseE164 s =
-  if not (isPrefixOf "+" s)
-    then Nothing
-    else let digits = stripFormatting (substr 1 (length s) s)
-         in if length digits < 7 || length digits > maxE164Length || not (isDigitsOnly digits)
-              then Nothing
-              else parseWithCountryCode digits
-  where
-    tryCountryCode : Nat -> String -> Maybe PhoneNumber
-    tryCountryCode ccLen digits =
-      let ccStr = substr 0 ccLen digits
-          rest = substr ccLen (length digits) digits
-      in case parsePositive {a=Nat} ccStr of
-           Nothing => Nothing
-           Just cc => if length rest >= 4
-                        then Just (MkPhoneNumber (MkCountryCode cc) rest)
-                        else Nothing
+  case unpack s of
+    ('+' :: body) =>
+      let digits = filter (not . isPhoneSeparator) body
+          n = length digits
+      in if not (isDigitsOnly (pack digits)) || n < 7 || n > maxE164Length
+           then Nothing
+           else case countryCodeLength digits of
+                  Nothing => Nothing
+                  Just ccLen =>
+                    let (ccDigits, rest) = splitAt ccLen digits
+                    in case parsePositive {a=Nat} (pack ccDigits) of
+                         Nothing => Nothing
+                         Just cc => if length rest >= 4
+                                      then Just (MkPhoneNumber (MkCountryCode cc) (pack rest))
+                                      else Nothing
+    _ => Nothing
 
-    parseWithCountryCode : String -> Maybe PhoneNumber
-    parseWithCountryCode digits =
-      -- Try 1-digit, 2-digit, 3-digit country codes
-      case tryCountryCode 1 digits of
-        Just phone => Just phone
-        Nothing => case tryCountryCode 2 digits of
-          Just phone => Just phone
-          Nothing => tryCountryCode 3 digits
+||| Validate an E.164 phone number string
+||| Format: +CC NNNNNNNNNN (max 15 digits total). Agrees with `parseE164`.
+public export
+isValidE164 : String -> Bool
+isValidE164 s = isJust (parseE164 s)
 
 ||| Format a phone number in E.164 format
 public export

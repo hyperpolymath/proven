@@ -10,8 +10,9 @@ import System
 %default total
 
 -- The real API is E.164-only: `parseE164 : String -> Maybe PhoneNumber`
--- (requires a leading '+', strips formatting, 7..15 digits, tries 1-, 2-,
--- then 3-digit country codes), `formatE164 : PhoneNumber -> String`, and
+-- (requires a leading '+', allows only digits and space/-/./()/ separators,
+-- 7..15 digits, splits the country code by E.164 prefix match),
+-- `formatE164 : PhoneNumber -> String`, and
 -- `stripFormatting`. There is no `parsePhone`, no national-format parser and
 -- no `Eq PhoneNumber`. Parsing goes through `unpack`/`substr`/
 -- `parsePositive`, which do not reduce at the type level, so parse
@@ -36,9 +37,9 @@ FormatE164RoundTripObligation =
   parseE164 (formatE164 p) = Just p
 
 ||| OWED: a parsed number's country code has 1 to 3 digits and its
-||| subscriber part at least 4. Blocked by: same String non-reduction; and
-||| the `LTE 1 cc` part is currently refuted by "+0123456789", which parses
-||| with country code 0 (suspected defect, checked at runtime below). This
+||| subscriber part at least 4. Blocked by: same String non-reduction. (The
+||| `LTE 1 cc` part was refuted by "+0123456789" parsing with country code 0
+||| until parseE164 rejected a leading 0; checked at runtime below.) This
 ||| names the proposition; it is not a witness.
 public export
 ParsedPartsShapeObligation : Type
@@ -108,4 +109,25 @@ runPhoneProperties = do
     (isNothing (parseE164 "+1415ABC5551234"))
   check "country code 0 is rejected (no E.164 code starts with 0)"
     (isNothing (parseE164 "+0123456789"))
+  -- Regression cases for the prefix-match fix (1-, 2- and 3-digit codes).
+  check "country code split by prefix: 1, 7, 49, 86, 353, 420, 971, 880"
+    (parsesAs "+1 268 555 0100" 1 "2685550100" &&
+     parsesAs "+7 495 123 4567" 7 "4951234567" &&
+     parsesAs "+49 30 1234567" 49 "301234567" &&
+     parsesAs "+86 10 1234 5678" 86 "1012345678" &&
+     parsesAs "+353 1 234 5678" 353 "12345678" &&
+     parsesAs "+420 123 456 789" 420 "123456789" &&
+     parsesAs "+971 4 123 4567" 971 "41234567" &&
+     parsesAs "+880 2 1234 5678" 880 "212345678")
+  check "format/parse round trip and shape on multi-digit-code corpus"
+    (all (\s => roundTrips s && shapeOk s)
+       ["+353 1 234 5678", "+420 123 456 789", "+971 4 123 4567", "+7 495 123 4567"])
+  check "other non-separator characters rejected; separators still accepted"
+    (isNothing (parseE164 "+44 20 7946 0958x") && isNothing (parseE164 "+44_2079460958") &&
+     isNothing (parseE164 "+") && isNothing (parseE164 "+ ") &&
+     parsesAs "+44-20-7946-0958" 44 "2079460958" &&
+     parsesAs "+44.20.7946.0958" 44 "2079460958")
+  check "isValidE164 agrees with parseE164 (letters, code 0, valid UK)"
+    (not (isValidE164 "+1415ABC5551234") && not (isValidE164 "+0123456789") &&
+     isValidE164 "+44 20 7946 0958" && isValidE164 "+1 (415) 555-1234")
   putStrLn ""

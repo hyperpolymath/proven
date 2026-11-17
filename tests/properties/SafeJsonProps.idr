@@ -44,12 +44,13 @@ prop_arrayOutOfBounds n = Refl
 
 ||| OWED: render/parse round trip for JsonNull, stated against the full
 ||| parser (`parse`, not `parseJson`'s literal fast path) on "null", the
-||| rendering both `Show JsonValue` instances produce for JsonNull.
+||| rendering `show` produces for JsonNull.
 ||| Blocked by: `parse` runs the module-private, fuel-indexed `parseValue`
 ||| over `unpack s`, which does not reduce at the type level. A general
-||| `parse (render v) = Right v` cannot even be stated against the library:
-||| there is no `stringify`, and `show` is ambiguous (two `Show JsonValue`
-||| instances, in Proven.SafeJson.Parser and Proven.SafeJson). This names the
+||| `parse (render v) = Right v` cannot be stated against the library: there
+||| is no `stringify`, and `show` (now a single `Show JsonValue` instance, in
+||| Proven.SafeJson.Parser) escapes strings with Idris `show String`, not
+||| RFC 8259 §7 escapes, so it is not a JSON serialiser. This names the
 ||| proposition; it is not a witness.
 public export
 NullRoundTripObligation : Type
@@ -154,4 +155,26 @@ runJsonProperties = do
   -- above still report; a FAIL here is a suspected parser defect.
   check "full parser: trailing commas rejected (RFC 8259)"
     (rejects "[1,]" && rejects "{\"a\":1,}")
+  -- Regression cases for the trailing-comma fix: other comma misuse is
+  -- rejected, and empty / single / multi-element containers still parse.
+  check "full parser: empty elements and lone commas rejected"
+    (rejects "[,]" && rejects "[1,,2]" && rejects "[1 , ]" && rejects "{,}" &&
+     rejects "{\"a\":1 , }" && rejects "{\"a\":1,,\"b\":2}")
+  check "full parser: empty, single and multi-member containers still parse"
+    (parsesTo "[ ]" (JsonArray []) && parsesTo "{ }" (JsonObject []) &&
+     parsesTo "[1]" (JsonArray [JsonNumber 1.0]) &&
+     parsesTo "[1, [2, []], {}]"
+       (JsonArray [JsonNumber 1.0, JsonArray [JsonNumber 2.0, JsonArray []], JsonObject []]) &&
+     parsesTo "{\"a\":1, \"b\":{\"c\":[]}}"
+       (JsonObject [("a", JsonNumber 1.0), ("b", JsonObject [("c", JsonArray [])])]))
+  -- Regression: `parse` used to start with fuel = input length, which ran
+  -- out before the digits of a short number were read.
+  check "full parser: short and deeply nested numbers parse (fuel bound)"
+    (parsesTo "1" (JsonNumber 1.0) && parsesTo "-0" (JsonNumber 0.0) &&
+     parsesTo "[[[[1]]]]" (JsonArray [JsonArray [JsonArray [JsonArray [JsonNumber 1.0]]]]) &&
+     parsesTo "{\"a\":[1]}" (JsonObject [("a", JsonArray [JsonNumber 1.0])]))
+  -- Importers of Proven.SafeJson see a single Show JsonValue instance.
+  check "show on JsonValue resolves (single instance) and renders as before"
+    (show (JsonArray [JsonNull, JsonBool True, JsonObject [("k", JsonString "v")]])
+       == "[null, true, {\"k\": \"v\"}]")
   putStrLn ""

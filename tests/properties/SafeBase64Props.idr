@@ -27,9 +27,10 @@ import System
 
 ||| OWED: string encode/decode round-trip. Blocked by: private `covering`
 ||| encode/decode loops over Bits8 primitives and String pack/unpack.
-||| NOTE: currently REFUTED by execution for code points >= 256 (encode
-||| truncates each Char to its low byte; see runBase64Properties). This
-||| names the proposition; it is not a witness.
+||| (It was refuted by execution for code points >= 256 while encode
+||| truncated each Char to its low byte; encode/decodeString now use UTF-8,
+||| checked in runBase64Properties.) This names the proposition; it is not
+||| a witness.
 public export
 covering
 Base64StringRoundTripObligation : Type
@@ -134,9 +135,21 @@ runBase64Properties = do
   check "encoded length = encodedSize (input length)"
     (all (\b => length (unpack (encodeRaw b)) == encodedSize (length b)) byteCorpus)
   check "string round-trip on Latin-1 corpus" (all roundTrips latin1Corpus)
-  -- Last: currently FAILS (suspected library defect, reported). encode is
-  -- documented as UTF-8 but maps each Char to `cast (ord c)` (low byte only),
-  -- e.g. encode "\x20AC" = "rA==" instead of UTF-8 "4oKs".
+  -- encode is documented as UTF-8; it used to map each Char to
+  -- `cast (ord c)` (low byte only), e.g. encode "\x20AC" = "rA==".
   check "string round-trip on non-Latin-1 corpus (euro sign, CJK)"
     (all roundTrips nonLatin1Corpus)
+  -- Regression cases for the UTF-8 fix (RFC 3629 byte sequences).
+  check "encode uses UTF-8: euro 4oKs, cafe-acute Y2Fmw6k=, emoji 8J+YgA==; ASCII unchanged"
+    (encode "\x20AC" == "4oKs" && encode "caf\233" == "Y2Fmw6k=" &&
+     encode "\x1F600" == "8J+YgA==" && roundTrips "\x1F600" &&
+     encode "Hello, World!" == "SGVsbG8sIFdvcmxkIQ==" &&
+     encodeForURL "\x20AC" == "4oKs")
+  check "decodeString rejects ill-formed UTF-8 (lone FF, overlong, surrogate, truncated, bad continuation)"
+    (all (\bs => isErr (decodeString (encodeRaw bs)) && isErr (decodeFromURL (encodeForURLRaw bs)))
+         [[0xFF], [0x80], [0xC0, 0xAF], [0xE0, 0x80, 0xAF], [0xED, 0xA0, 0x80],
+          [0xF4, 0x90, 0x80, 0x80], [0xE2, 0x82], [0xC3, 0x41]])
+  check "decodeString accepts well-formed multi-byte UTF-8 from raw bytes"
+    (resultToMaybe (decodeString (encodeRaw [0xE2, 0x82, 0xAC, 0x41])) == Just ("\x20AC" ++ "A") &&
+     resultToMaybe (decodeString (encodeRaw [0xF4, 0x8F, 0xBF, 0xBF])) == Just "\x10FFFF")
   putStrLn ""
