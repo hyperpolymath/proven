@@ -7,13 +7,13 @@ The README makes claims. This file backs them up.
 
 == Claims Substantiation
 
-=== Claim 1: "Mathematically proven safe operations. Code that cannot crash, verified with Idris2 dependent types and totality checking."
+=== Claim 1: "Safe operations written in Idris2, with dependent types and totality checking." (goal: code that cannot crash)
 
-**How it works:** The 104 core safety modules in `src/Proven/` are written in Idris2 with `%default total`, meaning every function is proved to: (1) terminate (no infinite loops), (2) cover all input cases (no pattern match exceptions), and (3) return a value (no throwing runtime exceptions). Dependent types encode preconditions as types (e.g., `SafeDiv : (a : Nat) -> (b : Nat) -> (h : NonZero b) -> Nat` requires a proof that `b` is nonzero before dividing). The Idris2 compiler enforces these proofs at compile time. Examples: `SafeMath.rs` proves arithmetic never overflows (returns `Result` or bounded nat); `SafeString.rs` proves buffer bounds are checked before reading. FFI bindings call these verified functions only—no reimplementation in other languages.
+**How it works:** The core safety modules in `src/Proven/` are written in Idris2, most with `%default total`. A `total` function is checked to (1) terminate and (2) cover all input cases, so it (3) returns a value. **Not every module meets that bar** (measured 2026-11-17, comments excluded): 4 modules use `%default covering` (`SafeJson/Access`, `SafeBase64`, `SafeBase64/Encode`, `SafeRBAC`), 66 functions in 14 files are marked `covering`, and 22 `assert_total`/`assert_smaller` sites in 7 modules (`SafeArgs/Parser`, `SafeInput`, `SafeRegex/Matcher`, `SafeTree`, `SafeUnionFind`, `SafeXML/Parser`, `SafeYAML/Parser`) bypass the totality checker. Those are not totality-proven. Dependent types encode preconditions as types (e.g., `SafeDiv : (a : Nat) -> (b : Nat) -> (h : NonZero b) -> Nat` requires a proof that `b` is nonzero before dividing). The Idris2 compiler enforces these proofs at compile time. Examples: `SafeMath.idr` returns `Maybe`/bounded results instead of overflowing; `SafeString.idr` checks buffer bounds before reading. FFI bindings call these verified functions only—no reimplementation in other languages.
 
-**Caveat:** Verification covers correctness (no crashes, no undefined behavior), not functional correctness (the algorithm might be wrong). Also, Idris2 proved code is only safe if the FFI bridge (`ffi/zig/`) correctly marshals data. If Zig FFI incorrectly casts types or ignores preconditions, safety claims are violated. Hypatia scans prove this doesn't happen (0 unsafe patterns in critical FFI code).
+**Caveat:** Verification covers correctness (no crashes, no undefined behavior), not functional correctness (the algorithm might be wrong). Also, Idris2 proved code is only safe if the FFI bridge (`ffi/zig/`) correctly marshals data. If Zig FFI incorrectly casts types or ignores preconditions, safety claims are violated. Hypatia scans report 0 unsafe patterns in critical FFI code; a scan is evidence, not a proof.
 
-**Evidence:** `src/Proven/SafeMath.idr` with `%default total` and dependent type proofs; `src/Proven/SafeString.idr` with bounds-checked buffer operations. FFI in `ffi/zig/src/main.zig` calls verified functions only. Test suite: 49 tests passing, 0 believe_me count (eliminated via ADR-008).
+**Evidence:** `src/Proven/SafeMath.idr` with `%default total` and dependent type proofs; `src/Proven/SafeString.idr` with bounds-checked buffer operations. FFI in `ffi/zig/src/main.zig` calls verified functions only. `believe_me` count: 0 (eliminated via ADR-008). The test suite did not build at the link:AFFIRMATION.adoc[AFFIRMATION] anchor; see its "What we do NOT claim".
 
 === Claim 2: "120+ binding targets across 4 computing paradigms without reimplementing logic"
 
@@ -41,7 +41,7 @@ The README makes claims. This file backs them up.
 |===
 | Path | Purpose
 
-| `src/Proven/` | Idris2 core (THE TRUTH): 104 modules, all with `%default total`
+| `src/Proven/` | Idris2 core (THE TRUTH): 104 modules, most with `%default total` (4 use `%default covering`; see Claim 1)
 | `src/Proven/SafeMath.idr` | Arithmetic proofs: overflow-safe add/sub/mul/div, bounded nat, checked operations
 | `src/Proven/SafeString.idr` | String buffer bounds, encoding safety, slicing without panics
 | `src/Proven/SafeFloat.idr` | Floating-point proofs: no NaN, denormal, infinity handling, comparison stability
@@ -75,4 +75,4 @@ The README makes claims. This file backs them up.
 
 == Readiness
 
-**CRG Grade:** C (Beta) - Core modules proven (0 believe_me, 104 modules), Rust/Python/C bindings complete and tested (18 targets), remaining 102 targets scaffolded and awaiting completion. Production-ready for Rust/Python/C; others are research-stage.
+**CRG Grade:** C (Beta) - Core modules implemented with 0 `believe_me` (104 modules); not all are totality-proven (22 `assert_total`/`assert_smaller` sites, 4 `%default covering` modules; see Claim 1), and AFFIRMATION.adoc does not affirm "mathematically proven". 18 binding targets complete (Python/Cython bindings were deleted 2026-05-27), remaining 102 targets scaffolded and awaiting completion. Rust and C are the production focus; others are research-stage.
