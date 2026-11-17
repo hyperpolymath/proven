@@ -4,64 +4,64 @@ module SafeCookieProps
 
 import Proven.Core
 import Proven.SafeCookie
+import Data.List
+import Data.String
+import System
 
 %default total
 
-||| Property: Valid cookie name parses
-prop_validCookieName : isOk (validateCookieName "session_id") = True
-prop_validCookieName = Refl
+-- Real API: `validName : String -> CookieResult CookieName`,
+-- `validValue : String -> String -> CookieResult CookieValue`,
+-- `validDomain`, `validPath`, `cookieWith : String -> String ->
+-- CookieAttributes -> CookieResult Cookie`, attribute setters
+-- (`httpOnly`, `secure`, `sameSite`, `maxAge`) and `build` (Set-Cookie).
+-- The validators in SafeCookie.Parser are `export`, not `public export`, so
+-- closed results do not reduce at the type level; the public-export
+-- character predicates they rely on DO reduce and are proven below.
 
-||| Property: Empty cookie name fails
-prop_emptyCookieNameFails : isErr (validateCookieName "") = True
-prop_emptyCookieNameFails = Refl
+--------------------------------------------------------------------------------
+-- Type-level proofs (public-export predicates from SafeCookie.Types)
+--------------------------------------------------------------------------------
 
-||| Property: Cookie name with equals fails
-prop_cookieNameEqualsFails : isErr (validateCookieName "name=value") = True
-prop_cookieNameEqualsFails = Refl
+||| '=' and ';' are not cookie-name characters (validName rejects them).
+prop_equalsNotNameChar : isValidNameChar '=' = False
+prop_equalsNotNameChar = Refl
 
-||| Property: Cookie name with semicolon fails
-prop_cookieNameSemicolonFails : isErr (validateCookieName "name;evil") = True
-prop_cookieNameSemicolonFails = Refl
+prop_semicolonNotNameChar : isValidNameChar ';' = False
+prop_semicolonNotNameChar = Refl
 
-||| Property: Valid cookie value parses
-prop_validCookieValue : isOk (validateCookieValue "abc123") = True
-prop_validCookieValue = Refl
+||| A plain value has no injection character (validValue's gate).
+prop_plainValueNoInjection : hasInjectionChar "abc123" = False
+prop_plainValueNoInjection = Refl
 
-||| Property: Cookie value with semicolon fails
-prop_cookieValueSemicolonFails : isErr (validateCookieValue "value;HttpOnly") = True
-prop_cookieValueSemicolonFails = Refl
+||| Semicolon attribute smuggling is an injection.
+prop_semicolonValueInjection : hasInjectionChar "value;HttpOnly" = True
+prop_semicolonValueInjection = Refl
 
-||| Property: Cookie value with newline fails
-prop_cookieValueNewlineFails : isErr (validateCookieValue "value\nSet-Cookie: evil") = True
-prop_cookieValueNewlineFails = Refl
+||| Header splitting via newline is an injection.
+prop_newlineValueInjection : hasInjectionChar "value\nSet-Cookie: evil" = True
+prop_newlineValueInjection = Refl
 
-||| Property: HttpOnly attribute works
-prop_httpOnlyAttribute : hasAttribute HttpOnly (setCookie "name" "value" [HttpOnly]) = True
-prop_httpOnlyAttribute = Refl
+--------------------------------------------------------------------------------
+-- Execution checks
+--------------------------------------------------------------------------------
 
-||| Property: Secure attribute works
-prop_secureAttribute : hasAttribute Secure (setCookie "name" "value" [Secure]) = True
-prop_secureAttribute = Refl
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
 
-||| Property: SameSite attribute works
-prop_sameSiteAttribute : hasAttribute (SameSite Strict) (setCookie "name" "value" [SameSite Strict]) = True
-prop_sameSiteAttribute = Refl
+||| Attributes with every optional flag off, so setters are observable.
+private
+bareAttrs : CookieAttributes
+bareAttrs = { secure := False, httpOnly := False, sameSite := Nothing } defaultAttributes
 
-||| Property: Domain validation
-prop_domainValidation : isOk (validateCookieDomain "example.com") = True
-prop_domainValidation = Refl
-
-||| Property: Path validation
-prop_pathValidation : isOk (validateCookiePath "/api/v1") = True
-prop_pathValidation = Refl
-
-||| Property: Max-Age validation
-prop_maxAgeValidation : isOk (validateMaxAge 3600) = True
-prop_maxAgeValidation = Refl
-
-||| Property: Negative Max-Age fails
-prop_negativeMaxAgeFails : isErr (validateMaxAge (-1)) = True
-prop_negativeMaxAgeFails = Refl
+private
+cookieHas : (Cookie -> Bool) -> CookieResult Cookie -> Bool
+cookieHas p (Ok c) = p c
+cookieHas _ (Err _) = False
 
 ||| Test runner for cookie properties
 export
@@ -69,18 +69,39 @@ runCookieProperties : IO ()
 runCookieProperties = do
   putStrLn "SafeCookie Property Tests"
   putStrLn "========================="
-  putStrLn "prop_validCookieName: PASS (proven by type)"
-  putStrLn "prop_emptyCookieNameFails: PASS (proven by type)"
-  putStrLn "prop_cookieNameEqualsFails: PASS (proven by type)"
-  putStrLn "prop_cookieNameSemicolonFails: PASS (proven by type)"
-  putStrLn "prop_validCookieValue: PASS (proven by type)"
-  putStrLn "prop_cookieValueSemicolonFails: PASS (proven by type)"
-  putStrLn "prop_cookieValueNewlineFails: PASS (proven by type)"
-  putStrLn "prop_httpOnlyAttribute: PASS (proven by type)"
-  putStrLn "prop_secureAttribute: PASS (proven by type)"
-  putStrLn "prop_sameSiteAttribute: PASS (proven by type)"
-  putStrLn "prop_domainValidation: PASS (proven by type)"
-  putStrLn "prop_pathValidation: PASS (proven by type)"
-  putStrLn "prop_maxAgeValidation: PASS (proven by type)"
-  putStrLn "prop_negativeMaxAgeFails: PASS (proven by type)"
+  putStrLn "prop_{equals,semicolon}NotNameChar: PASS (proven by type)"
+  putStrLn "prop_plainValueNoInjection, prop_{semicolon,newline}ValueInjection: PASS (proven by type)"
+  check "valid cookie name session_id" (isOk (validName "session_id"))
+  check "empty cookie name fails" (isErr (validName ""))
+  check "cookie name with '=' fails" (isErr (validName "name=value"))
+  check "cookie name with ';' fails" (isErr (validName "name;evil"))
+  check "valid cookie value abc123" (isOk (validValue "n" "abc123"))
+  check "cookie value with ';' fails" (isErr (validValue "n" "value;HttpOnly"))
+  check "cookie value with newline fails" (isErr (validValue "n" "value\nSet-Cookie: evil"))
+  check "HttpOnly attribute set and emitted"
+    (cookieHas (\c => c.attributes.httpOnly && isInfixOf "HttpOnly" (build c))
+               (cookieWith "name" "value" (httpOnly bareAttrs)))
+  check "HttpOnly absent when not requested"
+    (cookieHas (\c => not (isInfixOf "HttpOnly" (build c)))
+               (cookieWith "name" "value" bareAttrs))
+  check "Secure attribute set and emitted"
+    (cookieHas (\c => c.attributes.secure && isInfixOf "Secure" (build c))
+               (cookieWith "name" "value" (secure bareAttrs)))
+  check "SameSite=Strict attribute set and emitted"
+    (cookieHas (\c => c.attributes.sameSite == Just Strict &&
+                      isInfixOf "SameSite=Strict" (build c))
+               (cookieWith "name" "value" (sameSite Strict bareAttrs)))
+  check "SameSite=None without Secure rejected"
+    (isErr (cookieWith "name" "value" (sameSite None bareAttrs)))
+  check "domain validation: example.com accepted" (isOk (validDomain "example.com"))
+  check "domain validation: consecutive dots rejected" (isErr (validDomain "a..com"))
+  check "path validation: /api/v1 accepted" (isOk (validPath "/api/v1"))
+  check "path validation: relative path rejected" (isErr (validPath "api/v1"))
+  check "Max-Age 3600 accepted and emitted"
+    (cookieHas (\c => c.attributes.maxAge == Just 3600 && isInfixOf "Max-Age=3600" (build c))
+               (cookieWith "name" "value" (maxAge 3600 defaultAttributes)))
+  -- Last: currently FAILS (suspected library defect, reported). No Max-Age
+  -- validation exists; build emits "Max-Age=-1".
+  check "negative Max-Age rejected (RFC 6265 max-age-av is non-zero-digit *DIGIT)"
+    (isErr (cookieWith "name" "value" (maxAge (-1) defaultAttributes)))
   putStrLn ""
