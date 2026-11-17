@@ -66,7 +66,7 @@
                         └────────────────┬────────────────┘
                                          │
           ┌──────────────────────────────▼──────────────────────────────┐
-          │                  LANGUAGE BINDINGS (15%)                     │
+          │                LANGUAGE BINDINGS (16 of 120)                │
           │                  (Thin Wrappers — FFI Calls Only)           │
           │                                                             │
           │  ✅ Complete (16): Rust, JavaScript, Deno, Gleam,           │
@@ -104,12 +104,12 @@ CORE MODULES (IDRIS2)
 
 VERIFICATION
   ECHIDNA Integration              ██████████ 100%    ProofTerm + Validator + Soundness
-  Totality Checking                ██████████ 100%    --total flag enforced
+  Totality Checking                not complete       4 %default covering modules, 22 assert_total/assert_smaller sites (README Proof status)
   believe_me Count                 ██████████ 100%    0 instances (was 4,566)
 
 BRIDGE & BINDINGS
   Zig FFI Bridge                   ██████████ 100%    65 exports, stable C ABI
-  Bindings Complete                ██░░░░░░░░  15%    18/120 fully implemented
+  Bindings Complete                █░░░░░░░░░  13%    16/120 fully implemented (list not re-measured)
   Bindings Scaffolded              █████████░  85%    102/120 have FFI stubs
 
 APPLICATIONS
