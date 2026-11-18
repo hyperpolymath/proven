@@ -30,11 +30,6 @@ data KnownDefect
     ||| with "SyntaxError ... Empty scalar". Rejections of YAML bombs that are
     ||| written as block collections are therefore vacuous evidence.
     YamlBlockCollectionsRejected
-  | ||| Proven.SafeCookie accepts and emits a negative Max-Age. RFC 6265 §4.1.1
-    ||| server grammar is non-zero-digit *DIGIT; but the library's own deletion
-    ||| cookie emits Max-Age=0, which that grammar also excludes and §5.2.2
-    ||| user agents accept. Owner decision: reject <= 0, or reject < 0 only.
-    CookieNegativeMaxAge
   | ||| Proven.SafeXML.Parser never parses a DOCTYPE: billion-laughs and
     ||| external-DTD inputs are rejected only as "InvalidName '!'", not as
     ||| DTDNotAllowed, and allowDTD = True has no effect. Fail-closed by accident.
@@ -44,13 +39,12 @@ public export
 defectId : KnownDefect -> String
 defectId TomlParserStub = "toml-parser-stub"
 defectId YamlBlockCollectionsRejected = "yaml-block-collections-rejected"
-defectId CookieNegativeMaxAge = "cookie-negative-max-age"
 defectId XmlDoctypeUnparsed = "xml-doctype-unparsed"
 
 ||| Every ledger entry, for the end-of-run report.
 public export
 allKnownDefects : List KnownDefect
-allKnownDefects = [TomlParserStub, YamlBlockCollectionsRejected, CookieNegativeMaxAge, XmlDoctypeUnparsed]
+allKnownDefects = [TomlParserStub, YamlBlockCollectionsRejected, XmlDoctypeUnparsed]
 
 ||| Strict expected failure; see the module documentation.
 export

@@ -7,7 +7,6 @@ import Proven.SafeCookie
 import Data.List
 import Data.String
 import System
-import KnownDefects
 
 %default total
 
@@ -101,7 +100,16 @@ runCookieProperties = do
   check "Max-Age 3600 accepted and emitted"
     (cookieHas (\c => c.attributes.maxAge == Just 3600 && isInfixOf "Max-Age=3600" (build c))
                (cookieWith "name" "value" (maxAge 3600 defaultAttributes)))
-  -- Known defect: no Max-Age validation; build emits "Max-Age=-1".
-  knownDefect CookieNegativeMaxAge "negative Max-Age rejected (RFC 6265 max-age-av is non-zero-digit *DIGIT)"
-    (isErr (cookieWith "name" "value" (maxAge (-1) defaultAttributes)))
+  -- Owner ruling 2026-11-18: zero or negative Max-Age means expire immediately
+  -- (RFC 6265 s5.2.2); it is accepted and emitted as Max-Age=0, never negative.
+  check "negative Max-Age accepted as expire-immediately and emitted as Max-Age=0"
+    (cookieHas (\c => c.attributes.maxAge == Just 0 &&
+                      isInfixOf "Max-Age=0" (build c) && not (isInfixOf "Max-Age=-" (build c)))
+               (cookieWith "name" "value" (maxAge (-1) defaultAttributes)))
+  check "zero Max-Age accepted and emitted as Max-Age=0"
+    (cookieHas (\c => c.attributes.maxAge == Just 0 && isInfixOf "Max-Age=0" (build c))
+               (cookieWith "name" "value" (maxAge 0 defaultAttributes)))
+  check "a negative Max-Age set directly on the record is still rendered as 0"
+    (cookieHas (\c => not (isInfixOf "Max-Age=-" (build c)))
+               (cookieWith "name" "value" ({ maxAge := Just (-30) } defaultAttributes)))
   putStrLn ""
