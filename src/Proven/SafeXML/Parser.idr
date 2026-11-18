@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: MPL-2.0
 ||| Safe XML parsing with XXE prevention
 |||
 ||| This module provides secure XML parsing that:

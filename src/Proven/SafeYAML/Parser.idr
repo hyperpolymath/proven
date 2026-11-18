@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: MPL-2.0
 ||| Safe YAML parsing
 |||
 ||| This module provides secure YAML parsing that:
