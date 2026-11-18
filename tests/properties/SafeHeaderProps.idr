@@ -4,60 +4,86 @@ module SafeHeaderProps
 
 import Proven.Core
 import Proven.SafeHeader
+import System
 
 %default total
 
-||| Property: Valid header name parses
-prop_validHeaderName : isOk (validateHeaderName "Content-Type") = True
-prop_validHeaderName = Refl
+-- Real API: `header : String -> String -> HeaderResult Header` (default
+-- options), `headerWith strictOptions` (RFC 7230 token names), `get` (case-
+-- insensitive lookup), `parseLine`, `render`, and the predicate `hasCRLF`.
+-- There is no `validateHeaderName`/`sanitizeHeaderValue`: unsafe values are
+-- rejected, not rewritten. The validators are `export`, so results are
+-- checked by execution.
 
-||| Property: Standard header names parse
-prop_standardHeaderNames : isOk (validateHeaderName "X-Custom-Header") = True
-prop_standardHeaderNames = Refl
+--------------------------------------------------------------------------------
+-- Type-level proofs (the injection predicate the validator uses)
+--------------------------------------------------------------------------------
 
-||| Property: Empty header name fails
-prop_emptyHeaderNameFails : isErr (validateHeaderName "") = True
-prop_emptyHeaderNameFails = Refl
+||| The CRLF detector fires on an injection payload.
+prop_crlfDetected : hasCRLF "value\r\nEvil: header" = True
+prop_crlfDetected = Refl
 
-||| Property: Header name with space fails
-prop_headerNameSpaceFails : isErr (validateHeaderName "Invalid Header") = True
-prop_headerNameSpaceFails = Refl
+||| The CRLF detector fires on a response-splitting payload.
+prop_responseSplittingDetected : hasCRLF "value\r\n\r\n<html>evil</html>" = True
+prop_responseSplittingDetected = Refl
 
-||| Property: Header name with colon fails
-prop_headerNameColonFails : isErr (validateHeaderName "Invalid:Header") = True
-prop_headerNameColonFails = Refl
+||| A bare LF is also detected.
+prop_bareLfDetected : hasCRLF "a\nb" = True
+prop_bareLfDetected = Refl
 
-||| Property: Valid header value parses
-prop_validHeaderValue : isOk (validateHeaderValue "application/json") = True
-prop_validHeaderValue = Refl
+||| An ordinary media type is not flagged.
+prop_plainValueClean : hasCRLF "application/json" = False
+prop_plainValueClean = Refl
 
-||| Property: Header value with newline fails (CRLF injection)
-prop_crlfInjectionBlocked : isErr (validateHeaderValue "value\r\nEvil: header") = True
-prop_crlfInjectionBlocked = Refl
+||| RFC 7230 token check: space and colon are not token characters.
+prop_tokenRejectsSpaceAndColon : (isValidToken "Invalid Header", isValidToken "Invalid:Header")
+                                 = (False, False)
+prop_tokenRejectsSpaceAndColon = Refl
 
-||| OWED: Header value with null fails
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_nullInValueFails_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_nullInValueFails : isErr (validateHeaderValue "value\0") = True
+||| RFC 7230 token check: standard names are tokens.
+prop_tokenAcceptsStandard : (isValidToken "Content-Type", isValidToken "X-Custom-Header")
+                            = (True, True)
+prop_tokenAcceptsStandard = Refl
 
-||| Property: Header comparison is case-insensitive for names
-prop_caseInsensitiveNames : headerNameEq "Content-Type" "content-type" = True
-prop_caseInsensitiveNames = Refl
+--------------------------------------------------------------------------------
+-- Outstanding obligations
+--------------------------------------------------------------------------------
 
-||| Property: Response splitting blocked
-prop_responseSplittingBlocked : isErr (validateHeaderValue "value\r\n\r\n<html>evil</html>") = True
-prop_responseSplittingBlocked = Refl
+||| OWED: any header value accepted by `header` is CRLF-free (validation
+||| replaces the original "sanitiser removes CRLF" intent: the API rejects
+||| rather than rewrites). Blocked by: `validateValue` is `export` and
+||| `hasCRLF` over an abstract String does not reduce. Names the proposition only.
+public export
+AcceptedValueNoCRLFObligation : Type
+AcceptedValueNoCRLFObligation =
+  (n, v : String) -> (h : Header) -> header n v = Ok h -> hasCRLF h.value.value = False
 
-||| OWED: Sanitize removes dangerous characters
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_sanitizeRemovesDangerous_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_sanitizeRemovesDangerous : containsCRLF (sanitizeHeaderValue "test\r\nvalue") = False
+--------------------------------------------------------------------------------
+-- Execution checks
+--------------------------------------------------------------------------------
+
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
+
+private
+strictName : String -> Bool
+strictName n = isOk (headerWith strictOptions n "v")
+
+private
+lookupAfterAdd : String -> String -> String -> Maybe String
+lookupAfterAdd n v q = case add empty n v of
+  Ok hs => get hs q
+  Err _ => Nothing
+
+private
+parsedValue : String -> Maybe String
+parsedValue line = case parseLine line of
+  Ok h => Just h.value.value
+  Err _ => Nothing
 
 ||| Test runner for header properties
 export
@@ -65,13 +91,43 @@ runHeaderProperties : IO ()
 runHeaderProperties = do
   putStrLn "SafeHeader Property Tests"
   putStrLn "========================="
-  putStrLn "prop_validHeaderName: PASS (proven by type)"
-  putStrLn "prop_standardHeaderNames: PASS (proven by type)"
-  putStrLn "prop_emptyHeaderNameFails: PASS (proven by type)"
-  putStrLn "prop_headerNameSpaceFails: PASS (proven by type)"
-  putStrLn "prop_headerNameColonFails: PASS (proven by type)"
-  putStrLn "prop_validHeaderValue: PASS (proven by type)"
-  putStrLn "prop_crlfInjectionBlocked: PASS (proven by type)"
-  putStrLn "prop_caseInsensitiveNames: PASS (proven by type)"
-  putStrLn "prop_responseSplittingBlocked: PASS (proven by type)"
+  check "valid header names accepted"
+    (isOk (header "Content-Type" "text/html") && isOk (header "X-Custom-Header" "1"))
+  check "empty header name rejected" (isErr (header "" "v"))
+  check "strict options: space and colon in name rejected"
+    (not (strictName "Invalid Header") && not (strictName "Invalid:Header") &&
+     strictName "Content-Type")
+  check "valid header value accepted" (isOk (header "Accept" "application/json"))
+  check "CRLF injection in value rejected" (isErr (header "X-A" "value\r\nEvil: header"))
+  check "response splitting rejected"
+    (isErr (header "X-A" "value\r\n\r\n<html>evil</html>"))
+  check "framework-owned headers blocked by default"
+    (isErr (header "Transfer-Encoding" "chunked") && isErr (header "Host" "evil"))
+  check "header names compare case-insensitively"
+    (lookupAfterAdd "Content-Type" "text/html" "content-type" == Just "text/html" &&
+     lookupAfterAdd "content-type" "text/html" "CONTENT-TYPE" == Just "text/html")
+  check "parseLine splits name and trims value"
+    (parsedValue "Content-Type:  text/html " == Just "text/html" &&
+     parsedValue "no colon here" == Nothing)
+  -- Suspected library defects (reported, expectations kept). Under the
+  -- default options `strictTokens = False`, so `validateName` never checks
+  -- for CR/LF or ':' in a name, and `hasCRLF` only looks for CR/LF in values.
+  check "NUL in header value rejected" (isErr (header "X-A" "value\0"))
+  check "CRLF in header name rejected (default options)"
+    (isErr (header "X-A\r\nSet-Cookie" "evil"))
+  check "colon in header name rejected (default options)"
+    (isErr (header "Invalid:Header" "v"))
+  -- Regression checks for the name rules (RFC 9110 s5.1 / RFC 9112 s5.1):
+  -- CTL, SP, DEL and ':' are rejected in every mode; strictTokens only
+  -- decides whether other visible non-tchar characters are allowed.
+  check "CR/LF in header name reported as injection"
+    (case header "X-A\r\nSet-Cookie" "evil" of
+       Err e => isInjection e
+       Ok _ => False)
+  check "whitespace/NUL in header name rejected (no 'Transfer-Encoding ' bypass)"
+    (isErr (header "Transfer-Encoding " "chunked") && isErr (header "X A" "v") &&
+     isErr (header "X-A\0" "v"))
+  check "non-token visible name char: default accepts, strict rejects"
+    (isOk (header "X(A)" "v") && not (strictName "X(A)"))
+  check "security header preset still builds" (isOk (addSecurityHeaders empty))
   putStrLn ""

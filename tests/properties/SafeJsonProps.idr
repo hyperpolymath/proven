@@ -4,44 +4,114 @@ module SafeJsonProps
 
 import Proven.Core
 import Proven.SafeJson
+import System
 
 %default total
 
-||| Property: Parsing valid JSON returns Ok
-prop_validJsonParses : parseJson "{}" = Ok (JsonObject [])
+-- The real API: `parseJson : String -> Maybe JsonValue` (literal fast paths
+-- for null/true/false/""/[]/{}, otherwise the full `parse` state machine),
+-- `parse : String -> Either ParseError JsonValue`, `get` for object lookup,
+-- `at` for array indexing. There is no `stringify`; `show` renders JSON.
+
+||| Property: parsing "{}" yields the empty object (holds via parseJson's
+||| literal dispatch; the full parser is exercised at runtime below).
+prop_validJsonParses : parseJson "{}" = Just (JsonObject [])
 prop_validJsonParses = Refl
 
-||| Property: Parsing empty string fails
-prop_emptyStringFails : isErr (parseJson "") = True
+||| Property: parsing the empty string fails
+prop_emptyStringFails : parseJson "" = Nothing
 prop_emptyStringFails = Refl
 
-||| Property: JSON null is a valid value
-prop_nullIsValid : parseJson "null" = Ok JsonNull
+||| Property: JSON null parses
+prop_nullIsValid : parseJson "null" = Just JsonNull
 prop_nullIsValid = Refl
 
-||| Property: JSON boolean true parses correctly
-prop_trueParses : parseJson "true" = Ok (JsonBool True)
+||| Property: JSON true parses
+prop_trueParses : parseJson "true" = Just (JsonBool True)
 prop_trueParses = Refl
 
-||| Property: JSON boolean false parses correctly
-prop_falseParses : parseJson "false" = Ok (JsonBool False)
+||| Property: JSON false parses
+prop_falseParses : parseJson "false" = Just (JsonBool False)
 prop_falseParses = Refl
 
-||| Property: Getting from empty object returns Nothing
-prop_emptyObjectGet : get "key" (JsonObject []) = Nothing
-prop_emptyObjectGet = Refl
+||| Property: getting any key from the empty object returns Nothing
+prop_emptyObjectGet : (k : String) -> get k (JsonObject []) = Nothing
+prop_emptyObjectGet k = Refl
 
-||| Property: Array index out of bounds returns Nothing
-prop_arrayOutOfBounds : getIndex 10 (JsonArray []) = Nothing
-prop_arrayOutOfBounds = Refl
+||| Property: any index into the empty array returns Nothing
+prop_arrayOutOfBounds : (n : Nat) -> at n (JsonArray []) = Nothing
+prop_arrayOutOfBounds n = Refl
 
-||| OWED: Stringify then parse roundtrip for simple values
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_roundTripNull_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_roundTripNull : parseJson (stringify JsonNull) = Ok JsonNull
+||| OWED: render/parse round trip for JsonNull, stated against the full
+||| parser (`parse`, not `parseJson`'s literal fast path) on "null", the
+||| rendering `show` produces for JsonNull.
+||| Blocked by: `parse` runs the module-private, fuel-indexed `parseValue`
+||| over `unpack s`, which does not reduce at the type level. A general
+||| `parse (render v) = Right v` cannot be stated against the library: there
+||| is no `stringify`, and `show` (now a single `Show JsonValue` instance, in
+||| Proven.SafeJson.Parser) escapes strings with Idris `show String`, not
+||| RFC 8259 §7 escapes, so it is not a JSON serialiser. This names the
+||| proposition; it is not a witness.
+public export
+NullRoundTripObligation : Type
+NullRoundTripObligation = parse "null" = Right JsonNull
+
+||| OWED: the `parseJson` literal fast paths agree with the full parser.
+||| Blocked by: same non-reduction of `parse` as above. This names the
+||| proposition; it is not a witness.
+public export
+FastPathAgreesObligation : Type
+FastPathAgreesObligation =
+  (s : String) -> (v : JsonValue) -> parseJson s = Just v -> parse s = Right v
+
+-- Total structural equality (the library's `Eq JsonValue` is only `covering`).
+mutual
+  private
+  jsonEq : JsonValue -> JsonValue -> Bool
+  jsonEq JsonNull JsonNull = True
+  jsonEq (JsonBool a) (JsonBool b) = a == b
+  jsonEq (JsonNumber a) (JsonNumber b) = a == b
+  jsonEq (JsonString a) (JsonString b) = a == b
+  jsonEq (JsonArray a) (JsonArray b) = listEq a b
+  jsonEq (JsonObject a) (JsonObject b) = pairsEq a b
+  jsonEq _ _ = False
+
+  private
+  listEq : List JsonValue -> List JsonValue -> Bool
+  listEq [] [] = True
+  listEq (x :: xs) (y :: ys) = jsonEq x y && listEq xs ys
+  listEq _ _ = False
+
+  private
+  pairsEq : List (String, JsonValue) -> List (String, JsonValue) -> Bool
+  pairsEq [] [] = True
+  pairsEq ((k, x) :: xs) ((l, y) :: ys) = k == l && jsonEq x y && pairsEq xs ys
+  pairsEq _ _ = False
+
+private
+maybeEq : Maybe JsonValue -> Maybe JsonValue -> Bool
+maybeEq Nothing Nothing = True
+maybeEq (Just a) (Just b) = jsonEq a b
+maybeEq _ _ = False
+
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
+
+private
+parsesTo : String -> JsonValue -> Bool
+parsesTo s v = case parse s of
+  Right v' => jsonEq v' v
+  Left _ => False
+
+private
+rejects : String -> Bool
+rejects s = case parse s of
+  Right _ => False
+  Left _ => True
 
 ||| Test runner for JSON properties
 export
@@ -54,6 +124,57 @@ runJsonProperties = do
   putStrLn "prop_nullIsValid: PASS (proven by type)"
   putStrLn "prop_trueParses: PASS (proven by type)"
   putStrLn "prop_falseParses: PASS (proven by type)"
-  putStrLn "prop_emptyObjectGet: PASS (proven by type)"
-  putStrLn "prop_arrayOutOfBounds: PASS (proven by type)"
+  putStrLn "prop_emptyObjectGet: PASS (proven by type, all keys)"
+  putStrLn "prop_arrayOutOfBounds: PASS (proven by type, all indices)"
+  -- The literal fast paths above bypass the real parser; check it directly.
+  check "full parser: {} / [] / null / true / false"
+    (parsesTo "{}" (JsonObject []) && parsesTo "[]" (JsonArray []) &&
+     parsesTo "null" JsonNull && parsesTo "true" (JsonBool True) &&
+     parsesTo "false" (JsonBool False))
+  check "full parser: empty and whitespace-only input rejected"
+    (rejects "" && rejects "   ")
+  check "full parser: whitespace-padded and nested values"
+    (parsesTo " { \"a\" : [1, true, null] } "
+       (JsonObject [("a", JsonArray [JsonNumber 1.0, JsonBool True, JsonNull])]))
+  check "full parser: trailing content and malformed input rejected"
+    (rejects "{} x" && rejects "{\"a\" 1}" && rejects "tru" && rejects "[1 2]")
+  check "get finds a present key and misses an absent one"
+    (maybeEq (get "k" (JsonObject [("k", JsonNull)])) (Just JsonNull) &&
+     maybeEq (get "z" (JsonObject [("k", JsonNull)])) Nothing)
+  check "at: in-bounds index hits, out-of-bounds misses"
+    (maybeEq (at 0 (JsonArray [JsonBool True])) (Just (JsonBool True)) &&
+     maybeEq (at 10 (JsonArray [JsonBool True])) Nothing)
+  check "full parser on \"null\" (instance of NullRoundTripObligation)"
+    (parsesTo "null" JsonNull)
+  check "fast paths agree with full parser (instances of FastPathAgreesObligation)"
+    (all (\t => case parseJson t of
+                  Just v => parsesTo t v
+                  Nothing => rejects t)
+       ["null", "true", "false", "", "[]", "{}"])
+  -- RFC 8259 grammar has no trailing commas. Kept last so the other checks
+  -- above still report; a FAIL here is a suspected parser defect.
+  check "full parser: trailing commas rejected (RFC 8259)"
+    (rejects "[1,]" && rejects "{\"a\":1,}")
+  -- Regression cases for the trailing-comma fix: other comma misuse is
+  -- rejected, and empty / single / multi-element containers still parse.
+  check "full parser: empty elements and lone commas rejected"
+    (rejects "[,]" && rejects "[1,,2]" && rejects "[1 , ]" && rejects "{,}" &&
+     rejects "{\"a\":1 , }" && rejects "{\"a\":1,,\"b\":2}")
+  check "full parser: empty, single and multi-member containers still parse"
+    (parsesTo "[ ]" (JsonArray []) && parsesTo "{ }" (JsonObject []) &&
+     parsesTo "[1]" (JsonArray [JsonNumber 1.0]) &&
+     parsesTo "[1, [2, []], {}]"
+       (JsonArray [JsonNumber 1.0, JsonArray [JsonNumber 2.0, JsonArray []], JsonObject []]) &&
+     parsesTo "{\"a\":1, \"b\":{\"c\":[]}}"
+       (JsonObject [("a", JsonNumber 1.0), ("b", JsonObject [("c", JsonArray [])])]))
+  -- Regression: `parse` used to start with fuel = input length, which ran
+  -- out before the digits of a short number were read.
+  check "full parser: short and deeply nested numbers parse (fuel bound)"
+    (parsesTo "1" (JsonNumber 1.0) && parsesTo "-0" (JsonNumber 0.0) &&
+     parsesTo "[[[[1]]]]" (JsonArray [JsonArray [JsonArray [JsonArray [JsonNumber 1.0]]]]) &&
+     parsesTo "{\"a\":[1]}" (JsonObject [("a", JsonArray [JsonNumber 1.0])]))
+  -- Importers of Proven.SafeJson see a single Show JsonValue instance.
+  check "show on JsonValue resolves (single instance) and renders as before"
+    (show (JsonArray [JsonNull, JsonBool True, JsonObject [("k", JsonString "v")]])
+       == "[null, true, {\"k\": \"v\"}]")
   putStrLn ""

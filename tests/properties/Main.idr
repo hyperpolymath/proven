@@ -2,6 +2,8 @@
 -- SPDX-FileCopyrightText: 2025 Hyperpolymath
 module Main
 
+import KnownDefects
+
 -- Core modules
 import SafeMathProps
 import SafeStringProps
@@ -47,14 +49,16 @@ import SafeHeaderProps
 import SafeCookieProps
 import SafeContentTypeProps
 
-||| Main test runner for all property tests
-||| In Idris 2, property tests are primarily verified at compile time.
-||| If this module type-checks, the proofs are valid.
+||| Main test runner for all property tests.
+||| Compiling this suite checks the type-level proofs it contains. The rest are
+||| finite execution checks (they do not prove the general property), named
+||| `...Obligation` types (owed, not proved), and strict known-defect checks
+||| (see KnownDefects). Each module prints which kind each property is.
 main : IO ()
 main = do
   putStrLn "╔═══════════════════════════════════════════╗"
   putStrLn "║   PROVEN - Property-Based Test Suite      ║"
-  putStrLn "║   29 Modules | 135+ Properties            ║"
+  putStrLn "║   29 Modules                              ║"
   putStrLn "╚═══════════════════════════════════════════╝"
   putStrLn ""
 
@@ -103,11 +107,8 @@ main = do
   runCookieProperties
   runContentTypeProperties
 
-  putStrLn "╔═══════════════════════════════════════════╗"
-  putStrLn "║   All 29 modules tested successfully!     ║"
-  putStrLn "║   All compile-time proofs verified!       ║"
-  putStrLn "╚═══════════════════════════════════════════╝"
+  reportKnownDefects
   putStrLn ""
-  putStrLn "Note: In dependently-typed languages like Idris 2,"
-  putStrLn "many properties are proven at compile time."
-  putStrLn "If this program compiles, the proofs are valid."
+  putStrLn "All 29 modules ran. Type-level proofs typechecked; execution checks passed"
+  putStrLn "on their finite inputs; named Obligation types remain owed; listed known"
+  putStrLn "defects still reproduce exactly as recorded."

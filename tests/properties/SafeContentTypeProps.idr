@@ -4,83 +4,51 @@ module SafeContentTypeProps
 
 import Proven.Core
 import Proven.SafeContentType
+import Data.List
+import System
 
 %default total
 
-||| Property: Valid MIME type parses
-prop_validMimeType : isOk (parseContentType "text/html") = True
-prop_validMimeType = Refl
+-- Real API: `parse : String -> ContentTypeResult ContentType` (with
+-- `render : ContentType -> String`); the media type, subtype, charset and
+-- boundary are record fields (`ct.media.mediaType`, `ct.media.subtype`,
+-- `ct.charset`, `ct.boundary`, `ct.params`). The parser
+-- (`Parser.parseContentType`) is `export`, not `public export`, so closed
+-- parse results do not reduce at the type level; they are execution checks.
 
-||| Property: MIME type with charset parses
-prop_mimeWithCharset : isOk (parseContentType "text/html; charset=utf-8") = True
-prop_mimeWithCharset = Refl
+||| OWED: render/parse round-trip: anything the parser accepts re-parses
+||| from its rendering to the same value. Blocked by: `parseContentType` is
+||| `export` (opaque here) and built on String `split`/`trim`/`toLower`
+||| primitives. This names the proposition; it is not a witness.
+public export
+ContentTypeRenderParseObligation : Type
+ContentTypeRenderParseObligation =
+  (s : String) -> (ct : ContentType) -> parse s = Ok ct -> parse (render ct) = Ok ct
 
-||| Property: Application JSON parses
-prop_applicationJson : isOk (parseContentType "application/json") = True
-prop_applicationJson = Refl
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
 
-||| Property: Multipart form-data parses
-prop_multipartFormData : isOk (parseContentType "multipart/form-data; boundary=----WebKitFormBoundary") = True
-prop_multipartFormData = Refl
+private
+okAnd : (ContentType -> Bool) -> ContentTypeResult ContentType -> Bool
+okAnd p (Ok ct) = p ct
+okAnd _ (Err _) = False
 
-||| Property: Invalid format fails
-prop_invalidFormatFails : isErr (parseContentType "invalid") = True
-prop_invalidFormatFails = Refl
+private
+corpus : List String
+corpus = ["text/html", "text/html; charset=utf-8", "application/json",
+          "multipart/form-data; boundary=----WebKitFormBoundary", "*/*", "text/*",
+          "text/html; level=1", "TEXT/HTML; Charset=UTF-8", "application/vnd.api+json",
+          "text/plain; charset=\"iso-8859-1\""]
 
-||| Property: Empty type fails
-prop_emptyTypeFails : isErr (parseContentType "") = True
-prop_emptyTypeFails = Refl
-
-||| OWED: Type extraction works
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_typeExtraction_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_typeExtraction : getType (parseContentType "text/html") = Just "text"
-
-||| OWED: Subtype extraction works
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_subtypeExtraction_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_subtypeExtraction : getSubtype (parseContentType "text/html") = Just "html"
-
-||| OWED: Parameter extraction works
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_parameterExtraction_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_parameterExtraction : getParameter "charset" (parseContentType "text/html; charset=utf-8") = Just "utf-8"
-
-||| Property: Wildcard type parses
-prop_wildcardType : isOk (parseContentType "*/*") = True
-prop_wildcardType = Refl
-
-||| Property: Wildcard subtype parses
-prop_wildcardSubtype : isOk (parseContentType "text/*") = True
-prop_wildcardSubtype = Refl
-
-||| Property: Common MIME types recognized
-prop_commonMimeTypes : all isOk [parseContentType "text/plain",
-                                  parseContentType "text/css",
-                                  parseContentType "text/javascript",
-                                  parseContentType "application/xml",
-                                  parseContentType "application/pdf",
-                                  parseContentType "image/png",
-                                  parseContentType "image/jpeg"] = True
-prop_commonMimeTypes = Refl
-
-||| OWED: Formatting is consistent
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_formatConsistent_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_formatConsistent : (ct : ValidContentType) ->
-                          parseContentType (format ct) = Ok ct
+private
+renderParses : String -> Bool
+renderParses s = case parse s of
+  Err _ => False
+  Ok ct => okAnd (\ct' => ct' == ct && render ct' == render ct) (parse (render ct))
 
 ||| Test runner for content type properties
 export
@@ -88,13 +56,30 @@ runContentTypeProperties : IO ()
 runContentTypeProperties = do
   putStrLn "SafeContentType Property Tests"
   putStrLn "=============================="
-  putStrLn "prop_validMimeType: PASS (proven by type)"
-  putStrLn "prop_mimeWithCharset: PASS (proven by type)"
-  putStrLn "prop_applicationJson: PASS (proven by type)"
-  putStrLn "prop_multipartFormData: PASS (proven by type)"
-  putStrLn "prop_invalidFormatFails: PASS (proven by type)"
-  putStrLn "prop_emptyTypeFails: PASS (proven by type)"
-  putStrLn "prop_wildcardType: PASS (proven by type)"
-  putStrLn "prop_wildcardSubtype: PASS (proven by type)"
-  putStrLn "prop_commonMimeTypes: PASS (proven by type)"
+  check "valid MIME type text/html parses" (isOk (parse "text/html"))
+  check "MIME type with charset parses; charset extracted as utf-8"
+    (okAnd (\ct => ct.charset == Just UTF8) (parse "text/html; charset=utf-8"))
+  check "application/json parses" (isOk (parse "application/json"))
+  check "multipart/form-data with boundary parses; boundary extracted"
+    (okAnd (\ct => ct.boundary == Just "----WebKitFormBoundary")
+           (parse "multipart/form-data; boundary=----WebKitFormBoundary"))
+  check "multipart/form-data without boundary is rejected"
+    (isErr (parse "multipart/form-data"))
+  check "invalid format (no slash) fails" (isErr (parse "invalid"))
+  check "empty type fails" (isErr (parse ""))
+  check "type extraction: text/html -> text"
+    (okAnd (\ct => ct.media.mediaType == "text") (parse "text/html"))
+  check "subtype extraction: text/html -> html"
+    (okAnd (\ct => ct.media.subtype == "html") (parse "text/html"))
+  check "parameter extraction: level=1 kept as a parameter"
+    (okAnd (\ct => map show ct.params == ["level=1"]) (parse "text/html; level=1"))
+  check "wildcard type */* parses" (isOk (parse "*/*"))
+  check "wildcard subtype text/* parses" (isOk (parse "text/*"))
+  check "wildcard accepted as Accept media range"
+    (map (render . fst) (parseAccept "*/*") == ["*/*"])
+  check "common MIME types recognised"
+    (all (isOk . parse) ["text/plain", "text/css", "text/javascript", "application/xml",
+                         "application/pdf", "image/png", "image/jpeg"])
+  check "formatting is consistent: parse (render ct) = ct on corpus"
+    (all renderParses corpus)
   putStrLn ""

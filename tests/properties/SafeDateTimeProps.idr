@@ -4,70 +4,102 @@ module SafeDateTimeProps
 
 import Proven.Core
 import Proven.SafeDateTime
+import Data.Maybe
+import System
 
 %default total
 
-||| Property: Valid ISO date parses
-prop_validISODate : isOk (parseISO8601 "2024-01-15T10:30:00Z") = True
-prop_validISODate = Refl
+-- Real API: `makeDate : Nat -> Nat -> Nat -> Maybe Date`,
+-- `makeTime : Nat -> Nat -> Nat -> Maybe Time`, `Duration`/`addDuration`,
+-- and ISO-style rendering via `Show DateTime`. There is no ISO 8601 parser:
+-- `Proven.SafeDateTime.Parse` is a header-only module, so the original
+-- `parseISO8601` properties are recorded below as an obligation on any
+-- future parser rather than tested.
 
-||| Property: Invalid date fails
-prop_invalidDateFails : isErr (parseISO8601 "not-a-date") = True
-prop_invalidDateFails = Refl
+--------------------------------------------------------------------------------
+-- Type-level proofs (closed terms that reduce, and universal ones)
+--------------------------------------------------------------------------------
 
-||| Property: Valid date components construct
-prop_validDateComponents : isOk (makeDate 2024 1 15) = True
+||| A valid calendar date constructs.
+prop_validDateComponents : isJust (makeDate 2024 1 15) = True
 prop_validDateComponents = Refl
 
-||| Property: Invalid month fails
-prop_invalidMonthFails : isErr (makeDate 2024 13 1) = True
+||| Month 13 is rejected.
+prop_invalidMonthFails : makeDate 2024 13 1 = Nothing
 prop_invalidMonthFails = Refl
 
-||| Property: Invalid day fails
-prop_invalidDayFails : isErr (makeDate 2024 1 32) = True
+||| Month 0 is rejected for every year and day.
+prop_monthZeroFails : (y, d : Nat) -> makeDate y 0 d = Nothing
+prop_monthZeroFails y d = Refl
+
+||| Month 13 is rejected for every year and day.
+prop_monthThirteenFails : (y, d : Nat) -> makeDate y 13 d = Nothing
+prop_monthThirteenFails y d = Refl
+
+||| January 32 is rejected.
+prop_invalidDayFails : makeDate 2024 1 32 = Nothing
 prop_invalidDayFails = Refl
 
-||| Property: Leap year Feb 29 valid
-prop_leapYearValid : isOk (makeDate 2024 2 29) = True
-prop_leapYearValid = Refl
-
-||| Property: Non-leap year Feb 29 fails
-prop_nonLeapYearFails : isErr (makeDate 2023 2 29) = True
-prop_nonLeapYearFails = Refl
-
-||| Property: Valid time components construct
-prop_validTimeComponents : isOk (makeTime 10 30 45) = True
+||| A valid time of day constructs.
+prop_validTimeComponents : isJust (makeTime 10 30 45) = True
 prop_validTimeComponents = Refl
 
-||| Property: Invalid hour fails
-prop_invalidHourFails : isErr (makeTime 24 0 0) = True
-prop_invalidHourFails = Refl
+||| Hour 24 is rejected for every minute and second.
+prop_invalidHourFails : (m, s : Nat) -> makeTime 24 m s = Nothing
+prop_invalidHourFails m s = Refl
 
-||| Property: Invalid minute fails
-prop_invalidMinuteFails : isErr (makeTime 12 60 0) = True
+||| Minute 60 is rejected.
+prop_invalidMinuteFails : makeTime 12 60 0 = Nothing
 prop_invalidMinuteFails = Refl
 
-||| Property: Invalid second fails
-prop_invalidSecondFails : isErr (makeTime 12 30 60) = True
+||| Second 60 is rejected (no leap-second support).
+prop_invalidSecondFails : makeTime 12 30 60 = Nothing
 prop_invalidSecondFails = Refl
 
-||| OWED: Format and parse roundtrip
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_formatParseRoundtrip_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_formatParseRoundtrip : (dt : ValidDateTime) ->
-                              parseISO8601 (formatISO8601 dt) = Ok dt
+--------------------------------------------------------------------------------
+-- Outstanding obligations
+--------------------------------------------------------------------------------
 
-||| OWED: Duration addition is associative
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_durationAssociative_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_durationAssociative : (d1, d2, d3 : Duration) ->
-                             addDuration d1 (addDuration d2 d3) = addDuration (addDuration d1 d2) d3
+||| OWED: ISO 8601 parse/format round-trip and rejection of junk.
+||| Blocked by: no parser exists in the exported API (Proven.SafeDateTime.Parse
+||| is header-only). This names the specification any future parser `parse`
+||| must meet against the existing `Show DateTime` renderer; it is not a witness.
+public export
+ISO8601ParserObligation : (parse : String -> Maybe DateTime) -> Type
+ISO8601ParserObligation parse =
+  ((dt : DateTime) -> parse (show dt) = Just dt, parse "not-a-date" = Nothing)
+
+||| OWED: duration addition is associative.
+||| Blocked by: `addDuration` adds the underlying `Integer`s, and Integer `+`
+||| is a primitive whose associativity has no definitional proof in Idris2
+||| 0.8.0. This names the proposition; it is not a witness.
+public export
+DurationAssociativityObligation : Type
+DurationAssociativityObligation =
+  (d1, d2, d3 : Duration) ->
+  addDuration d1 (addDuration d2 d3) = addDuration (addDuration d1 d2) d3
+
+--------------------------------------------------------------------------------
+-- Execution checks
+--------------------------------------------------------------------------------
+
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
+
+private
+durationSamples : List Duration
+durationSamples =
+  [ MkDuration 0, MkDuration 1, MkDuration (-1), seconds 59, minutes 61
+  , hours (-25), days 365, MkDuration 9223372036854775807 ]
+
+private
+renders : Maybe Date -> Maybe Time -> String -> Bool
+renders (Just d) (Just t) expected = show (makeDateTime d t) == expected
+renders _ _ _ = False
 
 ||| Test runner for datetime properties
 export
@@ -75,15 +107,21 @@ runDateTimeProperties : IO ()
 runDateTimeProperties = do
   putStrLn "SafeDateTime Property Tests"
   putStrLn "==========================="
-  putStrLn "prop_validISODate: PASS (proven by type)"
-  putStrLn "prop_invalidDateFails: PASS (proven by type)"
-  putStrLn "prop_validDateComponents: PASS (proven by type)"
-  putStrLn "prop_invalidMonthFails: PASS (proven by type)"
-  putStrLn "prop_invalidDayFails: PASS (proven by type)"
-  putStrLn "prop_leapYearValid: PASS (proven by type)"
-  putStrLn "prop_nonLeapYearFails: PASS (proven by type)"
-  putStrLn "prop_validTimeComponents: PASS (proven by type)"
-  putStrLn "prop_invalidHourFails: PASS (proven by type)"
-  putStrLn "prop_invalidMinuteFails: PASS (proven by type)"
-  putStrLn "prop_invalidSecondFails: PASS (proven by type)"
+  check "leap year: 2024-02-29 constructs" (isJust (makeDate 2024 2 29))
+  check "non-leap year: 2023-02-29 rejected" (isNothing (makeDate 2023 2 29))
+  check "century rule: 1900-02-29 rejected, 2000-02-29 constructs"
+    (isNothing (makeDate 1900 2 29) && isJust (makeDate 2000 2 29))
+  check "year bounds: year 0 and 10000 rejected"
+    (isNothing (makeDate 0 1 1) && isNothing (makeDate 10000 1 1))
+  check "30-day months reject day 31"
+    (all (\m => isNothing (makeDate 2024 m 31)) [4, 6, 9, 11])
+  check "ISO-style rendering of a constructed DateTime"
+    (renders (makeDate 2024 1 15) (makeTime 10 30 0) "2024-01-15T10:30:00")
+  check "duration addition associative on sample corpus"
+    (all (\a => all (\b => all (\c =>
+       addDuration a (addDuration b c) == addDuration (addDuration a b) c)
+       durationSamples) durationSamples) durationSamples)
+  check "duration unit conversions agree"
+    (toSeconds (days 1) == 86400 && toSeconds (hours 2) == 7200 &&
+     toMilliseconds (seconds 3) == 3000)
   putStrLn ""

@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: MPL-2.0
 ||| SafeRegex.Matcher - Safe regex matching with step limits
 |||
 ||| This module provides a regex matching engine that guarantees termination

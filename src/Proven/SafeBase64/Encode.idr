@@ -11,6 +11,7 @@ module Proven.SafeBase64.Encode
 
 import Proven.Core
 import Proven.SafeBase64.Types
+import Proven.SafeString.UTF8
 import Data.List
 import Data.String
 import Data.Bits
@@ -106,12 +107,21 @@ public export
 encodeBytesToString : Base64Variant -> List Bits8 -> String
 encodeBytesToString variant bytes = (encodeBytes variant bytes).encoded
 
+||| The UTF-8 bytes of a String (RFC 3629 §3), via
+||| `Proven.SafeString.UTF8.encodeCodepoint`. A `Char` that is not a Unicode
+||| scalar value (a surrogate, or above U+10FFFF) has no UTF-8 form and is
+||| encoded as U+FFFD REPLACEMENT CHARACTER (EF BF BD).
+public export total
+utf8Bytes : String -> List Bits8
+utf8Bytes s = concatMap charBytes (unpack s)
+  where
+    charBytes : Char -> List Bits8
+    charBytes c = fromMaybe [0xEF, 0xBF, 0xBD] (encodeCodepoint (cast (ord c)))
+
 ||| Encode a string to Base64 (UTF-8 bytes)
 public export
 encodeString : Base64Variant -> String -> Base64Encoded
-encodeString variant s =
-  let bytes = map (cast . ord) (unpack s)
-  in encodeBytes variant bytes
+encodeString variant s = encodeBytes variant (utf8Bytes s)
 
 ||| Encode a string to Base64 string
 public export

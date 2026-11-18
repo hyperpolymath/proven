@@ -12,7 +12,8 @@ evidence=$(cd "$evidence" && pwd)
 rm -f "$evidence/result.txt"
 find "$root/ffi/zig/src" -name '*.zig' -type f -exec sha256sum {} + > "$evidence/inputs.sha256"
 sha256sum "$root/ffi/zig/build_standalone.zig" "$root/src/Proven/SafeHeader/ByteKernel.idr" "$root/src/Proven/FFI/HeaderKernelMain.idr" >> "$evidence/inputs.sha256"
-sha256sum "$root/tests/ffi/header_byte_bridge.c" "$root/bindings/c/include/proven.h" >> "$evidence/inputs.sha256"
+sha256sum "$root/tests/ffi/header_byte_bridge.c" "$root/bindings/c/include/proven.h" "$root/bindings/c/include/proven-abi.tsv" >> "$evidence/inputs.sha256"
+sha256sum "$root/scripts/check-abi-ledger.sh" "$root/scripts/test-abi-ledger.sh" >> "$evidence/inputs.sha256"
 work=$(mktemp -d -t proven-header-check.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
 bash "$root/scripts/build-header-refc.sh" "$work/bundle"
@@ -26,6 +27,14 @@ cd "$root/ffi/zig"
 "$zig" build --build-file build_standalone.zig -Dshared=true -Dheader-refc="$work/bundle" --prefix "$work/shared" > "$evidence/shared-build.log" 2>&1
 cc -Wall -Wextra -Werror -I "$root/bindings/c/include" "$root/tests/ffi/header_byte_bridge.c" "$work/shared/lib/libproven.so" -Wl,-rpath,"$work/shared/lib" -o "$work/c-abi" > "$evidence/c-build.log" 2>&1
 "$work/c-abi" > "$evidence/c-abi.log" 2>&1
+
+# Every proven.h function and every library export must have a ledger row, and
+# the qualified library must define exactly the rows that claim presence.
+bash "$root/scripts/test-abi-ledger.sh" > "$evidence/abi-ledger-controls.log" 2>&1 ||
+  { cat "$evidence/abi-ledger-controls.log" >&2; exit 1; }
+bash "$root/scripts/check-abi-ledger.sh" "$root/bindings/c/include/proven-abi.tsv" "$root/bindings/c/include/proven.h" \
+  "$work/shared/lib/libproven.so" "$evidence/abi-ledger" > "$evidence/abi-ledger.log" 2>&1 ||
+  { cat "$evidence/abi-ledger.log" >&2; exit 1; }
 
 # A valid but wrong implementation must fail the exported-ABI tests.
 # Rename only within this private generated bundle and supply an ABI-compatible
@@ -45,4 +54,4 @@ grep -q '/support/idris_support.h' "$evidence/identity.log"
 EVIDENCE_DIR="$evidence/staging-controls" ZIG="$zig" bash "$root/scripts/test-header-staging.sh"
 sha256sum -c "$evidence/inputs.sha256" > "$evidence/input-recheck.log"
 echo PASS > "$evidence/result.txt"
-printf 'PASS: Idris totality/holes; unavailable backend refusal; actual RefC ABI; 256 single bytes; 65536 pairs; boundary corpus; rejecting mutant.\nEvidence: %s\n' "$evidence"
+printf 'PASS: Idris totality/holes; unavailable backend refusal; actual RefC ABI; 256 single bytes; 65536 pairs; boundary corpus; rejecting mutant; ABI ledger and its planted controls.\nEvidence: %s\n' "$evidence"

@@ -99,19 +99,19 @@ jobs:
       - name: Execute property-test suite
         run: build/tests/exec/proven_tests
       - name: Type check all modules
+        # Run from the package source root with module-relative paths: from the
+        # repository root, `src/Proven/Core.idr` is read as module
+        # `src.Proven.Core` and every check fails on the module-name mismatch
+        # (the same pitfall documented in the proof-check job below).
+        working-directory: src
         run: |
-          idris2 --check src/Proven.idr
-          idris2 --check src/Proven/Core.idr
-          idris2 --check src/Proven/SafeMath.idr
-          idris2 --check src/Proven/SafeString.idr
-          idris2 --check src/Proven/SafeJson.idr
-          idris2 --check src/Proven/SafeUrl.idr
-          idris2 --check src/Proven/SafeEmail.idr
-          idris2 --check src/Proven/SafePath.idr
-          idris2 --check src/Proven/SafeCrypto.idr
-          idris2 --check src/Proven/SafePassword.idr
-          idris2 --check src/Proven/SafeDateTime.idr
-          idris2 --check src/Proven/SafeNetwork.idr
+          set -euo pipefail
+          for m in Proven.idr Proven/Core.idr Proven/SafeMath.idr Proven/SafeString.idr \
+                   Proven/SafeJson.idr Proven/SafeUrl.idr Proven/SafeEmail.idr \
+                   Proven/SafePath.idr Proven/SafeCrypto.idr Proven/SafePassword.idr \
+                   Proven/SafeDateTime.idr Proven/SafeNetwork.idr; do
+            idris2 -p contrib -p network --check "$m"
+          done
   # Fast, targeted gate over every Proofs.idr companion module.
   #
   # Rationale (issue #145): the swapped-arg `appendLengthInc` break (#127)

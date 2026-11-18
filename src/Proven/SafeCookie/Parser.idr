@@ -242,7 +242,7 @@ buildSetCookie cookie =
         [ map (\d => "Domain=" ++ d) a.domain
         , map (\p => "Path=" ++ p) a.path
         , map (\e => "Expires=" ++ formatExpires e) a.expires
-        , map (\m => "Max-Age=" ++ show m) a.maxAge
+        , map (\m => "Max-Age=" ++ show (max 0 m)) a.maxAge
         , if a.secure then Just "Secure" else Nothing
         , if a.httpOnly then Just "HttpOnly" else Nothing
         , map (\s => "SameSite=" ++ show s) a.sameSite
@@ -304,10 +304,16 @@ export
 withPath : String -> CookieAttributes -> CookieAttributes
 withPath p attrs = { path := Just p } attrs
 
-||| Set Max-Age attribute
+||| Set Max-Age attribute.
+|||
+||| A zero or negative age means "expire immediately" (RFC 6265 §5.2.2: a
+||| delta-seconds value <= 0 sets the expiry to the earliest representable
+||| time). It is stored and emitted as 0, never as a negative number, which
+||| the server grammar of §4.1.1 has no form for. `buildDeleteCookie` uses
+||| the same Max-Age=0.
 export
 withMaxAge : Integer -> CookieAttributes -> CookieAttributes
-withMaxAge age attrs = { maxAge := Just age } attrs
+withMaxAge age attrs = { maxAge := Just (max 0 age) } attrs
 
 ||| Set Secure attribute
 export
