@@ -73,8 +73,11 @@ proc main(): int {
   checkHeader("Bearer abc.def",           false);
   checkHeader("value\r\nX-Admin: true",  true);
   checkHeader("trailing\r\n",            true);
-  checkHeader("bare-CR\r",               false);
-  checkHeader("bare-LF\n",               false);
+  checkHeader("bare-CR\r",               true);
+  checkHeader("bare-LF\n",               true);
+  checkHeader("reversed\n\r",            true);
+  checkHeader("a\x00\rZ",                true);
+  checkHeader("a\x00Z",                  false);
 
   writeln("TestFfiContract: OK");
   return 0;

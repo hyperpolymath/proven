@@ -4,69 +4,60 @@ module SafeArgsProps
 
 import Proven.Core
 import Proven.SafeArgs
+import Data.List
+import System
 
 %default total
 
-||| Property: Simple flag parses
-prop_simpleFlagParses : isOk (parseArgs ["-v"]) = True
-prop_simpleFlagParses = Refl
+-- The real API is `parse : List ArgSpec -> List String -> ArgResult ParsedArgs`
+-- (and parseStrict/parsePermissive). `parseArgs` is exported abstractly
+-- (`export`, not `public export`), so closed parse results do not reduce at
+-- the type level; the closed properties are execution checks below.
 
-||| Property: Long flag parses
-prop_longFlagParses : isOk (parseArgs ["--verbose"]) = True
-prop_longFlagParses = Refl
+||| OWED: option values are carried verbatim (shell metacharacters are inert
+||| data, never interpreted). Blocked by: `Parser.parseArgs` is `export`, not
+||| `public export`, so its body is opaque to this module and the statement
+||| cannot be reduced or inducted on here. This names the proposition; it is
+||| not a witness.
+public export
+ArgsOptionValueVerbatimObligation : Type
+ArgsOptionValueVerbatimObligation =
+  (v : String) -> LTE (length (unpack v)) 4096 ->
+  map (\a => getValue a "output") (parse [outputOption] ["--output", v])
+    = Ok (Just v)
 
-||| Property: Flag with value parses
-prop_flagWithValueParses : isOk (parseArgs ["--output", "file.txt"]) = True
-prop_flagWithValueParses = Refl
+||| OWED: a bundle of known short flags parses to the same flag set as the
+||| separated flags, for every list of alphabetic flag characters. Blocked by:
+||| `parseArgs`/`classifyArg` are `export` (opaque) and use String/Char
+||| primitives (`unpack`, `isAlpha`) that do not reduce symbolically. This
+||| names the proposition; it is not a witness.
+public export
+ArgsBundlingEquivalenceObligation : Type
+ArgsBundlingEquivalenceObligation =
+  (cs : List Char) -> (c : Char) -> all isAlpha (c :: cs) = True ->
+  parse (map (\x => mkFlag (singleton x) x "") (c :: cs)) ["-" ++ pack (c :: cs)]
+    = parse (map (\x => mkFlag (singleton x) x "") (c :: cs))
+            (map (\x => "-" ++ singleton x) (c :: cs))
 
-||| Property: Flag with equals parses
-prop_flagEqualsParses : isOk (parseArgs ["--output=file.txt"]) = True
-prop_flagEqualsParses = Refl
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
 
-||| OWED: Positional args collected
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_positionalArgsCollected_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_positionalArgsCollected : getPositionalArgs (parseArgs ["cmd", "arg1", "arg2"]) = ["arg1", "arg2"]
+private
+okAnd : (ParsedArgs -> Bool) -> ArgResult ParsedArgs -> Bool
+okAnd p (Ok a) = p a
+okAnd _ (Err _) = False
 
-||| OWED: Double dash stops flag parsing
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_doubleDashStops_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_doubleDashStops : getPositionalArgs (parseArgs ["--flag", "--", "--notaflag"]) = ["--notaflag"]
+private
+abcSpecs : List ArgSpec
+abcSpecs = [mkFlag "a" 'a' "", mkFlag "b" 'b' "", mkFlag "c" 'c' ""]
 
-||| Property: Unknown flag rejected in strict mode
-prop_unknownFlagRejected : isErr (parseArgsStrict ["--unknown"] ["--known"]) = True
-prop_unknownFlagRejected = Refl
-
-||| Property: Required flag enforced
-prop_requiredFlagEnforced : isErr (parseArgsRequired [] ["--required"]) = True
-prop_requiredFlagEnforced = Refl
-
-||| OWED: Multiple short flags combined
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_combinedShortFlags_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_combinedShortFlags : parseArgs ["-abc"] = parseArgs ["-a", "-b", "-c"]
-
-||| Property: Empty args is valid
-prop_emptyArgsValid : isOk (parseArgs []) = True
-prop_emptyArgsValid = Refl
-
-||| OWED: Shell metacharacters in values escaped
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_metacharEscaped_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_metacharEscaped : (args : List String) ->
-                         allEscaped (escapeShellArgs args) = True
+private
+metaValues : List String
+metaValues = ["; rm -rf /", "$(whoami)", "`id`", "a|b", "x && y", "*", "'\"", ""]
 
 ||| Test runner for args properties
 export
@@ -74,11 +65,51 @@ runArgsProperties : IO ()
 runArgsProperties = do
   putStrLn "SafeArgs Property Tests"
   putStrLn "======================="
-  putStrLn "prop_simpleFlagParses: PASS (proven by type)"
-  putStrLn "prop_longFlagParses: PASS (proven by type)"
-  putStrLn "prop_flagWithValueParses: PASS (proven by type)"
-  putStrLn "prop_flagEqualsParses: PASS (proven by type)"
-  putStrLn "prop_unknownFlagRejected: PASS (proven by type)"
-  putStrLn "prop_requiredFlagEnforced: PASS (proven by type)"
-  putStrLn "prop_emptyArgsValid: PASS (proven by type)"
+  check "simple short flag -v parses and sets verbose"
+    (okAnd (\a => isSet a "verbose") (parse [verboseFlag] ["-v"]))
+  check "long flag --verbose parses and sets verbose"
+    (okAnd (\a => isSet a "verbose") (parse [verboseFlag] ["--verbose"]))
+  check "option with separate value: --output file.txt"
+    (okAnd (\a => getValue a "output" == Just "file.txt")
+           (parse [outputOption] ["--output", "file.txt"]))
+  check "option with equals: --output=file.txt"
+    (okAnd (\a => getValue a "output" == Just "file.txt")
+           (parse [outputOption] ["--output=file.txt"]))
+  check "-- stops flag parsing: later --notaflag is a rest argument"
+    (okAnd (\a => isSet a "flag" && getRestArgs a == ["--notaflag"])
+           (parse [mkLongFlag "flag" ""] ["--flag", "--", "--notaflag"]))
+  check "unknown flag rejected in strict mode"
+    (isErr (parseStrict [mkLongFlag "known" ""] ["--unknown"]))
+  check "unknown flag rejected with default options"
+    (isErr (parse [mkLongFlag "known" ""] ["--unknown"]))
+  check "missing required option enforced"
+    (isErr (parse [mkRequired "required" 'r' ""] []))
+  check "required option satisfied when supplied"
+    (okAnd (\a => getValue a "required" == Just "x")
+           (parse [mkRequired "required" 'r' ""] ["--required", "x"]))
+  check "combined short flags -abc equal -a -b -c"
+    (case (parse abcSpecs ["-abc"], parse abcSpecs ["-a", "-b", "-c"]) of
+       (Ok x, Ok y) => x == y && all (isSet x) ["a", "b", "c"]
+       _ => False)
+  check "strict mode does not bundle -abc"
+    (isErr (parseStrict abcSpecs ["-abc"]))
+  check "empty args with empty spec is valid"
+    (isOk (parse [] []))
+  check "shell metacharacters in option values carried verbatim"
+    (all (\v => okAnd (\a => getValue a "output" == Just v)
+                      (parse [outputOption] ["--output", v])) metaValues)
+  -- Regression (fixed): positional specs are required, but checkRequired
+  -- looked them up under specName "<positional>" while values are stored
+  -- as "positional-N".
+  check "positional args collected in order"
+    (okAnd (\a => getPos a 0 == Just "cmd" && getPos a 1 == Just "arg1" &&
+                  getPos a 2 == Just "arg2")
+           (parse [mkPositional "cmd", mkPositional "a1", mkPositional "a2"]
+                  ["cmd", "arg1", "arg2"]))
+  check "missing required positional still rejected"
+    (isErr (parse [mkPositional "cmd", mkPositional "a1"] ["cmd"]) &&
+     isErr (parse [mkPositional "cmd"] []))
+  check "positionals interleaved with flags are satisfied"
+    (okAnd (\a => isSet a "verbose" && getPos a 0 == Just "x")
+           (parse [verboseFlag, mkPositional "cmd"] ["-v", "x"]))
   putStrLn ""

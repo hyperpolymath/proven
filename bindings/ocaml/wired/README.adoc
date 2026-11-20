@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Available-symbol OCaml binding
+
+Link Dune library `proven.wired` and use `Proven_wired`. This small module
+loads only the five symbols in the binding's manifest. It is independent
+of the full `Proven` module, which eagerly requires a much larger ABI.
+
+`SafeHeader.has_crlf` copies the exact OCaml bytes and passes the explicit
+length to the real Idris RefC bridge. Embedded NUL and non-UTF-8 are data.
+Success returns `Some detected`; a nonzero C status returns `None`.
+No header predicate is reimplemented in OCaml. `SafePath` is a legacy Zig
+export and remains outside the Idris header proof qualification.
+
+The wired smoke covers empty strings, lone CR/LF, embedded NUL, high bytes
+and all 65,536 byte pairs through this production wrapper. The separate
+`ocaml-full-api` job still attempts to load the full API and fails on its
+missing lifecycle symbols. That gate has no continue-on-error or dummy
+exports. A passing wired smoke is not full OCaml API compatibility.
+
+Build profile: OCaml 5.1.1 and ctypes/ctypes-foreign 0.24.0. In this release
+the Dune library's public name is `ctypes-foreign`; `ctypes.foreign` is a
+compatibility alias. The workflow installs the pinned packages and invokes
+Dune through `opam exec`.

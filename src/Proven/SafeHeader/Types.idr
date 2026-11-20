@@ -408,7 +408,10 @@ record HeaderOptions where
   allowDuplicates : Bool
   ||| Allow empty values
   allowEmptyValues : Bool
-  ||| Strict token validation
+  ||| Strict token validation. When True a name must be an RFC 9110 §5.1
+  ||| token (tchar only). When False, names may also use other visible
+  ||| characters (e.g. '(', '@', non-ASCII), but CTLs, SP, DEL and ':'
+  ||| are rejected in both modes (see `isForbiddenNameChar`).
   strictTokens : Bool
   ||| Block dangerous headers (e.g., Proxy-*)
   blockDangerous : Bool
@@ -490,6 +493,21 @@ isValidToken s = not (null (unpack s)) && all isTokenChar (unpack s)
 public export
 hasCRLF : String -> Bool
 hasCRLF s = isInfixOf "\r" s || isInfixOf "\n" s
+
+||| Characters that may never appear in a field name, whatever
+||| `strictTokens` says: every CTL (0x00-0x1F, so CR, LF, NUL and HTAB
+||| included), SP, DEL and ':'. A field-name is a token (RFC 9110 §5.1),
+||| ':' ends it, and no whitespace may precede the colon (RFC 9112 §5.1).
+||| Any of these would let a name split or reframe the rendered line.
+public export
+isForbiddenNameChar : Char -> Bool
+isForbiddenNameChar c = ord c <= 0x20 || ord c == 0x7F || c == ':'
+
+||| Characters that may never appear in a field value: CR, LF and NUL
+||| are invalid and dangerous in a field value (RFC 9110 §5.5).
+public export
+isForbiddenValueChar : Char -> Bool
+isForbiddenValueChar c = c == '\r' || c == '\n' || c == '\0'
 
 --------------------------------------------------------------------------------
 -- Decidable Length Bounds

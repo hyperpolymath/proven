@@ -34,20 +34,20 @@ proc main(): int {
   assert(r6.value == true, "hasCrlf(leading-CRLF): expected true");
 
   // ------- hasCrlf: boundary cases --------------------------------------
-  // CR alone (no LF) is NOT a CRLF injection.
+  // The Idris contract detects either CR or LF, even without a pair.
   const r7 = SafeHeader.hasCrlf("bare-CR\r");
   assert(r7.present, "hasCrlf(bare-CR): FFI error");
-  assert(r7.value == false, "hasCrlf(bare-CR): expected false");
+  assert(r7.value == true, "hasCrlf(bare-CR): expected true");
 
-  // LF alone (no CR) is also not the CRLF sequence.
+  // LF alone is a forbidden header line break too.
   const r8 = SafeHeader.hasCrlf("bare-LF\n");
   assert(r8.present, "hasCrlf(bare-LF): FFI error");
-  assert(r8.value == false, "hasCrlf(bare-LF): expected false");
+  assert(r8.value == true, "hasCrlf(bare-LF): expected true");
 
-  // Reversed (LF then CR) is not CRLF.
+  // Order is immaterial: both bytes are header line breaks.
   const r9 = SafeHeader.hasCrlf("reversed\n\r");
   assert(r9.present, "hasCrlf(reversed-LFCR): FFI error");
-  assert(r9.value == false, "hasCrlf(reversed-LFCR): expected false");
+  assert(r9.value == true, "hasCrlf(reversed-LFCR): expected true");
 
   writeln("TestSafeHeader: OK");
   return 0;

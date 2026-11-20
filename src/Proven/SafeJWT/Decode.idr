@@ -90,13 +90,17 @@ base64UrlDecodeString s = map bytesToString (base64UrlDecode s)
 --------------------------------------------------------------------------------
 
 ||| Split a JWT token into its three segments
+|||
+||| A JWS compact serialisation is exactly three base64url segments joined
+||| by two '.' (RFC 7515 §7.1). An unsecured JWT keeps the third segment
+||| and leaves it empty ("h.p.", RFC 7519 §6.1), so two-segment input is
+||| rejected rather than read as an unsecured token.
 public export
 splitToken : String -> Result JWTError TokenSegments
 splitToken token =
   let parts = splitOn '.' token
   in case parts of
        [h, p, s] => Ok (MkTokenSegments h p s)
-       [h, p] => Ok (MkTokenSegments h p "")  -- Unsecured JWT
        _ => Err (InvalidFormat ("Expected 3 parts separated by '.', got " ++ show (length parts)))
   where
     splitOn : Char -> String -> List String

@@ -22,23 +22,34 @@ import Data.List1
 --------------------------------------------------------------------------------
 
 ||| Validate and create header name
+|||
+||| In every mode a name containing CR or LF is rejected as
+||| `HeaderInjection` (response splitting), and any other CTL, SP, DEL or
+||| ':' as `InvalidNameChar` (RFC 9110 §5.1, RFC 9112 §5.1). With
+||| `strictTokens` the name must additionally be an RFC 9110 token.
 export
 validateName : HeaderOptions -> String -> HeaderResult HeaderName
 validateName opts name =
-  let len = length (unpack name)
-  in if null (unpack name)
+  let chars = unpack name
+      len = length chars
+  in if null chars
        then Err EmptyName
-       else if len > opts.maxNameLen
-         then Err (NameTooLong name len)
-         else if opts.strictTokens && not (isValidToken name)
-           then case find (not . isTokenChar) (unpack name) of
-                  Just c => Err (InvalidNameChar name c)
-                  Nothing => Err (InvalidNameChar name ' ')
-           else if opts.blockDangerous && isDangerousHeader name
-             then Err (InvalidNameChar name ':')  -- Block dangerous
-             else case decHeaderNameBounded (toLower name) of
-                    Yes prf => Ok (MkHeaderName (toLower name) name prf)
-                    No  _   => Err (NameTooLong name len)
+       else if hasCRLF name
+         then Err (HeaderInjection name "")
+         else if len > opts.maxNameLen
+           then Err (NameTooLong name len)
+           else case find isForbiddenNameChar chars of
+             Just c => Err (InvalidNameChar name c)
+             Nothing =>
+               if opts.strictTokens && not (isValidToken name)
+                 then case find (not . isTokenChar) chars of
+                        Just c => Err (InvalidNameChar name c)
+                        Nothing => Err (InvalidNameChar name ' ')
+                 else if opts.blockDangerous && isDangerousHeader name
+                   then Err (InvalidNameChar name ':')  -- Block dangerous
+                   else case decHeaderNameBounded (toLower name) of
+                          Yes prf => Ok (MkHeaderName (toLower name) name prf)
+                          No  _   => Err (NameTooLong name len)
 
 ||| Validate header name with default options
 export
@@ -50,6 +61,10 @@ validateNameDefault = validateName defaultOptions
 --------------------------------------------------------------------------------
 
 ||| Validate and create header value
+|||
+||| CR and LF are rejected as `HeaderInjection`; NUL is rejected as
+||| `InvalidValueChar` (CR, LF and NUL are invalid in a field value,
+||| RFC 9110 §5.5).
 export
 validateValue : HeaderOptions -> String -> String -> HeaderResult HeaderValue
 validateValue opts name value =
@@ -59,6 +74,8 @@ validateValue opts name value =
        then Err (ValueTooLong name len)
        else if hasCRLF trimmed
          then Err (HeaderInjection name trimmed)
+         else if any isForbiddenValueChar (unpack trimmed)
+           then Err (InvalidValueChar name '\0')
          else if not opts.allowEmptyValues && null (unpack trimmed)
            then Err (InvalidValueFormat name value "empty value not allowed")
            else case decHeaderValueBounded trimmed of
