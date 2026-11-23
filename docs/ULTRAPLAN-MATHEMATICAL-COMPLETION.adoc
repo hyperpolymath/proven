@@ -70,6 +70,18 @@ Primary sources:
 - link:../PROOF-NEEDS.adoc[PROOF-NEEDS]; link:proof-debt-triage.adoc[proof-debt-triage]; link:../MODULE-STATUS.txt[MODULE-STATUS] (dated 2026-03-29).
 - https://github.com/hyperpolymath/mathesis/blob/main/docs/decisions/0004-claims-registry.adoc[Mathesis ADR 0004]; https://github.com/hyperpolymath/mathesis/blob/main/docs/proposals/mathesis-research-programme.adoc[Mathesis research programme].
 
+=== G0 live evidence refresh (2026-11-23; proposed, not merged)
+
+The following are confirmed by an executed GitHub Actions proof-census step, not by the historical May inventory. The complete evidence and methodology are in https://github.com/hyperpolymath/proven/blob/audit/211-proof-claim-census-20261123/docs/reports/audit/proven-proof-census-2026-11-23.adoc[G0 census report] (draft https://github.com/hyperpolymath/proven/pull/243[PR #243]).
+
+* The 2026-11-23 lexical census scanned 386 +src/+ Idris2 files and 31 property-test Idris2 files at GitHub Actions merge checkout +f012a6e2f6077c0cbd86d12f3c113db59309c063+ (which changes no +src/+ files from baseline). The workflow census step and artifact upload both passed: https://github.com/hyperpolymath/proven/actions/runs/45156158115[run 45156158115], artifact +idris-proof-claim-census+.
+* Source annotations: 51 exact +||| DISCHARGED:+, 236 exact +||| OWED:+, 268 +0 name :+ erased-signature candidates, 4 active default-covering directives and 2 +assert_smaller+ candidates. Property-test annotations: 68 exact +||| OWED:+. These are counts of syntax under a stated lexical rule, *not* checked theorems, guaranteed bodyless declarations or complete proof-debt totals.
+* There are 93 companion +Proofs.idr+ files in the tree; +proven.ipkg+ includes 29, while the other 64 are deliberately outside the package's proof-check job. The workflow explicitly documents this exclusion, generally for work-in-progress or build prerequisites. Among the 51 current +DISCHARGED+ annotations, 24 occur in 7 included companion files and 27 in 9 excluded companion files. Verify any other checking routes before concluding they are unverified.
+* The historical #211 count of 67 +DISCHARGED+ claims is not automatically comparable to today's 51 exact-prefix markers. Reconcile by source path, declaration, revision and actual checker receipt, not by subtraction.
+* https://github.com/hyperpolymath/proven/pull/242[Draft PR #242] repairs the previously fail-open Trustfile escape scan, with planted controls; its +Enforce Trustfile Policies+ job passed remotely at +1c2f18e+. That result does not establish full mathematical proof coverage.
+
+Revised sequence within G0: first preserve this census, then link each claimed discharge to a named proof obligation and exact checker evidence; reconcile #211 and the intentionally excluded companion population. G0 and G1 remain *partially complete* until that linkage and all required controls are independently verified.
+
 == 3. Aspect-oriented finding and seam register
 
 These are assessed seams, not inferred blanket defects. +Observed+ means a documented issue, directly inspected file or run; +unknown+ means evidence remains to be collected.
