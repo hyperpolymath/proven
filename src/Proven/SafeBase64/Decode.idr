@@ -11,6 +11,7 @@ module Proven.SafeBase64.Decode
 
 import Proven.Core
 import Proven.SafeBase64.Types
+import Proven.SafeString.UTF8
 import Data.List
 import Data.String
 import Data.Bits
@@ -182,12 +183,30 @@ public export
 decode : Base64Variant -> String -> Base64Result (List Bits8)
 decode variant input = map (.bytes) (decodeToBytes variant input)
 
-||| Decode Base64 to string (interpreting bytes as UTF-8)
+||| Strict UTF-8 decoding (RFC 3629 §3-§4) built on
+||| `Proven.SafeString.UTF8`: `decodeUTF8` reads code points, and the bytes
+||| are accepted only if `encodeUTF8` gives them back exactly. That encoder
+||| emits only shortest-form sequences of scalar values (no surrogates,
+||| nothing above U+10FFFF), so this rejects stray or missing continuation
+||| bytes, truncation, overlong forms, surrogates and out-of-range values
+||| instead of mis-decoding them.
+public export
+utf8ToString : List Bits8 -> Maybe String
+utf8ToString bytes = do
+  cps <- decodeUTF8 bytes
+  if encodeUTF8 cps == Just bytes
+    then Just (pack (map (chr . cast) cps))
+    else Nothing
+
+||| Decode Base64 to string (interpreting bytes as UTF-8; `InvalidUTF8` if
+||| the decoded bytes are not well-formed UTF-8)
 public export
 decodeToString : Base64Variant -> String -> Base64Result String
 decodeToString variant input = do
   bytes <- decode variant input
-  Ok (pack (map (chr . cast) bytes))
+  case utf8ToString bytes of
+    Just s => Ok s
+    Nothing => Err InvalidUTF8
 
 --------------------------------------------------------------------------------
 -- Variant-Specific Decoding

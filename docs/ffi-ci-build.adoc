@@ -1,96 +1,101 @@
-== FFI CI build: standalone surface and full Idris→Zig pipeline
+== FFI CI build: explicit profiles and the repo-local RefC bridge
 
-`+proven+`’s FFI layer compiles Idris 2 to C via the RefC backend and
-wraps it in a stable C ABI with Zig
-(`+Idris2 --codegen refc → .c → zig build → libproven+`). There are
-*two* Zig build entry points:
+The header bridge uses Idris2 commit
+`b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b`, its matching RefC SDK,
+Zig 0.15.2 and native Linux x86_64 GNU. The declared private
+`language-bridges` dependency had no production callers and has been removed.
+Actual ABI marshaling lives in `ffi/zig/src/refc/`. No private checkout or
+`LANGUAGE_BRIDGES_TOKEN` is needed, including for fork pull requests.
 
-[width="99%",cols="17%,21%,39%,23%",options="header",]
+[cols="1,2,2",options="header"]
 |===
-|File |Builds |External deps |Used by
-|`+ffi/zig/build.zig+` |full Idris→RefC→Zig `+libproven+`
-|`+idris2_zig_ffi+` (path dep on `+nextgen-languages/language-bridges+`)
-+ generated RefC C |local dev, full integration CI
-
-|`+ffi/zig/build_standalone.zig+` |`+libproven_ffi.a+` from
-`+src/main.zig+` only (pure-Zig C-ABI surface) |none |*CI* (`+e2e.yml+`,
-`+zig-ffi.yml+`)
+|Build entry |Inputs |Result
+|`ffi/zig/build.zig`
+|Fresh C from `proven-ffi.ipkg` plus all four SDK/source path options
+|`libproven.a`; the declared FFI package and its import cone are built
+|`ffi/zig/build_standalone.zig` without `-Dheader-refc`
+|Zig only
+|Legacy ABI surface; header operations explicitly return -99
+|`ffi/zig/build_standalone.zig` with `-Dheader-refc`
+|Completed native header bundle from `scripts/build-header-refc.sh`
+|Actual Idris header backend; static library or `-Dshared=true` shared library
 |===
 
-=== Why E2E uses the standalone build (ADR-003)
+Other legacy exports are outside the header proof qualification. Full-package
+build success does not establish that every public C declaration is available
+or that all source/compiler refinement obligations are discharged.
 
-`+build.zig+` declares its `+idris2_zig_ffi+` dependency as a Zig
-*`+.path+`* dependency:
+=== Header profile
 
-....
-.idris2_zig_ffi = .{ .path = "../../nextgen-languages/language-bridges/bridges/idris2" }
-....
+From the repository root, with the pinned tools on PATH:
 
-That points at a *private, cross-owner bridge repo*. `+e2e.yml+` stays
-on `+build_standalone.zig+` so the broad E2E and benchmark jobs keep
-running without private credentials. `+build_standalone.zig+` compiles
-`+src/main.zig+` alone — and that file imports only `+std+`/`+builtin+`
-— so it needs neither the bridge nor the generated RefC, giving CI a
-real (if narrower) Zig FFI build + unit-test signal.
+[source,bash]
+----
+bash scripts/test-header-bridge.sh
+----
 
-`+e2e.yml+` and `+zig-ffi.yml+` therefore run, with Zig provisioned by
-`+mlugg/setup-zig@v1+` at `+0.15.2+` (the `+build.zig.zon+` minimum):
+This executes the real generated Idris function, the exported Zig ABI and a
+caller compiled against the public C header. It checks all single bytes and
+pairs, NUL, non-UTF-8, null/empty and length boundaries, and rejects a wrong
+backend. Failed-producer controls also prove that old bundles cannot rescue
+a failed rebuild. The builder invalidates its previous artifacts before any
+tool checks, and the Zig build refuses a missing or non-PASS completion marker.
+The marker is build state, not an Atoma proof certificate.
 
-....
-zig build       --build-file build_standalone.zig      # E2E build
-zig build test  --build-file build_standalone.zig      # E2E tests
-zig build bench --build-file build_standalone.zig || … # Bench (soft)
-....
+For a shared library, choose a dedicated absolute bundle/output path:
 
-=== The full pipeline (recipe — Idris half verified locally)
+[source,bash]
+----
+bash scripts/build-header-refc.sh "$PWD/build/header-refc"
+bundle="$PWD/build/header-refc"
+(cd ffi/zig; zig build --build-file build_standalone.zig -Dshared=true -Dheader-refc="$bundle")
+----
 
-The canonical recipe is the root `+Justfile+` (`+build-refc+` +
-`+build-ffi+`). Verified locally on idris2-0.8.0 + contrib:
+Use one producer per bundle directory. To rebuild an old bundle predating the
+completion marker, run the builder again; do not fabricate a marker.
 
-....
-# Step 1 — Idris → RefC C  (scripts/build-refc.sh, IPKG=proven-ffi.ipkg)
-idris2 --codegen refc --build proven-ffi.ipkg     # → build/exec/proven-ffi.c
-# staged to build/refc/ ; the script prints the four paths used below
+=== Full FFI package pipeline
 
-# Step 2 — Zig links the RefC C + Idris runtime/support into libproven
-PFX=$(idris2 --prefix)
-zig build \
-  -Didris-refc="$PWD/build/refc" \
-  -Didris-refc-runtime="$(find "$PFX" -path '*/support/refc' -type d | head -1)" \
-  -Didris-c-support="$(find "$PFX" -path '*/support/c' -type d | head -1)" \
-  -Didris-support-lib="$(find "$PFX" -path '*/lib/libidris2_support.*' | head -1 | xargs dirname)"
-....
+The generator copies the Idris sources and package into a clean scratch tree.
+It enables totality and warnings-as-errors through `proven-ffi.ipkg`, requires
+one fresh C translation unit and the reachable header symbol, and records
+matching SDK paths in `build/refc/sdk.env`. It never collects arbitrary C files
+from an existing build tree.
 
-Requires `+libgmp+` (the RefC runtime links `+gmp+`/`+pthread+`/`+m+`).
+[source,bash]
+----
+bash scripts/build-refc.sh --verbose
+source build/refc/sdk.env
+(cd ffi/zig; zig build \
+  -Didris-refc="$REFC_OUTPUT_DIR" \
+  -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+  -Didris-c-support="$IDRIS2_C_SUPPORT" \
+  -Didris-support-lib="$IDRIS2_SUPPORT_LIB")
+(cd ffi/zig; zig build test \
+  -Didris-refc="$REFC_OUTPUT_DIR" \
+  -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+  -Didris-c-support="$IDRIS2_C_SUPPORT" \
+  -Didris-support-lib="$IDRIS2_SUPPORT_LIB")
+bash scripts/test-refc-staging.sh
+----
 
-=== Full integration CI
+The runtime also requires libc, libgmp, pthread and libm. The existing
+`.github/workflows/ffi-full-integration.yml` runs this path without secrets,
+including on fork PRs. It uploads the generated-source/SDK identity, build
+logs and stale-output rejection results. An actual failure remains a failure;
+there is no credential-based success-by-skipping path.
 
-`+.github/workflows/ffi-full-integration.yml+` restores the full
-pipeline:
+=== Consumers and proof replay
 
-[arabic]
-. Check out `+proven+`.
-. Check out `+nextgen-languages/language-bridges+` into
-`+nextgen-languages/language-bridges+`.
-. Install Idris2 0.8.0, Zig 0.15.2, and `+libgmp+`.
-. Run `+scripts/build-refc.sh --verbose+`.
-. Run `+zig build+` and `+zig build test+` with the generated RefC and
-Idris runtime/support paths.
+Chapel, D and OCaml producers sparse-check out their explicit source/script
+inputs, build the real shared library and pass it to detached consumer jobs.
+OCaml's `proven.wired` module exercises the five available symbols; the separate
+full-API gate still exposes its unresolved lifecycle mismatch. See
+link:adr/0001-binding-ci-template.adoc[the producer/consumer contract].
 
-The workflow runs the private full integration only when a repository
-secret named `+LANGUAGE_BRIDGES_TOKEN+` is configured with read access
-to `+nextgen-languages/language-bridges+`. If that secret is absent, the
-job emits a notice and skips the private bridge steps instead of turning
-every unrelated PR red. Pull requests from forks are skipped because
-that credential must not be exposed to untrusted branches.
-
-ClusterFuzzLite uses the standalone Zig FFI surface to build a dynamic
-`+libproven.so+` fixture and fuzzes the Rust path traversal wrapper
-currently backed by `+src/main.zig+`. Additional Rust fuzz targets
-should be enabled in ClusterFuzzLite once their exported Zig symbols are
-available without the private bridge.
-
-If `+language-bridges+` is later converted to a real git submodule, keep
-the same checkout location so `+ffi/zig/build.zig.zon+` continues to
-resolve the bridge via
-`+../../nextgen-languages/language-bridges/bridges/idris2+`.
+Broad E2E, cross-target and fuzzing jobs using the unavailable profile qualify
+only the legacy operations they actually call. They do not establish a working
+Idris header backend. The separate `header-refc.yml` and `header-theory.yml`
+gates cover executable evidence and Agda/Cubical/Lean/Rocq replay respectively.
+See link:adr/2026-11-16-header-refc-boundary.adoc[the header boundary decision]
+for exact qualification and open source/compiler refinement obligations.

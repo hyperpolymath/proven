@@ -4,66 +4,59 @@ module SafeRegexProps
 
 import Proven.Core
 import Proven.SafeRegex
+import Proven.SafeString.Escape
+import Data.Either
+import System
 
 %default total
 
-||| Property: Valid simple regex compiles
-prop_simpleRegexCompiles : isOk (compileRegex "hello") = True
-prop_simpleRegexCompiles = Refl
+-- The real API: `regex : String -> Either RegexError SafeRegex` (parse, then
+-- reject patterns whose complexity analysis fails the normal safety level),
+-- `match`/`test`/`testFull`, `hasRedosRisk`, and `escapeRegex` (which lives
+-- in Proven.SafeString.Escape, not SafeRegex). There is no `compileRegex`
+-- and no `ValidRegex`. The parser and matcher run over `unpack`, which does
+-- not reduce at the type level, so compile/match properties are execution
+-- checks.
 
-||| Property: Valid character class regex compiles
-prop_charClassCompiles : isOk (compileRegex "[a-z]+") = True
-prop_charClassCompiles = Refl
+||| Property: `test` agrees with `match`'s matched flag, for every regex and
+||| input (replaces the orphan's `match r s = match r s`, which held for any
+||| function).
+prop_testAgreesWithMatch : (sr : SafeRegex) -> (s : String) ->
+                           test sr s = (match sr s).matched
+prop_testAgreesWithMatch sr s = Refl
 
-||| Property: Unbalanced parentheses fails
-prop_unbalancedParensFails : isErr (compileRegex "(hello") = True
-prop_unbalancedParensFails = Refl
+||| OWED: escaping never shortens a string. Blocked by: `escapeRegex` is
+||| `pack . go . unpack`, and `length`/`pack`/`unpack` on String do not reduce
+||| on abstract input. This names the proposition; it is not a witness.
+public export
+EscapePreservesLengthObligation : Type
+EscapePreservesLengthObligation =
+  (s : String) -> LTE (length s) (length (escapeRegex s))
 
-||| Property: Unbalanced brackets fails
-prop_unbalancedBracketsFails : isErr (compileRegex "[abc") = True
-prop_unbalancedBracketsFails = Refl
+||| OWED: an escaped string compiles and matches exactly the original string.
+||| Blocked by: the parser and matcher are fuel-driven over `unpack`, which
+||| does not reduce on abstract input. This names the proposition; it is not
+||| a witness.
+public export
+EscapeMatchesLiterallyObligation : Type
+EscapeMatchesLiterallyObligation =
+  (s : String) -> (sr : SafeRegex) -> regex (escapeRegex s) = Right sr ->
+  testFull sr s = True
 
-||| OWED: Invalid escape fails
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_invalidEscapeFails_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_invalidEscapeFails : isErr (compileRegex "\\q") = True
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
 
-||| OWED: ReDoS pattern detected
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_redosDetected_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_redosDetected : isErr (compileRegex "(a+)+$") = True
+private
+compiles : String -> Bool
+compiles = isRight . regex
 
-||| Property: Match returns correct result
-prop_matchCorrect : (r : ValidRegex) -> (s : String) ->
-                    match r s = match r s
-prop_matchCorrect r s = Refl
-
-||| OWED: Empty pattern matches everything
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_emptyMatchesAll_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_emptyMatchesAll : isOk (compileRegex "") = True
-
-||| Property: Anchored regex works
-prop_anchoredRegex : isOk (compileRegex "^hello$") = True
-prop_anchoredRegex = Refl
-
-||| OWED: Escape special characters preserves length
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_escapePreservesLength_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_escapePreservesLength : (s : String) ->
-                                length (escapeRegex s) >= length s
+private
+escapeCorpus : List String
+escapeCorpus = ["", "abc", "a.b", "1+1=2", "(x)", "[a-z]*", "^$|\\", "{3}?"]
 
 ||| Test runner for regex properties
 export
@@ -71,10 +64,25 @@ runRegexProperties : IO ()
 runRegexProperties = do
   putStrLn "SafeRegex Property Tests"
   putStrLn "========================"
-  putStrLn "prop_simpleRegexCompiles: PASS (proven by type)"
-  putStrLn "prop_charClassCompiles: PASS (proven by type)"
-  putStrLn "prop_unbalancedParensFails: PASS (proven by type)"
-  putStrLn "prop_unbalancedBracketsFails: PASS (proven by type)"
-  putStrLn "prop_matchCorrect: PASS (proven by type)"
-  putStrLn "prop_anchoredRegex: PASS (proven by type)"
+  putStrLn "prop_testAgreesWithMatch: PASS (proven by type, all regexes/inputs)"
+  check "simple regex compiles" (compiles "hello")
+  check "character class regex compiles" (compiles "[a-z]+")
+  check "unbalanced parentheses rejected" (not (compiles "(hello"))
+  check "unbalanced brackets rejected" (not (compiles "[abc"))
+  check "invalid escape \\q rejected" (not (compiles "\\q"))
+  check "ReDoS pattern (a+)+$ rejected and flagged"
+    (not (compiles "(a+)+$") && hasRedosRisk "(a+)+$")
+  check "anchored regex compiles and matches only the whole word"
+    (compiles "^hello$" && quickTest "^hello$" "hello" &&
+     not (quickTest "^hello$" "hello world"))
+  check "empty pattern compiles and matches every input"
+    (compiles "" && all (quickTest "") ["", "a", "hello world"])
+  check "match: positive and negative cases"
+    (quickTest "[a-z]+" "123abc" && not (quickTest "[a-z]+" "123") &&
+     quickTestFull "[a-z]+" "abc" && not (quickTestFull "[a-z]+" "abc1"))
+  check "escaping never shortens (instances of EscapePreservesLengthObligation)"
+    (all (\s => length (escapeRegex s) >= length s) escapeCorpus)
+  check "escaped string matches itself literally (instances of EscapeMatchesLiterallyObligation)"
+    (all (\s => quickTestFull (escapeRegex s) s) escapeCorpus &&
+     not (quickTestFull (escapeRegex "a.b") "axb"))
   putStrLn ""

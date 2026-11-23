@@ -1,11 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-
 name: FFI Full Integration
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 permissions:
-  actions: read
   contents: read
 on:
   push:
@@ -15,18 +13,21 @@ on:
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
       - 'bindings/elixir/native/proven_nif/src/lib.rs'
       - 'scripts/check-native-nif-exports.sh'
       - 'tests/check-native-nif-exports.sh'
       - 'tests/check-refc-staging.sh'
   pull_request:
-    branches: [main]
     paths:
       - 'src/**'
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
       - 'bindings/elixir/native/proven_nif/src/lib.rs'
       - 'scripts/check-native-nif-exports.sh'
@@ -56,12 +57,8 @@ jobs:
 
   idris-refc-zig:
     name: Idris -> RefC -> Zig
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 45
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    env:
-      IDRIS2_VERSION: '0.8.0'
-      ZIG_VERSION: '0.15.2'
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
@@ -115,31 +112,19 @@ jobs:
         if: steps.bridge-token.outputs.available == 'true'
         run: echo "$HOME/.idris2/bin" >> "$GITHUB_PATH"
       - name: Setup Zig
-        if: steps.bridge-token.outputs.available == 'true'
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: ${{ env.ZIG_VERSION }}
-      - name: Build Idris RefC output
-        if: steps.bridge-token.outputs.available == 'true'
-        run: scripts/build-refc.sh --verbose
-      - name: Build and test libproven
-        if: steps.bridge-token.outputs.available == 'true'
+          version: '0.15.2'
+      - name: Provision the pinned Idris compiler and check the header profile
+        uses: ./ffi/zig/actions/refc-library
+      - name: Generate the full FFI package from a clean source tree
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: bash scripts/build-refc.sh --verbose
+      - name: Build and test libproven through the default build entry point
         run: |
           set -euo pipefail
-          IDRIS2_PREFIX="$(idris2 --prefix)"
-          REFC_RUNTIME="$(find "$IDRIS2_PREFIX" -path '*/support/refc' -type d 2>/dev/null | head -1)"
-          C_SUPPORT="$(find "$IDRIS2_PREFIX" -path '*/support/c' -type d 2>/dev/null | head -1)"
-          SUPPORT_LIB_FILE="$(find "$IDRIS2_PREFIX" -path '*/lib/libidris2_support.*' 2>/dev/null | head -1)"
-
-          test -n "$REFC_RUNTIME"
-          test -n "$C_SUPPORT"
-          test -n "$SUPPORT_LIB_FILE"
-          SUPPORT_LIB="$(dirname "$SUPPORT_LIB_FILE")"
-          test -d "$GITHUB_WORKSPACE/build/refc"
-          test -d "$REFC_RUNTIME"
-          test -d "$C_SUPPORT"
-          test -d "$SUPPORT_LIB"
-
+          source build/refc/sdk.env
           cd ffi/zig
           zig build \
             -Didris-refc="$GITHUB_WORKSPACE/build/refc" \

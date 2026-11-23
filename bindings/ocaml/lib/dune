@@ -4,5 +4,5 @@
 (library
  (name proven)
  (public_name proven)
- (libraries ctypes ctypes.foreign)
+ (libraries ctypes ctypes-foreign)
  (modules proven proven_ffi))

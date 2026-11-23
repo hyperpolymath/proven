@@ -7,7 +7,6 @@
 // and verifies that the FFI bridge works correctly.
 
 const std = @import("std");
-const ffi = @import("idris2_zig_ffi");
 
 // Import the main proven FFI
 const proven = @import("../src/main.zig");

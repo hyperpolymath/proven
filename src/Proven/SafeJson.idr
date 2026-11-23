@@ -326,39 +326,6 @@ jsonPairsEq ((k1, v1) :: ps1) ((k2, v2) :: ps2) =
 jsonPairsEq _ _ = False
 
 --------------------------------------------------------------------------------
--- JSON Show Instance
---------------------------------------------------------------------------------
-
-||| Show helper for JSON array elements (structurally recursive)
-showJsonElems : List JsonValue -> String
-
-||| Show helper for JSON object pairs (structurally recursive)
-showJsonPairs : List (String, JsonValue) -> String
-
-||| Show helper for a single JSON value (structurally recursive)
-showJsonValue : JsonValue -> String
-showJsonValue JsonNull = "null"
-showJsonValue (JsonBool True) = "true"
-showJsonValue (JsonBool False) = "false"
-showJsonValue (JsonNumber n) = show n
-showJsonValue (JsonString s) = show s
-showJsonValue (JsonArray arr) = "[" ++ showJsonElems arr ++ "]"
-showJsonValue (JsonObject pairs) = "{" ++ showJsonPairs pairs ++ "}"
-
-showJsonElems [] = ""
-showJsonElems [x] = showJsonValue x
-showJsonElems (x :: xs) = showJsonValue x ++ ", " ++ showJsonElems xs
-
-showJsonPairs [] = ""
-showJsonPairs [(k, v)] = show k ++ ": " ++ showJsonValue v
-showJsonPairs ((k, v) :: ps) = show k ++ ": " ++ showJsonValue v ++ ", " ++ showJsonPairs ps
-
-||| Show instance for debugging
-public export
-Show JsonValue where
-  show = showJsonValue
-
---------------------------------------------------------------------------------
 -- Type-Safe JSON Schema
 --------------------------------------------------------------------------------
 

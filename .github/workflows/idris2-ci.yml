@@ -11,6 +11,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'scripts/test-totality-regressions.sh'
       - 'proven.ipkg'
       - 'tests.ipkg'
       - '.github/workflows/idris2-ci.yml'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'scripts/test-totality-regressions.sh'
       - 'proven.ipkg'
       - 'tests.ipkg'
       - '.github/workflows/idris2-ci.yml'
@@ -63,26 +65,53 @@ jobs:
           make install
       - name: Add Idris 2 to PATH
         run: echo "$HOME/.idris2/bin" >> $GITHUB_PATH
+      - name: Check totality repairs against actual source
+        run: bash scripts/test-totality-regressions.sh
+      - name: Preserve totality regression evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: totality-regressions
+          path: build/totality-regressions/
       - name: Build proven library
+        if: ${{ !cancelled() }}
         run: idris2 --build proven.ipkg
       - name: Install proven library (required for tests.ipkg)
+        if: ${{ !cancelled() }}
         run: idris2 --install proven.ipkg
+      - name: Diagnose every property module
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          fail=0
+          cd tests/properties
+          for source in *Props.idr; do
+            echo "::group::$source"
+            if ! idris2 -p proven -p contrib -p network --check "$source" 2>&1 | tee "/tmp/$source.log"; then
+              fail=1
+            fi
+            if grep -q '^Error:' "/tmp/$source.log"; then fail=1; fi
+            echo "::endgroup::"
+          done
+          exit "$fail"
       - name: Build property-test suite (tests.ipkg)
         run: idris2 --build tests.ipkg
+      - name: Execute property-test suite
+        run: build/tests/exec/proven_tests
       - name: Type check all modules
+        # Run from the package source root with module-relative paths: from the
+        # repository root, `src/Proven/Core.idr` is read as module
+        # `src.Proven.Core` and every check fails on the module-name mismatch
+        # (the same pitfall documented in the proof-check job below).
+        working-directory: src
         run: |
-          idris2 --check src/Proven.idr
-          idris2 --check src/Proven/Core.idr
-          idris2 --check src/Proven/SafeMath.idr
-          idris2 --check src/Proven/SafeString.idr
-          idris2 --check src/Proven/SafeJson.idr
-          idris2 --check src/Proven/SafeUrl.idr
-          idris2 --check src/Proven/SafeEmail.idr
-          idris2 --check src/Proven/SafePath.idr
-          idris2 --check src/Proven/SafeCrypto.idr
-          idris2 --check src/Proven/SafePassword.idr
-          idris2 --check src/Proven/SafeDateTime.idr
-          idris2 --check src/Proven/SafeNetwork.idr
+          set -euo pipefail
+          for m in Proven.idr Proven/Core.idr Proven/SafeMath.idr Proven/SafeString.idr \
+                   Proven/SafeJson.idr Proven/SafeUrl.idr Proven/SafeEmail.idr \
+                   Proven/SafePath.idr Proven/SafeCrypto.idr Proven/SafePassword.idr \
+                   Proven/SafeDateTime.idr Proven/SafeNetwork.idr; do
+            idris2 -p contrib -p network --check "$m"
+          done
   # Fast, targeted gate over every Proofs.idr companion module.
   #
   # Rationale (issue #145): the swapped-arg `appendLengthInc` break (#127)

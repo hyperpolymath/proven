@@ -1,0 +1,133 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= ADR 2026-11-17: C ABI status ledger, and the route to an Idris-owned ABI
+:toc: macro
+
+Status:: Accepted for the ledger and checks; *proposed* for the Idris-owned generator (§5).
+Builds on:: `docs/adr/2026-11-16-header-refc-boundary.adoc` (PR #237), the symbol contract in PR #236.
+
+toc::[]
+
+== 1. Problem (measured 2026-11-17, qualified RefC profile)
+
+`bindings/c/include/proven.h` declares 162 functions. The qualified library
+(`build_standalone.zig -Dheader-refc`, Linux x86_64 GNU, Zig 0.15.2, Idris2
+`b6cbc25d`) defines 18 `proven_*` symbols:
+
+[cols="1,1,3"]
+|===
+| Ledger status | Count | Meaning
+
+| `exported` | 9 | In the header, defined, signature matches. 1 Idris-backed (`proven_header_has_crlf`), 8 computed in Zig.
+| `conflict` | 2 | `proven_init`, `proven_is_initialized`: defined under the header name with incompatible signatures.
+| `owed` | 151 | In the header, not defined.
+| `undeclared` | 7 | Defined, not in the header (6 legacy Zig handle helpers, plus `proven_header_codegen_main`, the RefC program `main` leaking through `-Dmain=`).
+|===
+
+Every binding is affected, not only OCaml. The most widely used owed symbols are
+declared by up to 87 of the 117 `bindings/*` directories, and eager loaders
+(OCaml's `RTLD_NOW`, Rustler's link step) fail outright. Before this change the
+full OCaml `proven` library could not load at all (`undefined symbol: proven_deinit`).
+
+== 2. Decision (implemented in this change)
+
+. *One status ledger* — `bindings/c/include/proven-abi.tsv` — with one row per header
+  function or library export: `symbol, status, backend, note`. Backends are named
+  honestly: `idris-refc` (computed by the compiled Idris core) vs `zig-legacy` (not an
+  Idris-verified implementation). `proven.h` remains the *target* ABI; the ledger says
+  which part of it exists. It sits beside the header, so every detached binding
+  checkout already carries it.
+. *Producer check* — `scripts/check-abi-ledger.sh LEDGER HEADER LIBRARY` (run by
+  `scripts/test-header-bridge.sh`, i.e. the "Real Idris header ABI" job on every PR).
+  It fails on: malformed or duplicate rows; a header function without a row (header parsed after
+  `cc -E`, so comments don't count); a row naming no header function; an exported, conflict or
+  undeclared row missing from `nm`; *an owed row present in `nm`* (stale ledger: reclassify
+  with the code); a library export with no row. `scripts/test-abi-ledger.sh` holds planted
+  controls: 1 accepting fixture, 6 rejecting faults and 1 NOT RUN, against really compiled libraries.
+  This generalises #236's NIF-specific symbol check.
+. *Consumer rule* — a binding binds only `exported` rows. The OCaml full binding is
+  narrowed to the 7 `exported` symbols it previously declared, and
+  `bindings/ocaml/scripts/full-api-audit.sh` now checks binding ⊆ ledger-exported ⊆ `nm`
+  and owed ∩ `nm` = ∅. The full-API probe now *loads*, which it could not before.
+
+Nothing is stubbed: no dummy exports, no lazy-binding tricks, no symbol is claimed that
+the library doesn't define. The 137 removed OCaml declarations remain visible as
+ledger `owed` rows and in `proven.h`.
+
+== 3. Options considered
+
+[cols="2,1,1,4"]
+|===
+| Option | Elegance / correctness | Dependability / security | Notes
+
+| *A. Ledger now, Idris-owned generator next (chosen)*
+| ★★★★ | ★★★★
+| Green with nothing hidden. API break only for functions that never loaded.
+
+| B. Keep `ocaml-full-api` red as the signal
+| ★★ | ★★★★★
+| Honest, but it blocks #237 indefinitely and a red check stops carrying information.
+
+| C. Implement all 151 owed exports through the verified core first
+| ★★★★★ | ★★★
+| The correct end state (§4), but weeks of work. Doing it before the ledger exists leaves no way to measure progress.
+
+| D. Owed functions raise `Owed "proven_x"` in each binding
+| ★★★ | ★★★
+| Keeps source compatibility but promises in types what does not exist. Rejected as stub-shaped.
+|===
+
+== 4. Recommendation: implement or narrow?
+
+*Both, ordered.* Narrow first (done here), then implement owed symbols *through the
+Idris core* in consumer-weighted slices. Each slice moves rows from `owed` to
+`exported/idris-refc` in the same commit as the code; the producer check enforces that.
+
+Do not implement owed symbols in Zig to turn rows green. A `zig-legacy` row is
+debt, not progress, and the 8 existing ones should migrate to `idris-refc` over time.
+`proven_path_has_traversal` is the obvious next one, mirroring the header kernel.
+
+Priority, by how many bindings declare the symbol and how directly a total Idris
+function already exists:
+
+. *SafeMath checked arithmetic*: `proven_math_{add,sub,mul}_checked`, `div`, `mod`,
+  `abs_safe`, `clamp`, `pow_checked` (84–87 bindings). Pure `Int64 → Maybe Int64`, so
+  the existing `HeaderKernelMain`/RefC/Zig pattern carries over directly (`IntResult`).
+. *String escaping and validity*: `proven_string_escape_{html,sql,js}`,
+  `is_valid_utf8` (84–87). Needs a `StringResult` ownership contract, which ties in
+  with `proven_free_string`.
+. *Validation predicates*: `proven_json_is_valid`, `proven_email_is_valid` (85).
+. *Lifecycle*: resolve the 2 `conflict` rows and `proven_deinit` (79) by *changing the
+  header or the export*. Either way the change is an ABI decision for the owner, and
+  `proven_init` must agree with Rustler's declaration (#236).
+
+Real external consumers take precedence over in-repo binding counts once they are known.
+UAA #20 is one. odds-and-sods (#145) no longer depends on the Elixir binding.
+
+== 5. Proposed end state: Idris2 owns the declaration
+
+Estate proof policy assigns ABIs to Idris2. The ledger is a deliberately simple
+interim artefact. The proposed end state:
+
+* `src/Proven/ABI/Surface.idr`: a total Idris value listing every C function with a
+  typed signature (`CType` = `I32 | U32 | I64 | Size | BytesIn | BoolResult | IntResult | …`),
+  its status and its backend, plus decidable well-formedness (unique names, owed ⇒ no
+  backend), proved in Idris.
+* A small Idris executable renders from that one value: `proven.h`, `proven-abi.tsv`,
+  each binding's raw declaration file (ctypes `proven_ffi.ml`, the Rustler `extern` block,
+  Chapel/D externs), and the Zig `extern` prototypes that RefC wrappers must match.
+* CI regenerates and requires a byte-identical tree (`git diff --exit-code`). The
+  `nm` checker above stays as the runtime half.
+
+That turns "binding declares X" into a generated consequence of "Idris declares X
+as exported". Signature agreement then becomes checkable at the Zig export (compile-time
+`@TypeOf` comparison against generated prototypes), which `nm` presence cannot provide.
+Status of that correspondence today: `argued` (names checked, signatures not).
+
+== 6. Beyond this repository
+
+* The ledger format and the two-sided check (`declared ⊆ exported`, `owed ∩ exported = ∅`)
+  are a reusable estate pattern for any repo that publishes a C ABI to many bindings.
+  Candidate for `metadatastician/standards`.
+* PR #236 (Rustler/NIF) should consume the ledger rather than its own symbol list.
+* Downstream consumers (UAA #20, any OPSM successor) should pin to ledger `exported` rows.

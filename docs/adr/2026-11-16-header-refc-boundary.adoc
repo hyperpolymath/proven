@@ -1,0 +1,217 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Exact-byte Idris header boundary
+
+== Repaired behavior
+
+`proven_header_has_crlf` detects either CR (13) or LF (10), including lone
+characters. The previous Zig implementation detected only adjacent CRLF and
+disagreed with `Proven.SafeHeader.Types.hasCRLF` on CR, LF and embedded CR.
+The repair invokes compiled Idris for each byte transition. Zig only walks
+the caller's slice, marshals state/byte values, and validates the returned state.
+It does not duplicate the predicate.
+
+The byte span is authoritative. NUL is data, invalid UTF-8 is data, and no
+String conversion or character truncation occurs. A null pointer returns -1
+even at length zero. Callers must supply a readable span; arbitrary pointer
+validity is not established by this API. Success returns status 0; an absent
+Idris backend returns -99; a noncanonical RefC state returns -7. Consumers must
+check status before interpreting the Boolean.
+
+== Source and ABI decision
+
+`Proven.SafeHeader.ByteKernel.headerStep` owns the concrete transition.
+State 0 is clean and state 1 means a forbidden byte has been seen.
+`stepEncodes` and `scanEncodes` relate the Bits8 transition to the typed Boolean
+state machine; `scanAppend` proves arbitrary chunk splitting for the Idris fold.
+`HeaderKernelMain` is a dynamic code-generation root that retains the named
+`%noinline` symbol. It is not the library entry point and is never called by
+the Zig API. A normal Idris module export alone does not establish C reachability.
+
+The qualified profile is native Linux x86_64 GNU, Zig 0.15.2 and Idris2 commit
+`b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b`. The build copies the compiler's own
+RefC SDK and imports `idris2_vp_int_shift` from its actual header. Bits8 values
+are immediate tagged words. The bridge accepts only canonical 0/1 results and
+uses the runtime trampoline. No borrowed Idris String or heap list crosses
+this boundary. Generated C `main` is renamed when linked into the library.
+
+`scripts/build-header-refc.sh` needs no private `language-bridges` dependency.
+The standalone library without its bundle deliberately refuses header checks.
+The default build now uses local `ffi/zig/src/refc` ABI helpers and the actual
+compiler SDK. The old private dependency was declared but had no production
+call sites; it has been removed. The local directory is a new scoped
+implementation, not a reconstruction of the missing repository's contents.
+Other legacy exports are not repaired or verified by this work.
+
+`scripts/build-refc.sh` builds `proven-ffi.ipkg` in an isolated source tree,
+with totality and warnings-as-errors enabled by the package. It accepts one
+fresh generated C translation unit, requires the header symbol, and records
+the exact SDK paths and hashes. It never scans the caller's existing build
+tree for C files. The `FFI Full Integration` job now runs without a token,
+including on fork PRs. "Full" here means the declared FFI package and its
+import cone, not every library module or every declared public C function.
+Three controls reject zero-exit compiler errors, absent output and a wrong
+compiler even when an old C file and a PASS receipt have been planted.
+
+== Reproduction and evidence
+
+[source,shell]
+----
+bash scripts/test-header-bridge.sh
+bash scripts/check-header-proofs.sh /path/to/sholes
+----
+
+The first command requires the qualified Idris and Zig on PATH (or `IDRIS2`
+and `ZIG`). It runs the actual C ABI for all 256 single bytes and 65,536 byte
+pairs, null/empty spans, embedded NUL, non-UTF-8, explicit prefix lengths and
+an 8,192-byte boundary case. An ABI-compatible always-clean generated-C mutant
+must fail assertions, not merely fail compilation. The unavailable profile
+must return -99. `header-refc.yml` runs this gate on every PR and main push.
+The gate also builds `libproven.so` and compiles a caller against the public C
+header to exercise result layout, status codes and exact-byte spans. Chapel,
+D and OCaml CI obtain this real shared-library profile through
+`ffi/zig/actions/refc-library`; their detached jobs consume that artifact.
+Evidence in `build/header-evidence` records versions, source/SDK hashes and
+positive/negative logs.
+
+A header rebuild invalidates the previous kernel, archives, copied headers
+and identity before checking the compiler. Every failure leaves a FAIL marker;
+Zig accepts a header bundle only after its producer writes PASS. Three more
+controls plant stale bundles and simulate a wrong compiler, zero-exit errors
+and absent output; the producer must remove them and Zig must refuse them.
+The identity hashes the copied Idris sources and both sets of SDK headers.
+Use one producer per output directory; concurrent publication to a shared
+bundle directory is not supported. The marker records build completion,
+not a source-to-proof certificate.
+
+The RefC ABI now has 14 passing Zig tests, including all 256 immediate-word
+round trips and rejection of invalid tags/ranges. Chapel's smoke, contract,
+unit and detached tests pass with either-CR-or-LF semantics and embedded NUL.
+D's smoke calls the header C ABI directly using its real result struct;
+its build, tests, symbol audit and detached checks pass. These are executable
+binding checks, not new source-refinement proofs.
+
+OCaml's package now compiles: the CI uses its opam environment, the smoke
+executable has a Dune target, and opaque pointee types remain incomplete.
+The new `proven.wired` library binds only the five manifest symbols. Its
+header wrapper preserves exact bytes and checks status; its independent
+smoke exercises all byte pairs without loading the broad API. The separate
+`ocaml-full-api` job still fails honestly on missing `proven_deinit`.
+The broad module eagerly binds the entire API, and its lifecycle signatures also
+disagree with the legacy handle-based Zig exports. Do not add dummy exports
+or enable unchecked lazy calls to hide this. A subsequent capability-scoped
+binding or a real, consistently specified lifecycle implementation is needed
+before claiming full OCaml compatibility. The wired module's runtime evidence
+qualifies only its explicit profile.
+
+The second command imports only committed proof sources from Sholes
+`c28993a73d1c78830c6d92f563fae638d22bb7f7` into a clean scratch directory.
+`verification/header` proves the numeric-byte classifier, the unbounded state
+fold, chunk composition and preservation by Sholes canonicalization. Required
+profiles are Agda 2.6.4.3 with `--safe --cubical-compatible --double-check`,
+the separate full Cubical consumer, Lean 4.15.0 and Rocq 9.2 plus `coqchk`.
+The Lean/Rocq sources are hand re-proofs of the Agda statement. The checker
+script audits named theorem assumptions and requires three false witnesses
+to be rejected. `header-theory.yml` runs this separate theory gate. The RefC
+job checks the Idris implementation and executable ABI; neither job proves
+the remaining source/compiler refinement theorem.
+
+== Remaining proof obligations
+
+. Relate primitive Idris Bits8 equality and its compiled representation to the
+  structurally finite Agda model for all values, with a source-bound witness.
+. Prove the actual Zig loop implements the Idris fold, including bounds,
+  state preservation, pointer validity preconditions and ABI correspondence.
+. Establish compiler/lowering refinement or document the precise trusted
+  compilation boundary. Tests and model theorems do not establish this theorem.
+. Transport and audit statement identity across proof assistants. Matching
+  hand re-proofs are not automatic proof-object translation.
+. Add the matching alternate checker and qualify additional target/compiler
+  profiles independently. Full Cubical is a stronger profile of Agda, not an
+  independent kernel; no successful Lean4Lean run is claimed here.
+
+Atoma's original five-case diagnostic now links the real RefC library and
+can confirm that the observed mismatch is repaired. Atoma's current closed
+u8 source subset does not cover this loop; its source-to-proof milestone
+remains INCOMPLETE. The model proof and executable evidence must not be
+promoted to a whole-library or v1 verification claim.
+
+== Repository-wide blockers outside the repaired profile
+
+The safety gate now passes after removing 20 production totality assertions.
+The licence gate still rejects five existing `Palimpsest-MPL-1.0` headers in
+SafeYAML/Parser, SafeRegex/Parser and Matcher, SafeSQL/Builder and SafeXML/Parser.
+Their licence headers remain unchanged pending the owner's decision. The old
+property suite contains further unavailable APIs, invalid propositions and
+unproved declarations; repairing SafeMath does not qualify the other modules.
+The full OCaml symbol audit at `3424d6d` required 146 distinct symbols: nine
+were present and 137 missing. Presence alone does not establish signature
+compatibility; the lifecycle signature conflict is also unresolved. These
+failures prevent a whole-repository green claim and must not be hidden.
+
+The repository instructions name `./hypatia-v2`, but that executable is not
+present in this checkout. No successful local scan with that command is
+claimed. Existing hosted security checks remain enabled.
+
+== Follow-up: totality and executable property repairs
+
+The 20 production totality assertions are replaced by explicit list recursion
+(argument parsing), total list lookup (regex), structural level merging (tree
+traversal), and error-returning input-derived recursion budgets (XML/YAML).
+The budgets establish termination; completeness and equivalence with an
+unbounded reference parser remain separate proof obligations. Exhaustion never
+returns a successful truncated parse. No full XML/YAML standards claim follows.
+
+The old arithmetic suite referred to nonexistent APIs and reported success
+without execution. It now uses the actual Maybe-returning API, retains two
+definitional zero-denominator proofs, and executes boundary arithmetic checks.
+Its old general arithmetic, bounded-value and nonempty-list claims remain owed;
+finite checks do not discharge them. Other legacy property modules are diagnosed
+individually by remote CI without removing the full suite gate.
+
+The totality-regression script builds from a fresh source copy, requires
+totality and no reported holes, executes malformed-input and semantic
+regressions, and retains source identities, compiler output and a result marker.
+These are regression receipts, not Atoma source-to-proof certificates.
+
+== Next source-to-proof step: canonical Bits8 word representation
+
+`verification/header/*/RefCBits8.*` defines a 64-bit word partition with tag
+bit 0, zero bits 1..31, an eight-bit payload at 32..39, and zero bits 40..63.
+The compatible Agda development states and proves byte round-trip, canonical
+representation of every accepted word, and null rejection. Lean and Rocq are
+separate hand re-proofs of those statements; their assumption audits and
+`coqchk` are mandatory. Full Cubical checks paths obtained from the compatible
+proofs. Changing the encoded tag is a required rejecting Agda control.
+These claims require a successful current CI run; writing the files is not a
+successful replay receipt.
+
+The actual Zig codec now refuses any target/SDK profile other than 64-bit
+words with shift 32. Executable tests retain all 256 round-trips and reject
+flipping the tag or setting each of the 55 unused bits for each byte. The
+universal model theorem covers all bit combinations; these executable tests
+are finite implementation evidence. Neither establishes source/model
+correspondence, the pointer-carrier ABI assumption, generated RefC semantics,
+or compiler correctness. In particular, the model's word partition does not
+prove a C pointer points to an object and the carrier must never be dereferenced.
+
+Atoma must next import the actual codec AST and SDK constant into typed
+bitvector semantics, reject changed widths/shifts/casts/guards, and produce a
+receipt binding those obligations and theorem identities to the full source
+closure. Then the header loop needs a prefix invariant, bounds and progress
+proof, with an explicit RefC-call contract. UAA's real two-slot callback registry
+is a second consumer for state transitions, refusal and borrowed lifetimes;
+its differential execution is not yet an Atoma source-to-proof certificate.
+
+Review refinements remove repeated full-input scans: the regex state now
+carries an erased equality tying its cached characters to the original String;
+lookups use that cache. Constructing MatchState directly therefore requires the
+new equality witness (initState supplies it). This is an internal Idris source
+API change, with no C ABI layout change. List indexing still has linear cost;
+no constant-time or complete resource bound is claimed. YAML quoted strings
+now descend structurally through their suffix. XML attributes spend the declared
+per-element attribute allowance, permitting zero attributes at a zero limit and
+rejecting the first excess attribute without scanning the remaining document.
+The strict executable corpus includes flat XML/YAML sequences and exact zero/
+one-attribute limits. The remaining element/collection fuel completeness debt
+is unchanged.

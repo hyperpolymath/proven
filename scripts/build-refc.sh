@@ -1,73 +1,35 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-#
-# build-refc.sh - Compile Idris2 proven-ffi package to C via RefC backend
-#
-# This script is Step 1 of the Idris2 -> RefC -> C -> Zig compilation pipeline.
-# It invokes the Idris2 RefC code generator on proven-ffi.ipkg, producing .c and .h
-# files that the Zig build system then compiles and links into libproven.{so,dylib,dll}.
-#
-# Usage:
-#   ./scripts/build-refc.sh [--clean] [--verbose]
-#
-# Environment variables:
-#   IDRIS2        - Path to idris2 binary (default: idris2 on PATH)
-#   PROVEN_ROOT   - Repository root (default: parent of scripts/)
-#   IPKG          - Package file to build (default: proven-ffi.ipkg)
-#
-# Output:
-#   build/refc/   - Generated C source files
-#   The script prints REFC_OUTPUT_DIR=<path> for downstream consumption.
-
+# Generate the full FFI package in a clean scratch tree, never from stale build/.
 set -euo pipefail
-
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROVEN_ROOT="${PROVEN_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-IDRIS2="${IDRIS2:-idris2}"
-IPKG="${IPKG:-proven-ffi.ipkg}"
-VERBOSE="${VERBOSE:-0}"
-CLEAN=0
-
-# Parse arguments
+root=${PROVEN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
+root=$(cd "$root" && pwd)
+ipkg=${IPKG:-proven-ffi.ipkg}
 for arg in "$@"; do
-    case "$arg" in
-        --clean)   CLEAN=1 ;;
-        --verbose) VERBOSE=1 ;;
-        --help|-h)
-            echo "Usage: $0 [--clean] [--verbose]"
-            echo ""
-            echo "Compile Idris2 proven-ffi package to C via RefC backend."
-            echo ""
-            echo "Options:"
-            echo "  --clean     Remove build/refc/ before compiling"
-            echo "  --verbose   Show detailed compilation output"
-            echo "  --help      Show this help message"
-            exit 0
-            ;;
-        *)
-            echo "Error: Unknown argument: $arg" >&2
-            exit 1
-            ;;
-    esac
+  case "$arg" in
+    --clean|--verbose) ;; # Every build is clean; diagnostics are always retained.
+    --help|-h) echo 'Usage: build-refc.sh [--clean] [--verbose]'; exit 0 ;;
+    *) echo "FAIL: unknown argument: $arg" >&2; exit 1 ;;
+  esac
 done
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-log() {
-    echo "[build-refc] $*"
+out="$root/build/refc"
+mkdir -p "$out"
+rm -f "$out/result.txt" "$out/sdk.env"
+# This directory is the script-owned generated staging area. Remove only its
+# generated C/header files so failed builds cannot leave an accepted old bundle.
+find "$out" -maxdepth 1 -type f \( -name '*.c' -o -name '*.h' \) -delete
+work=$(mktemp -d -t proven-full-refc.XXXXXXXX)
+finish() {
+  result=$?
+  if [[ $result -ne 0 ]]; then printf 'FAIL: exit %s\n' "$result" > "$out/result.txt"; fi
+  rm -rf -- "$work"
 }
-
-verbose() {
-    if [ "$VERBOSE" -eq 1 ]; then
-        echo "[build-refc:debug] $*"
-    fi
+trap finish EXIT
+idris=$(command -v "${IDRIS2:-idris2}")
+idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")")
+[[ $("$idris" --version) == 'Idris 2, version 0.8.0-b6cbc25d5' ]] || {
+  echo 'FAIL: full RefC profile requires Idris2 b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b' >&2; exit 1;
 }
 
 die() {

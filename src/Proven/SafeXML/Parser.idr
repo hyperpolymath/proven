@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: MPL-2.0
 ||| Safe XML parsing with XXE prevention
 |||
 ||| This module provides secure XML parsing that:
@@ -188,9 +188,11 @@ parseAttribute st = do
   (value, st5) <- parseAttrValue st4
   Ok (MkXMLAttr name value, st5)
 
-||| Parse attributes until > or />
-parseAttributes : ParserState -> XMLResult (List XMLAttr, ParserState)
-parseAttributes st =
+||| Parse attributes until > or />, spending one remaining attribute slot.
+||| Delimiters are checked before the allowance, so a zero limit permits
+||| an empty attribute list. This never recounts the remaining document.
+parseAttributes : Nat -> ParserState -> XMLResult (List XMLAttr, ParserState)
+parseAttributes slots st =
   let st' = skipWhitespace st
   in case peek st' of
        Just '>' => Ok ([], st')
@@ -199,20 +201,12 @@ parseAttributes st =
                      _ => Err (MalformedXML "Expected '>' after '/'")
        Just c =>
          if isXMLNameStartChar c
-           then do
-             -- Check attribute count limit.
-             -- REPAIRED 2026-08-27: was `if length [] >= st.options.maxAttributesPerElement`.
-             -- `length []` is 0, so the guard reduced to `0 >= n` and could NEVER fire:
-             -- the per-element attribute cap was declared but unenforced. `[]` also had
-             -- no determined element type, leaving an unsolved hole -- which is why this
-             -- module never compiled and never entered any .ipkg. The count is now taken
-             -- after recursion, which is the per-element count `maxAttributesPerElement`
-             -- names. `>=` on a pre-increment count becomes `>` on the total.
-             (attr, st1) <- parseAttribute st'
-             (rest, st2) <- assert_total (parseAttributes st1)
-             if length (attr :: rest) > st.options.maxAttributesPerElement
-               then Err (MalformedXML "Too many attributes")
-               else Ok (attr :: rest, st2)
+           then case slots of
+             Z => Err (MalformedXML "Too many attributes")
+             S remaining => do
+               (attr, st1) <- parseAttribute st'
+               (rest, st2) <- parseAttributes remaining st1
+               Ok (attr :: rest, st2)
            else Err (MalformedXML ("Unexpected character in attributes: " ++ singleton c))
        Nothing => Err (MalformedXML "Unexpected end of input in attributes")
 
@@ -310,16 +304,20 @@ parsePI st =
 -- Element Parsing
 --------------------------------------------------------------------------------
 
+-- Each recursive edge spends one unit, including dispatch to a child element.
+-- Input-sized fuel bounds call depth; exhaustion is an error, never partial
+-- success. This is a termination mechanism, not a proved completeness bound.
 -- Parse element (recursive)
 -- NOTE: a ||| docstring cannot precede a mutual block in Idris2; demoted to a comment.
 mutual
-  parseElement : ParserState -> XMLResult (XMLNode, ParserState)
-  parseElement st = do
+  parseElement : Nat -> ParserState -> XMLResult (XMLNode, ParserState)
+  parseElement Z st = Err (MalformedXML "Element parsing budget exhausted")
+  parseElement (S fuel) st = do
     -- Check depth limit
     checkDepth st
     st1 <- expect "<" st
     (name, st2) <- parseName st1
-    (attrs, st3) <- parseAttributes st2
+    (attrs, st3) <- parseAttributes st2.options.maxAttributesPerElement st2
     -- Check for self-closing or start tag
     case peekN 2 st3 of
       ['/', '>'] => do
@@ -328,7 +326,7 @@ mutual
       _ => do
         st4 <- expect ">" st3
         let st5 = pushDepth st4
-        (children, st6) <- assert_total (parseChildren st5)
+        (children, st6) <- parseChildren fuel st5
         -- Expect closing tag
         st7 <- expect "</" st6
         (closeName, st8) <- parseName st7
@@ -341,8 +339,9 @@ mutual
             Ok (Element name attrs children, st11)
 
   ||| Parse children nodes
-  parseChildren : ParserState -> XMLResult (List XMLNode, ParserState)
-  parseChildren st =
+  parseChildren : Nat -> ParserState -> XMLResult (List XMLNode, ParserState)
+  parseChildren Z st = Err (MalformedXML "Child parsing budget exhausted")
+  parseChildren (S fuel) st =
     let st' = skipWhitespace st
     in case peekN 2 st' of
          ['<', '/'] => Ok ([], st')  -- End tag
@@ -350,11 +349,11 @@ mutual
            case peekN 4 st' of
              ['<', '!', '-', '-'] => do
                (comment, st1) <- parseComment st'
-               (rest, st2) <- assert_total (parseChildren st1)
+               (rest, st2) <- parseChildren fuel st1
                Ok (comment :: rest, st2)
              ['<', '!', '[', 'C'] => do
                (cdata, st1) <- parseCDATA st'
-               (rest, st2) <- assert_total (parseChildren st1)
+               (rest, st2) <- parseChildren fuel st1
                Ok (cdata :: rest, st2)
              ['<', '!', 'D', 'O'] =>
                -- DOCTYPE not allowed here
@@ -362,11 +361,11 @@ mutual
              _ => Err (MalformedXML "Invalid markup declaration")
          ['<', '?'] => do
            (pi, st1) <- parsePI st'
-           (rest, st2) <- assert_total (parseChildren st1)
+           (rest, st2) <- parseChildren fuel st1
            Ok (pi :: rest, st2)
          ['<', _] => do
-           (elem, st1) <- assert_total (parseElement st')
-           (rest, st2) <- assert_total (parseChildren st1)
+           (elem, st1) <- parseElement fuel st'
+           (rest, st2) <- parseChildren fuel st1
            Ok (elem :: rest, st2)
          _ =>
            if isEOF st'
@@ -374,7 +373,7 @@ mutual
              else do
                -- Parse text content
                (text, st1) <- parseTextContent st'
-               (rest, st2) <- assert_total (parseChildren st1)
+               (rest, st2) <- parseChildren fuel st1
                Ok (Text text :: rest, st2)
 
 --------------------------------------------------------------------------------
@@ -437,7 +436,7 @@ parseDocument opts input = do
   st3 <- skipDoctype st2
   let st4 = skipWhitespace st3
   -- Parse root element
-  (root, st5) <- parseElement st4
+  (root, st5) <- parseElement (2 * S (length st4.input)) st4
   let st6 = skipWhitespace st5
   -- Ensure no trailing content
   if isEOF st6
@@ -477,5 +476,5 @@ public export
 parseFragment : String -> XMLResult XMLNode
 parseFragment input = do
   let st = initParser secureDefaults input
-  (node, _) <- parseElement st
+  (node, _) <- parseElement (2 * S (length st.input)) st
   Ok node

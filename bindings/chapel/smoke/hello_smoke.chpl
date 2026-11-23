@@ -38,6 +38,19 @@ proc main(): int {
     writeln("FAIL: SafeHeader.hasCrlf(<CRLF>) did not return some(true)");
     return 1;
   }
+  // Lone breaks and embedded NUL must survive Chapel's pointer/length bridge.
+  for value in ["\r", "\n", "a\x00\rZ"] {
+    const r = SafeHeader.hasCrlf(value);
+    if !r.present || !r.value {
+      writeln("FAIL: header byte-span counterexample was accepted");
+      return 1;
+    }
+  }
+  const noBreak = SafeHeader.hasCrlf("a\x00Z");
+  if !noBreak.present || noBreak.value {
+    writeln("FAIL: embedded NUL without a break was rejected");
+    return 1;
+  }
 
   // Library identification (read-only, no allocation; verifies symbol table).
   const ver = libraryVersion();

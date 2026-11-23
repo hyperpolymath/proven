@@ -247,9 +247,12 @@ paddedLengthCorrect n = Refl
 
 ||| OWED: string-level round-trip, `decodeToString variant
 ||| (encodeStringToString variant s) = Ok s`. Factors through
-||| `roundtripCorrect` plus `pack . unpack = id` on the input
-||| `String` (UTF-8 encoding/decoding is lossless on every Idris2
-||| `String`, which by spec contains a well-formed UTF-8 sequence).
+||| `roundtripCorrect`, `pack . unpack = id` on the input `String`, and
+||| the UTF-8 round trip `utf8ToString (utf8Bytes s) = Just s` (Encode /
+||| Decode, built on `Proven.SafeString.UTF8`), which holds when every
+||| `Char` of `s` is a Unicode scalar value. Before encode used UTF-8
+||| (it took each Char's low byte) this statement was false for code
+||| points >= 256.
 |||
 ||| Held back by Idris2 0.8.0 not exposing `pack (unpack s) = s` as a
 ||| Refl — `pack` and `unpack` are FFI-bound String primitives and

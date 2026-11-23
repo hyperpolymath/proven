@@ -44,10 +44,22 @@ A binding's CI harness consists of *exactly*:
   extraction).
 * `.github/workflows/<lang>-ci.yml` — workflow file.
 
-The CI workflow's path triggers reference no other paths. The
-workflow's checkout steps use `sparse-checkout` to pull only the
-detachable set. The detachable-build CI job (see I-5) proves this
-holds on every PR.
+Consumer jobs use `sparse-checkout` to pull only that set and obtain
+`libproven.so` as an external artifact. The detachable-build job checks
+that no Idris source, Zig source or root test tree is present.
+
+Amendment (2026-11-16): producing that artifact is a distinct responsibility.
+The actual Idris header library needs `ffi/zig/`,
+`scripts/build-header-refc.sh`, `src/Proven/SafeHeader/ByteKernel.idr` and
+`src/Proven/FFI/HeaderKernelMain.idr`, plus its pinned compiler SDK.
+The producer job now sparse-checks out exactly these inputs alongside the
+binding and C header; a transitive dependency outside this set breaks the
+real build. Workflow triggers and the path guard include these explicit
+producer inputs. The grep guard alone does not prove transitive closure.
+
+An extracted consumer harness supplies the library artifact externally or
+retains this explicit producer source set. Copying the combined workflow
+without the producer inputs does not create a standalone library build.
 
 === I-2. Self-contained binding Justfile
 
@@ -92,7 +104,8 @@ actually exports.
 
 . *detachability-guard* — fails if the workflow references paths
   outside the allowed set (`bindings/<lang>/`, `ffi/zig/`,
-  `bindings/c/include/proven.h`, self).
+  `bindings/c/include/proven.h`, self and the three explicit producer
+  source/script files in I-1).
 . *<lang>-build* — installs the pinned toolchain (URL + SHA-256),
   builds `libproven.so`, typechecks every binding source module.
 . *<lang>-symbol-audit* — runs `scripts/symbol-audit.sh`.

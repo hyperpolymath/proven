@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: MPL-2.0
 ||| Fluent query builder DSL for safe SQL construction
 |||
 ||| This module provides a type-safe DSL for building SQL queries

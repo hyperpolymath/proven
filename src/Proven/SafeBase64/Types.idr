@@ -158,6 +158,10 @@ data Base64Error : Type where
   ||| Non-zero trailing bits (invalid encoding)
   NonZeroTrailingBits : Base64Error
 
+  ||| Decoded bytes are not well-formed UTF-8 (RFC 3629 §4), so they do not
+  ||| denote a String (raised only by the `...ToString` decoders)
+  InvalidUTF8 : Base64Error
+
 public export
 Show Base64Error where
   show (InvalidCharacter c pos) = "InvalidCharacter: '" ++ singleton c ++ "' at position " ++ show pos
@@ -165,6 +169,7 @@ Show Base64Error where
   show (InvalidLength len) = "InvalidLength: " ++ show len ++ " is not valid"
   show UnexpectedPadding = "UnexpectedPadding: padding not allowed in this variant"
   show NonZeroTrailingBits = "NonZeroTrailingBits: trailing bits must be zero"
+  show InvalidUTF8 = "InvalidUTF8: decoded bytes are not well-formed UTF-8"
 
 public export
 Eq Base64Error where
@@ -173,6 +178,7 @@ Eq Base64Error where
   InvalidLength l1 == InvalidLength l2 = l1 == l2
   UnexpectedPadding == UnexpectedPadding = True
   NonZeroTrailingBits == NonZeroTrailingBits = True
+  InvalidUTF8 == InvalidUTF8 = True
   _ == _ = False
 
 --------------------------------------------------------------------------------

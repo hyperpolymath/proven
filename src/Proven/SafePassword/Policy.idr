@@ -122,11 +122,6 @@ Show PolicyViolation where
 -- Policy Checking
 --------------------------------------------------------------------------------
 
-||| Proof type that a password meets a policy
-public export
-data MeetsPolicy : (policy : PasswordPolicy) -> (password : String) -> Type where
-  PolicyMet : MeetsPolicy policy password
-
 ||| Check password against policy, returning all violations
 public export
 checkPolicy : PasswordPolicy -> String -> List PolicyViolation
@@ -209,6 +204,25 @@ checkPolicy policy pwd =
     checkForbiddenWords : String -> List String -> List PolicyViolation
     checkForbiddenWords pwd words =
       map ContainsForbiddenWord (filter (`isInfixOf` pwd) words)
+
+||| Proof that a password meets a policy.
+|||
+||| The only constructor carries (erased) evidence that the decision
+||| procedure `checkPolicy` found no violation, so a `MeetsPolicy` value
+||| cannot be built for a password that `checkPolicy` rejects.
+public export
+data MeetsPolicy : (policy : PasswordPolicy) -> (password : String) -> Type where
+  PolicyMet : (0 noViolations : checkPolicy policy password = []) ->
+              MeetsPolicy policy password
+
+||| Decide a policy: either the (non-empty) violation list, or evidence
+||| that the policy is met.
+public export
+decideMeetsPolicy : (policy : PasswordPolicy) -> (password : String) ->
+                    Either (List PolicyViolation) (MeetsPolicy policy password)
+decideMeetsPolicy policy password with (checkPolicy policy password) proof eq
+  _ | [] = Right (PolicyMet eq)
+  _ | (v :: vs) = Left (v :: vs)
 
 --------------------------------------------------------------------------------
 -- Policy Builder

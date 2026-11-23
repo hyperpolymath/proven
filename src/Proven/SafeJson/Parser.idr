@@ -7,9 +7,13 @@
 |||
 ||| Totality is ensured via fuel-based termination: every recursive function
 ||| receives a `Nat` fuel parameter that strictly decreases on each call.
-||| The initial fuel is set to the length of the input string, which is an
-||| upper bound on the number of recursive steps (each step consumes at least
-||| one character or the fuel runs out).
+||| Fuel is threaded down the call path: `parseValue` and each
+||| `parseArrayElems` / `parseObjectMembers` step spend one unit, and the
+||| leaf scanners (digits, whitespace, string characters) spend one unit per
+||| character from what is left. A frame entered after consuming `p` of `n`
+||| characters has spent at most `2p + 1` units and its leaves need at most
+||| `n - p`, so `parse` starts with `2n + 2` (the earlier `n` ran out on valid
+||| input such as `1` and `[1]`).
 module Proven.SafeJson.Parser
 
 import Proven.Core
@@ -35,18 +39,33 @@ data JsonValue : Type where
   JsonArray  : List JsonValue -> JsonValue
   JsonObject : List (String, JsonValue) -> JsonValue
 
-public export covering
+mutual
+  ||| Render a JSON value (structurally recursive, hence total).
+  showJsonValue : JsonValue -> String
+  showJsonValue JsonNull = "null"
+  showJsonValue (JsonBool True) = "true"
+  showJsonValue (JsonBool False) = "false"
+  showJsonValue (JsonNumber n) = show n
+  showJsonValue (JsonString s) = show s
+  showJsonValue (JsonArray arr) = "[" ++ showJsonElems arr ++ "]"
+  showJsonValue (JsonObject pairs) = "{" ++ showJsonPairs pairs ++ "}"
+
+  showJsonElems : List JsonValue -> String
+  showJsonElems [] = ""
+  showJsonElems [x] = showJsonValue x
+  showJsonElems (x :: xs) = showJsonValue x ++ ", " ++ showJsonElems xs
+
+  showJsonPairs : List (String, JsonValue) -> String
+  showJsonPairs [] = ""
+  showJsonPairs [(k, v)] = show k ++ ": " ++ showJsonValue v
+  showJsonPairs ((k, v) :: ps) = show k ++ ": " ++ showJsonValue v ++ ", " ++ showJsonPairs ps
+
+||| The single `Show JsonValue` instance (re-exported by `Proven.SafeJson`,
+||| which previously declared a second, identical-output instance that made
+||| `show` ambiguous for importers of both modules).
+public export
 Show JsonValue where
-  show JsonNull = "null"
-  show (JsonBool True) = "true"
-  show (JsonBool False) = "false"
-  show (JsonNumber n) = show n
-  show (JsonString s) = show s
-  show (JsonArray xs) = "[" ++ joinBy ", " (map show xs) ++ "]"
-  show (JsonObject kvs) = "{" ++ joinBy ", " (map showKV kvs) ++ "}"
-    where
-      showKV : (String, JsonValue) -> String
-      showKV (k, v) = show k ++ ": " ++ show v
+  show = showJsonValue
 
 ||| Parse error with location info
 public export
@@ -301,13 +320,17 @@ mutual
 
   ||| Parse array elements (comma-separated JSON values inside []).
   ||| Fuel decreases on each element parsed, ensuring totality.
+  ||| Called only where a value is required: on the first element of a
+  ||| non-empty array (`parseArray` handles `[]`) or after a comma.
+  ||| RFC 8259 §5: `array = begin-array [ value *( value-separator value ) ]
+  ||| end-array`, so `]` here would be a trailing comma and is rejected.
   parseArrayElems : (fuel : Nat) -> ParserState -> List JsonValue -> ParseResult (List JsonValue)
   parseArrayElems Z st acc = Left (OutOfFuel st.position)
   parseArrayElems (S k) st acc =
     let st' = skipWhitespace k st
     in case peek st' of
          Nothing => Left (UnexpectedEnd st'.position)
-         Just ']' => Right (reverse acc, MkParserState (drop 1 st'.input) (S st'.position) st'.depth)
+         Just ']' => Left (UnexpectedChar st'.position ']')
          Just _ =>
            case parseValue k st' of
              Left err => Left err
@@ -333,13 +356,17 @@ mutual
 
   ||| Parse object members (comma-separated key:value pairs inside {}).
   ||| Fuel decreases on each member parsed, ensuring totality.
+  ||| Called only where a member is required: on the first member of a
+  ||| non-empty object (`parseObject` handles `{}`) or after a comma.
+  ||| RFC 8259 §4: `object = begin-object [ member *( value-separator member ) ]
+  ||| end-object`, so `}` here would be a trailing comma and is rejected.
   parseObjectMembers : (fuel : Nat) -> ParserState -> List (String, JsonValue) -> ParseResult (List (String, JsonValue))
   parseObjectMembers Z st acc = Left (OutOfFuel st.position)
   parseObjectMembers (S k) st acc =
     let st' = skipWhitespace k st
     in case peek st' of
          Nothing => Left (UnexpectedEnd st'.position)
-         Just '}' => Right (reverse acc, MkParserState (drop 1 st'.input) (S st'.position) st'.depth)
+         Just '}' => Left (UnexpectedChar st'.position '}')
          Just '"' =>
            case parseRawString k st' of
              Left err => Left err
@@ -377,12 +404,13 @@ mutual
 
 ||| Parse a JSON string.
 ||| Returns Either ParseError JsonValue.
-||| Fuel is derived from the input string length (upper bound on parse steps).
+||| Fuel is `2n + 2` for an input of `n` characters (see the module header:
+||| enough for every valid input, still a structural bound for totality).
 public export
 parse : String -> Either ParseError JsonValue
 parse s =
   let chars = unpack s
-      fuel = length chars
+      fuel = 2 * length chars + 2
       st = MkParserState chars 0 0
   in case parseValue fuel st of
        Left err => Left err

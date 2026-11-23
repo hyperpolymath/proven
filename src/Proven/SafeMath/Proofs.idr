@@ -2,9 +2,8 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ||| Mathematical proofs for SafeMath operations
 |||
-||| This module contains proofs that verify properties of our safe
-||| arithmetic operations. These proofs are checked by the Idris 2
-||| compiler, guaranteeing correctness.
+||| Checked arithmetic lemmas and explicitly named outstanding obligations.
+||| An obligation is a Type, not a proof value that callers may assume.
 |||
 ||| Updated for Idris 2 0.8.0 compatibility:
 ||| - Delegated to Data.Nat stdlib proofs where possible (stdlib now uses
@@ -12,10 +11,8 @@
 ||| - `minus n 0` no longer reduces on abstract `n`; case-split required
 ||| - `div`/`mod`/`gcd` internal representations changed; some properties
 |||   are stated without proof pending upstream proof availability
-||| - `SIsNonZero` was replaced by `ItIsSucc` here; REVERTED 2026-08-27. On the
-|||   toolchain that actually builds this repo (Idris 2 0.7.0), `NonZero` and
-|||   `IsSucc` are distinct types and `divNatNZ`/`modNatNZ` require `SIsNonZero`.
-|||   VERSION-SENSITIVE: re-adjudicate if the build ever runs on the 0.8.0 CI pins.
+||| - CI includes both 0.8.0 and a legacy 0.7 container. Search for the
+|||   required NonZero witness instead of naming a version-specific constructor.
 module Proven.SafeMath.Proofs
 
 import Proven.Core
@@ -25,6 +22,10 @@ import Data.Nat.Division
 import Syntax.PreorderReasoning
 
 %default total
+
+public export
+nonZeroSuccessor : {n : Nat} -> NonZero (S n)
+nonZeroSuccessor = %search
 
 --------------------------------------------------------------------------------
 -- Properties of Natural Number Addition
@@ -150,8 +151,8 @@ lteAntisym (LTESucc ab) (LTESucc ba) = cong S (lteAntisym ab ba)
 ||| Proved via Data.Nat.Division.DivisionTheoremUniqueness:
 ||| n = n * 1 + 0 is the unique decomposition, so divNatNZ n 1 = n.
 public export
-divByOne : (n : Nat) -> divNatNZ n 1 SIsNonZero = n
-divByOne n = fst $ DivisionTheoremUniqueness n 1 SIsNonZero n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
+divByOne : (n : Nat) -> divNatNZ n 1 Proven.SafeMath.Proofs.nonZeroSuccessor = n
+divByOne n = fst $ DivisionTheoremUniqueness n 1 Proven.SafeMath.Proofs.nonZeroSuccessor n 0 (LTESucc LTEZero) (nTimesOnePlusZero n)
   where
     nTimesOnePlusZero : (k : Nat) -> k = k * 1 + 0
     nTimesOnePlusZero k = sym $ Calc $
@@ -164,11 +165,17 @@ divByOne n = fst $ DivisionTheoremUniqueness n 1 SIsNonZero n 0 (LTESucc LTEZero
 ||| fuel-based induction over mod''.
 public export
 modLtDivisor : (n, d : Nat) -> {auto 0 ok : NonZero d} -> LT (modNatNZ n d ok) d
-modLtDivisor n (S d) = boundModNatNZ n (S d) SIsNonZero
+modLtDivisor n (S d) = boundModNatNZ n (S d) Proven.SafeMath.Proofs.nonZeroSuccessor
 
 --------------------------------------------------------------------------------
 -- GCD Properties
 --------------------------------------------------------------------------------
+
+||| An operation to which GCD laws may be applied. The upstream covering
+||| Data.Nat.gcd has no total witness here; even that instantiation is owed.
+public export
+GcdOperation : Type
+GcdOperation = (a, b : Nat) -> {auto 0 ok : NotBothZero a b} -> Nat
 
 ||| OWED: GCD of n and 0 is n. `Data.Nat.gcd` is declared `covering`
 ||| (not `total`) in Idris2 0.8.0, so the type-checker refuses to
@@ -184,8 +191,10 @@ modLtDivisor n (S d) = boundModNatNZ n (S d) SIsNonZero
 ||| `covering`), or (b) we rewrite the signature against
 ||| `Data.Nat.Factor.gcdUnproven` (which IS total) and prove agreement
 ||| with `Data.Nat.gcd` on every input.
+||| This names the outstanding proposition; it does not provide a witness.
 public export
-0 gcdZeroRight : (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> gcd n 0 @{ok} = n
+GcdZeroRightObligation : GcdOperation -> Type
+GcdZeroRightObligation operation = (n : Nat) -> {auto 0 ok : NotBothZero n 0} -> operation n 0 @{ok} = n
 
 ||| OWED: GCD is commutative — `gcd a b = gcd b a`. The base cases
 ||| (`gcd 0 (S b)` vs `gcd (S b) 0`) would be trivially `Refl` if
@@ -202,5 +211,7 @@ public export
 ||| through `Data.Nat.Factor.gcdUnproven` (which IS total) and prove
 ||| agreement with `Data.Nat.gcd` on every input — at which point
 ||| both `gcdZeroRight` and `gcdCommutative` discharge together.
+||| This names the outstanding proposition; it does not provide a witness.
 public export
-0 gcdCommutative : (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> gcd a b @{ok1} = gcd b a @{ok2}
+GcdCommutativeObligation : GcdOperation -> Type
+GcdCommutativeObligation operation = (a, b : Nat) -> {auto 0 ok1 : NotBothZero a b} -> {auto 0 ok2 : NotBothZero b a} -> operation a b @{ok1} = operation b a @{ok2}

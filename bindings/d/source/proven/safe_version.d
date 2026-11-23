@@ -59,12 +59,12 @@ struct VersionResult
     string error;
     bool ok;
 
-    static VersionResult success(SemVer v)
+    static VersionResult success(SemVer v) nothrow
     {
         return VersionResult(v, "", true);
     }
 
-    static VersionResult failure(string error)
+    static VersionResult failure(string error) nothrow
     {
         return VersionResult(SemVer.init, error, false);
     }
