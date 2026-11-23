@@ -12,6 +12,8 @@ on:
       - 'ffi/**'
       - 'bindings/**'
       - '.github/workflows/trustfile.yml'
+      - 'scripts/check-idris-escape-hatches.sh'
+      - 'scripts/test-idris-escape-gate.sh'
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -86,6 +88,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Reject Idris2 trust escapes (with planted controls)
+        run: |
+          set -euo pipefail
+          bash scripts/test-idris-escape-gate.sh
+          bash scripts/check-idris-escape-hatches.sh src
       - name: Check SPDX license compliance
         run: |
           # Estate licence policy: code is MPL-2.0, docs are CC-BY-SA-4.0.
@@ -99,16 +106,6 @@ jobs:
             exit 1
           fi
           echo "License compliance: PASS"
-      - name: Check believe_me audit trail
-        run: |
-          # Count believe_me instances and verify they have justification comments
-          BELIEVE_ME_COUNT=$(grep -r "believe_me" src/ --include="*.idr" 2>/dev/null | wc -l)
-          UNJUSTIFIED=$(grep -r "believe_me" src/ --include="*.idr" -B1 2>/dev/null | \
-                       grep -c "believe_me" 2>/dev/null || true)
-          echo "believe_me instances: $BELIEVE_ME_COUNT"
-          if [ "$BELIEVE_ME_COUNT" -gt 300 ]; then
-            echo "WARNING: believe_me count ($BELIEVE_ME_COUNT) exceeds threshold (300)"
-          fi
       - name: Verify FFI bridge purity
         if: always()
         run: |
