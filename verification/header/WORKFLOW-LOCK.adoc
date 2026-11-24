@@ -1,0 +1,35 @@
+= Reusable workflow lock scope
+:toc:
+
+The four governance/security callers retain their exact existing
+`metadatastician/standards` revision
+`571cc734cd69fb846032ec77a662aa8ee4fc32cd`. The owner-approved allowlist repair
+admits only those four workflow paths at that revision.
+
+Their jobs previously failed before checkout with an invalid action-lock pin.
+The caller now carries generated metadata for the exact reusable repository
+and its existing action dependencies. No check is removed or made optional.
+
+`scripts/ci/lock-reusable-callers.sh` projects the action references from those
+four immutable workflow files into a temporary metadata workspace. It adds
+the reusable repository identity and asks `gh actions-lock` to resolve and
+verify ownership, reachable commits and transitive action dependencies.
+Actual action dependencies pass the tool's online verification before adding
+the reusable repository identity. The synthetic identity reference itself
+cannot pass action-metadata verification: standards is a workflow repository,
+not an action with an `action.yml`. Its identity and reachability are resolved
+by the official generator; actual workflow-call validation remains with GitHub.
+The projections never execute and are never installed as workflows. Authored
+caller bytes remain unchanged. This adapter is needed because v0.4.1 does
+not traverse external reusable workflow calls. Native hosted CI is the
+acceptance test for this caller-side coverage.
+
+The lock is deliberately scoped to these four callers. It is not a claim
+that every Proven workflow has been locked. A whole-repository refresh also
+encountered an unrelated unreachable `dtolnay/rust-toolchain` pin in
+`publish-crates.yml`; that repair is separate. The adapter refuses to replace
+a future wider lockfile with its four-workflow projection.
+
+This infrastructure evidence is separate from Header RefC soundness and
+Atoma's scalar source interpretation evidence. None establishes whole-library
+or complete Idris2-to-application refinement.
