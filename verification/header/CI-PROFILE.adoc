@@ -1,0 +1,27 @@
+= Header and reusable workflow validation profiles
+
+The header boundary and scalar contract retain their Idris2 ABI and pure Zig
+FFI/API implementation. Atoma's independent scalar replay pins
+`21346ae1c85b7773a4bc16df51cb1ec5977f6b65`; later CI-only commits do not change
+those source or contract bytes. Compiler refinement and the complete foreign
+boundary remain unproved.
+
+Four scanner/governance workflows use the legacy Standards workflow code at
+`571cc734cd69fb846032ec77a662aa8ee4fc32cd`, with the minimal lock metadata
+backport `6da35965d761761c09e3779e5639012de767bb48`. The backport changes
+only four leaf `ref` fields to matching tags: checkout, cache, upload-artifact
+and setup-beam. Action commit digests, workflow bodies, permissions and check
+behavior are unchanged. The actual dependency refs passed online verification
+with `gh actions-lock` v0.4.1. Native hosted execution remains the acceptance
+test for the reusable workflow profile.
+
+This backports the repair described in
+https://github.com/metadatastician/standards/pull/1271[Standards #1271]
+without importing unrelated later governance changes. It is an isolated
+compatibility revision, not a new normative policy or a change to Standards
+main. A caller-side lockfile cannot repair the defining repository's lockfile;
+the unsuccessful caller-lock experiment was removed.
+
+The repository allowlist admits only these four workflow paths at the exact
+backport commit. No check has been disabled or made optional. Header proof
+results and generic governance/security results must be reported separately.
