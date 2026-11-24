@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Header and reusable workflow validation profiles
+
+The ABI definitions remain Idris2 and the FFI/API implementation remains pure
+Zig. Atoma's scalar replay pins `21346ae1c85b7773a4bc16df51cb1ec5977f6b65`;
+this workflow migration changes none of those source or contract bytes.
+Compiler refinement and the complete foreign boundary remain unproved.
+
+== Canonical governance migration
+
+Four callers pin Standards default-branch revision
+`84c2d1c1b040c9d7b8924532fa77e71e63d72c66`. Its canonical policy recognizes
+the moved `metadatastician/standards` owner, its baseline validator uses file
+inputs rather than overflowing the argument vector, and its workflow helpers
+are bound to the reusable's own revision.
+
+This replaces the isolated `6da35965d761761c09e3779e5639012de767bb48`
+lock-metadata backport. That backport repaired startup, but the default-branch
+ancestry policy correctly rejected it. The removed caller-side lock
+experiment is not restored.
+
+The owner-approved four exact reusable paths and their two nested DEED/K9
+conformance paths were admitted and read back in the Actions allowlist.
+The nested paths pin
+`bfa851f5291edd82d01dfb33cb8d81b3002d2f89`; no owner-wide wildcard is needed.
+DEED/K9 retain the canonical advisory default; existing gates are not disabled.
+Hypatia explicitly scans the whole tree, preserving the previous scope.
+Its validated baseline and threshold behavior remain the canonical defaults.
+
+Both scanner consumers explicitly pin Hypatia
+`09c305db10bfde1668c8d5f686677f3a20e84889`, the exact revision previously
+resolved by the legacy caller on 24 November. This prevents the workflow
+migration from reverting to its older default scanner. That revision records
+retired A2ML layout as advisory pending kyX conversion, in line with the
+current canon. No baseline entry, threshold or source exclusion is added.
+
+The secret scanner declares no inherited secrets. Its caller forwards none
+and no longer requests pull-request write permission. This addresses
+SonarCloud rule `githubactions:S7635` without an exemption.
+
+== Evidence and limits
+
+Header RefC soundness, header theory replay and Atoma scalar replay are separate
+from generic governance checks. Passing one is not evidence that the others
+passed. The final PR head must pass hosted CI and review before merge; the
+migration's hosted result is pending when this document is introduced.
+
+The TypeScript dependency lock was generated remotely with pinned Bun 1.3.0
+and installed with `--frozen-lockfile --ignore-scripts` in dry-run
+https://github.com/hyperpolymath/proven/actions/runs/45511904922[45511904922].
+No package was published. Its subsequent TypeScript build failed on existing
+nonexistent exports and absent declarations for the JavaScript wrappers.
+The lock-generation bootstrap was removed after retaining the generated lock;
+normal publishing still requires a successful build. This is an outstanding
+package-readiness defect, not evidence against or for the native header proofs.

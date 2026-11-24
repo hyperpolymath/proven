@@ -4,7 +4,10 @@ name: Publish to crates.io
 on:
   release:
     types: [published]
-  workflow_call: # Allow calling from release.yml
+  workflow_call:
+    secrets:
+      CRATES_IO_TOKEN:
+        required: false
   workflow_dispatch:
     inputs:
       dry_run:
@@ -29,6 +32,11 @@ jobs:
       run:
         working-directory: bindings/rust
     steps:
+      - name: Constrain credential-bearing job egress
+        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: block
+          allowed-endpoints: github.com:443 api.github.com:443 codeload.github.com:443 release-assets.githubusercontent.com:443 objects.githubusercontent.com:443 static.rust-lang.org:443 index.crates.io:443 static.crates.io:443 crates.io:443
       - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       - name: Install Rust toolchain

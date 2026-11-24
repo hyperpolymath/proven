@@ -3,6 +3,7 @@
 //! Marshaling for the pinned Idris RefC immediate Bits8 representation.
 //! Values are tagged words, not pointers to allocated objects.
 const std = @import("std");
+const word = @import("bits8_word.zig");
 const c = @cImport({
     @cInclude("_datatypes.h");
 });
@@ -13,7 +14,7 @@ comptime {
 }
 
 pub fn encode(value: u8) ?*anyopaque {
-    return @ptrFromInt((@as(usize, value) << shift) | 1);
+    return @ptrFromInt(word.encodeWord(value));
 }
 
 pub fn decode(value: ?*anyopaque) error{InvalidRefcResult}!u8 {

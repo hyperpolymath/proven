@@ -164,6 +164,7 @@ console.log(Mustache.render(template, context));
 | `proven_parse_version` | semver string | `{{#proven_parse_version}}1.2.3-alpha{{/proven_parse_version}}` |
 | `proven_version_compare` | `a b` (space-separated) | `{{#proven_version_compare}}1.2.3 2.0.0{{/proven_version_compare}}` |
 | `proven_uuid_v4` | (none) | `{{#proven_uuid_v4}}{{/proven_uuid_v4}}` |
+// hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 | `proven_parse_uuid` | UUID string | `{{#proven_parse_uuid}}550e8400-e29b-41d4-a716-446655440000{{/proven_parse_uuid}}` |
 
 == Architecture
