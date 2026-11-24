@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Header and reusable workflow validation profiles
 
 The header boundary and scalar contract retain their Idris2 ABI and pure Zig
@@ -25,3 +27,16 @@ the unsuccessful caller-lock experiment was removed.
 The repository allowlist admits only these four workflow paths at the exact
 backport commit. No check has been disabled or made optional. Header proof
 results and generic governance/security results must be reported separately.
+
+== Observed hosted outcome
+
+At `d980fdbf4d024f743c7abc75e9b822e53c0c08e1`, Header RefC soundness,
+Secret Scanner, SPARK Theatre Gate and the separate Hypatia scan passed.
+The backport repaired startup, but does not make this legacy profile
+governance-compliant: its canonical allowlist data lacks the moved Standards
+owner, its ancestry rule rejects a reusable revision outside the default
+branch, and its old baseline filter exceeds the operating system's argument
+limit. The default-branch baseline filter already has a file-input repair
+(Standards #1668). A durable migration must select an accepted default-branch
+profile and its matching policy data. Do not disable those checks or add
+baseline exemptions to hide these failures.
