@@ -4,6 +4,7 @@ module BoundaryRegression
 
 import Proven.Core
 import Proven.SafeTree
+import Proven.SafeUnionFind
 import Proven.SafeArgs.Types
 import Proven.SafeArgs.Parser
 import Proven.SafeRegex.Types
@@ -86,5 +87,8 @@ main = do
     (isErr (parseYAML "[true") && isErr (parseYAML "\"unclosed") &&
      isErr (parseYAML "&a true"))
   check "YAML depth limit remains effective" (isErr (parseYAML (nestedYAML 55)))
+  check "union-find duplicate roots preserve first-occurrence set order"
+    (allSets (MkUF [Parent 1, Root 1, Parent 1, Root 0] 2) == [[0,1,2],[3]] &&
+     allSets (Proven.SafeUnionFind.create 3) == [[0],[1],[2]])
   runMathProperties
   putStrLn "Finite regression execution passed; parser completeness/equivalence is not claimed."

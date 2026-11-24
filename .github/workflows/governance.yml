@@ -15,3 +15,5 @@ permissions:
 jobs:
   governance:
     uses: metadatastician/standards/.github/workflows/governance-reusable.yml@84c2d1c1b040c9d7b8924532fa77e71e63d72c66
+    with:
+      hypatia-ref: 09c305db10bfde1668c8d5f686677f3a20e84889

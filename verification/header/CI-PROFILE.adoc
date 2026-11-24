@@ -28,6 +28,13 @@ DEED/K9 retain the canonical advisory default; existing gates are not disabled.
 Hypatia explicitly scans the whole tree, preserving the previous scope.
 Its validated baseline and threshold behavior remain the canonical defaults.
 
+Both scanner consumers explicitly pin Hypatia
+`09c305db10bfde1668c8d5f686677f3a20e84889`, the exact revision previously
+resolved by the legacy caller on 24 November. This prevents the workflow
+migration from reverting to its older default scanner. That revision records
+retired A2ML layout as advisory pending kyX conversion, in line with the
+current canon. No baseline entry, threshold or source exclusion is added.
+
 The secret scanner declares no inherited secrets. Its caller forwards none
 and no longer requests pull-request write permission. This addresses
 SonarCloud rule `githubactions:S7635` without an exemption.
