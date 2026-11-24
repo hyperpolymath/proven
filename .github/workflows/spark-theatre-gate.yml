@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # Estate SPARK Theatre Gate — thin caller of the reusable workflow in
-# hyperpolymath/standards (#135 / #141). Pinned by commit SHA per the
+# metadatastician/standards (#135 / #141). Pinned by commit SHA per the
 # estate action-pinning policy. Regenerate the pin only when the reusable
 # workflow is intentionally bumped.
 name: SPARK Theatre Gate
@@ -15,8 +15,7 @@ permissions:
   contents: read
 jobs:
   spark-theatre-gate:
-    uses: metadatastician/standards/.github/workflows/spark-theatre-gate.yml@6da35965d761761c09e3779e5639012de767bb48
+    uses: metadatastician/standards/.github/workflows/spark-theatre-gate.yml@84c2d1c1b040c9d7b8924532fa77e71e63d72c66
     with:
       paths: "."
       enforce_zero_contract: false
-
