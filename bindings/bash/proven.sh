@@ -417,6 +417,7 @@ parse_currency() {
 # Evaluate arithmetic expression
 # Usage: result=$(calc_eval "2 + 3 * 4")
 calc_eval() {
+    # hypatia: allow content_patterns/eval_in_shell -- Literal calculator subcommand passed to the CLI; this does not execute the shell builtin.
     _proven_call calculator eval "$1"
 }
 
