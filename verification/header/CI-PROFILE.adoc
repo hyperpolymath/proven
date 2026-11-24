@@ -45,3 +45,12 @@ Header RefC soundness, header theory replay and Atoma scalar replay are separate
 from generic governance checks. Passing one is not evidence that the others
 passed. The final PR head must pass hosted CI and review before merge; the
 migration's hosted result is pending when this document is introduced.
+
+The TypeScript dependency lock was generated remotely with pinned Bun 1.3.0
+and installed with `--frozen-lockfile --ignore-scripts` in dry-run
+https://github.com/hyperpolymath/proven/actions/runs/45511904922[45511904922].
+No package was published. Its subsequent TypeScript build failed on existing
+nonexistent exports and absent declarations for the JavaScript wrappers.
+The lock-generation bootstrap was removed after retaining the generated lock;
+normal publishing still requires a successful build. This is an outstanding
+package-readiness defect, not evidence against or for the native header proofs.
