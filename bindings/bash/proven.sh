@@ -240,6 +240,7 @@ uuid_v4() {
 }
 
 # Parse UUID
+# hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 # Usage: parse_uuid "550e8400-e29b-41d4-a716-446655440000"
 parse_uuid() {
     _proven_call uuid parse "$1"

@@ -157,6 +157,7 @@ defmodule ProvenTest do
   end
 
   test "parse validates UUIDs" do
+    # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     assert SafeUuid.valid?("550e8400-e29b-41d4-a716-446655440000") == true
     assert SafeUuid.valid?("not-a-uuid") == false
   end

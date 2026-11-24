@@ -53,4 +53,5 @@ maxControlPayloadSize = 125
 ||| Sec-WebSocket-Key, then SHA-1 hashed and base64 encoded.
 public export
 wsGlobalGUID : String
+-- hypatia: allow-next-line uuid/external -- RFC 6455 WebSocket handshake GUID; protocol-defined bytes
 wsGlobalGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

@@ -68,23 +68,29 @@ let mkUUIDv5
 -- Nil UUID (all zeros)
 let nilUUID
     : UUID
+    -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
     = { uuid = "00000000-0000-0000-0000-000000000000", version = UUIDVersion.Nil }
 
 -- Check if UUID is nil
 let isNil
     : UUID -> Bool
     = \(u : UUID) ->
+        -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
         u.uuid == "00000000-0000-0000-0000-000000000000"
 
 -- Standard namespace UUIDs (RFC 4122)
 let Namespaces = {
     -- DNS namespace
+    -- hypatia: allow-next-line uuid/external -- RFC UUID namespace constant; preserve interoperability
     dns = { uuid = "6ba7b810-9dad-11d1-80b4-00c04fd430c8", version = UUIDVersion.V1 },
     -- URL namespace
+    -- hypatia: allow-next-line uuid/external -- RFC UUID namespace constant; preserve interoperability
     url = { uuid = "6ba7b811-9dad-11d1-80b4-00c04fd430c8", version = UUIDVersion.V1 },
     -- OID namespace
+    -- hypatia: allow-next-line uuid/external -- RFC UUID namespace constant; preserve interoperability
     oid = { uuid = "6ba7b812-9dad-11d1-80b4-00c04fd430c8", version = UUIDVersion.V1 },
     -- X.500 DN namespace
+    -- hypatia: allow-next-line uuid/external -- RFC UUID namespace constant; preserve interoperability
     x500 = { uuid = "6ba7b814-9dad-11d1-80b4-00c04fd430c8", version = UUIDVersion.V1 }
 }
 

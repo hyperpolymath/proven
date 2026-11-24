@@ -158,6 +158,7 @@ fn bench_safe_uuid(c: &mut Criterion) {
     let mut group = c.benchmark_group("SafeUUID");
 
     group.bench_function("parse_uuid", |b| {
+        // hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
         b.iter(|| parse_uuid(black_box("550e8400-e29b-41d4-a716-446655440000")))
     });
 
