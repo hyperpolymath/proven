@@ -20,8 +20,9 @@ lock-metadata backport. That backport repaired startup, but the default-branch
 ancestry policy correctly rejected it. The removed caller-side lock
 experiment is not restored.
 
-The four exact reusable paths and their two nested DEED/K9 conformance paths
-must be admitted in the repository Actions allowlist. The nested paths pin
+The owner-approved four exact reusable paths and their two nested DEED/K9
+conformance paths were admitted and read back in the Actions allowlist.
+The nested paths pin
 `bfa851f5291edd82d01dfb33cb8d81b3002d2f89`; no owner-wide wildcard is needed.
 DEED/K9 retain the canonical advisory default; existing gates are not disabled.
 Hypatia explicitly scans the whole tree, preserving the previous scope.
