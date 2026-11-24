@@ -17,7 +17,7 @@ external C interface.
 
 == Prerequisites
 
-- link:http://seed7.sourceforge.net/[Seed7] compiler
+- link:https://seed7.sourceforge.net/[Seed7] compiler
 - `libproven.so` (or `libproven.a`) built from the proven repository
 - The `proven.h` C header (for the Seed7 compiler's C backend)
 

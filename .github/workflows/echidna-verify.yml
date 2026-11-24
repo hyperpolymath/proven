@@ -57,13 +57,13 @@ jobs:
       - name: Type-check proofs
         id: typecheck
         run: |
-          set -e
+          set -euo pipefail
           echo "=== Agda proofs under lol/proofs ==="
           find lol/proofs/theories -name '*.agda' -print
           cd lol/proofs
           for f in $(find theories -name '*.agda'); do
             echo "--- checking $f ---"
-            agda --safe "$f" 2>&1 | tee -a ../../agda-verify.log || true
+            agda --safe --cubical-compatible --double-check "$f" 2>&1 | tee -a ../../agda-verify.log
           done
       - name: Postulate audit
         run: |
