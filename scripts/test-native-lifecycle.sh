@@ -10,7 +10,7 @@ idris="${IDRIS2:-idris2}"
 zig="${ZIG:-zig}"
 rustc="${RUSTC:-rustc}"
 cc="${CC:-cc}"
-for tool in "$idris" "$zig" "$rustc" "$cc"; do command -v "$tool" >/dev/null; done
+for tool in "$idris" "$zig" "$rustc" "$cc" readelf; do command -v "$tool" >/dev/null; done
 evidence_root="${NATIVE_ABI_EVIDENCE:-$root/build/native-abi-evidence}"
 mkdir -p "$evidence_root"
 evidence="$(mktemp -d "$evidence_root/run.XXXXXXXX")"
@@ -98,6 +98,21 @@ cflags=(-std=c11 -Wall -Wextra -Werror "-I$root/bindings/c/include")
 "$cc" "${cflags[@]}" "$root/tests/remediation/native_lifecycle.c" \
   -L"$evidence/native/lib" -Wl,-rpath,"$evidence/native/lib" -lproven -pthread -o "$evidence/c-shared"
 "$evidence/c-shared" | tee "$evidence/c-shared.log"
+# An SDK RPATH can hide a missing runtime dependency on the validation host.
+# Reject that dependency structurally, then run a copied consumer/library with
+# only an origin-relative search path and no inherited LD_LIBRARY_PATH.
+readelf -d "$evidence/native/lib/libproven.so" > "$evidence/shared-dynamic.txt"
+if grep -Eq 'NEEDED.*libidris2_|\((RPATH|RUNPATH)\)' "$evidence/shared-dynamic.txt"; then
+  echo "FAIL: shared library depends on the compiler installation" >&2
+  exit 1
+fi
+mkdir -p "$evidence/relocated/lib"
+cp "$evidence/native/lib/libproven.so" "$evidence/relocated/lib/"
+"$cc" "${cflags[@]}" "$root/tests/remediation/native_lifecycle.c" \
+  -L"$evidence/relocated/lib" '-Wl,-rpath,$ORIGIN/lib' -lproven -pthread \
+  -o "$evidence/relocated/consumer"
+env -u LD_LIBRARY_PATH "$evidence/relocated/consumer" | tee "$evidence/c-relocated.log"
+echo "PASS: relocated shared consumer; no compiler runtime dependency or embedded RPATH"
 "$cc" "${cflags[@]}" -fsanitize=undefined -fno-sanitize-recover=all \
   "$root/tests/remediation/native_lifecycle.c" \
   "$evidence/native/lib/libproven.a" "$support_archive" \

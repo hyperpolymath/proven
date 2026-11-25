@@ -82,12 +82,11 @@ fn configureRefC(
     }
 
     // -----------------------------------------------------------------------
-    // 4. Idris2 support library (libidris2_support.a / libidris2_support.so)
+    // 4. Embed the support archive so installed artifacts do not require the
+    // build machine's compiler directory or a private libidris2_support.so.
     // -----------------------------------------------------------------------
     if (support_lib_path) |slp| {
-        mod.addLibraryPath(.{ .cwd_relative = slp });
-        mod.addRPath(.{ .cwd_relative = slp });
-        mod.linkSystemLibrary("idris2_support", .{});
+        mod.addObjectFile(.{ .cwd_relative = b.fmt("{s}/libidris2_support.a", .{slp}) });
     }
 
     // -----------------------------------------------------------------------
