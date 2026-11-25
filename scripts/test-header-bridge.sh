@@ -29,6 +29,8 @@ cc -Wall -Wextra -Werror -I "$root/bindings/c/include" "$root/tests/ffi/header_b
 "$work/c-abi" > "$evidence/c-abi.log" 2>&1
 EVIDENCE_DIR="$evidence/ownership" ZIG="$zig" bash "$root/scripts/test-header-borrow.sh" "$work/shared/lib"
 EVIDENCE_DIR="$evidence/ownership-controls" ZIG="$zig" bash "$root/scripts/test-header-borrow-controls.sh" "$work/shared/lib"
+EVIDENCE_DIR="$evidence/boundary" ZIG="$zig" bash "$root/scripts/test-header-boundary.sh"
+EVIDENCE_DIR="$evidence/boundary-controls" ZIG="$zig" bash "$root/scripts/test-header-boundary-controls.sh"
 
 # Every proven.h function and every library export must have a ledger row, and
 # the qualified library must define exactly the rows that claim presence.
