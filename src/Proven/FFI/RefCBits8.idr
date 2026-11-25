@@ -9,3 +9,13 @@ module Proven.FFI.RefCBits8
 public export
 encodeWord : Bits8 -> Bits64
 encodeWord value = cast value * 4294967296 + 1
+
+||| A byte is returned only after checking the entire canonical word.
+||| This is a word contract, not validity of an allocated pointer.
+public export
+decodeWord : Bits64 -> Maybe Bits8
+decodeWord word =
+  let payload = word `div` 4294967296 in
+  if payload > 255 then Nothing else
+    let byte = the Bits8 (cast payload) in
+    if word == encodeWord byte then Just byte else Nothing

@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: Header RefC soundness
 on:
+  workflow_call:
   pull_request:
   push:
     branches: [main]
@@ -9,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: header-refc-${{ github.ref }}
+  group: header-refc-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   header-refc:
@@ -48,9 +49,12 @@ jobs:
           version: '0.15.2'
       - name: Total Idris kernel, actual ABI, exhaustive pairs and rejecting mutant
         run: bash scripts/test-header-bridge.sh
+      - name: Fresh Idris2 decoder contract and pure Zig native witnesses
+        run: bash scripts/test-refc-decoder.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: header-refc-evidence
           path: build/header-evidence/
           if-no-files-found: error
+
