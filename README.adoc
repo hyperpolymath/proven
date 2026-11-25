@@ -165,8 +165,8 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | Category | Count | Description
 
 | General Purpose
-| 39
-| Traditional programming languages (C, Rust, Python, Go, etc.)
+| 37
+| Traditional programming languages (C, Rust, Zig, Go, etc.)
 
 | Shell/Scripting
 | 4
@@ -177,7 +177,7 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | CUE, Dhall, HCL, Jsonnet, Nickel, Starlark, JSON/YAML Schema
 
 | Domain-Specific
-| 12
+| 11
 | Game dev, blockchain, embedded, web frameworks
 
 | Query/Policy
