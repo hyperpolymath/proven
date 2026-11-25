@@ -4,7 +4,7 @@
 # ClusterFuzzLite fuzzing container for proven.
 #
 # Base: ClusterFuzzLite's rust image (libfuzzer + cargo-fuzz pre-installed)
-# Adds: Zig so build.sh can compile the standalone libproven.so fixture
+# Adds: Zig and pinned Idris/Chez so build.sh can compile the RefC-backed fixture
 # prior to building the supported fuzz targets.
 
 FROM gcr.io/oss-fuzz-base/base-builder-rust:v1@sha256:8a9f7d1ee933da04fc7b616c51d3fb99009692f6aa93ca9e972a6a39730e14f5
@@ -36,7 +36,7 @@ RUN git init /tmp/chez \
     && test "$(git -C /tmp/chez rev-parse HEAD)" = 9df56e7b25bc523663eac3da24be33afc5f76c84 \
     && git -C /tmp/chez submodule update --init --recursive --depth 1 \
     && cd /tmp/chez \
-    && env -u CFLAGS -u CXXFLAGS -u LDFLAGS CC=gcc ./configure --threads --disable-curses --disable-x11 --installprefix /opt/chez \
+    && env -u CFLAGS -u CXXFLAGS -u LDFLAGS CC=gcc ./configure --threads --disable-curses --disable-x11 --installprefix=/opt/chez \
     && env -u CFLAGS -u CXXFLAGS -u LDFLAGS make -j2 install CC=gcc \
     && printf '(import (chezscheme)) (unless (procedure? collect-rendezvous) (exit 1)) (display (scheme-version)) (newline)\n' | /opt/chez/bin/scheme -q \
     && rm -rf /tmp/chez
