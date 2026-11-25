@@ -31,6 +31,8 @@ EVIDENCE_DIR="$evidence/ownership" ZIG="$zig" bash "$root/scripts/test-header-bo
 EVIDENCE_DIR="$evidence/ownership-controls" ZIG="$zig" bash "$root/scripts/test-header-borrow-controls.sh" "$work/shared/lib"
 EVIDENCE_DIR="$evidence/boundary" ZIG="$zig" bash "$root/scripts/test-header-boundary.sh"
 EVIDENCE_DIR="$evidence/boundary-controls" ZIG="$zig" bash "$root/scripts/test-header-boundary-controls.sh"
+EVIDENCE_DIR="$evidence/export-controls" ZIG="$zig" bash "$root/scripts/test-header-export-controls.sh" "$work/bundle"
+EVIDENCE_DIR="$evidence/benchmark" ZIG="$zig" bash "$root/scripts/bench-header-boundary.sh" "$work/shared/lib"
 
 # Every proven.h function and every library export must have a ledger row, and
 # the qualified library must define exactly the rows that claim presence.

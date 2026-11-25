@@ -14,7 +14,11 @@ The next Atoma consumer slice adds a bounded Idris2 span contract and instrument
 the actual Zig public entry for null-before-call, exact pointer/length forwarding
 and error mapping. Four compiled source mutants and an invalid-span type witness
 must reject. The real RefC-backed ABI tests remain required alongside the
-instrumented backend. Hosted qualification is pending for this change; no full
+instrumented backend. Three additional exported-forwarder mutants exercise
+pointer, extent and null refusal through the actual library. A bounded pure Zig
+benchmark records correctness-guarded timings of the exported Idris-backed
+header operation; these initial samples establish no regression threshold.
+Hosted qualification remains required for each changed head; no full
 pointer-safety or ownership claim follows from the source files alone. See
 link:docs/adr/2026-11-25-header-public-boundary.adoc[the boundary decision].
 

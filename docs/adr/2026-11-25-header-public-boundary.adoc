@@ -46,6 +46,30 @@ evidence that the gate passed; the PR and hosted artifacts record qualification.
 Atoma separately binds the original public-entry/export source to its heap and
 source interpretation; neither test doubles nor hashes alone prove that link.
 
+`scripts/test-header-export-controls.sh` additionally compiles three mutations
+of the actual `main_refc.zig` exported forwarder: shortened extent, shifted
+pointer with a correspondingly shortened extent, and skipped null refusal.
+The real exported-ABI caller must reject each mutant with an assertion failure.
+The shifted pointer remains within the valid caller allocation; no deliberately
+invalid native address is dereferenced. These controls cover the export layer
+that the injected core fixture cannot observe.
+
+== Actual-library benchmark
+
+`scripts/bench-header-boundary.sh LIBRARY_DIR` links the pure Zig benchmark
+caller against the qualified real RefC-backed `libproven.so`. Five corpora
+(empty, one byte, clean 64 bytes, forbidden byte at the end of 64 bytes and
+4096 bytes) run in four caller optimisation modes. Each corpus has a correctness
+check, 32 warmups and three bounded samples; timed calls retain correctness
+guards. A compiled always-clean Zig export must fail the same caller's checks.
+
+NDJSON evidence records input SHA-256, bytes, iterations, elapsed nanoseconds,
+checksum, compiler and caller mode. The environment and actual library hash are
+retained separately. All caller modes use the same qualified library binary.
+These are initial timing samples, not a performance-regression threshold or
+proof of the foreign boundary. CI host noise and the per-call guards affect
+timings. The bridge gate retains the report under `header-evidence/benchmark`.
+
 == Remaining premises
 
 For a non-null request the caller supplies a live readable allocation, a span
