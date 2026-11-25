@@ -113,6 +113,7 @@ console.log();
 // SafeUUID benchmarks
 console.log('SafeUUID');
 console.log('--------');
+// hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 benchmark('parseUuid', () => parseUuid("550e8400-e29b-41d4-a716-446655440000"));
 benchmark('generateUuidV4', () => generateUuidV4(), 10000);
 console.log();

@@ -52,6 +52,7 @@ modules = Proven
         , Proven.SafeCrypto
         , Proven.SafeCrypto.Hash
         , Proven.SafeCrypto.Random
+        , Proven.SafeCrypto.RandomContainment
         , Proven.SafeCrypto.Proofs
         -- SafeInput
         , Proven.SafeInput
@@ -59,6 +60,7 @@ modules = Proven
         , Proven.SafePassword
         , Proven.SafePassword.Policy
         , Proven.SafePassword.Hash
+        , Proven.SafePassword.Comparison
         , Proven.SafePassword.Strength
         , Proven.SafePassword.Proofs
         -- SafeDateTime
@@ -96,6 +98,7 @@ modules = Proven
         , Proven.SafeSQL
         , Proven.SafeSQL.Types
         , Proven.SafeSQL.Params
+        , Proven.SafeSQL.Literal
         , Proven.SafeSQL.Builder
         , Proven.SafeSQL.Proofs
         -- SafeJWT
@@ -104,6 +107,7 @@ modules = Proven
         , Proven.SafeJWT.Decode
         , Proven.SafeJWT.Validate
         , Proven.SafeJWT.Proofs
+        , Proven.SafeJWT.Containment
         -- SafeBase64
         , Proven.SafeBase64
         , Proven.SafeBase64.Types
@@ -357,6 +361,7 @@ modules = Proven
         , Proven.FFI.SafeOrdering
         , Proven.FFI.SafeSchema
         , Proven.FFI.SafeTensor
+        , Proven.ABI.Lifecycle
         , Proven.FFI.SafeGit
         , Proven.FFI.SafeDocker
         , Proven.FFI.SafeDNS
@@ -371,12 +376,11 @@ modules = Proven
         , Proven.FFI.SafeMCP
         , Proven.FFI.SafeML
         , Proven.FFI.SafePhone
-        -- ECHIDNA neurosymbolic theorem prover validation
-        -- NOTE: ECHIDNA modules temporarily excluded - need redesign
-        -- (proof keyword, ProofValid forward ref, All ambiguity, verify resolution)
-        -- , Proven.ECHIDNA.ProofTerm
-        -- , Proven.ECHIDNA.Validator
-        -- , Proven.ECHIDNA.Soundness
+        -- ECHIDNA: sound closed Nat/Bool equality kernel (no external backend)
+        , Proven.ECHIDNA.ProofTerm
+        , Proven.ECHIDNA.Kernel
+        , Proven.ECHIDNA.Validator
+        , Proven.ECHIDNA.Soundness
 
 depends = base >= 0.6.0
         , contrib

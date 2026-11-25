@@ -103,8 +103,6 @@ jobs:
         run: |
           # Count believe_me instances and verify they have justification comments
           BELIEVE_ME_COUNT=$(grep -r "believe_me" src/ --include="*.idr" 2>/dev/null | wc -l)
-          UNJUSTIFIED=$(grep -r "believe_me" src/ --include="*.idr" -B1 2>/dev/null | \
-                       grep -c "believe_me" 2>/dev/null || true)
           echo "believe_me instances: $BELIEVE_ME_COUNT"
           if [ "$BELIEVE_ME_COUNT" -gt 300 ]; then
             echo "WARNING: believe_me count ($BELIEVE_ME_COUNT) exceeds threshold (300)"

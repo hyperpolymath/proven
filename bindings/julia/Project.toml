@@ -2,11 +2,13 @@
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 name = "Proven"
+# hypatia: allow-next-line uuid/external -- Existing Julia package identity; preserve dependency resolution
 uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 version = "0.9.0"
 authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
 
 [extras]
+# hypatia: allow-next-line uuid/external -- Existing Julia package identity; preserve dependency resolution
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]

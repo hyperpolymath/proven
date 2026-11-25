@@ -24,7 +24,7 @@ fn attachHeader(b: *std.Build, mod: *std.Build.Module, path: []const u8) void {
     mod.addIncludePath(.{ .cwd_relative = b.fmt("{s}/support", .{path}) });
     mod.addCSourceFile(.{
         .file = .{ .cwd_relative = b.fmt("{s}/kernel.c", .{path}) },
-        .flags = &.{ "-std=c11", "-D_GNU_SOURCE", "-Dmain=proven_header_codegen_main", "-fno-strict-aliasing" },
+        .flags = &.{ "-std=c11", "-D_GNU_SOURCE", "-Dmain=idris_proven_codegen_main", "-fno-strict-aliasing" },
     });
     mod.addObjectFile(.{ .cwd_relative = b.fmt("{s}/libidris2_refc.a", .{path}) });
     mod.addObjectFile(.{ .cwd_relative = b.fmt("{s}/libidris2_support.a", .{path}) });
@@ -53,6 +53,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .link_libc = true,
     });
+    const lifecycle_mod = b.createModule(.{
+        .root_source_file = b.path("src/lifecycle_unavailable.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    proven_mod.addImport("lifecycle", lifecycle_mod);
     if (header) |path| attachHeader(b, proven_mod, path);
 
     const lib = b.addLibrary(.{
@@ -71,6 +77,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .link_libc = true,
     });
+    test_mod.addImport("lifecycle", lifecycle_mod);
     if (header) |path| attachHeader(b, test_mod, path);
     const unit_tests = b.addTest(.{
         .root_module = test_mod,

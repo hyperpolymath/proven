@@ -18,6 +18,7 @@ import System
 
 private
 v4Sample : String
+-- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 v4Sample = "550e8400-e29b-41d4-a716-446655440000"
 
 --------------------------------------------------------------------------------
@@ -83,10 +84,15 @@ check label False = do
 private
 samples : List String
 samples = [ v4Sample
+          -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
           , "550E8400-E29B-41D4-A716-446655440000"
+          -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
           , "00000000-0000-0000-0000-000000000000"
+          -- hypatia: allow-next-line uuid/external -- RFC UUID namespace constant; preserve interoperability
           , "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+          -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
           , "6fa459ea-ee8a-3ca4-894e-db77e160355e"
+          -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
           , "886313e1-3b8a-5372-9b90-0c9aee199e5d" ]
 
 private
@@ -124,18 +130,25 @@ runUUIDProperties = do
   check "prop_validUUIDv4Parses: version V4, variant RFC 4122"
     (map (\u => u.version == V4 && u.variant == RFC4122) (Proven.SafeUUID.parse v4Sample) == Just True)
   check "prop_uppercaseUUIDParses: uppercase hex accepted"
+    -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     (isValid "550E8400-E29B-41D4-A716-446655440000")
   check "prop_nilUUIDParses: nil UUID accepted"
+    -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
     (isValid "00000000-0000-0000-0000-000000000000")
   check "nil UUID string is recognised as nil; v4 sample is not"
+    -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
     (map isNil (Proven.SafeUUID.parse "00000000-0000-0000-0000-000000000000") == Just True &&
      map isNil (Proven.SafeUUID.parse v4Sample) == Just False && isNil nilUUID)
   check "prop_generatedUUIDValid: library-produced nilUUID formats to a valid UUID"
+    -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
     (isValid (format nilUUID) && format nilUUID == "00000000-0000-0000-0000-000000000000")
   check "prop_versionExtractable: versions 1, 3, 4, 5 read from the version nibble"
+    -- hypatia: allow-next-line uuid/external -- RFC UUID namespace constant; preserve interoperability
     (versionOf "6ba7b810-9dad-11d1-80b4-00c04fd430c8" == Just V1 &&
+     -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
      versionOf "6fa459ea-ee8a-3ca4-894e-db77e160355e" == Just V3 &&
      versionOf v4Sample == Just V4 &&
+     -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
      versionOf "886313e1-3b8a-5372-9b90-0c9aee199e5d" == Just V5)
   check "prop_formatConsistent: format/parse round-trip on samples"
     (all roundTrips samples)
@@ -143,16 +156,22 @@ runUUIDProperties = do
     (map format (Proven.SafeUUID.parse "550e8400e29b41d4a716446655440000") == Just v4Sample)
   check "prop_uuidEqReflexive: == reflexive and case-insensitive on samples"
     (all (\s => map (\u => u == u) (Proven.SafeUUID.parse s) == Just True) samples &&
+     -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
      Proven.SafeUUID.parse v4Sample == Proven.SafeUUID.parse "550E8400-E29B-41D4-A716-446655440000")
   check "prop_bytesRoundtrip: 16 bytes that re-encode to an equal UUID"
     (all bytesRoundTrip samples)
   check "rejects non-hex characters and wrong lengths"
     (not (isValid "550e8400-e29b-41d4-a716-44665544000g") &&
+     -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
      not (isValid "550e8400-e29b-41d4-a716-4466554400000") && not (isValid ""))
   check "prop_versionExtractable: hex version nibble 'a' is version 10"
+    -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     (versionOf "550e8400-e29b-a1d4-a716-446655440000" == Just (Unknown 10))
   check "prop_versionExtractable: version nibble is case-insensitive hex ('F' and 'f' are 15)"
+    -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     (versionOf "550e8400-e29b-F1d4-a716-446655440000" == Just (Unknown 15) &&
+     -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
      versionOf "550e8400-e29b-f1d4-a716-446655440000" == Just (Unknown 15) &&
+     -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
      versionOf "550e8400-e29b-91d4-a716-446655440000" == Just (Unknown 9))
   putStrLn ""

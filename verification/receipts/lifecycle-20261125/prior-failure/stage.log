@@ -1,0 +1,40 @@
+PASS: zero-exit diagnostics, missing output and wrong compiler cannot reuse stale C or a PASS receipt
+ok: all exported symbols (shared)
+ok: all exported symbols (static)
+ok: planted missing symbol is refused
+ok: qualified declaration (pub(crate))
+ok: qualified declaration (pub(super))
+ok: qualified declaration (pub(in crate::ffi))
+ok: qualified declaration (safe)
+ok: qualified declaration (unsafe)
+ok: qualified declaration (pub safe)
+ok: qualified declaration (pub(crate) unsafe)
+ok: default-version exports satisfy contract
+ok: single-@ export does not satisfy contract
+ok: missing library is NOT RUN
+ok: empty consumer contract is NOT RUN
+ok: unreadable artifact is NOT RUN
+native-nif-symbol-controls: 15 cases passed (actual ABI not yet verified)
+Lifecycle evidence: /home/hyperpolymath/.cache/codex-audits/proven-integration-evidence-20261125/native.uwTk4RUb/lifecycle/run.8hkkIR1c
+1/2: Building Proven.ABI.Lifecycle (Proven/ABI/Lifecycle.idr)
+2/2: Building LifecycleProofRegressions (LifecycleProofRegressions.idr)
+PASS: 1033 lifecycle assertions
+PASS: rejected ForgedLifecycle
+PASS: rejected MalformedLifecycle
+PASS: fresh full-package RefC output; staging: /tmp/proven-lifecycle.q2usL77M/package/build/refc
+Source /tmp/proven-lifecycle.q2usL77M/package/build/refc/sdk.env before the Zig build. This is build evidence, not whole-library verification.
+
+Build Summary: 5/5 steps succeeded
+install success
++- install proven success
+|  +- compile lib proven Debug native success 2s MaxRSS:151M
++- install proven success
+   +- compile lib proven Debug native success 8s MaxRSS:245M
+
+
+Build Summary: 3/3 steps succeeded; 17/17 tests passed
+test success
++- run test 17 passed 69ms MaxRSS:3M
+   +- compile test Debug native success 3s MaxRSS:153M
+
+NOT RUN: library defines no proven_ symbols

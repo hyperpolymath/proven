@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Lifecycle integration with the qualified header boundary
+
+Status: implementation prepared; integrated-source validation pending.
+
+The merge preserves the current main branch's exact-byte Idris header kernel,
+compiler-SDK bridge, isolated RefC producer and C capability ledger. The older
+lifecycle source remains published at e7a0aa8a46601df22f0853c28ec26424a3874321;
+its receipts and Mathesis registration describe that historical source only.
+They do not certify the merged implementation.
+
+Lifecycle policy remains `Proven.ABI.Lifecycle.lifecycleCommand`. The full FFI
+code-generation root retains both header and lifecycle functions. Its Zig
+adapter uses the pinned public compiler SDK's Bits64 constructors, trampoline,
+tagged result and reference-release functions. It serializes calls under one
+mutex. Generated functions consume the input reference; the returned reference
+is released once. Pointer validity, compiler correctness, allocator behavior and
+general ownership refinement remain trusted or unproved boundaries. The private
+bridge remains pinned for historical/dedicated nonce tests, but is not required
+by either production build entry point or the public lifecycle CI job.
+
+The full profile provides the no-argument status/void/bool lifecycle ABI. The
+standalone and header-only profiles export the same signatures and refuse init
+with -99; readiness remains false. Legacy handle construction/query have separate
+names. ABI version2 distinguishes this correction from the incompatible legacy
+signatures. Error strings are borrowed static storage, not leaked allocations.
+The compiler-generated program entry is renamed outside the public `proven_`
+namespace; it is not part of the C API. The existing ledger is updated with these
+real exports and keeps every unimplemented operation explicitly owed.
+
+The required integration gate follows main's capability-ledger decision: it
+checks every target-header and actual-library symbol against its declared
+status, plus real typed lifecycle/header consumers. It does not claim that all
+Rustler APIs are implemented. The independent complete-NIF checker remains
+fail-closed and retains rejecting regression controls; complete NIF availability
+is still a release obligation. No dummy export or fabricated implementation is
+introduced to satisfy that broader gate.
+
+Validation must recheck total production lifecycle proofs and both forged-proof
+controls; regenerate the combined RefC package; exercise static/shared C and
+Rust callers, concurrency, standalone refusal and an actual generated-result
+mutant; preserve the exhaustive header byte corpus and its own mutant; and
+verify the current ledger against the real artifacts. Public-SDK decoding adds
+null/immediate/wrong-tag result controls. C regression refactoring preserves
+all lifecycle assertions while splitting sequential and concurrent checks.
+
+Legacy A2ML is retained from main without new edits. Earlier remediation
+rationale remains in docs/remediation and the immutable publication history;
+new decisions belong here and in ROADMAP.adoc. No new whole-library proof or
+package build success is claimed before its commands pass.
+
+The initial integrated native run passed the production proofs, both negative
+proof controls, 1,033 assertions, combined RefC generation, both libraries and
+17 Zig tests, then exposed a ledger-checker defect: GNU nm -D may return success
+with no symbols for static archives. The checker now selects archive symbols
+only for ar-readable archives and dynamic symbols for shared libraries. New
+regressions exercise each fixture in both forms and reject hidden shared symbols.
+The typed error-string export is classified as exported/zig-legacy, matching
+its header and borrowed-storage implementation. The SDK decoder rejects bad
+alignment before touching a header and uses the compiler SDK payload accessor;
+arbitrary aligned-pointer validity remains an explicit assumption.

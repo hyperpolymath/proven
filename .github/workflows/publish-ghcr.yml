@@ -25,11 +25,9 @@ jobs:
           node-version: '24'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@hyperpolymath'
-      - name: Build JavaScript binding
+      - name: Validate JavaScript package (source-only; no build script)
         working-directory: bindings/javascript
-        run: |
-          npm ci
-          npm run build
+        run: npm pack --dry-run
       - name: Publish to GitHub Packages
         working-directory: bindings/javascript
         run: npm publish

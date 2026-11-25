@@ -47,9 +47,10 @@
 
       * Nil UUID constant
        01 UUID-NIL                    PIC X(36)
+      * hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
           VALUE "00000000-0000-0000-0000-000000000000".
 
       * Max UUID constant
        01 UUID-MAX                    PIC X(36)
+      * hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
           VALUE "ffffffff-ffff-ffff-ffff-ffffffffffff".
-

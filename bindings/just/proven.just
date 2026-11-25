@@ -338,6 +338,7 @@ uuid-v4:
     @{{ proven_cli }} uuid v4
 
 # Parse and validate a UUID
+# hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 # Usage: just parse-uuid "550e8400-e29b-41d4-a716-446655440000"
 [doc("Parse and validate a UUID string")]
 parse-uuid uuid:

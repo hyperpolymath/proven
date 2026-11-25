@@ -9,7 +9,7 @@ import System
 %default total
 
 -- The real API: token splitting (`splitToken`, total), creation
--- (`createToken`/`createHS256Token`, total; signing is a stub), and the
+-- (`createToken`/`createHS256Token`, total; authentication unavailable), and the
 -- validation pipeline (`validateAlgorithm`, `validateExp`, `validateNbf`,
 -- `validateDecoded`, `validate`, all total over a `DecodedJWT`). The
 -- string-level entry points `decode`, `decodeClaims`, `verifyJWT`,
@@ -43,26 +43,26 @@ prop_nbfFutureRejected : (t : Integer) -> (skew : ClockSkew) -> (c : JWTClaims) 
 prop_nbfFutureRejected t skew (MkJWTClaims _ _ _ _ Nothing _ _ _) prf = absurd prf
 prop_nbfFutureRejected t skew (MkJWTClaims _ _ _ _ (Just n) _ _ _) prf = rewrite prf in Refl
 
-||| Property: HS256 token creation succeeds for every secret and claim set
-prop_hs256Supported : (secret : List Bits8) -> (claims : JWTClaims) ->
-                      isOk (createToken (minimalHeader HS256) claims (SecretKey secret)) = True
-prop_hs256Supported secret claims = Refl
+||| HS256 creation explicitly refuses every secret and claim set.
+prop_hs256Unavailable : (secret : List Bits8) -> (claims : JWTClaims) ->
+  createToken (minimalHeader HS256) claims (SecretKey secret) = Err (CryptoUnavailable HS256)
+prop_hs256Unavailable secret claims = Refl
 
-||| Property: HS384 token creation succeeds for every secret and claim set
-prop_hs384Supported : (secret : List Bits8) -> (claims : JWTClaims) ->
-                      isOk (createToken (minimalHeader HS384) claims (SecretKey secret)) = True
-prop_hs384Supported secret claims = Refl
+||| HS384 creation explicitly refuses every secret and claim set.
+prop_hs384Unavailable : (secret : List Bits8) -> (claims : JWTClaims) ->
+  createToken (minimalHeader HS384) claims (SecretKey secret) = Err (CryptoUnavailable HS384)
+prop_hs384Unavailable secret claims = Refl
 
-||| Property: HS512 token creation succeeds for every secret and claim set
-prop_hs512Supported : (secret : List Bits8) -> (claims : JWTClaims) ->
-                      isOk (createToken (minimalHeader HS512) claims (SecretKey secret)) = True
-prop_hs512Supported secret claims = Refl
+||| HS512 creation explicitly refuses every secret and claim set.
+prop_hs512Unavailable : (secret : List Bits8) -> (claims : JWTClaims) ->
+  createToken (minimalHeader HS512) claims (SecretKey secret) = Err (CryptoUnavailable HS512)
+prop_hs512Unavailable secret claims = Refl
 
 -- The orphan's `prop_verifyDeterministic` (`verifyJWT t s = verifyJWT t s`)
 -- holds by Refl for any function and says nothing; it is replaced by
 -- `prop_noneAlgRejected` above, a real statement about the pipeline.
 
-||| OWED: claims survive a create/decode round trip, for `decode =
+||| FUTURE OBLIGATION: vacuous while creation always fails. For `decode =
 ||| decodeClaims`. Blocked by: `decodeClaims` (and the JSON claim parser it
 ||| uses) is `covering`, so this total module can neither run nor mention it,
 ||| hence the family over the decoder; encoding and base64 also run over
@@ -93,9 +93,9 @@ runJWTProperties = do
   putStrLn "prop_noneAlgRejected: PASS (proven by type, all tokens/keys/times)"
   putStrLn "prop_expiredRejected: PASS (proven by type, all claims/times)"
   putStrLn "prop_nbfFutureRejected: PASS (proven by type, all claims/times)"
-  putStrLn "prop_hs256Supported: PASS (proven by type, all secrets/claims)"
-  putStrLn "prop_hs384Supported: PASS (proven by type, all secrets/claims)"
-  putStrLn "prop_hs512Supported: PASS (proven by type, all secrets/claims)"
+  putStrLn "prop_hs256Unavailable: PASS (proven by type, all secrets/claims)"
+  putStrLn "prop_hs384Unavailable: PASS (proven by type, all secrets/claims)"
+  putStrLn "prop_hs512Unavailable: PASS (proven by type, all secrets/claims)"
   check "valid three-part JWT structure splits"
     (case splitToken "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig" of
        Ok segs => segs.header == "eyJhbGciOiJIUzI1NiJ9" &&
@@ -105,14 +105,10 @@ runJWTProperties = do
     (isErr (splitToken "not.a.jwt.token"))
   check "unsecured JWT (empty signature segment) splits"
     (isOk (splitToken "eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0."))
-  check "created HS256 token has three segments and the encoded claims"
+  check "HS256 creation reports unavailable without issuing a token"
     (case createHS256Token "secret" subUser of
-       Ok tok => case splitToken tok of
-         Ok segs => case base64UrlDecodeString segs.payload of
-           Ok json => json == "{\"sub\":\"user\"}"
-           Err _ => False
-         Err _ => False
-       Err _ => False)
+       Err (CryptoUnavailable HS256) => True
+       _ => False)
   check "concrete expiry: no exp accepted, exp 1000 rejected at t=2000 (default skew)"
     (isOk (validateExp 2000 defaultClockSkew subUser) &&
      isErr (validateExp 2000 defaultClockSkew ({ exp := Just 1000 } subUser)))

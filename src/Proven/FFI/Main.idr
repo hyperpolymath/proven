@@ -6,10 +6,15 @@
 module Proven.FFI.Main
 
 import Proven.FFI.SafeUrl
+import Proven.ABI.Lifecycle
+import System
 import Proven.SafeHeader.ByteKernel
 
 main : IO ()
 main = do
+  -- Runtime input and %noinline keep the real lifecycle entrypoint reachable.
+  args <- getArgs
+  printLn (lifecycleCommand (cast (length args)))
   -- URL parsing
   let (s1, r1) = proven_idris_url_parse "http://example.com"
   putStrLn (show s1 ++ r1)
