@@ -16,6 +16,11 @@ on:
       - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
       - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/check-abi-ledger.sh'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'scripts/test-abi-ledger.sh'
+      - 'tests/check-native-nif-exports.sh'
       - 'tests/remediation/**'
       - 'bindings/c/include/**'
       - 'bindings/rust/src/ffi.rs'
@@ -29,6 +34,11 @@ on:
       - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
       - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/check-abi-ledger.sh'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'scripts/test-abi-ledger.sh'
+      - 'tests/check-native-nif-exports.sh'
       - 'tests/remediation/**'
       - 'bindings/c/include/**'
       - 'bindings/rust/src/ffi.rs'
@@ -80,6 +90,14 @@ jobs:
         run: bash scripts/test-native-lifecycle.sh
       - name: Test the NIF symbol checker with planted controls
         run: bash tests/check-native-nif-exports.sh
+      - name: Test the ABI ledger with shared and static planted controls
+        run: bash scripts/test-abi-ledger.sh
+      - name: Test production nonce and entropy through the public RefC SDK
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: |
+          mkdir -p build/native-abi-evidence
+          bash scripts/test-remediation-bridge.sh 2>&1 | tee build/native-abi-evidence/nonce-remediation.log
       - name: Reject stale output and misleading compiler success
         run: bash scripts/test-refc-staging.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

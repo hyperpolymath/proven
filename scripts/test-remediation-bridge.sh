@@ -5,7 +5,6 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 idris="${IDRIS2:-idris2}"
 zig="${ZIG:-zig}"
-[[ -f "$root/nextgen-languages/language-bridges/bridges/idris2/src/root.zig" ]]
 scratch="$(mktemp -d -t proven-native-remediation.XXXXXXXX)"
 trap 'rm -rf -- "$scratch"' EXIT
 cp -R "$root/src/Proven" "$scratch/Proven"
@@ -43,8 +42,8 @@ expect_build_rejection() {
 common=("-Didris-refc-runtime=$runtime" "-Didris-c-support=$support"
         "-Didris-support-lib=$(dirname "$support_lib")")
 mkdir "$scratch/empty"
-expect_build_rejection missing-options "all four -Didris-* paths are required"
-expect_build_rejection empty-sources "no generated RefC C sources" \
+expect_build_rejection missing-options "requires all four Idris RefC paths"
+expect_build_rejection empty-sources "empty RefC source directory" \
   "-Didris-refc=$scratch/empty" "${common[@]}"
-expect_build_rejection missing-sources "cannot open generated RefC directory" \
+expect_build_rejection missing-sources "missing RefC source directory" \
   "-Didris-refc=$scratch/missing" "${common[@]}"

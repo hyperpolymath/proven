@@ -179,4 +179,16 @@ pub fn build(b: *std.Build) void {
     const run_mod_tests = b.addRunArtifact(mod_tests);
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_mod_tests.step);
+
+    // Separate generated fixture: real production nonce/entropy functions,
+    // linked through the same public compiler SDK as the lifecycle adapter.
+    const remediation_mod = b.createModule(.{
+        .root_source_file = b.path("../../tests/remediation/native_nonce.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    configureRefC(b, remediation_mod, refc_path, refc_runtime_path, c_support_path, support_lib_path);
+    const remediation_tests = b.addTest(.{ .root_module = remediation_mod });
+    const remediation_run = b.addRunArtifact(remediation_tests);
+    b.step("remediation-test", "Exercise production nonce and entropy through RefC/Zig").dependOn(&remediation_run.step);
 }
