@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# ClusterFuzzLite build script. Builds the standalone Zig FFI surface as
-# libproven.so, then builds the cargo-fuzz targets that are backed by that
-# surface.
+# ClusterFuzzLite build script. Builds the RefC-backed Zig FFI archive,
+# then links the supported cargo-fuzz target against that implementation.
 #
 # Runs inside the ClusterFuzzLite container (see Dockerfile). Outputs
 # the fuzz target binaries to $OUT, the path the runner expects.
@@ -27,8 +26,9 @@ pushd ffi/zig >/dev/null
 zig build -j2 --build-file build_standalone.zig -Doptimize=ReleaseSafe "-Dheader-refc=$bundle"
 cp zig-out/lib/libproven_ffi.a zig-out/lib/libproven.a
 popd >/dev/null
-# System dependencies of the statically linked public RefC runtime.
-export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-lgmp -C link-arg=-lm -C link-arg=-lpthread -C link-arg=-lubsan"
+# Final-link support archive, followed by its system dependencies (matching
+# the native static consumer). Zig's archive does not absorb this archive.
+export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=$bundle/libidris2_support.a -C link-arg=-lgmp -C link-arg=-lm -C link-arg=-lpthread -C link-arg=-lubsan"
 # Make libproven discoverable to the cargo-fuzz linker.
 export PROVEN_LIB_DIR="$PWD/ffi/zig/zig-out/lib"
 export LD_LIBRARY_PATH="$PROVEN_LIB_DIR:${LD_LIBRARY_PATH:-}"
