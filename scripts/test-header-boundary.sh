@@ -54,7 +54,7 @@ done
 cp "$work/zig/src/core.zig" "$work/original-core.zig"
 for mutation in extent null_status error_class null_order; do
   case "$mutation" in
-    extent) sed '/^pub fn headerHasCrlf/,/^}/s/header_backend.detect(p\[0\.\.len\])/header_backend.detect(p[0..0])/' "$work/original-core.zig" ;;
+    extent) sed '/^pub fn headerHasCrlf/,/^}/s/header_backend.detect(p\[0\.\.len\])/header_backend.detect(p[0..len - len])/' "$work/original-core.zig" ;;
     null_status) sed '/^pub fn headerHasCrlf/,/^}/s/status = PROVEN_ERR_NULL_POINTER/status = PROVEN_OK/' "$work/original-core.zig" ;;
     error_class) sed '/^pub fn headerHasCrlf/,/^}/s/) -99 else -7/) -7 else -99/' "$work/original-core.zig" ;;
     null_order) awk '{print} /^pub fn headerHasCrlf/ {print "    if (ptr == null) _ = header_backend.detect(&.{}) catch false;"}' "$work/original-core.zig" ;;
