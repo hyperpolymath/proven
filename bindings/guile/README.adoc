@@ -174,24 +174,32 @@ All operations return an alist with `'value` and `'ok` keys.
 (use-modules (proven safe-uuid))
 
 ;; Validate UUID
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 (uuid-valid? "550e8400-e29b-41d4-a716-446655440000")  ; => #t
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 (uuid-valid-v4? "550e8400-e29b-41d4-a716-446655440000")  ; => #t
 
 ;; Get version
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 (uuid-version "550e8400-e29b-41d4-a716-446655440000")  ; => 4
 
 ;; Normalize
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 (uuid-normalize "550E8400-E29B-41D4-A716-446655440000")
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 ; => "550e8400-e29b-41d4-a716-446655440000"
 
 ;; Parse into components
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 (uuid-parse "550e8400-e29b-41d4-a716-446655440000")
 
 ;; Convert to/from hex
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 (uuid-to-hex "550e8400-e29b-41d4-a716-446655440000")
 ; => "550e8400e29b41d4a716446655440000"
 
 (uuid-from-hex "550e8400e29b41d4a716446655440000")
+;; hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 ; => ((uuid . "550e8400-e29b-41d4-a716-446655440000") (ok . #t))
 ----
 

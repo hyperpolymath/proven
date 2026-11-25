@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+name: Header theory replay
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: header-theory-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  theory:
+    name: Agda Cubical Lean Rocq replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      OPAMYES: '1'
+      OPAMJOBS: '2'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: Install proof tool dependencies
+        run: sudo apt-get update && sudo apt-get install -y ghc cabal-install opam libgmp-dev zstd
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: proof-cache
+        with:
+          path: |
+            ~/.cabal
+            ~/.local/state/cabal
+            ~/.cache/cabal
+            ~/.opam
+            ~/.local/header-proof-tools
+          key: header-theory-ubuntu2404-systemghc-agda2643-lean4150-rocq920-ocaml511-${{ hashFiles('.github/workflows/header-theory.yml') }}
+          # Cache contains tools only; the exact version checks run on every replay.
+          restore-keys: |
+            header-theory-ubuntu2404-systemghc-agda2643-lean4150-rocq920-ocaml511-
+      - name: Build pinned proof tools
+        if: steps.proof-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          # A fallback cache may have the same pinned tools under an older
+          # workflow hash. Check the installed versions before reusing it.
+          if [[ $("$HOME/.local/header-proof-tools/bin/agda" --version 2>/dev/null) == 'Agda version 2.6.4.3' ]] &&
+             [[ $("$HOME/.local/header-proof-tools/lean-4.15.0-linux/bin/lean" --version 2>/dev/null) == 'Lean (version 4.15.0,'* ]] &&
+             [[ $(opam exec --switch=header-proof -- coqc --version 2>/dev/null) == 'The Rocq Prover, version 9.2'* ]]; then
+            exit 0
+          fi
+          mkdir -p "$HOME/.local/header-proof-tools/bin"
+          cabal update
+          # Hosted images also put a newer, incompatible GHC on PATH.
+          # Use the distribution compiler installed in the dependency step.
+          cabal v2-install Agda-2.6.4.3 --with-compiler=/usr/bin/ghc --with-hc-pkg=/usr/bin/ghc-pkg --index-state=2026-11-16T00:00:00Z --jobs=2 --install-method=copy --installdir="$HOME/.local/header-proof-tools/bin"
+          opam init --bare --disable-sandboxing -y
+          opam switch create header-proof ocaml-base-compiler.5.1.1 -y
+          opam install --switch=header-proof coq.9.2.0 rocq-stdlib.9.2.0 -y
+          curl --fail --location --proto '=https' --tlsv1.2 https://github.com/leanprover/lean4/releases/download/v4.15.0/lean-4.15.0-linux.tar.zst -o "$RUNNER_TEMP/lean.tar.zst"
+          tar --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$HOME/.local/header-proof-tools"
+      - name: Fetch the exact Sholes proof source
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/sholes"
+          git -C "$RUNNER_TEMP/sholes" remote add origin https://github.com/hyperpolymath/sholes.git
+          git -C "$RUNNER_TEMP/sholes" fetch --depth 1 origin c28993a73d1c78830c6d92f563fae638d22bb7f7
+      - name: Replay proofs, audit assumptions and reject false witnesses
+        run: |
+          set -euo pipefail
+          eval "$(opam env --switch=header-proof --set-switch)"
+          export PATH="$HOME/.local/header-proof-tools/bin:$HOME/.local/header-proof-tools/lean-4.15.0-linux/bin:$PATH"
+          bash scripts/check-header-proofs.sh "$RUNNER_TEMP/sholes"
+          bash scripts/test-header-proof-diagnostics.sh "$RUNNER_TEMP/sholes"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: header-theory-evidence
+          path: build/header-proof-evidence/
+          if-no-files-found: error
+

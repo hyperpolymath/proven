@@ -4,76 +4,114 @@ module SafeHtmlProps
 
 import Proven.Core
 import Proven.SafeHtml
+import Proven.SafeString.Escape
+import Data.List
+import Data.String
+import System
 
 %default total
 
-||| Property: Plain text is safe
-prop_plainTextSafe : isOk (sanitizeHtml "Hello World") = True
-prop_plainTextSafe = Refl
+-- Real API: `escapeHtmlContent : String -> String`, the total sanitisers
+-- `sanitizeStandard`/`sanitizeStrict : String -> String` (documented as a
+-- simplified implementation: strip every tag, then escape), `sanitizeUrl`,
+-- `sanitizeAttrValue`, and the policy predicates `isTagAllowed`,
+-- `isAttrAllowed`, `isDangerousAttr`, `isBlacklistedTag`. There is no
+-- `sanitizeHtml` returning a Result. `Proven.SafeString.Escape` is imported
+-- so that `escapeHtmlContent = escapeHTML` unfolds at the type level.
+--
+-- The original `prop_escapeIdempotent` (escape (escape s) = escape s) is
+-- false for any HTML escaper: escape "&" = "&amp;" but escape "&amp;" =
+-- "&amp;amp;". It is replaced by an execution check of that counterexample.
 
-||| OWED: Script tag is removed
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_scriptRemoved_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_scriptRemoved : containsScript (sanitizeHtml "<script>alert('xss')</script>") = False
+--------------------------------------------------------------------------------
+-- Type-level proofs
+--------------------------------------------------------------------------------
 
-||| OWED: Event handlers are removed
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_eventHandlersRemoved_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_eventHandlersRemoved : containsEventHandler (sanitizeHtml "<div onclick='evil()'>text</div>") = False
-
-||| OWED: Escaped output doesn't contain raw HTML
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_escapeNoRawHtml_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_escapeNoRawHtml : (s : String) -> containsRawHtml (escapeHtml s) = False
-
-||| OWED: Escape is idempotent
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_escapeIdempotent_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_escapeIdempotent : (s : String) -> escapeHtml (escapeHtml s) = escapeHtml s
-
-||| Property: Less-than is escaped
-prop_ltEscaped : escapeHtml "<" = "&lt;"
+||| Less-than is escaped.
+prop_ltEscaped : escapeHtmlContent "<" = "&lt;"
 prop_ltEscaped = Refl
 
-||| Property: Greater-than is escaped
-prop_gtEscaped : escapeHtml ">" = "&gt;"
+||| Greater-than is escaped.
+prop_gtEscaped : escapeHtmlContent ">" = "&gt;"
 prop_gtEscaped = Refl
 
-||| Property: Ampersand is escaped
-prop_ampEscaped : escapeHtml "&" = "&amp;"
+||| Ampersand is escaped.
+prop_ampEscaped : escapeHtmlContent "&" = "&amp;"
 prop_ampEscaped = Refl
 
-||| Property: Quote is escaped
-prop_quoteEscaped : escapeHtml "\"" = "&quot;"
+||| Double quote is escaped.
+prop_quoteEscaped : escapeHtmlContent "\"" = "&quot;"
 prop_quoteEscaped = Refl
 
-||| Property: Safe tags are preserved
-prop_safeTagsPreserved : isOk (sanitizeHtml "<p>paragraph</p>") = True
-prop_safeTagsPreserved = Refl
+||| A whole script tag is neutralised by escaping.
+prop_scriptEscaped : escapeHtmlContent "<script>" = "&lt;script&gt;"
+prop_scriptEscaped = Refl
 
-||| Property: Safe attributes are preserved
-prop_safeAttrsPreserved : isOk (sanitizeHtml "<a href=\"https://example.com\">link</a>") = True
-prop_safeAttrsPreserved = Refl
+||| `javascript:` URLs are refused, case- and whitespace-insensitively.
+prop_jsUrlRemoved : (sanitizeUrl "javascript:alert(1)", sanitizeUrl " JavaScript:alert(1)")
+                    = (Nothing, Nothing)
+prop_jsUrlRemoved = Refl
 
-||| OWED: Javascript URLs are removed
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_jsUrlRemoved_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_jsUrlRemoved : containsJsUrl (sanitizeHtml "<a href=\"javascript:alert(1)\">link</a>") = False
+||| An https URL passes through unchanged.
+prop_httpsUrlKept : sanitizeUrl "https://example.com" = Just "https://example.com"
+prop_httpsUrlKept = Refl
+
+||| Policy: `p` is an allowed tag and `href` an allowed attribute on `a`.
+prop_safeTagAndAttrAllowed : (isTagAllowed Sanitize.standardConfig "p",
+                              isAttrAllowed Sanitize.standardConfig "a" "href") = (True, True)
+prop_safeTagAndAttrAllowed = Refl
+
+||| Policy: event handlers are dangerous attributes; `script` is blacklisted.
+prop_eventHandlerAndScriptBlocked : (isDangerousAttr "onclick",
+                                     isBlacklistedTag "script") = (True, True)
+prop_eventHandlerAndScriptBlocked = Refl
+
+--------------------------------------------------------------------------------
+-- Outstanding obligations
+--------------------------------------------------------------------------------
+
+||| OWED: escaped output contains no raw `<`, `>` or `"`.
+||| Blocked by: `escapeHTML` is `pack (go (unpack s))`; for abstract `s` this
+||| needs `unpack (pack xs) = xs`, which is not definitional for the String
+||| primitives. Names the proposition only.
+public export
+EscapeNoRawHtmlObligation : Type
+EscapeNoRawHtmlObligation =
+  (s : String) ->
+  ( elem '<' (unpack (escapeHtmlContent s))
+  , elem '>' (unpack (escapeHtmlContent s))
+  , elem '"' (unpack (escapeHtmlContent s)) ) = (False, False, False)
+
+||| OWED: sanitised output never contains a `<`, so no tag (script, event
+||| handler carrier, javascript: link) can survive. Blocked by: same
+||| `pack`/`unpack` round-trip as above. Names the proposition only.
+public export
+SanitizeNoTagObligation : Type
+SanitizeNoTagObligation = (s : String) -> elem '<' (unpack (sanitizeStandard s)) = False
+
+--------------------------------------------------------------------------------
+-- Execution checks
+--------------------------------------------------------------------------------
+
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
+
+private
+noRaw : String -> Bool
+noRaw s = not (any (\c => c == '<' || c == '>' || c == '"') (unpack s))
+
+private
+attackCorpus : List String
+attackCorpus =
+  [ "<script>alert('xss')</script>"
+  , "<div onclick='evil()'>text</div>"
+  , "<a href=\"javascript:alert(1)\">link</a>"
+  , "<img src=x onerror=alert(1)>"
+  , "<<script>script>", "a < b > c", "\"quoted\" & 'single'" ]
 
 ||| Test runner for HTML properties
 export
@@ -81,11 +119,23 @@ runHtmlProperties : IO ()
 runHtmlProperties = do
   putStrLn "SafeHtml Property Tests"
   putStrLn "======================="
-  putStrLn "prop_plainTextSafe: PASS (proven by type)"
-  putStrLn "prop_ltEscaped: PASS (proven by type)"
-  putStrLn "prop_gtEscaped: PASS (proven by type)"
-  putStrLn "prop_ampEscaped: PASS (proven by type)"
-  putStrLn "prop_quoteEscaped: PASS (proven by type)"
-  putStrLn "prop_safeTagsPreserved: PASS (proven by type)"
-  putStrLn "prop_safeAttrsPreserved: PASS (proven by type)"
+  check "plain text unchanged by sanitisation" (sanitizeStandard "Hello World" == "Hello World")
+  check "script tag removed" (sanitizeStandard "<script>alert('xss')</script>" == "alert(&#x27;xss&#x27;)")
+  check "event-handler attribute removed with its tag"
+    (sanitizeStandard "<div onclick='evil()'>text</div>" == "text")
+  check "javascript: link removed, link text kept"
+    (sanitizeStandard "<a href=\"javascript:alert(1)\">link</a>" == "link")
+  check "sanitised attack corpus has no raw < > \" and no dangerous tag"
+    (all (\s => noRaw (sanitizeStandard s) &&
+                not (isInfixOf "<script" (toLower (sanitizeStandard s))))
+         attackCorpus)
+  check "escaped output has no raw < > \" (corpus)"
+    (all (noRaw . escapeHtmlContent) attackCorpus)
+  check "escaping is not idempotent (double escape of < is &amp;lt;)"
+    (escapeHtmlContent (escapeHtmlContent "<") == "&amp;lt;")
+  check "safe paragraph text preserved" (sanitizeStandard "<p>paragraph</p>" == "paragraph")
+  check "safe href attribute value preserved, event handler refused"
+    (sanitizeAttrValue "a" "href" "https://example.com" == Just "https://example.com" &&
+     sanitizeAttrValue "div" "onclick" "evil()" == Nothing &&
+     sanitizeAttrValue "a" "href" "javascript:alert(1)" == Nothing)
   putStrLn ""

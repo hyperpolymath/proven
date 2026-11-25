@@ -1,0 +1,16 @@
+716e0c4278ca30ff04d2ad2825ed61f6eb46ce4050762102ce75feae2e82b433  ./bindings/c/include/proven.h
+83770f25adcce80331fa6a727ac08f7b65b0ce5d16400bded782351765cc0aaf  ./ffi/zig/build_standalone.zig
+99b435bba97cd889653120c8a41db0bc8c5071b3165448aa81480fab8afea84d  ./ffi/zig/build.zig
+c8465e689bc13b3ad0e52da9e077e51a721717030d31ae32976ee81c06ef0fd4  ./ffi/zig/build.zig.zon
+a1bc5ccd30096b04866975a046c552304953b4a357486cee5b30b6d26c9e7ae1  ./ffi/zig/src/lifecycle_refc.zig
+afa70fecdff11633292c4130803c4ca96ae7331079692640878c474a524af8d0  ./ffi/zig/src/lifecycle_unavailable.zig
+d13f094812e96121769b076b3d8effa1e5d81b048893e5fbb76028e28d9ede49  ./ffi/zig/src/main.zig
+e41d6167aa00d273250ed64a7d9fae8b51f4e5cc202143ccf1a80c443806ebd7  ./ffi/zig/src/root.zig
+e908056e10fda99975942ca4eeb558de6463feef38c6b82a81590f94ab117e79  ./nextgen-languages/language-bridges/bridges/idris2/build.zig
+3d1fc1dbdb12a2b3f79c4b5ceee896ffebdaaf7d528ff3ceffe708be001b8346  ./nextgen-languages/language-bridges/bridges/idris2/build.zig.zon
+75a1f52836982e88152fb8fd56a1814e3b809f7a1cb914eed7349ddc6a0f871a  ./nextgen-languages/language-bridges/bridges/idris2/README.md
+1a1389eed9d65ea67c4c36ce8a9f804850bd5218337d2ffcd32ac36cf9121328  ./nextgen-languages/language-bridges/bridges/idris2/src/root.zig
+a4dd73cb5143eb8070f076b79f813731e0e6b83da74e537b57bfdf233f9979db  ./nextgen-languages/language-bridges/bridges/idris2/tests/BridgeFixture.idr
+31b82b92f58a498fd31c99988e15d93a226a59c6d7a619eafc6f9544ba3c45e9  ./nextgen-languages/language-bridges/bridges/idris2/tests/bridge_test.zig
+d9b643dd3d2280e749f7153cbf21b1b0fb63a56e98538e3021eaa022952a4e64  ./tests/remediation/native_lifecycle.c
+0435e73c58b8101dddce48c7d6730a07b8d0756938f2c551d85eed98482e463a  ./tests/remediation/native_nonce.zig

@@ -6,15 +6,23 @@
 module Proven.FFI.Main
 
 import Proven.FFI.SafeUrl
+import Proven.ABI.Lifecycle
+import System
+import Proven.SafeHeader.ByteKernel
 
 main : IO ()
 main = do
+  -- Runtime input and %noinline keep the real lifecycle entrypoint reachable.
+  args <- getArgs
+  printLn (lifecycleCommand (cast (length args)))
   -- URL parsing
   let (s1, r1) = proven_idris_url_parse "http://example.com"
   putStrLn (show s1 ++ r1)
   -- Validation
   let v = proven_idris_url_is_valid "http://test.com"
   putStrLn (show v)
+  -- Retain the actual header kernel in the full RefC build as well.
+  putStrLn (show (headerStep (cast s1) (cast v)))
   -- Components
   let (_, _) = proven_idris_url_get_scheme "http://x"
   let (_, _) = proven_idris_url_get_host "http://x"

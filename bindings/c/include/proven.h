@@ -3,15 +3,14 @@
 
 /**
  * @file proven.h
- * @brief Proven FFI - Complete C header for libproven
+ * @brief Proven FFI - Intended C contract for libproven
  *
- * This is the single, complete header file declaring all exported functions
- * from libproven. The library is implemented in Idris 2 (formally verified)
- * with a Zig FFI bridge exposing a stable C ABI. Link against libproven.so
- * or libproven.a to use these functions.
+ * This header declares the intended surface; many functions are not yet
+ * exported by the current library. Symbol, type and behavioral validation
+ * against the exact artifact is required. See the native ABI contract report.
  *
- * All computation is performed in verified Idris 2 code; this header is a
- * thin, type-safe declaration layer. Do NOT reimplement any logic in C.
+ * The lifecycle adapter calls Idris through RefC. Other existing Zig operations
+ * still have provenance/proof gaps. Declarations alone establish no proof.
  *
  * Memory management rules:
  *   - ProvenStringResult.value must be freed with proven_free_string()
@@ -57,6 +56,7 @@ extern "C" {
 
 /** Library version string */
 #define PROVEN_VERSION_STRING "0.9.0"
+#define PROVEN_FFI_ABI_VERSION 2
 
 /** Total number of modules in the library */
 #define PROVEN_MODULE_COUNT 41
@@ -129,10 +129,12 @@ void proven_free_string(char* ptr);
  * ============================================================================ */
 
 /**
- * @brief Initialize the Proven runtime (includes Idris 2 runtime).
+ * @brief Initialize the supported native Idris call path.
  * @return PROVEN_OK on success, error code otherwise.
  *
- * Must be called before any other Proven function. Safe to call multiple times.
+ * Safe to call multiple times. A standalone build returns NOT_IMPLEMENTED and
+ * remains uninitialized. Success does not promise every declared API exists.
+ * ABI 2 corrects the old Zig handle-returning export to this status contract.
  */
 int32_t proven_init(void);
 
@@ -149,6 +151,13 @@ void proven_deinit(void);
  * @return true if initialized.
  */
 bool proven_is_initialized(void);
+
+/**
+ * @brief Borrow this thread's last error text, or NULL.
+ * Static immutable storage: do not pass this pointer to proven_free_string().
+ * A later call can change which message this function returns.
+ */
+const char* proven_last_error(void);
 
 /* ============================================================================
  * Version Information (4 functions)
@@ -393,8 +402,10 @@ bool proven_network_ipv4_is_loopback(ProvenIPv4Address addr);
  * ============================================================================ */
 
 /**
- * @brief Check for CRLF injection characters in header value.
- * @return Result with detection status (true = CRLF found).
+ * @brief Detect either CR (13) or LF (10) in the exact byte span.
+ * Embedded NUL and non-UTF-8 bytes are data. ptr must name len readable bytes.
+ * @return Status 0 and true if either byte occurs; -1 for null ptr (even len=0),
+ * -99 if built without the Idris backend, -7 for an invalid backend result.
  */
 ProvenBoolResult proven_header_has_crlf(const uint8_t* ptr, size_t len);
 

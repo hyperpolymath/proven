@@ -36,33 +36,52 @@ crlfCheckPreventsInjection : (value : String) ->
                              ()
 crlfCheckPreventsInjection value hasCrlf = ()
 
-||| OWED: A validated `HeaderValue` was constructed under the constructor
-||| invariant that `not (hasCRLF v.value) = True`. Held back by Idris2
-||| 0.8.0 not type-level reducing `hasCRLF`, which expands to
-||| `isInfixOf "\r" s || isInfixOf "\n" s` — both `isInfixOf` and the
-||| underlying `unpack` are FFI-bound `String` primitives and do not
-||| compute for an abstract `v.value`. Same blocker family as
-||| SafeChecksum's FFI-bound `String` postulates. Discharge once a
-||| `Data.String` reflective tactic for `isInfixOf` is available, or
-||| once `HeaderValue` carries an erased `NoCRLF` proof field that this
-||| lemma can simply project.
-export
-0 headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True
+||| OWED: a header value accepted by `validateValue` is CRLF-free.
+||| Restated over the validator's output: the former bodyless
+||| `headerValueNoCRLF : (v : HeaderValue) -> not (hasCRLF v.value) = True`
+||| was false, because `MkHeaderValue` is a public constructor whose only
+||| invariant is the length bound (`MkHeaderValue "a\r\nb" Refl` type-checks).
+||| True by inspection of `validateValue` (it returns `Err HeaderInjection`
+||| whenever `hasCRLF trimmed` holds, and otherwise stores `trimmed`).
+||| Held back by `validateValue` being `export` (opaque outside
+||| `Proven.SafeHeader.Parser`) and by `trim` / `isInfixOf` over an
+||| abstract `String` not reducing in Idris2 0.8.0. Discharge by an
+||| in-module case analysis on `hasCRLF (trim value)` in
+||| `Proven.SafeHeader.Parser`, or once `HeaderValue` carries an erased
+||| `hasCRLF value = False` field that this lemma can project.
+||| This names the outstanding proposition; it does not provide a witness.
+public export
+ValidatedValueNoCRLFObligation : Type
+ValidatedValueNoCRLFObligation =
+  (opts : HeaderOptions) -> (name, value : String) -> (v : HeaderValue) ->
+  validateValue opts name value = Ok v -> not (hasCRLF v.value) = True
 
 
-||| OWED: Concatenating a CRLF-free header name, the literal `": "`, and
-||| a CRLF-free header value produces a CRLF-free wire-format string.
-||| Follows operationally from `headerValueNoCRLF`, the `HeaderName`
-||| token-validation invariant, and `": "` containing no CRLF. Held
-||| back by Idris2 0.8.0 not type-level reducing `hasCRLF` over
+||| OWED: rendering a header accepted by `mkHeader` (any options) yields a
+||| CRLF-free line. Restated over the validator's output: the former
+||| bodyless `renderedHeaderSafe : (h : Header) -> not (hasCRLF (renderHeader h)) = True`
+||| was false — under `defaultOptions` (`strictTokens = False`) the name
+||| was never checked, so `header "X-A\r\nSet-Cookie" "evil"` rendered as
+||| "X-A\r\nSet-Cookie: evil"; and it is false for any hand-built `Header`,
+||| since `MkHeaderName` / `MkHeaderValue` are public constructors that
+||| carry only length bounds. After the fix `validateName` rejects CR/LF
+||| in every mode (RFC 9110 §5.1) and `validateValue` rejects CR/LF/NUL
+||| (RFC 9110 §5.5), so the proposition holds by inspection: the name is
+||| stored as given, the value as trimmed, and `": "` has no CR/LF.
+||| Held back by Idris2 0.8.0 not type-level reducing `hasCRLF` over
 ||| `String` concatenation (`++` and `isInfixOf` are FFI-bound, so
-||| `hasCRLF (a ++ b ++ c)` does not decompose to a disjunction over
-||| the parts by `Refl`). Discharge once a `Data.String` reflective
-||| tactic supplies `isInfixOf_append : isInfixOf p (a ++ b) = isInfixOf p a || isInfixOf p b`,
-||| or via per-character induction on `unpack (renderHeader h)`.
-export
-0 renderedHeaderSafe : (h : Header) ->
-                       not (hasCRLF (renderHeader h)) = True
+||| `hasCRLF (a ++ b ++ c)` does not decompose to a disjunction over the
+||| parts), and by `validateName` / `validateValue` being `export`.
+||| Discharge once a `Data.String` reflective tactic supplies
+||| `isInfixOf_append`-style lemmas, or via per-character induction on
+||| `unpack (renderHeader h)` given `ValidatedValueNoCRLFObligation` and
+||| its name counterpart.
+||| This names the outstanding proposition; it does not provide a witness.
+public export
+RenderedHeaderSafeObligation : Type
+RenderedHeaderSafeObligation =
+  (opts : HeaderOptions) -> (name, value : String) -> (h : Header) ->
+  mkHeader opts name value = Ok h -> not (hasCRLF (renderHeader h)) = True
 
 --------------------------------------------------------------------------------
 -- Name Validation Proofs

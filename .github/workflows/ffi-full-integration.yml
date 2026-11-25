@@ -1,12 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-
 name: FFI Full Integration
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-permissions:
-  actions: read
-  contents: read
+permissions: {}
 on:
   push:
     branches: [main]
@@ -15,15 +12,36 @@ on:
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/check-abi-ledger.sh'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'scripts/test-abi-ledger.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/remediation/**'
+      - 'bindings/c/include/**'
+      - 'bindings/rust/src/ffi.rs'
   pull_request:
-    branches: [main]
     paths:
       - 'src/**'
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/check-abi-ledger.sh'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'scripts/test-abi-ledger.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/remediation/**'
+      - 'bindings/c/include/**'
+      - 'bindings/rust/src/ffi.rs'
   workflow_dispatch:
 concurrency:
   group: ffi-full-integration-${{ github.ref }}
@@ -31,98 +49,63 @@ concurrency:
 jobs:
   idris-refc-zig:
     name: Idris -> RefC -> Zig
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 45
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    env:
-      IDRIS2_VERSION: '0.8.0'
-      ZIG_VERSION: '0.15.2'
+    permissions:
+      contents: read
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           persist-credentials: false
-      - name: Check language-bridges credential
-        id: bridge-token
-        env:
-          LANGUAGE_BRIDGES_TOKEN: ${{ secrets.LANGUAGE_BRIDGES_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "$LANGUAGE_BRIDGES_TOKEN" ]; then
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::LANGUAGE_BRIDGES_TOKEN is not configured; skipping private full FFI integration."
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Checkout language-bridges
-        if: steps.bridge-token.outputs.available == 'true'
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: nextgen-languages/language-bridges
-          path: nextgen-languages/language-bridges
-          token: ${{ secrets.LANGUAGE_BRIDGES_TOKEN }}
-          persist-credentials: false
-      - name: Install Idris 2 dependencies
-        if: steps.bridge-token.outputs.available == 'true'
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y chezscheme libgmp-dev
-      - name: Cache Idris 2
-        if: steps.bridge-token.outputs.available == 'true'
-        id: cache-idris2
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            ~/.idris2
-            ~/idris2-${{ env.IDRIS2_VERSION }}
-          key: idris2-refc-${{ env.IDRIS2_VERSION }}-${{ runner.os }}
-      - name: Install Idris 2
-        if: steps.bridge-token.outputs.available == 'true' && steps.cache-idris2.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          git clone --depth 1 --branch v${{ env.IDRIS2_VERSION }} https://github.com/idris-lang/Idris2.git ~/idris2-${{ env.IDRIS2_VERSION }}
-          cd ~/idris2-${{ env.IDRIS2_VERSION }}
-          make bootstrap SCHEME=chezscheme
-          make install
-      - name: Add Idris 2 to PATH
-        if: steps.bridge-token.outputs.available == 'true'
-        run: echo "$HOME/.idris2/bin" >> "$GITHUB_PATH"
       - name: Setup Zig
-        if: steps.bridge-token.outputs.available == 'true'
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: ${{ env.ZIG_VERSION }}
-      - name: Build Idris RefC output
-        if: steps.bridge-token.outputs.available == 'true'
-        run: scripts/build-refc.sh --verbose
-      - name: Build and test libproven
-        if: steps.bridge-token.outputs.available == 'true'
+          version: '0.15.2'
+      - name: Provision the pinned Idris compiler and check the header profile
+        uses: ./ffi/zig/actions/refc-library
+      - name: Generate the full FFI package from a clean source tree
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: bash scripts/build-refc.sh --verbose
+      - name: Build and test libproven through the default build entry point
         run: |
           set -euo pipefail
-          IDRIS2_PREFIX="$(idris2 --prefix)"
-          REFC_RUNTIME="$(find "$IDRIS2_PREFIX" -path '*/support/refc' -type d 2>/dev/null | head -1)"
-          C_SUPPORT="$(find "$IDRIS2_PREFIX" -path '*/support/c' -type d 2>/dev/null | head -1)"
-          SUPPORT_LIB_FILE="$(find "$IDRIS2_PREFIX" -path '*/lib/libidris2_support.*' 2>/dev/null | head -1)"
-
-          test -n "$REFC_RUNTIME"
-          test -n "$C_SUPPORT"
-          test -n "$SUPPORT_LIB_FILE"
-          SUPPORT_LIB="$(dirname "$SUPPORT_LIB_FILE")"
-          test -d "$GITHUB_WORKSPACE/build/refc"
-          test -d "$REFC_RUNTIME"
-          test -d "$C_SUPPORT"
-          test -d "$SUPPORT_LIB"
-
+          source build/refc/sdk.env
           cd ffi/zig
-          zig build \
-            -Didris-refc="$GITHUB_WORKSPACE/build/refc" \
-            -Didris-refc-runtime="$REFC_RUNTIME" \
-            -Didris-c-support="$C_SUPPORT" \
-            -Didris-support-lib="$SUPPORT_LIB"
-          zig build test \
-            -Didris-refc="$GITHUB_WORKSPACE/build/refc" \
-            -Didris-refc-runtime="$REFC_RUNTIME" \
-            -Didris-c-support="$C_SUPPORT" \
-            -Didris-support-lib="$SUPPORT_LIB"
-          ls -la zig-out/lib/libproven.*
+          zig build --summary all \
+            -Didris-refc="$REFC_OUTPUT_DIR" \
+            -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+            -Didris-c-support="$IDRIS2_C_SUPPORT" \
+            -Didris-support-lib="$IDRIS2_SUPPORT_LIB" 2>&1 | tee ../../build/refc/zig-build.log
+          zig build test --summary all \
+            -Didris-refc="$REFC_OUTPUT_DIR" \
+            -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+            -Didris-c-support="$IDRIS2_C_SUPPORT" \
+            -Didris-support-lib="$IDRIS2_SUPPORT_LIB" 2>&1 | tee ../../build/refc/zig-tests.log
+          test -s zig-out/lib/libproven.a
+      - name: Check production lifecycle proofs and actual C/Rust consumers
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: bash scripts/test-native-lifecycle.sh
+      - name: Test the NIF symbol checker with planted controls
+        run: bash tests/check-native-nif-exports.sh
+      - name: Test the ABI ledger with shared and static planted controls
+        run: bash scripts/test-abi-ledger.sh
+      - name: Test production nonce and entropy through the public RefC SDK
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: |
+          set -euo pipefail
+          mkdir -p build/native-abi-evidence
+          bash scripts/test-remediation-bridge.sh 2>&1 | tee build/native-abi-evidence/nonce-remediation.log
+      - name: Reject stale output and misleading compiler success
+        run: bash scripts/test-refc-staging.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: full-refc-build-evidence
+          path: |
+            build/refc/
+            build/native-abi-evidence/
+          if-no-files-found: error

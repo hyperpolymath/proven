@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: MPL-2.0
 ||| Safe YAML parsing
 |||
 ||| This module provides secure YAML parsing that:
@@ -195,37 +195,39 @@ parseFloat st =
     parseDoubleMaybe : String -> Maybe Double
     parseDoubleMaybe s = Just 0.0  -- Simplified; real impl would parse
 
-||| Parse quoted string
+||| Parse quoted string by structural descent on its remaining characters.
 parseQuotedString : Char -> ParserState -> YAMLResult (String, ParserState)
 parseQuotedString quote st =
   case consume st of
     (Just c, st1) =>
       if c /= quote
         then Err (SyntaxError ("Expected " ++ singleton quote) st.line st.col)
-        else parseContent [] st1
+        else parseContent st1.input [] st1
     (Nothing, _) => Err (SyntaxError "Unexpected end of input" st.line st.col)
   where
-    parseContent : List Char -> ParserState -> YAMLResult (String, ParserState)
-    parseContent acc st = assert_total $
-      case consume st of
-        (Nothing, _) => Err (SyntaxError "Unclosed string" st.line st.col)
-        (Just c, st') =>
-          if c == quote
-            then Ok (pack (reverse acc), st')
-            else if c == '\\'
-              then case consume st' of
-                     (Just escaped, st'') =>
-                       let unescaped = case escaped of
-                                         'n' => '\n'
-                                         't' => '\t'
-                                         'r' => '\r'
-                                         '\\' => '\\'
-                                         '"' => '"'
-                                         '\'' => '\''
-                                         _ => escaped
-                       in parseContent (unescaped :: acc) st''
-                     (Nothing, _) => Err (SyntaxError "Unclosed escape" st.line st.col)
-              else parseContent (c :: acc) st'
+    -- The explicit suffix and the private state start together and consume
+    -- one or two characters together. No full-suffix length scan is needed.
+    parseContent : List Char -> List Char -> ParserState -> YAMLResult (String, ParserState)
+    parseContent [] acc st = Err (SyntaxError "Unclosed string" st.line st.col)
+    parseContent (c :: cs) acc st =
+      let (_, st') = consume st
+      in if c == quote
+           then Ok (pack (reverse acc), st')
+           else if c == '\\'
+             then case cs of
+               [] => Err (SyntaxError "Unclosed escape" st.line st.col)
+               escaped :: rest =>
+                 let (_, st'') = consume st'
+                     unescaped = case escaped of
+                       'n' => '\n'
+                       't' => '\t'
+                       'r' => '\r'
+                       '\\' => '\\'
+                       '"' => '"'
+                       '\'' => '\''
+                       _ => escaped
+                 in parseContent rest (unescaped :: acc) st''
+             else parseContent cs (c :: acc) st'
 
 ||| Parse unquoted string (plain scalar)
 parsePlainScalar : ParserState -> YAMLResult (String, ParserState)
@@ -253,6 +255,9 @@ pushDepth st = { depth := S st.depth } st
 popDepth : ParserState -> ParserState
 popDepth st = { depth := pred st.depth } st
 
+-- Recursive parser edges consume explicit fuel. Exhaustion returns an error,
+-- never a partial value. The input-derived allowance is tested below, not
+-- claimed here as a machine-proved completeness bound.
 -- Forward declarations: parseFlowSequence/parseFlowMapping and parseValue
 -- form a mutually recursive cluster with parseAnchor, parseNumeric,
 -- parseAlias and parseTaggedValue. Idris2 resolves top-level
@@ -260,10 +265,10 @@ popDepth st = { depth := pred st.depth } st
 -- defined in place below. (Split decl/def is legal at top level; a `mutual`
 -- block would work too but would re-indent ~130 lines for no gain.)
 ||| Parse any value
-parseValue : ParserState -> YAMLResult (YAMLValue, ParserState)
+parseValue : Nat -> ParserState -> YAMLResult (YAMLValue, ParserState)
 
 ||| Parse anchor definition &name
-parseAnchor : ParserState -> YAMLResult (YAMLValue, ParserState)
+parseAnchor : Nat -> ParserState -> YAMLResult (YAMLValue, ParserState)
 
 ||| Parse numeric value (int or float)
 parseNumeric : ParserState -> YAMLResult (YAMLValue, ParserState)
@@ -272,39 +277,42 @@ parseNumeric : ParserState -> YAMLResult (YAMLValue, ParserState)
 parseAlias : ParserState -> YAMLResult (YAMLValue, ParserState)
 
 ||| Parse tagged value !tag value
-parseTaggedValue : ParserState -> YAMLResult (YAMLValue, ParserState)
+parseTaggedValue : Nat -> ParserState -> YAMLResult (YAMLValue, ParserState)
 
 ||| Parse flow sequence [item, item, ...]
-parseFlowSequence : ParserState -> YAMLResult (YAMLValue, ParserState)
-parseFlowSequence st = do
+parseFlowSequence : Nat -> ParserState -> YAMLResult (YAMLValue, ParserState)
+parseFlowSequence Z st = Err (SyntaxError "Value parsing budget exhausted" st.line st.col)
+parseFlowSequence (S fuel) st = do
   checkDepth st
   case consume st of
     (Just '[', st1) =>
       let st2 = pushDepth (skipSpaces st1)
-      in parseItems [] st2
+      in parseItems fuel [] st2
     _ => Err (SyntaxError "Expected '['" st.line st.col)
   where
-    parseItems : List YAMLValue -> ParserState -> YAMLResult (YAMLValue, ParserState)
-    parseItems acc st = assert_total $
+    parseItems : Nat -> List YAMLValue -> ParserState -> YAMLResult (YAMLValue, ParserState)
+    parseItems Z acc st = Err (SyntaxError "Collection parsing budget exhausted" st.line st.col)
+    parseItems (S remaining) acc st =
       let st' = skipSpaces (skipComment st)
       in case peek st' of
            Just ']' => Ok (YArray (reverse acc), popDepth (snd (consume st')))
            _ => do
-             (val, st1) <- parseValue st'
+             (val, st1) <- parseValue remaining st'
              let st2 = skipSpaces st1
              case peek st2 of
-               Just ',' => parseItems (val :: acc) (skipSpaces (snd (consume st2)))
+               Just ',' => parseItems remaining (val :: acc) (skipSpaces (snd (consume st2)))
                Just ']' => Ok (YArray (reverse (val :: acc)), popDepth (snd (consume st2)))
                _ => Err (SyntaxError "Expected ',' or ']'" st2.line st2.col)
 
 ||| Parse flow mapping {key: value, ...}
-parseFlowMapping : ParserState -> YAMLResult (YAMLValue, ParserState)
-parseFlowMapping st = do
+parseFlowMapping : Nat -> ParserState -> YAMLResult (YAMLValue, ParserState)
+parseFlowMapping Z st = Err (SyntaxError "Value parsing budget exhausted" st.line st.col)
+parseFlowMapping (S fuel) st = do
   checkDepth st
   case consume st of
     (Just '{', st1) =>
       let st2 = pushDepth (skipSpaces st1)
-      in parsePairs [] st2
+      in parsePairs fuel [] st2
     _ => Err (SyntaxError "Expected '{'" st.line st.col)
   where
     parseKey : ParserState -> YAMLResult (String, ParserState)
@@ -313,8 +321,9 @@ parseFlowMapping st = do
       Just '\'' => parseQuotedString '\'' st
       _ => parsePlainScalar st
 
-    parsePairs : List (String, YAMLValue) -> ParserState -> YAMLResult (YAMLValue, ParserState)
-    parsePairs acc st = assert_total $
+    parsePairs : Nat -> List (String, YAMLValue) -> ParserState -> YAMLResult (YAMLValue, ParserState)
+    parsePairs Z acc st = Err (SyntaxError "Collection parsing budget exhausted" st.line st.col)
+    parsePairs (S remaining) acc st =
       let st' = skipSpaces (skipComment st)
       in case peek st' of
            Just '}' => Ok (YObject (reverse acc), popDepth (snd (consume st')))
@@ -324,21 +333,22 @@ parseFlowMapping st = do
              let st2 = skipSpaces st1
              case consume st2 of
                (Just ':', st3) => do
-                 (val, st4) <- parseValue (skipSpaces st3)
+                 (val, st4) <- parseValue remaining (skipSpaces st3)
                  let st5 = skipSpaces st4
                  case peek st5 of
-                   Just ',' => parsePairs ((key, val) :: acc) (skipSpaces (snd (consume st5)))
+                   Just ',' => parsePairs remaining ((key, val) :: acc) (skipSpaces (snd (consume st5)))
                    Just '}' => Ok (YObject (reverse ((key, val) :: acc)), popDepth (snd (consume st5)))
                    _ => Err (SyntaxError "Expected ',' or '}'" st5.line st5.col)
                _ => Err (SyntaxError "Expected ':'" st2.line st2.col)
 
 -- Parse any value (signature forward-declared above)
-parseValue st =
+parseValue Z st = Err (SyntaxError "Value parsing budget exhausted" st.line st.col)
+parseValue (S fuel) st =
   let st' = skipSpaces (skipComment st)
   in case peek st' of
        Nothing => Err (SyntaxError "Unexpected end of input" st'.line st'.col)
-       Just '[' => parseFlowSequence st'
-       Just '{' => parseFlowMapping st'
+       Just '[' => parseFlowSequence fuel st'
+       Just '{' => parseFlowMapping fuel st'
        Just '"' => do
          (s, st1) <- parseQuotedString '"' st'
          checkValueSize s st
@@ -347,9 +357,9 @@ parseValue st =
          (s, st1) <- parseQuotedString '\'' st'
          checkValueSize s st
          Ok (YString s, st1)
-       Just '&' => parseAnchor st'
+       Just '&' => parseAnchor fuel st'
        Just '*' => parseAlias st'
-       Just '!' => parseTaggedValue st'
+       Just '!' => parseTaggedValue fuel st'
        Just c =>
          if isDigit c || c == '-' || c == '+'
            then parseNumeric st'
@@ -386,7 +396,8 @@ parseNumeric st =
       in sign * foldl (\acc, c => acc * 10 + cast (ord c - ord '0')) 0 digits
 
 -- Parse anchor definition &name (signature forward-declared above)
-parseAnchor st = assert_total $
+parseAnchor Z st = Err (SyntaxError "Value parsing budget exhausted" st.line st.col)
+parseAnchor (S fuel) st =
   if not st.options.allowAnchors
     then Err (DangerousTag "anchor (disabled)")
     else do
@@ -395,7 +406,7 @@ parseAnchor st = assert_total $
           let (name, st2) = consumeWhile isAnchorChar st1
               st3 = skipSpaces st2
           in do
-            (val, st4) <- parseValue st3
+            (val, st4) <- parseValue fuel st3
             let st5 = { anchors := (name, val) :: st4.anchors } st4
             Ok (val, st5)
         _ => Err (SyntaxError "Expected '&'" st.line st.col)
@@ -423,7 +434,8 @@ parseAlias st =
     isAnchorChar c = isAlphaNum c || c == '_' || c == '-'
 
 -- Parse tagged value !tag value (signature forward-declared above)
-parseTaggedValue st = assert_total $ do
+parseTaggedValue Z st = Err (SyntaxError "Value parsing budget exhausted" st.line st.col)
+parseTaggedValue (S fuel) st = do
   case consume st of
     (Just '!', st1) =>
       let (tag, st2) = consumeWhile isTagChar st1
@@ -431,7 +443,7 @@ parseTaggedValue st = assert_total $ do
       in do
         checkTag fullTag st
         let st3 = skipSpaces st2
-        (val, st4) <- parseValue st3
+        (val, st4) <- parseValue fuel st3
         -- Apply tag transformation
         Ok (applyTag fullTag val, st4)
     _ => Err (SyntaxError "Expected '!'" st.line st.col)
@@ -508,7 +520,7 @@ parseDocument st = do
   -- Skip document start marker
   let st2 = parseDocStart (skipSpaces st1)
   -- Parse value
-  (val, st3) <- parseValue (skipSpaces st2)
+  (val, st3) <- parseValue (3 * S (length st2.input)) (skipSpaces st2)
   -- Skip document end marker
   let st4 = parseDocEnd (skipSpaces st3)
   Ok (MkYAMLDocument version [] val, st4)
@@ -518,10 +530,11 @@ public export
 parseStream : YAMLSecurityOptions -> String -> YAMLResult YAMLStream
 parseStream opts input = do
   let st = initParser opts input
-  go 0 [] st
+  go (S (length st.input)) 0 [] st
   where
-    go : Nat -> List YAMLDocument -> ParserState -> YAMLResult YAMLStream
-    go count acc st = assert_total $
+    go : Nat -> Nat -> List YAMLDocument -> ParserState -> YAMLResult YAMLStream
+    go Z count acc st = Err (SyntaxError "Stream parsing budget exhausted" st.line st.col)
+    go (S fuel) count acc st =
       let st' = skipSpaces (skipComment st)
       in if isEOF st'
            then Ok (reverse acc)
@@ -530,7 +543,7 @@ parseStream opts input = do
                then Err (TooManyDocuments count opts.maxDocuments)
                else do
                  (doc, st1) <- parseDocument st'
-                 go (S count) (doc :: acc) st1
+                 go fuel (S count) (doc :: acc) st1
 
 --------------------------------------------------------------------------------
 -- Public API

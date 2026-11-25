@@ -18,7 +18,7 @@ import Data.Bits
 -- JWT Algorithm
 --------------------------------------------------------------------------------
 
-||| Supported JWT signing algorithms
+||| Recognized JWT algorithm names; cryptographic backends are not connected.
 public export
 data JWTAlgorithm : Type where
   ||| No algorithm (unsigned)
@@ -133,6 +133,8 @@ data JWTError : Type where
   AlgorithmNoneNotAllowed : JWTError
   ||| Unsupported algorithm
   UnsupportedAlgorithm : String -> JWTError
+  ||| Recognized algorithm whose cryptographic backend is unavailable
+  CryptoUnavailable : JWTAlgorithm -> JWTError
   ||| Algorithm mismatch with allowed list
   AlgorithmMismatch : (allowed : List JWTAlgorithm) -> (actual : JWTAlgorithm) -> JWTError
   ||| Issuer mismatch
@@ -159,6 +161,7 @@ Show JWTError where
   show InvalidSignature = "Invalid signature"
   show AlgorithmNoneNotAllowed = "Algorithm 'none' not allowed"
   show (UnsupportedAlgorithm alg) = "Unsupported algorithm: " ++ alg
+  show (CryptoUnavailable alg) = "Cryptographic backend unavailable: " ++ show alg
   show (AlgorithmMismatch allowed actual) = "Algorithm " ++ show actual ++ " not in allowed: " ++ show allowed
   show (IssuerMismatch expected actual) = "Issuer mismatch: expected " ++ expected ++ ", got " ++ show actual
   show (AudienceMismatch expected actual) = "Audience mismatch: expected " ++ expected ++ ", got " ++ show actual
@@ -174,6 +177,7 @@ Eq JWTError where
   InvalidSignature == InvalidSignature = True
   AlgorithmNoneNotAllowed == AlgorithmNoneNotAllowed = True
   UnsupportedAlgorithm a1 == UnsupportedAlgorithm a2 = a1 == a2
+  CryptoUnavailable a1 == CryptoUnavailable a2 = a1 == a2
   MissingClaim n1 == MissingClaim n2 = n1 == n2
   KeyError m1 == KeyError m2 = m1 == m2
   InvalidFormat m1 == InvalidFormat m2 = m1 == m2
@@ -182,6 +186,12 @@ Eq JWTError where
 --------------------------------------------------------------------------------
 -- Signing Keys
 --------------------------------------------------------------------------------
+
+||| Authentication APIs reject unsigned tokens and unavailable cryptography.
+public export
+authenticationUnavailable : JWTAlgorithm -> JWTError
+authenticationUnavailable None = AlgorithmNoneNotAllowed
+authenticationUnavailable alg = CryptoUnavailable alg
 
 ||| Signing/verification key types
 public export
@@ -404,7 +414,8 @@ strictValidation = MkValidationOptions
 -- Validated JWT
 --------------------------------------------------------------------------------
 
-||| A fully validated JWT (can only be constructed through validation)
+||| Legacy result record. Its public constructor is not authentication evidence;
+||| rely on the result of the validation API, not on a caller-created record.
 public export
 record ValidatedJWT where
   constructor MkValidatedJWT

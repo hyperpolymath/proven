@@ -110,6 +110,7 @@ suite "SafeCrypto":
 
 suite "SafeUuid":
   test "parseUuid parses valid UUID":
+    # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     let uuid = parseUuid("550e8400-e29b-41d4-a716-446655440000")
     check uuid.isSome
     check uuid.get.version == uvV4
@@ -121,19 +122,25 @@ suite "SafeUuid":
     check parseUuid("550e8400-e29b-41d4-a716").isNone
 
   test "nil UUID is detected":
+    # hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
     let uuid = parseUuid("00000000-0000-0000-0000-000000000000")
     check uuid.isSome
     check uuid.get.isNil
 
   test "UUID formats correctly":
+    # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     let uuid = parseUuid("550e8400-e29b-41d4-a716-446655440000")
+    # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     check $uuid.get == "550e8400-e29b-41d4-a716-446655440000"
 
   test "UUID URN format":
+    # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     let uuid = parseUuid("550e8400-e29b-41d4-a716-446655440000")
+    # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     check uuid.get.toUrn == "urn:uuid:550e8400-e29b-41d4-a716-446655440000"
 
   test "isValidUuid validates format":
+    # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     check isValidUuid("550e8400-e29b-41d4-a716-446655440000") == true
     check isValidUuid("invalid") == false
 

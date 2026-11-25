@@ -86,6 +86,8 @@ parse s =
     removeHyphens : String -> String
     removeHyphens = pack . filter (/= '-') . unpack
 
+    ||| RFC 9562 §4.2: the version field is one hex digit (case-insensitive),
+    ||| so a letter nibble 'a'..'f' / 'A'..'F' denotes version 10..15.
     extractVersion : String -> UUIDVersion
     extractVersion hex =
       case drop 12 (unpack hex) of
@@ -94,7 +96,7 @@ parse s =
         '3' :: _ => V3
         '4' :: _ => V4
         '5' :: _ => V5
-        c :: _ => Unknown (cast (ord c - ord '0'))
+        c :: _ => Unknown (fromMaybe 0 (hexToNibble c))
         [] => Unknown 0
 
     extractVariant : String -> UUIDVariant

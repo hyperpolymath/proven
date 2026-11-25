@@ -67,12 +67,12 @@ struct UuidResult
     string error;
     bool ok;
 
-    static UuidResult success(UUID uuid)
+    static UuidResult success(UUID uuid) nothrow
     {
         return UuidResult(uuid, "", true);
     }
 
-    static UuidResult failure(string error)
+    static UuidResult failure(string error) nothrow
     {
         return UuidResult(UUID.nil, error, false);
     }

@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+name: Build the real header RefC library
+description: Build native libproven.so with the Idris header backend; other legacy exports remain outside this qualification.
+runs:
+  using: composite
+  steps:
+    - name: Install RefC prerequisites
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y chezscheme libgmp-dev
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      id: refc-cache
+      with:
+        path: ~/.idris2
+        key: bindings-header-refc-ubuntu2204-${{ runner.arch }}-b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b
+    - name: Build pinned compiler and matching SDK
+      if: steps.refc-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        ref=b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b
+        git init "$RUNNER_TEMP/idris-header"
+        git -C "$RUNNER_TEMP/idris-header" remote add origin https://github.com/idris-lang/Idris2.git
+        git -C "$RUNNER_TEMP/idris-header" fetch --depth 1 origin "$ref"
+        git -C "$RUNNER_TEMP/idris-header" checkout --detach FETCH_HEAD
+        test "$(git -C "$RUNNER_TEMP/idris-header" rev-parse HEAD)" = "$ref"
+        cd "$RUNNER_TEMP/idris-header"
+        make bootstrap SCHEME=chezscheme
+        make install
+    - name: Build the library consumed by detached binding tests
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_ACTION_PATH/../../../.."
+        IDRIS2="$HOME/.idris2/bin/idris2" bash scripts/build-header-refc.sh "$RUNNER_TEMP/header-refc"
+        cd ffi/zig
+        zig build --build-file build_standalone.zig -Dshared=true -Doptimize=ReleaseSafe -Dheader-refc="$RUNNER_TEMP/header-refc"
+        test -s zig-out/lib/libproven.so

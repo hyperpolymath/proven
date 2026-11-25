@@ -4,63 +4,86 @@ module SafeCurrencyProps
 
 import Proven.Core
 import Proven.SafeCurrency
+import Data.List
+import Data.String
+import System
 
 %default total
 
-||| Property: Valid ISO currency code parses
-prop_validISOCode : isOk (parseCurrency "USD") = True
-prop_validISOCode = Refl
+-- Real API: `CurrencyCode` is a closed enumeration (plus `Other String`),
+-- `Money` is a record of an Integer amount in minor units and a currency,
+-- `add`/`subtract : Money -> Money -> Maybe Money` refuse mixed currencies,
+-- `minorUnits` gives ISO 4217 decimal places and `format` renders a symbol.
+--
+-- Retired because the API they targeted does not exist (no `parseCurrency`
+-- or `parseAmount` anywhere under src/; there is no string parser for
+-- currency codes or amounts): prop_validISOCode, prop_lowercaseParsed,
+-- prop_invalidCodeFails, prop_validAmountParses, prop_invalidAmountFails.
+-- The negative-amount intent survives as prop_negativeAmountRepresentable.
 
-||| Property: Lowercase currency code parses
-prop_lowercaseParsed : isOk (parseCurrency "usd") = True
-prop_lowercaseParsed = Refl
+--------------------------------------------------------------------------------
+-- Type-level proofs
+--------------------------------------------------------------------------------
 
-||| Property: Invalid currency code fails
-prop_invalidCodeFails : isErr (parseCurrency "INVALID") = True
-prop_invalidCodeFails = Refl
+||| Negative amounts are representable (in minor units) and detected.
+prop_negativeAmountRepresentable : isNegative (fromMinor (-5000) USD) = True
+prop_negativeAmountRepresentable = Refl
 
-||| Property: Valid amount parses
-prop_validAmountParses : isOk (parseAmount "123.45" USD) = True
-prop_validAmountParses = Refl
+||| Addition preserves currency (universal): adding same-currency values
+||| yields a value in that currency.
+prop_additionPreservesCurrency : (a, b : Money) -> (a.currency == b.currency) = True ->
+                                 map (.currency) (add a b) = Just a.currency
+prop_additionPreservesCurrency a b same = rewrite same in Refl
 
-||| Property: Negative amount parses
-prop_negativeAmountParses : isOk (parseAmount "-50.00" USD) = True
-prop_negativeAmountParses = Refl
+||| Addition of same-currency values sums the minor-unit amounts (universal).
+prop_additionSumsAmounts : (a, b : Money) -> (a.currency == b.currency) = True ->
+                           map (.amount) (add a b) = Just (a.amount + b.amount)
+prop_additionSumsAmounts a b same = rewrite same in Refl
 
-||| Property: Invalid amount fails
-prop_invalidAmountFails : isErr (parseAmount "not-a-number" USD) = True
-prop_invalidAmountFails = Refl
+||| Different currencies cannot add (universal).
+prop_differentCurrenciesCannotAdd : (a, b : Money) -> (a.currency == b.currency) = False ->
+                                    add a b = Nothing
+prop_differentCurrenciesCannotAdd a b differ = rewrite differ in Refl
 
-||| OWED: Addition preserves currency
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_additionPreservesCurrency_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_additionPreservesCurrency : (a, b : Money) -> sameCurrency a b = True ->
-                                    getCurrency (add a b) = getCurrency a
+||| Concrete instance: USD + EUR is refused.
+prop_usdPlusEurRefused : (x, y : Integer) -> add (fromMinor x USD) (fromMinor y EUR) = Nothing
+prop_usdPlusEurRefused x y = Refl
 
-||| Property: Different currencies cannot add
-prop_differentCurrenciesCannotAdd : (a : Money USD) -> (b : Money EUR) ->
-                                    isErr (safeAdd a b) = True
-prop_differentCurrenciesCannotAdd a b = Refl
-
-||| OWED: Formatting includes symbol
-||| Held back by Idris2 0.8.0 not reducing the underlying computation by
-||| Refl at the type level (the original orphan-test author wrote this as
-||| a `?prop_formatIncludesSymbol_rhs` hole). May discharge as `= Refl` once the relevant
-||| String/List/Char reduction blocker lifts, or by manual case analysis;
-||| revisit during Phase 2 Day-3+ DISCHARGE pass.
-0 prop_formatIncludesSymbol : (m : Money USD) ->
-                              containsChar '$' (format m) = True
-
-||| Property: Currency has correct decimal places
-prop_correctDecimalPlaces : decimalPlaces USD = 2
+||| USD has 2 decimal places (ISO 4217).
+prop_correctDecimalPlaces : minorUnits USD = 2
 prop_correctDecimalPlaces = Refl
 
-||| Property: JPY has zero decimal places
-prop_jpyZeroDecimals : decimalPlaces JPY = 0
+||| JPY has 0 decimal places (ISO 4217).
+prop_jpyZeroDecimals : minorUnits JPY = 0
 prop_jpyZeroDecimals = Refl
+
+--------------------------------------------------------------------------------
+-- Outstanding obligations
+--------------------------------------------------------------------------------
+
+||| OWED: formatting a USD amount includes the '$' symbol. Blocked by:
+||| `format` builds the string with String `++` and `show` on Double, which
+||| do not reduce on a variable amount, so `isPrefixOf` cannot be decided
+||| symbolically. This names the proposition; it is not a witness.
+public export
+FormatIncludesSymbolObligation : Type
+FormatIncludesSymbolObligation =
+  (m : Money) -> m.currency = USD -> isPrefixOf "$" (format m) = True
+
+--------------------------------------------------------------------------------
+-- Execution checks
+--------------------------------------------------------------------------------
+
+private
+check : String -> Bool -> IO ()
+check label True = putStrLn ("PASS (execution): " ++ label)
+check label False = do
+  putStrLn ("FAIL: " ++ label)
+  exitFailure
+
+private
+amounts : List Integer
+amounts = [-100000, -5000, -1, 0, 1, 12345, 99999999]
 
 ||| Test runner for currency properties
 export
@@ -68,13 +91,18 @@ runCurrencyProperties : IO ()
 runCurrencyProperties = do
   putStrLn "SafeCurrency Property Tests"
   putStrLn "==========================="
-  putStrLn "prop_validISOCode: PASS (proven by type)"
-  putStrLn "prop_lowercaseParsed: PASS (proven by type)"
-  putStrLn "prop_invalidCodeFails: PASS (proven by type)"
-  putStrLn "prop_validAmountParses: PASS (proven by type)"
-  putStrLn "prop_negativeAmountParses: PASS (proven by type)"
-  putStrLn "prop_invalidAmountFails: PASS (proven by type)"
-  putStrLn "prop_differentCurrenciesCannotAdd: PASS (proven by type)"
-  putStrLn "prop_correctDecimalPlaces: PASS (proven by type)"
-  putStrLn "prop_jpyZeroDecimals: PASS (proven by type)"
+  putStrLn "prop_negativeAmountRepresentable: PASS (proven by type)"
+  putStrLn "prop_additionPreservesCurrency, prop_additionSumsAmounts: PASS (proven by type)"
+  putStrLn "prop_differentCurrenciesCannotAdd, prop_usdPlusEurRefused: PASS (proven by type)"
+  putStrLn "prop_correctDecimalPlaces, prop_jpyZeroDecimals: PASS (proven by type)"
+  check "formatting a USD amount includes the $ symbol"
+    (all (\a => isPrefixOf "$" (format (fromMinor a USD))) amounts)
+  check "123.45 USD (12345 minor units) converts to 123.45 major units"
+    (toMajor (fromMinor 12345 USD) == 123.45)
+  check "same-currency add on corpus keeps currency and sums"
+    (all (\a => all (\b => add (fromMinor a GBP) (fromMinor b GBP) == Just (fromMinor (a + b) GBP))
+                    amounts) amounts)
+  check "mixed-currency add and subtract refused on corpus"
+    (all (\a => add (fromMinor a USD) (fromMinor a JPY) == Nothing &&
+                subtract (fromMinor a USD) (fromMinor a EUR) == Nothing) amounts)
   putStrLn ""

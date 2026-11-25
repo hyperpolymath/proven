@@ -1,0 +1,105 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+= Native libproven / Rustler ABI boundary
+
+Latest work is an *unvalidated lifecycle ABI draft*. It corrects the source
+signatures and adds production-linked proof bodies, typed native tests and a
+shared-library target; all heavy checks await BotMania's explicit slot.
+See `docs/remediation/2026-11-16-native-abi-draft.md`.
+The artifact counts and incompatible signatures described below are the
+preceding validated snapshot, not observations of a newly built ABI 2 library.
+
+The preceding artifact had a *broken consumer boundary*, not a missing
+search directory alone. `bindings/elixir/native/proven_nif/src/lib.rs`
+declares 66 `proven_*` C ABI functions. The pre-draft
+`ffi/zig/src/main.zig` exports 17 `proven_*` functions and does not
+define most of the required functions, such as `proven_math_div`.
+The shared name `proven_init` also has incompatible return types:
+Rust declares `i32` while Zig returns an optional `*Handle`.
+These are source observations, not a verified inventory of any
+generated Idris2 RefC C output.
+
+== Actual Idris2 RefC package scope
+
+On 2026-11-15 an isolated checkout ran `idris2 --build proven-ffi.ipkg`
+and `idris2 --codegen refc --build proven-ffi.ipkg` using Idris2
+0.8.0. Both compiled successfully. That package listed
+`Proven.Core`, `Proven.SafeUrl.Parser`,
+`Proven.FFI.SafeUrl` and `Proven.FFI.Main`; compilation also loads
+the imported SafeUrl/Query modules. `Proven.FFI.Main` references
+*SafeUrl only*. The new lifecycle module/entrypoint is drafted but not yet
+compiled. This package does not presently include an Idris2 FFI
+implementation for the Rustler NIF's math, crypto, string and other
+API families. A successfully generated `proven-ffi.c` is **not** a
+complete 66-function Idris-backed ABI.
+
+The existing `scripts/build-refc.sh` also previously scanned
+`build/exec` and its parent `build` (double-counting the same
+source), and could report success even when the compiler produced no
+C. It now requires at least one *fresh* generated C source, deduplicates
+the scan, and replaces stale staged sources. The four fake-compiler
+controls in `tests/check-refc-staging.sh` exercise empty, stale,
+fresh and failed generation, while an independent live Idris2/RefC
+build has confirmed one generated source file. Neither fixture
+testing nor one generated C source proves complete ABI parity.
+
+== A mandatory precondition, not a substitute for proof
+
+Run `bash scripts/check-native-nif-exports.sh /path/to/libproven.so`
+*after* the authentic Idris2 -> RefC -> Zig library build.
+For a static library, pass `libproven.a` instead.
+
+The checker extracts required C symbols from the Rust `extern "C"` block
+and confirms that the compiled library *defines* all of them. Missing
+names cause exit 1; missing tools/inputs or unreadable artifacts cause
+exit 2 (NOT RUN); only a complete symbol list gives exit 0.
+
+The script expressly **does not verify ABI types, memory ownership,
+verified Idris2 provenance, dynamic dependencies, or behavioural
+semantics**. Its positive controls are fixture libraries, not
+`libproven` evidence. Type/layout compatibility must additionally be
+checked against an authoritative C header, with compiled calls and
+negative fixtures, before declaring the full interface safe.
+Actual runtime behaviour must be exercised from Elixir and Rust.
+
+== Required upstream repairs
+
+. The missing historic dependency was replaced, at the user's request, with
+  new private `hyperpolymath/language-bridges` source pinned at
+  `8f4b082c52508ab6276946d61b660e7d9b97f35f`. Keep this distinction explicit;
+  it is not a recovered multi-language bridge.
+. Produce genuine Idris2 RefC code, with pinned compiler/runtime inputs,
+  and include the required ABI implementation in the Zig linker.
+. Agree whether the consumer links a static or shared `libproven`.
+  The Zig build currently emits a static target while Rust explicitly
+  requests `dylib=proven`.
+. Repair all 66 function contracts, including `proven_init` return
+  type and correct ownership of returned buffers.
+. Check exported symbols on *the exact artifact to be consumed*; run
+  typed calls against it and the real Elixir/Rustler integration.
+. Publish immutable, attestable artifact provenance and a pinned,
+  reproducible consumer configuration. Never silently substitute
+  `build_standalone.zig`, which builds a narrower pure Zig ABI.
+
+== Positive and negative gate controls
+
+`bash tests/check-native-nif-exports.sh` runs 15 isolated cases:
+defined shared and static fixtures, deliberately missing symbols,
+qualified declarations, default/nondefault symbol versions,
+missing input, an empty contract, and a corrupt binary. These tests
+establish only that the name-presence gate fails closed; they do
+not certify this repository's actual `libproven` ABI.
+
+== Actual artifact observation, 2026-11-16
+
+The pinned new bridge and actual generated RefC C now build a static library
+locally. Nine existing Zig tests pass, while a separate two-test target calls
+the actual production nonce/entropy functions through RefC and the new bridge.
+The genuine archive's Rustler gate rejects 61 missing functions out of 66
+required; five required names overlap. Eighteen defined names start with
+`proven_`, including the renamed generated program entry. Shared names alone
+do not resolve the incompatible initialization return type.
+
+This establishes a working narrow native path and a truthful failing gate,
+not a complete public Idris-backed ABI. See
+`docs/remediation/2026-11-16-native-nonce.md` for the exact evidence.

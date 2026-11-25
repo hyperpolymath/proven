@@ -6,7 +6,11 @@
 :icons: font
 :source-highlighter: rouge
 
-*Safe operations written in Idris2, with dependent types and totality checking.* The goal is code that **cannot crash**. That is not yet proven for the whole library: some modules still use totality escape hatches, listed in <<proof-status>>.
+Safety operations with Idris2 contracts, checked properties and native integration
+tests. Assurance is scoped to individual properties and execution boundaries;
+this repository is not wholly proved and its complete native ABI is not ready
+for release. See link:docs/status/LIFECYCLE-PROOF-STATUS.adoc[the lifecycle proof
+ledger] for the checked Linux lifecycle slice, retained evidence and open assumptions.
 
 image:https://img.shields.io/badge/OpenSSF-Best_Practices-green?logo=opensourcesecurity[OpenSSF Best Practices,link="https://www.bestpractices.dev/en/projects/new?repo_url=https://github.com/hyperpolymath/proven"]
 image:https://img.shields.io/badge/version-1.2.0-blue[Version 1.2.0]
@@ -14,9 +18,7 @@ image:https://img.shields.io/badge/License-MPL--2.0-blue.svg[MPL-2.0,link="https
 image:https://img.shields.io/badge/modules-104-blue[104 Modules]
 image:https://img.shields.io/badge/bindings-120+_targets-orange[120+ Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
-image:https://img.shields.io/badge/believe__me-0-brightgreen[believe_me = 0]
-image:https://img.shields.io/badge/assert__total%20%2B%20assert__smaller-22-orange[22 assert_total/assert_smaller sites]
-image:https://img.shields.io/badge/bindings-16_of_120+_complete-yellow[16 of 120+ binding targets complete]
+image:https://img.shields.io/badge/believe__me-0_✓-brightgreen[believe_me = 0 (fully eliminated)]
 image:https://api.thegreenwebfoundation.org/greencheckimage/jewell.nexus[Green Hosting,link="https://www.thegreenwebfoundation.org/green-web-check/?url=jewell.nexus"]
 
 == License
@@ -26,7 +28,8 @@ This project is licensed under **MPL-2.0**. See link:LICENSE[LICENSE].
 == What Makes proven Different?
 
 *Traditional Libraries:* Trust the author got it right +
-*proven:* The type checker enforces totality and the stated invariants, except where the escape hatches listed in <<proof-status>> remain
+*proven:* Explicit contracts and checked properties, with proof debt and native
+boundary assumptions recorded separately from tests.
 
 === Architecture
 

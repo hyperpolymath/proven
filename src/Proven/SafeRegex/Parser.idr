@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Palimpsest-MPL-1.0
+-- SPDX-License-Identifier: MPL-2.0
 ||| SafeRegex.Parser - Parse regex patterns from strings
 |||
 ||| This module provides a safe regex parser that:

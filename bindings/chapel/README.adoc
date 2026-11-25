@@ -176,7 +176,7 @@ set to `ffi/zig/zig-out/lib`. They contain no Chapel-specific logic.
 This binding is structured as a *self-contained package* so it can be
 extracted to a standalone `proven-chapel` repo without surgery.
 
-The full detachable set is:
+The detachable consumer set (given an external `libproven.so`) is:
 
 [source]
 ----
@@ -212,6 +212,14 @@ PROVEN_LIB_PATH=/opt/proven/lib just test
 The `chapel-detachable-build` CI job in `chapel-ci.yml` runs this exact
 sparse-checkout pattern on every PR — if extraction would regress, CI
 goes red.
+
+The same workflow also contains an upstream library producer. Running that
+job in an extracted repository requires `ffi/zig/`,
+`scripts/build-header-refc.sh`, `src/Proven/SafeHeader/ByteKernel.idr` and
+`src/Proven/FFI/HeaderKernelMain.idr`, with the pinned Idris SDK. Its own
+sparse checkout tests this dependency set. A consumer-only extraction must
+instead supply the library artifact; the combined workflow is not runnable
+from just the consumer files above. See `docs/adr/0001-binding-ci-template.adoc`.
 
 == Architecture
 

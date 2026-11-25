@@ -3,9 +3,11 @@
 #
 # OCaml CI — proven binding-tier-1.
 #
-# This workflow follows the DETACHABLE-HARNESS contract for proven binding CI.
-# It references ONLY: bindings/ocaml/, ffi/zig/, and bindings/c/include/proven.h.
-
+# Library producer: a sparse checkout of this binding, ffi/zig, the C header,
+# scripts/build-header-refc.sh, src/Proven/SafeHeader/ByteKernel.idr and
+# src/Proven/FFI/HeaderKernelMain.idr. The actual sparse build checks this closure.
+# Consumer harnesses detach with their binding, C header and supplied .so artifact.
+# See docs/adr/0001-binding-ci-template.adoc; the producer is not a binding-only build.
 name: OCaml CI
 permissions:
   actions: read
@@ -16,14 +18,22 @@ on:
     paths:
       - 'bindings/ocaml/**'
       - 'ffi/zig/**'
+      - 'scripts/build-header-refc.sh'
+      - 'src/Proven/SafeHeader/ByteKernel.idr'
+      - 'src/Proven/FFI/HeaderKernelMain.idr'
       - 'bindings/c/include/proven.h'
+      - 'bindings/c/include/proven-abi.tsv'
       - '.github/workflows/ocaml-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'bindings/ocaml/**'
       - 'ffi/zig/**'
+      - 'scripts/build-header-refc.sh'
+      - 'src/Proven/SafeHeader/ByteKernel.idr'
+      - 'src/Proven/FFI/HeaderKernelMain.idr'
       - 'bindings/c/include/proven.h'
+      - 'bindings/c/include/proven-abi.tsv'
       - '.github/workflows/ocaml-ci.yml'
   workflow_dispatch:
 concurrency:
@@ -51,64 +61,64 @@ jobs:
           while IFS= read -r raw; do
               p="${raw%[.,;:)]}"
               case "$p" in
-                  bindings/ocaml/*|ffi/zig/*|bindings/c/include|bindings/c/include/proven.h|.github/workflows/ocaml-ci.yml)
+                  bindings/ocaml/*|ffi/zig/*|bindings/c/include|bindings/c/include/proven.h|bindings/c/include/proven-abi.tsv|.github/workflows/ocaml-ci.yml|./scripts/symbol-audit.sh|scripts/build-header-refc.sh|src/Proven/SafeHeader/ByteKernel.idr|src/Proven/FFI/HeaderKernelMain.idr)
                       ;;
                   bindings/*/*)
                       echo "::error file=.github/workflows/ocaml-ci.yml::detachability violation: $p"
                       forbidden=1
                       ;;
-                  tests/*)
-                      echo "::error file=.github/workflows/ocaml-ci.yml::detachability violation (root-level tests/): $p"
+                  tests/*|scripts/*|./scripts/*|src/*)
+                      echo "::error file=.github/workflows/ocaml-ci.yml::undeclared producer or root test dependency: $p"
                       forbidden=1
                       ;;
               esac
-          done < <(grep -oE '(bindings/[a-zA-Z0-9_-]+/[A-Za-z0-9_./-]*|tests/[A-Za-z0-9_./-]+)' \
+          done < <(grep -oE '(\./scripts/[A-Za-z0-9_./-]+|bindings/[a-zA-Z0-9_-]+/[A-Za-z0-9_./-]*|tests/[A-Za-z0-9_./-]+|scripts/[A-Za-z0-9_./-]+|src/[A-Za-z0-9_./-]+)' \
                      .github/workflows/ocaml-ci.yml | sort -u)
           [ "$forbidden" -eq 0 ]
           echo "detachability-guard: OK"
   ocaml-build:
     runs-on: ubuntu-22.04
     needs: detachability-guard
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           path: proven
+          sparse-checkout: |
+            bindings/ocaml
+            bindings/c/include/proven.h
+            ffi/zig
+            scripts/build-header-refc.sh
+            src/Proven/SafeHeader/ByteKernel.idr
+            src/Proven/FFI/HeaderKernelMain.idr
+          sparse-checkout-cone-mode: false
       - name: Setup Zig ${{ env.ZIG_VERSION }}
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      - name: Build libproven.so (WIRED-subset fixture)
+      - name: Build libproven.so with the actual Idris header backend
+        uses: ./proven/ffi/zig/actions/refc-library
+      - name: Audit the library symbols
         working-directory: proven/ffi/zig
         run: |
           set -euo pipefail
-          mkdir -p zig-out/lib
-          zig build-lib -dynamic -O ReleaseSafe \
-              -fPIC \
-              --name proven \
-              -femit-bin=zig-out/lib/libproven.so \
-              src/main.zig -lc
-          nm -D --defined-only zig-out/lib/libproven.so \
-              | awk '$2 ~ /^[TWV]$/ { print $3 }' \
-              | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' \
-              | sort -u | tee /tmp/wired-exports.txt
-          # Wait! OCaml might need more for the full lib integration
-          # but for smoke we just need these.
+          nm -D --defined-only zig-out/lib/libproven.so | awk '$2 ~ /^[TWV]$/ { print $3 }' | grep -E '^(proven_path_has_traversal|proven_header_has_crlf|proven_free_string|proven_version|proven_build_info)$' | sort -u | tee /tmp/wired-exports.txt
+          test "$(wc -l < /tmp/wired-exports.txt)" -eq 5
       - name: Setup OCaml ${{ env.OCAML_VERSION }}
-        uses: ocaml/setup-ocaml@4462cc269f8d5e869a19c676450637119e71ec60 # v3
+        uses: ocaml/setup-ocaml@ff66428f72b64472e749b22e0ad4dded4b2ddca6 # v3
         with:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
           dune-cache: true
       - name: Install dependencies
-        run: opam install dune ctypes ctypes-foreign
+        run: opam install --yes dune ctypes.0.24.0 ctypes-foreign.0.24.0 alcotest
       - name: OCaml build
         working-directory: proven/bindings/ocaml
         env:
           PROVEN_LIB_PATH: ${{ github.workspace }}/proven/ffi/zig/zig-out/lib
         run: |
           set -euo pipefail
-          dune build
+          opam exec -- dune build
       - name: Upload libproven.so artefact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
         with:
@@ -151,11 +161,11 @@ jobs:
             .github/workflows/ocaml-ci.yml
           sparse-checkout-cone-mode: false
       - name: Setup OCaml ${{ env.OCAML_VERSION }}
-        uses: ocaml/setup-ocaml@4462cc269f8d5e869a19c676450637119e71ec60 # v3
+        uses: ocaml/setup-ocaml@ff66428f72b64472e749b22e0ad4dded4b2ddca6 # v3
         with:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
       - name: Install dependencies
-        run: opam install dune ctypes ctypes-foreign
+        run: opam install --yes dune ctypes.0.24.0 ctypes-foreign.0.24.0 alcotest
       - name: Install just
         uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
         with:
@@ -172,8 +182,57 @@ jobs:
           PROVEN_INCLUDE_PATH: ${{ github.workspace }}/bindings/c/include
           LD_LIBRARY_PATH: ${{ github.workspace }}/lib
         run: |
-          dune build smoke/hello_smoke.exe
+          opam exec -- dune build smoke/hello_smoke.exe
           ./_build/default/smoke/hello_smoke.exe
+  ocaml-full-api:
+    runs-on: ubuntu-22.04
+    needs: ocaml-build
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (binding + C header only)
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          sparse-checkout: |
+            bindings/ocaml
+            bindings/c/include
+            .github/workflows/ocaml-ci.yml
+          sparse-checkout-cone-mode: false
+      - name: Setup OCaml ${{ env.OCAML_VERSION }}
+        uses: ocaml/setup-ocaml@ff66428f72b64472e749b22e0ad4dded4b2ddca6 # v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_VERSION }}
+      - name: Install dependencies
+        run: opam install --yes dune ctypes.0.24.0 ctypes-foreign.0.24.0 alcotest
+      - name: Install just
+        uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
+        with:
+          just-version: '1.36.0'
+      - name: Download libproven.so
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        with:
+          name: libproven-x86_64-linux-gnu
+          path: lib/
+      - name: Build + Run full_api_probe
+        if: ${{ !cancelled() }}
+        working-directory: bindings/ocaml
+        env:
+          PROVEN_LIB_PATH: ${{ github.workspace }}/lib
+          PROVEN_INCLUDE_PATH: ${{ github.workspace }}/bindings/c/include
+          LD_LIBRARY_PATH: ${{ github.workspace }}/lib
+        run: |
+          opam exec -- dune build smoke/full_api_probe.exe
+          ./_build/default/smoke/full_api_probe.exe
+      - name: Audit every declared full-API symbol
+        if: ${{ !cancelled() }}
+        env:
+          PROVEN_LIB_PATH: ${{ github.workspace }}/lib
+        run: bash bindings/ocaml/scripts/full-api-audit.sh
+      - name: Preserve full-API availability inventory
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ocaml-full-api-audit
+          path: bindings/ocaml/_build/full-api-audit/
   ocaml-detachable-build:
     runs-on: ubuntu-22.04
     needs: ocaml-build

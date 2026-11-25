@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= RefC byte-word source checking
+:revdate: 2026-11-24
+
+`src/Proven/FFI/RefCBits8.idr` defines the Idris2 contract for this fixed
+64-bit RefC word profile. `ScalarOracle.idr` enumerates its 256 byte inputs.
+`ffi/zig/src/refc/bits8_word.zig` is the pure Zig encoder used by the existing
+FFI wrapper in `bits8.zig`; the wrapper still checks the target width and SDK
+shift, and validates canonical results when decoding. Header business logic
+continues to execute in Idris2. No C FFI or C API implementation is introduced.
+
+Atoma PR #30 consumes these exact sources through a pinned commit manifest.
+Its hosted gate compiles the oracle afresh with totality, warnings-as-errors
+and a no-holes check; interprets the helper's original source bytes in Coq;
+checks every input; and compares native Zig execution in all four optimization
+modes with the oracle. ECHIDNA compilation, coqchk, theorem-type and assumption
+audits, independent byte serialization and rejecting mutations are mandatory.
+The existing Header RefC soundness workflow separately exercises the actual
+exported ABI, byte-pair corpus and always-clean kernel mutation.
+
+The source proof concerns the scalar word expression. It does not establish
+pointer provenance, accessibility, lifetime, SDK/compiler refinement or the
+whole library's correctness. The foreign-boundary receipt remains INCOMPLETE.
+The oracle and source helper are evidence inputs, never cached proof verdicts.

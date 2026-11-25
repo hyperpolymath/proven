@@ -103,18 +103,30 @@ jobs:
         run: |
           # Count believe_me instances and verify they have justification comments
           BELIEVE_ME_COUNT=$(grep -r "believe_me" src/ --include="*.idr" 2>/dev/null | wc -l)
-          UNJUSTIFIED=$(grep -r "believe_me" src/ --include="*.idr" -B1 2>/dev/null | \
-                       grep -c "believe_me" 2>/dev/null || true)
           echo "believe_me instances: $BELIEVE_ME_COUNT"
           if [ "$BELIEVE_ME_COUNT" -gt 300 ]; then
             echo "WARNING: believe_me count ($BELIEVE_ME_COUNT) exceeds threshold (300)"
           fi
       - name: Verify FFI bridge purity
+        if: always()
         run: |
-          # Zig FFI bridge must not contain safety logic
-          SAFETY_LOGIC=$(grep -c "if.*overflow\|if.*bounds\|if.*null\|panic\|unreachable" ffi/zig/src/main.zig 2>/dev/null || true)
-          if [ "$SAFETY_LOGIC" -gt 5 ]; then
-            echo "WARNING: Potential safety logic in FFI bridge ($SAFETY_LOGIC patterns)"
+          set -euo pipefail
+          # Advisory pattern scan, not a purity proof. Include the extracted
+          # core and every RefC helper, rather than only the export wrapper.
+          test -d ffi/zig/src
+          mapfile -d '' -t SOURCES < <(find ffi/zig/src -type f -name '*.zig' -print0)
+          test "${#SOURCES[@]}" -gt 0
+          mkdir -p build
+          if grep -nE 'if.*overflow|if.*bounds|if.*null|panic|unreachable' "${SOURCES[@]}" > build/ffi-purity.log; then
+            :
           else
-            echo "FFI bridge purity: PASS"
+            result=$?
+            test "$result" -eq 1 || exit "$result"
+          fi
+          SAFETY_LOGIC=$(wc -l < build/ffi-purity.log)
+          echo "FFI heuristic scanned ${#SOURCES[@]} source files; $SAFETY_LOGIC matching lines"
+          if [ "$SAFETY_LOGIC" -gt 5 ]; then
+            echo "WARNING: Potential safety logic in FFI bridge ($SAFETY_LOGIC patterns); review required"
+          else
+            echo "FFI heuristic threshold not exceeded; this does not establish purity"
           fi

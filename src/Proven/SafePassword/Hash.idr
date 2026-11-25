@@ -7,6 +7,7 @@
 module Proven.SafePassword.Hash
 
 import Proven.Core
+import public Proven.SafePassword.Comparison
 import Data.Bits
 import Data.List
 import Data.String
@@ -342,9 +343,18 @@ constantTimeHashCompare xs ys =
     go (x :: xs') (y :: ys') acc = go xs' ys' (acc .|. (x `xor` y))
     go _ _ _ = False
 
-||| Constant-time string hash comparison
+||| Compare full character sequences. The historical API name is retained;
+||| no compiler/runtime constant-time guarantee is established by this proof.
 public export
 constantTimeStringCompare : String -> String -> Bool
-constantTimeStringCompare s1 s2 =
-  constantTimeHashCompare (map (cast . ord) (unpack s1))
-                          (map (cast . ord) (unpack s2))
+constantTimeStringCompare s1 s2 = charsEqual (unpack s1) (unpack s2)
+
+||| Acceptance implies equality of every full character, not truncated bytes.
+public export
+stringCompareSound : (s1, s2 : String) ->
+                     constantTimeStringCompare s1 s2 = True -> unpack s1 = unpack s2
+stringCompareSound s1 s2 accepted = charsEqualSound (unpack s1) (unpack s2) accepted
+
+public export
+stringCompareReflexive : (s : String) -> constantTimeStringCompare s s = True
+stringCompareReflexive s = charsEqualSelf (unpack s)
