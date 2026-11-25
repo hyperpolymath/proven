@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: Header RefC soundness
 on:
+  workflow_call:
   pull_request:
   push:
     branches: [main]
@@ -9,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: header-refc-${{ github.ref }}
+  group: header-refc-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   header-refc:
@@ -54,3 +55,4 @@ jobs:
           name: header-refc-evidence
           path: build/header-evidence/
           if-no-files-found: error
+
