@@ -5,8 +5,9 @@ set -euo pipefail
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 out=${EVIDENCE_DIR:-"$root/build/header-evidence/ownership-controls"}
 mkdir -p "$out"; out=$(cd "$out" && pwd)
+echo INCOMPLETE > "$out/result.txt"
 work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+trap 'status=$?; if ((status)); then echo FAIL > "$out/result.txt"; fi; rm -rf "$work"' EXIT
 real_idris=$(command -v "${IDRIS2:-idris2}")
 real_idris=$(cd "$(dirname "$real_idris")" && pwd)/$(basename "$real_idris")
 cat > "$work/diagnostic-compiler" <<'SH'
