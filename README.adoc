@@ -61,13 +61,13 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 === Supported Languages
 
 [.lead]
-*General Purpose:* Ada • C • C++ • Crystal • D • Dart • Deno • Elixir • Elm • Erlang • F# • Gleam • Go • Groovy • Haskell • Java • JavaScript • Julia • Kotlin • Lua • Nim • OCaml • Odin • Perl • PHP • Prolog • PureScript • Python • R • Racket • ReScript • Ruby • Rust • Scala • Swift • Tcl • TypeScript • V • Zig
+*General Purpose:* Ada • C • C++ • Crystal • D • Dart • Deno • Elixir • Elm • Erlang • F# • Gleam • Go • Groovy • Haskell • Java • JavaScript • Julia • Kotlin • Lua • Nim • OCaml • Odin • Perl • PHP • Prolog • PureScript • R • Racket • Ruby • Rust • Scala • Swift • Tcl • TypeScript • V • Zig
 
 *Shell:* Bash • Fish • PowerShell • Zsh | *Functional:* Clojure • Common Lisp • Guile | *Legacy:* COBOL • Forth • Fortran
 
 *Config:* CUE • Dhall • HCL • Jsonnet • JSON-Schema • Nickel • Starlark • YAML-Schema
 
-*Domain:* Arduino • Cairo • CMake • GDScript • Ink • MicroPython • Move • Solidity • Svelte • Unity C# • Vue • Vyper
+*Domain:* Arduino • Cairo • CMake • GDScript • Ink • Move • Solidity • Svelte • Unity C# • Vue • Vyper
 
 *Query/Policy:* CEL • GraphQL • PromQL • Rego | *Formal:* Alloy • TLA+ | *OS:* BSD • POSIX
 
@@ -1823,7 +1823,7 @@ Notable additions beyond traditional languages:
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │              Language Bindings (auto-generated)                 │
-│         Python: ctypes | Rust: bindgen | JS: WebAssembly       │
+│              C: header | Rust: bindgen | JS: WebAssembly       │
 │    Go: cgo | Zig: native | Quantum: OpenQASM/Q# | SPICE: lib   │
 └─────────────────────────────────────────────────────────────────┘
                                 │
