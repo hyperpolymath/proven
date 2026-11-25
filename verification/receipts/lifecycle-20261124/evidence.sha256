@@ -34,6 +34,10 @@ d1d67803d9b5fb1060cd83cab7bf091039b6d385b10af5d6647e5104c3e724cf  ./native-consu
 8fe3698f8cd7d934dc662d08841ecec819a7a50bdfe0a314f5b89454926557b3  ./native-consumers-run.xR6LkYcm/rust-consumer.log
 55cd0529c005d3f62869ea6e2271bfa9d5196f56dc65a8be00a371af114a4a98  ./native-consumers-run.xR6LkYcm/rustc-version.txt
 936bce09512ec1374ab5d5d166f4a421ca3c56fec62ad41ebfaa977e1960b140  ./native-consumers-run.xR6LkYcm/stage.log
+65ff0244b93cb57567d784fd61260dbc17ee6285765537e6a831ebc014260d8a  ./package-one-gib-run.bSwtpv5U/compiler-version.txt
+6136ed2c5c404d3c4d2ad64a6216b90600ab210d0c22c65d8621230dfdf313cd  ./package-one-gib-run.bSwtpv5U/inputs.sha256
+d32af2c20d54318a6c879a4bd3cf34aa80be523f42a341867557013d2cdf7cca  ./package-one-gib-run.bSwtpv5U/package.log
+a1397233218847bd7f6272755b17fd8a6041833759b4a0b822595a5fe9c2599a  ./package-one-gib-run.bSwtpv5U/parent.txt
 fdc8a6220d9c29dfdc33f923227e89142ae47d32f110ca8251170d5edd892edc  ./refc-library-exports-run.P2ztAg1w/artifact.sha256
 eb6de7f7e2cc30919ab4bc3988d765c0c0744ccfd72ebdc64cfba72a46d541b7  ./refc-library-exports-run.P2ztAg1w/boundary.sha256
 6024add197f5604089cde83f05314153c16b7b4f00f5cca646f7f4a7bb3484dc  ./refc-library-exports-run.P2ztAg1w/build-refc.log

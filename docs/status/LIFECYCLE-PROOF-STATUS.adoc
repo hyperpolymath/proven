@@ -2,8 +2,9 @@
 // Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 = Native lifecycle evidence
 
-This ledger covers the Linux x86_64 lifecycle slice only. Publication and
-Mathesis registration are pending. It does not certify the complete native ABI.
+This ledger covers the Linux x86_64 lifecycle slice only. The source snapshot
+is published at signed commit e7a0aa8a46601df22f0853c28ec26424a3874321.
+Mathesis registration is tracked separately. This does not certify the complete native ABI.
 
 == ABI-LC-D1 — native demonstration
 
@@ -14,8 +15,8 @@ generated lifecycle reply is rejected with readiness false.
 
 Status: TESTED on the retained 24 November 2026 worktree inputs. This is an
 engineering demonstration, not a PWG-graded Agda/Rocq/Lean theorem. The machine
-receipt and its input hashes identify the evidence; a signed source revision
-must be bound before registration in Mathesis.
+receipt and its input hashes bind the evidence to signed source revision
+`e7a0aa8a46601df22f0853c28ec26424a3874321`.
 
 == Checked engineering properties
 
@@ -84,7 +85,7 @@ OPEN, including failure propagation, ownership and foreign-code refinement.
 
 The first fresh full-package check timed out at module 194 of 314. A separately
 admitted unchanged-snapshot continuation was OOM-killed at its 512 MiB cap.
-The requested 1 GiB attempt is deferred by the current queue policy. This
+A separately admitted one-job 1 GiB attempt was also OOM-killed, with the last complete progress line at module 225 of 314. This
 broader package check is incomplete; neither event is a semantic proof rejection.
 The local `hypatia-v2` command named in legacy instructions is absent; the
 repository's canonical reusable Hypatia workflow remains a hosted pre-merge
