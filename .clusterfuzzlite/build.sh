@@ -26,9 +26,9 @@ pushd ffi/zig >/dev/null
 zig build -j2 --build-file build_standalone.zig -Doptimize=ReleaseSafe "-Dheader-refc=$bundle"
 cp zig-out/lib/libproven_ffi.a zig-out/lib/libproven.a
 popd >/dev/null
-# Final-link support archive, followed by its system dependencies (matching
-# the native static consumer). Zig's archive does not absorb this archive.
-export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=$bundle/libidris2_support.a -C link-arg=-lgmp -C link-arg=-lm -C link-arg=-lpthread -C link-arg=-lubsan"
+# Final-link RefC runtime and support archives, followed by their system
+# dependencies. The standalone Zig archive does not absorb these archives.
+export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=$bundle/libidris2_refc.a -C link-arg=$bundle/libidris2_support.a -C link-arg=-lgmp -C link-arg=-lm -C link-arg=-lpthread -C link-arg=-lubsan"
 # Make libproven discoverable to the cargo-fuzz linker.
 export PROVEN_LIB_DIR="$PWD/ffi/zig/zig-out/lib"
 export LD_LIBRARY_PATH="$PROVEN_LIB_DIR:${LD_LIBRARY_PATH:-}"
