@@ -146,8 +146,8 @@ only. Any non‑Idris safety logic in bindings is being removed or rewritten.
 | Eliminated from ~4,566 instances (remediated 2026-02-22)
 
 | assert_total / assert_smaller
-| 22
-| 20 + 2 non-comment sites in 7 modules; they bypass the totality checker (see <<proof-status>>)
+| 1
+| 1 non-comment site (`assert_smaller` in `SafeInput`); it bypasses the totality checker (see <<proof-status>>)
 
 | `%default covering` modules
 | 4
@@ -234,6 +234,8 @@ Every one of these will crash your app or create a security hole.
 
 == The Solution
 
+NOTE: The examples in this README are written in Python syntax to show the shape of the API. The Python bindings themselves were removed on 2026-05-27 (see <<_python,Python>>), so use a binding from link:TOPOLOGY.adoc[TOPOLOGY.adoc] to run them.
+
 [source,python]
 ----
 from proven import SafeMath, SafeJson, SafeUrl, SafePassword, SafeRegex, SafeHtml, SafeCommand, SafeSql
@@ -255,18 +257,18 @@ This isn’t marketing fluff. Here’s what makes proven different from regular 
 
 * Every function in proven is written in Idris 2, a language with dependent types.
 * The compiler checks every type. For a `total` function it also checks that the function terminates and covers every input. A function proves only what its type states.
-* All 104 core modules have implementations with no `believe_me` (as of v1.2.0). They are not all totality-proven: see <<proof-status>>. 120+ binding targets exist (18 fully implemented, 102 scaffolded with FFI stubs); see link:TOPOLOGY.adoc[TOPOLOGY.adoc] for the full dashboard.
+* All 104 core modules have implementations with no `believe_me` (as of v1.2.0). They are not all totality-proven: see <<proof-status>>. 120+ binding targets exist (16 fully implemented, 102 scaffolded with FFI stubs); see link:TOPOLOGY.adoc[TOPOLOGY.adoc] for the full dashboard.
 
 [[proof-status]]
 === Status of the proofs
 
-Measured on 2026-11-17 by grep over `src/` (comment lines excluded). Status words follow standards `3-practice/PROOF-POLICY.adoc` §5: a module with an escape hatch is not `proven`.
+Measured on 2026-11-25 by grep over `src/` (comment lines excluded). Status words follow standards `3-practice/PROOF-POLICY.adoc` §5: a module with an escape hatch is not `proven`.
 
 * *`believe_me`*: 0.
-* *`assert_total` / `assert_smaller`*: 22 sites (20 + 2), which bypass the totality checker, in 7 modules: `SafeArgs/Parser`, `SafeInput`, `SafeRegex/Matcher`, `SafeTree`, `SafeUnionFind`, `SafeXML/Parser`, `SafeYAML/Parser`.
+* *`assert_total` / `assert_smaller`*: 1 site, `assert_smaller` at `SafeInput.idr:282`, which bypasses the totality checker. (On 2026-11-17 there were 22 sites in 7 modules; the others have since been removed on `main`.)
 * *`%default covering`*: 4 modules, `SafeJson/Access`, `SafeBase64`, `SafeBase64/Encode` and `SafeRBAC`. Their functions are checked for coverage, not termination.
 * *Functions marked `covering`*: 66, in 14 files (most in `SafeFiniteField`, `SafeHeap` and `SafeBitset`).
-* *Proven theorems*: link:AFFIRMATION.adoc[AFFIRMATION.adoc] does not affirm "mathematically proven". Its sample found a discharged theorem in 1 of 32 modules. 79 `.idr` files under `src/` still list `OWED` obligations.
+* *Proven theorems*: link:AFFIRMATION.adoc[AFFIRMATION.adoc] does not affirm "mathematically proven". Its sample found a discharged theorem in 1 of 32 modules. 77 `.idr` files under `src/` still list `OWED` obligations.
 
 So "cannot crash" is the design goal, not a proven property of the whole library.
 
@@ -318,7 +320,7 @@ The proofs are available in `src/Proven/` and we encourage you to explore them! 
 * https://www.youtube.com/watch?v=__gXFtYmDnQ[Type-Driven Development with Idris] — Edwin Brady’s talk
 * link:docs/PROOFS.md[Our proof documentation] — Explains each proof in this library
 
-That said, you can absolutely use the library without understanding the proofs—the whole point of formal verification is that the compiler has already checked correctness for you.
+That said, you can use the library without understanding the proofs. The compiler checks what the types and totality annotations state: preconditions, and termination and coverage where a function is `total`. It does not check that an algorithm is correct (see <<proof-status>>).
 
 == Modules
 
@@ -1735,14 +1737,7 @@ npx jsr add @proven/core
 
 === Python
 
-[source,bash]
-----
-# Using pipx (recommended)
-pipx install proven
-
-# Using pip
-pip install proven
-----
+Python bindings were removed on 2026-05-27 under the estate language policy. This repository publishes no Python package, and `pip install proven` does not install these bindings.
 
 === Go
 
@@ -1874,6 +1869,7 @@ If you find a bug in proven, you’ve likely found a bug in either:
 1. The language bindings (our bug, please report)
 2. The Idris 2 compiler (extremely rare)
 3. Your understanding of the function (check the docs)
+4. The core logic itself: type and totality checking do not prove that an algorithm is correct
 The core logic is type-checked, and totality-checked where it is `total` (see <<proof-status>>). The bindings are written by humans.
 
 Q: Why not just use existing libraries?::
@@ -1920,17 +1916,7 @@ Think of it as a seatbelt for your invincible sports car.
 
 Q: I'm using Python... I thought code meant to crash?
 
-Python’s dynamism is powerful, but crashes aren’t inevitable! proven’s Python bindings let you:
-
-Replace try/except spaghetti with compile-time guarantees (via Idris 2 proofs).
-Use type-safe alternatives for error-prone operations:
-
-* SafeJson.parse() → No more KeyError or JSONDecodeError.
-* SafePath.join_safe() → No more ../../../etc/passwd exploits.
-* SafeRegex.compile() → No more ReDoS attacks.
-
-Keep Python’s ergonomics while eliminating entire classes of runtime errors.
-Performance overhead? ~1–5% (almost always faster than hand-rolled defensive code).
+Python bindings were removed on 2026-05-27 under the estate language policy, so proven is not available from Python through this repository. The supported bindings are listed in link:TOPOLOGY.adoc[TOPOLOGY.adoc]; Rust and C are the production focus.
 
 Crashes are a choice. Choose otherwise.
 

@@ -104,7 +104,7 @@ CORE MODULES (IDRIS2)
 
 VERIFICATION
   ECHIDNA Integration              ██████████ 100%    ProofTerm + Validator + Soundness
-  Totality Checking                not complete       4 %default covering modules, 22 assert_total/assert_smaller sites (README Proof status)
+  Totality Checking                not complete       4 %default covering modules, 1 assert_smaller site (README Proof status)
   believe_me Count                 ██████████ 100%    0 instances (was 4,566)
 
 BRIDGE & BINDINGS
