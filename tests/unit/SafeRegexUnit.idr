@@ -87,6 +87,7 @@ runRegexUnitTests = do
     Err _ => putStrLn "  ✗ Failed to compile IPv4 regex"
 
   case uuidRegex of
+    -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     Ok re => assertTrue "uuidRegex matches UUID" (test re "550e8400-e29b-41d4-a716-446655440000")
     Err _ => putStrLn "  ✗ Failed to compile UUID regex"
 

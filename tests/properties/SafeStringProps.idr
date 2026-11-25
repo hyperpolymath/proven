@@ -4,6 +4,7 @@ module SafeStringProps
 
 import Proven.Core
 import Proven.SafeString
+import Proven.SafeString.Proofs
 import Data.List
 import Data.String
 import System
@@ -19,9 +20,9 @@ import System
 -- Type-level proofs
 --------------------------------------------------------------------------------
 
-||| SQL escaping doubles a single quote.
-prop_sqlEscapeQuotes : escapeSQL "'" = "''"
-prop_sqlEscapeQuotes = Refl
+||| The legacy SQL body follows the production backslash-escape grammar.
+prop_sqlEscapeEncoding : (s : String) -> RenderedBody BackslashEscapes (unpack s) (escapeSQL s)
+prop_sqlEscapeEncoding = escapeSQLSafe
 
 ||| The empty byte sequence is valid UTF-8 (was prop_emptyStringValid).
 prop_emptyBytesValid : isValidUTF8 [] = True
@@ -127,7 +128,8 @@ runStringProperties : IO ()
 runStringProperties = do
   putStrLn "SafeString Property Tests"
   putStrLn "========================="
-  putStrLn "prop_sqlEscapeQuotes: PASS (proven by type)"
+  putStrLn "prop_sqlEscapeEncoding: PASS (proven by type)"
+  check "SQL escaping doubles a single quote" (escapeSQL "'" == "''")
   putStrLn "prop_emptyBytesValid: PASS (proven by type)"
   putStrLn "prop_emptyStringValid: PASS (proven by type)"
   putStrLn "prop_asciiBytesValid: PASS (proven by type)"

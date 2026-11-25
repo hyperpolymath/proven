@@ -207,6 +207,7 @@ pub fn hex_is_valid_invalid_test() {
 // -- UUID tests ---------------------------------------------------------------
 
 pub fn uuid_is_valid_test() {
+  // hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   uuid.is_valid("550e8400-e29b-41d4-a716-446655440000")
   |> should.equal(True)
 }

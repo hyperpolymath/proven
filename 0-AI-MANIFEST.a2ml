@@ -4,7 +4,8 @@
 ; 0-AI-MANIFEST.a2ml — Universal AI entry point for proven
 ; Media-Type: application/a2ml
 
-; THIS FILE MUST BE READ FIRST BY ALL AI AGENTS
+; Legacy entry point: follow the current human-readable pointers below.
+; Retained pending kyX conversion; do not add or update legacy descriptiles.
 
 (manifest
   (identity
@@ -17,7 +18,7 @@
 
   (purpose
     "Formally verified safety library: 258 Idris2 modules with dependent types,
-     Zig FFI bridge (pure ABI layer), and 120+ language binding targets.
+     Idris2 ABI contracts and pure Zig FFI/API bridge, and 120+ language binding targets.
      ALL computation happens in Idris2. Bindings are thin FFI wrappers ONLY.")
 
   ;; ===================================================================
@@ -27,7 +28,7 @@
   (context-tiers
     ; Tier 0 (always load): This file + .claude/CLAUDE.md — orientation only
     ; Tier 1 (load if working on code): README.adoc, EXPLAINME.adoc, proven.ipkg
-    ; Tier 2 (load on demand): .machine_readable/6a2/*.a2ml, docs/
+    ; Tier 2 (load on demand): docs/adr/, ROADMAP.adoc
     ; Tier 3 (never load unless asked): tests/, benchmarks/, generated/
     ;
     ; DO NOT READ unless specifically asked:
@@ -46,9 +47,9 @@
   (canonical-locations
     (ai-manifest     "0-AI-MANIFEST.a2ml"           "THIS FILE")
     (ai-instructions ".claude/CLAUDE.md"             "Claude-specific patterns")
-    (state           ".machine_readable/6a2/STATE.a2ml")
-    (meta            ".machine_readable/6a2/META.a2ml")
-    (ecosystem       ".machine_readable/6a2/ECOSYSTEM.a2ml")
+    (state           "ROADMAP.adoc")
+    (meta            ".claude/CLAUDE.md")
+    (ecosystem       "README.adoc")
     (bot-directives  ".bot_directives/")
     (contractiles    "contractiles/"))
 
@@ -60,7 +61,7 @@
     (principle "Idris2 is the SOLE computation layer — ALL safety logic lives in src/Proven/")
     (layers
       (idris2  "src/Proven/"    "258 modules — the source of truth")
-      (zig-ffi "ffi/zig/"       "PURE ABI layer — no safety logic here")
+      (zig-ffi "ffi/zig/"       "Pure Zig FFI/API — marshaling and checked boundary handling")
       (bindings "bindings/"     "120+ thin FFI wrappers — CALL Idris, NEVER reimplement"))
     (banned "believe_me is BANNED — --total flag enforced")
     (banned "NEVER reimplement algorithms in bindings"))
@@ -87,7 +88,7 @@
   ;; ===================================================================
 
   (critical-invariants
-    (rule "Idris2 is the sole computation layer — Zig is pure ABI, bindings are thin wrappers")
+    (rule "Idris2 defines ABI contracts and core safety logic; Zig implements FFI/API boundaries; bindings are thin wrappers")
     (rule "believe_me is BANNED — --total flag enforced on all modules")
     (rule "NEVER reimplement algorithms in bindings — CALL Idris via FFI only")
     (rule "SCM files ONLY in .machine_readable/ — never in root")
@@ -102,11 +103,11 @@
     (on-enter
       (step "Read THIS file first")
       (step "Read .claude/CLAUDE.md for detailed constraints")
-      (step "Read .machine_readable/6a2/STATE.a2ml for current status")
+      (step "Read ROADMAP.adoc for current status")
       (step "Understand: Idris2 -> Zig FFI -> Bindings"))
 
     (on-exit
-      (step "Update .machine_readable/6a2/STATE.a2ml if changes made")
+      (step "Update ROADMAP.adoc if changes made")
       (step "Verify no reimplemented logic in bindings")
       (step "Summarise outcomes")))
 

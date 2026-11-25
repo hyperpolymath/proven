@@ -73,7 +73,7 @@ proven_datetime_days_in_month	owed	-	-
 proven_datetime_format_iso8601	owed	-	-
 proven_datetime_is_leap_year	owed	-	-
 proven_datetime_parse	owed	-	-
-proven_deinit	owed	-	-
+proven_deinit	exported	idris-refc	void(void); full lifecycle profile; standalone/header-only stays stopped
 proven_digest_parse	owed	-	-
 proven_digest_to_string	owed	-	-
 proven_digest_verify	owed	-	-
@@ -96,7 +96,6 @@ proven_graph_free	owed	-	-
 proven_graph_has_edge	owed	-	-
 proven_header_build_csp	owed	-	-
 proven_header_build_hsts	owed	-	-
-proven_header_codegen_main	undeclared	idris-refc	RefC program main renamed by -Dmain; not an API; should not be exported
 proven_header_has_crlf	exported	idris-refc	-
 proven_header_is_dangerous	owed	-	-
 proven_header_is_valid_name	owed	-	-
@@ -107,11 +106,11 @@ proven_hex_free	owed	-	-
 proven_http_parse_www_authenticate	owed	-	-
 proven_http_url_decode	owed	-	-
 proven_http_url_encode	owed	-	-
-proven_init	conflict	zig-legacy	header int32_t(void); export ?*Handle(void)
-proven_is_initialized	conflict	zig-legacy	header bool(void); export u32(?*Handle)
+proven_init	exported	idris-refc	int32_t(void); full lifecycle profile; standalone/header-only returns -99
+proven_is_initialized	exported	idris-refc	bool(void); full lifecycle profile; standalone/header-only returns false
 proven_json_get_type	owed	-	-
 proven_json_is_valid	owed	-	-
-proven_last_error	undeclared	zig-legacy	-
+proven_last_error	exported	zig-legacy	const char*(void); borrowed static storage; caller must not free
 proven_lru_create	owed	-	-
 proven_lru_free	owed	-	-
 proven_lru_get	owed	-	-
@@ -192,3 +191,5 @@ proven_version_major	exported	zig-legacy	-
 proven_version_minor	exported	zig-legacy	-
 proven_version_parse	owed	-	-
 proven_version_patch	exported	zig-legacy	-
+proven_handle_create	undeclared	zig-legacy	Renamed legacy handle constructor; not canonical lifecycle
+proven_handle_is_initialized	undeclared	zig-legacy	Renamed legacy handle query; not canonical lifecycle

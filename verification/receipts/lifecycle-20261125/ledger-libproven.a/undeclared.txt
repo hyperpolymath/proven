@@ -1,0 +1,7 @@
+proven_free
+proven_get_string
+proven_handle_create
+proven_handle_is_initialized
+proven_process
+proven_process_array
+proven_register_callback

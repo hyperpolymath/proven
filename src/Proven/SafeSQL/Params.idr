@@ -8,6 +8,7 @@ module Proven.SafeSQL.Params
 
 import Proven.Core
 import Proven.SafeSQL.Types
+import public Proven.SafeSQL.Literal
 import Data.List
 import Data.String
 
@@ -17,29 +18,27 @@ import Data.String
 -- Value Escaping
 --------------------------------------------------------------------------------
 
-||| Escape a string value for SQL (dialect-specific)
+||| Defaults require PostgreSQL standard_conforming_strings=on and MySQL
+||| NO_BACKSLASH_ESCAPES=off. Use renderLiteral with an explicit QuoteMode
+||| if a connection differs. The grammar is for a quoted text literal only.
+public export
+defaultQuoteMode : SQLDialect -> QuoteMode
+defaultQuoteMode MySQL = BackslashEscapes
+defaultQuoteMode _ = StandardQuotes
+
+||| Render one complete text literal. Newlines/CR remain actual characters.
+||| NUL is removed for legacy compatibility; use checkedEscapeString to reject it.
 public export
 escapeString : SQLDialect -> String -> String
-escapeString dialect s = "'" ++ escape (unpack s) ++ "'"
-  where
-    escape : List Char -> String
-    escape [] = ""
-    escape ('\'' :: cs) = "''" ++ escape cs  -- Double single quotes (universal)
-    escape ('\\' :: cs) =
-      case dialect of
-        MySQL => "\\\\" ++ escape cs      -- MySQL needs escaped backslash
-        PostgreSQL => "\\\\" ++ escape cs -- PostgreSQL standard_conforming_strings=off
-        _ => "\\" ++ escape cs            -- Others pass through
-    escape ('\x00' :: cs) = escape cs      -- Remove null bytes (critical!)
-    escape ('\n' :: cs) =
-      case dialect of
-        MSSQL => "' + CHAR(10) + '" ++ escape cs
-        _ => "\\n" ++ escape cs
-    escape ('\r' :: cs) =
-      case dialect of
-        MSSQL => "' + CHAR(13) + '" ++ escape cs
-        _ => "\\r" ++ escape cs
-    escape (c :: cs) = singleton c ++ escape cs
+escapeString dialect = renderLiteral (defaultQuoteMode dialect)
+
+||| Prefer this explicit-mode API when loss of NUL would change application data.
+public export
+checkedEscapeString : QuoteMode -> String -> Result SQLError String
+checkedEscapeString mode input =
+  if '\0' `elem` unpack input
+    then Err (InvalidQuery "NUL is not supported in SQL text literals")
+    else Ok (renderLiteral mode input)
 
 ||| Escape a string for LIKE pattern matching
 public export

@@ -33,8 +33,11 @@ runUUIDUnitTests = do
 
   -- Parse tests
   putStrLn "\n[Parsing]"
+  -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   assertOk "parseUUID standard format" (parseUUID "550e8400-e29b-41d4-a716-446655440000")
+  -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   assertOk "parseUUID uppercase" (parseUUID "550E8400-E29B-41D4-A716-446655440000")
+  -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   assertOk "parseUUID lowercase" (parseUUID "550e8400-e29b-41d4-a716-446655440000")
   assertErr "parseUUID invalid length" (parseUUID "550e8400-e29b")
   assertErr "parseUUID invalid chars" (parseUUID "550e8400-e29b-41d4-a716-44665544000g")
@@ -43,33 +46,42 @@ runUUIDUnitTests = do
 
   -- Nil UUID tests
   putStrLn "\n[Nil UUID]"
+  -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
   assertOk "parseUUID nil UUID" (parseUUID "00000000-0000-0000-0000-000000000000")
+  -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
   case parseUUID "00000000-0000-0000-0000-000000000000" of
     Ok uuid => assertTrue "isNil nil UUID" (isNil uuid)
     Err _ => putStrLn "  ✗ Failed to parse nil UUID"
 
   -- Version detection tests
   putStrLn "\n[Version Detection]"
+  -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   case parseUUID "550e8400-e29b-41d4-a716-446655440000" of
     Ok uuid => assertEq "getVersion v4 UUID" (Just 4) (getVersion uuid)
     Err _ => putStrLn "  ✗ Failed to parse v4 UUID"
 
+  -- hypatia: allow-next-line uuid/external -- RFC UUID namespace constant; preserve interoperability
   case parseUUID "6ba7b810-9dad-11d1-80b4-00c04fd430c8" of
     Ok uuid => assertEq "getVersion v1 UUID" (Just 1) (getVersion uuid)
     Err _ => putStrLn "  ✗ Failed to parse v1 UUID"
 
   -- Format tests
   putStrLn "\n[Formatting]"
+  -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   case parseUUID "550E8400-E29B-41D4-A716-446655440000" of
     Ok uuid => do
+      -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
       assertEq "formatUUID lowercase" "550e8400-e29b-41d4-a716-446655440000" (formatUUID Lowercase uuid)
+      -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
       assertEq "formatUUID uppercase" "550E8400-E29B-41D4-A716-446655440000" (formatUUID Uppercase uuid)
       assertEq "formatUUID compact" "550e8400e29b41d4a716446655440000" (formatUUID Compact uuid)
+      -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
       assertEq "formatUUID URN" "urn:uuid:550e8400-e29b-41d4-a716-446655440000" (formatUUID URN uuid)
     Err _ => putStrLn "  ✗ Failed to parse format test UUID"
 
   -- Validation tests
   putStrLn "\n[Validation]"
+  -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   assertTrue "isValidUUID valid" (isValidUUID "550e8400-e29b-41d4-a716-446655440000")
   assertTrue "isValidUUID invalid" (not $ isValidUUID "not-a-uuid")
   assertTrue "isValidUUID empty" (not $ isValidUUID "")
@@ -87,12 +99,14 @@ runUUIDUnitTests = do
 
   -- Comparison tests
   putStrLn "\n[Comparison]"
+  -- hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
   case (parseUUID "00000000-0000-0000-0000-000000000001", parseUUID "00000000-0000-0000-0000-000000000002") of
     (Ok u1, Ok u2) => do
       assertTrue "UUID comparison u1 < u2" (compareUUID u1 u2 == LT)
       assertTrue "UUID comparison u2 > u1" (compareUUID u2 u1 == GT)
     _ => putStrLn "  ✗ Failed to parse comparison UUIDs"
 
+  -- hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
   case (parseUUID "550e8400-e29b-41d4-a716-446655440000", parseUUID "550e8400-e29b-41d4-a716-446655440000") of
     (Ok u1, Ok u2) => assertTrue "UUID equality" (compareUUID u1 u2 == EQ)
     _ => putStrLn "  ✗ Failed to parse equality UUIDs"

@@ -1,11 +1,9 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeWebhook - Webhook handling with signature verification
+||| SafeWebhook - Webhook parsing and replay-tracking types
 |||
-||| Provides type-safe webhook payload validation, signature verification,
-||| replay-prevention checks, and idempotency tracking. Soundness theorems
-||| (signature-correctness, replay-detection, idempotency) are OWED — see
-||| `PROOF-NEEDS.md`.
+||| Authentication is unavailable until a real cryptographic backend is
+||| connected. Verification fails closed and never records an unverified ID.
 module Proven.SafeWebhook
 
 import Data.String
@@ -15,7 +13,7 @@ import Data.Maybe
 
 %default total
 
-||| Supported signature algorithms
+||| Recognized signature algorithm names (backends are not implemented yet).
 public export
 data SignatureAlgorithm = HMAC_SHA256 | HMAC_SHA512 | Ed25519Sig
 
@@ -96,7 +94,7 @@ isTimestampValid eventTime currentTime =
                else minus eventTime currentTime
   in diff <= maxWebhookAge
 
-||| Constant-time string comparison (timing-attack resistant)
+||| String comparison. No compiler/runtime timing guarantee is established.
 public export
 constantTimeEq : String -> String -> Bool
 constantTimeEq a b =
@@ -105,15 +103,18 @@ constantTimeEq a b =
   in length aChars == length bChars &&
      foldl (\acc, (x, y) => acc && ord x == ord y) True (zip aChars bChars)
 
-||| Verify webhook signature (FFI stub - actual crypto via Zig)
-||| In production, this calls HMAC-SHA256 via the Zig FFI layer
+||| Compatibility Boolean API: no signature algorithm is implemented yet.
+||| Syntax is not authentication; callers must treat False as rejection.
 public export
 verifySignature : String -> String -> WebhookSignature -> Bool
-verifySignature secret payload sig =
-  -- Actual HMAC computation happens in FFI layer
-  -- This validates structure only
-  length (sigValue sig) > 0 &&
-  all (\c => isAlphaNum c || c == '+' || c == '/' || c == '=') (unpack (sigValue sig))
+verifySignature secret payload sig = False
+
+||| All keys, payloads, algorithms and signature strings fail closed.
+public export
+unimplementedSignatureRejected : (secret, payload : String) ->
+                                 (sig : WebhookSignature) ->
+                                 verifySignature secret payload sig = False
+unimplementedSignatureRejected secret payload sig = Refl
 
 ||| Idempotency tracker
 public export
@@ -136,22 +137,42 @@ checkDelivery did tracker =
     else let newIds = did :: take (minus (maxSize tracker) 1) (seenIds tracker)
          in (True, { seenIds := newIds } tracker)
 
-||| Full webhook verification
+||| Preserve timestamp diagnostics while authentication is unavailable.
+public export
+unavailableVerification : Bool -> VerifyResult
+unavailableVerification True = UnsupportedAlgorithm
+unavailableVerification False = ExpiredTimestamp
+
+||| Authentication fails closed. No delivery is recorded before verification.
 public export
 verifyWebhook : String -> WebhookEvent -> Nat -> IdempotencyTracker ->
                 (VerifyResult, IdempotencyTracker)
 verifyWebhook secret event currentTime tracker =
-  if not (isTimestampValid (timestamp event) currentTime)
-    then (ExpiredTimestamp, tracker)
-    else let (isNew, tracker') = checkDelivery (deliveryId event) tracker
-         in if not isNew
-              then (DuplicateDelivery, tracker')
-              else if verifySignature secret (payload event) (signature event)
-                then (Verified, tracker')
-                else (InvalidSignature, tracker')
+  (unavailableVerification (isTimestampValid (timestamp event) currentTime), tracker)
+
+public export
+unavailableNeverVerified : (fresh : Bool) ->
+                           unavailableVerification fresh = Verified -> Void
+unavailableNeverVerified True Refl impossible
+unavailableNeverVerified False Refl impossible
+
+||| Generic rejection theorem, including fresh forged and duplicate events.
+public export
+webhookNeverVerified : (secret : String) -> (event : WebhookEvent) ->
+                       (now : Nat) -> (tracker : IdempotencyTracker) ->
+                       fst (verifyWebhook secret event now tracker) = Verified -> Void
+webhookNeverVerified secret event now tracker accepted =
+  unavailableNeverVerified (isTimestampValid (timestamp event) now) accepted
+
+||| Failed authentication cannot poison the idempotency tracker.
+public export
+webhookPreservesTracker : (secret : String) -> (event : WebhookEvent) ->
+                          (now : Nat) -> (tracker : IdempotencyTracker) ->
+                          snd (verifyWebhook secret event now tracker) = tracker
+webhookPreservesTracker secret event now tracker = Refl
 
 ||| Parse a webhook signature header
-||| Supports formats: "sha256=hex", "v1=hex", "t=timestamp,v1=hex"
+||| Recognizes sha256= and sha512= prefixes; this does not authenticate a digest.
 public export
 parseSignatureHeader : String -> Maybe WebhookSignature
 parseSignatureHeader s =
@@ -165,10 +186,12 @@ parseSignatureHeader s =
 -- Proof types
 -- ----------------------------------------------------------------
 
-||| Proof that a webhook has been verified
+||| Evidence must refer to successful execution on the exact request/state.
+||| Uninhabited while authentication is unavailable (webhookNeverVerified).
 public export
-data WebhookVerified : WebhookEvent -> Type where
-  MkWebhookVerified : (event : WebhookEvent) -> WebhookVerified event
+data WebhookVerified : String -> WebhookEvent -> Nat -> IdempotencyTracker -> Type where
+  MkWebhookVerified : fst (verifyWebhook secret event now tracker) = Verified ->
+                      WebhookVerified secret event now tracker
 
 ||| Proof that timestamp is within acceptable window
 public export

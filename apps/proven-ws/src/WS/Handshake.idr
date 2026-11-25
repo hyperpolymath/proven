@@ -101,6 +101,7 @@ findHeader name = map (.value) . find (\h => h.name == name)
 ||| The WebSocket GUID used in the accept key computation (RFC 6455 Section 4.2.2).
 public export
 wsGUID : String
+-- hypatia: allow-next-line uuid/external -- RFC 6455 WebSocket handshake GUID; protocol-defined bytes
 wsGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 ||| Validate a handshake request per RFC 6455 Section 4.2.1.

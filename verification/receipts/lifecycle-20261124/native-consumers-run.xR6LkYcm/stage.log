@@ -1,0 +1,30 @@
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.a: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.so: OK
++ /usr/bin/cc -std=c11 -Wall -Wextra -Werror -Ibindings/c/include tests/remediation/native_lifecycle.c -L/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib -Wl,-rpath,/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib -lproven -pthread -o /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-shared
++ /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-shared
++ tee /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-shared.log
+PASS: typed C lifecycle, idempotence and concurrency
++ /usr/bin/cc -std=c11 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=all -Ibindings/c/include tests/remediation/native_lifecycle.c /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.a /home/hyperpolymath/.local/state/pack/install/b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b/idris2/idris2-0.8.0/lib/libidris2_support.a -lgmp -lm -pthread -o /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-static
++ /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-static
++ tee /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-static.log
+PASS: typed C lifecycle, idempotence and concurrency
++ /home/hyperpolymath/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --edition=2021 -C codegen-units=1 tests/remediation/native_lifecycle.rs -L native=/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib -l dylib=proven -C link-arg=-Wl,-rpath,/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib -o /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/rust-consumer
+warning: `extern` block uses type `[u8; 3]`, which is not FFI-safe
+   --> tests/remediation/../../bindings/rust/src/ffi.rs:875:15
+    |
+875 |         code: [u8; 3],
+    |               ^^^^^^^ not FFI-safe
+    |
+    = help: consider passing a pointer to the array
+    = note: passing raw arrays by value is not FFI-safe
+    = note: `#[warn(improper_ctypes)]` on by default
+
+warning: 1 warning emitted
+
++ tee /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/rust-consumer.log
++ /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/rust-consumer
+PASS: lifecycle through actual Rust FFI declarations
++ set +x
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.a: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.so: OK
+PASS: typed C static/shared and Rust lifecycle consumers; C concurrency included. Zig unit/standalone/corruption checks remain separate.

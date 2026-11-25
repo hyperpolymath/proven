@@ -200,12 +200,14 @@ UUID parsing, formatting, and validation (RFC 4122):
 include safe-uuid.fs
 
 \ Parse UUID
+\ hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 s" 550e8400-e29b-41d4-a716-446655440000" uuid-buffer uuid-parse if
     uuid-buffer uuid-format type cr   \ Canonical format
     uuid-buffer uuid-format-urn type cr  \ urn:uuid:...
 then
 
 \ Quick validation
+\ hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 s" 550e8400-e29b-41d4-a716-446655440000" uuid? if
     ." Looks like a UUID" cr
 then

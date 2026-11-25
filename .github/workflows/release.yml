@@ -105,19 +105,21 @@ jobs:
     needs: [validate, create-release]
     if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_crates)
     uses: ./.github/workflows/publish-crates.yml
-    secrets: inherit
+    secrets:
+      CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
   publish-npm:
     name: Publish to npm
     needs: [validate, create-release]
     if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_npm)
     uses: ./.github/workflows/publish-npm.yml
-    secrets: inherit
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
   publish-jsr:
     name: Publish to JSR
     needs: [validate, create-release]
     if: always() && needs.validate.result == 'success' && (github.event_name == 'push' || inputs.publish_jsr)
     uses: ./.github/workflows/publish-jsr.yml
-    secrets: inherit
+    # JSR authenticates with the job's OIDC token; no inherited secrets.
   summary:
     name: Release summary
     needs: [validate, publish-crates, publish-npm, publish-jsr]

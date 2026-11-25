@@ -38,6 +38,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Constrain credential-bearing job egress
+        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: block
+          allowed-endpoints: github.com:443 api.github.com:443 codeload.github.com:443 release-assets.githubusercontent.com:443 objects.githubusercontent.com:443 ${{ secrets.SMTP_HOST }}:${{ secrets.SMTP_PORT }}
       - name: Send push notification email
         uses: hyperpolymath/smtp-notify-action@ede1191ef6ff3ac02c4f4d9efdf837ee517e11d7 # v0.2.0
         with:
