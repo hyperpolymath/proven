@@ -19,9 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Pin Zig 0.15.2 (matches ffi/zig/build.zig.zon's minimum).
 ARG ZIG_VERSION=0.15.2
-ARG ZIG_TARBALL="https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
+# Listed at ziglang.org/download/community-mirrors.txt; content remains SHA-pinned.
+ARG ZIG_TARBALL="https://pkg.hexops.org/zig/zig-x86_64-linux-${ZIG_VERSION}.tar.xz?source=proven-clusterfuzzlite"
 ARG ZIG_SHA256="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239"
-RUN curl -fsSL "$ZIG_TARBALL" -o /tmp/zig.tar.xz \
+RUN curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 20 --max-time 180 "$ZIG_TARBALL" -o /tmp/zig.tar.xz \
     && echo "$ZIG_SHA256  /tmp/zig.tar.xz" | sha256sum -c - \
     && tar -xJ -C /opt -f /tmp/zig.tar.xz \
     && ln -s "/opt/zig-x86_64-linux-${ZIG_VERSION}/zig" /usr/local/bin/zig \

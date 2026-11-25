@@ -17,6 +17,7 @@ on:
       - 'ffi/**'
       - 'src/**'
       - '.clusterfuzzlite/**'
+      - 'scripts/build-header-refc.sh'
       - '.github/workflows/clusterfuzzlite.yml'
   schedule:
     - cron: '0 2 * * 0' # Sunday 02:00 UTC
@@ -29,16 +30,19 @@ jobs:
   pr-fuzzing:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Separate cold toolchain setup from the full five-minute fuzz campaign.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
       - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        timeout-minutes: 25
         with:
           language: rust
           sanitizer: address
       - uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        timeout-minutes: 8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fuzz-seconds: 300 # 5 minutes per fuzzer

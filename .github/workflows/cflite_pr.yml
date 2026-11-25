@@ -11,10 +11,16 @@ on:
     paths:
       - 'ffi/zig/**'
       - 'fuzz/**'
+      - 'bindings/rust/**'
+      - 'src/**'
+      - '.clusterfuzzlite/**'
+      - 'scripts/build-header-refc.sh'
+      - '.github/workflows/cflite_pr.yml'
 jobs:
   PR:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Cold pinned Chez/Idris bootstrap precedes the five-minute campaign.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -22,12 +28,14 @@ jobs:
     steps:
       - name: Build Fuzzers (${{ matrix.sanitizer }})
         id: build
+        timeout-minutes: 25
         uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
-          language: c
+          language: rust
           sanitizer: ${{ matrix.sanitizer }}
       - name: Run Fuzzers (${{ matrix.sanitizer }})
         id: run
+        timeout-minutes: 8
         uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
