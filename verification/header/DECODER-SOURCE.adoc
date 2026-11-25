@@ -16,7 +16,13 @@ encoder and guarded decoder, then prove canonical acceptance for every word.
 The fresh decoder oracle emits canonical and rejection cases for native
 comparison; this finite corpus complements the universal theorem.
 
-Hosted validation and the source theorem are pending for this change.
+The fresh decoder oracle and four native modes passed in hosted run
+https://github.com/hyperpolymath/proven/actions/runs/45527057899[45527057899]
+at Proven commit a38d22ba10d0e22a1bc83a69d7ed7eb547c1c239.
+Atoma's universal original-source capsule and rejection controls passed in
+https://github.com/hyperpolymath/atoma/actions/runs/45527831101[45527831101]
+at Atoma head 1cc383c1ff2e747cb96d13a49638326ee75823f7, using that Proven pin.
+These reports do not substitute for final-head qualification after later edits.
 Pointer/integer-carrier correspondence, allocation validity and compiler
 refinement remain separate obligations. No complete foreign-boundary or
 production-readiness claim follows from this extraction.

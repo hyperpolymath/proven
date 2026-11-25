@@ -97,9 +97,6 @@ jobs:
           mkdir -p _site
           cd .casket-ssg && cabal run casket-ssg -- build ../.site-src ../_site
           touch ../_site/.nojekyll
-      - name: Setup Pages
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4; nested artifact action is SHA-pinned
         with:
@@ -107,6 +104,8 @@ jobs:
   deploy:
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
     permissions:
+      actions: read
+      contents: read
       pages: write
       id-token: write
     environment:
@@ -116,6 +115,8 @@ jobs:
     timeout-minutes: 15
     needs: build
     steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
