@@ -12,10 +12,6 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
-    permissions:
-      pages: write
-      id-token: write
         description: 'Deploy the built site (false validates the build only)'
         type: boolean
         default: false
@@ -108,6 +104,10 @@ jobs:
         with:
           path: '_site'
   deploy:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
