@@ -43,7 +43,11 @@ diagnostic before reaching negative controls or runtime tests. Its evidence is
 retained. The separately admitted frozen v3 repair passed totality/no-holes checks,
 both semantic negative controls and 4,413 runtime oracle assertions.
 The coordinator measured 6.959 seconds, 242.7 MiB peak and zero swap.
-Native validation and its final receipt remain pending.
+Hosted native run45587964955 then passed the actual full-library C/Rust checks,
+85,077 overlapping C oracle cases per linkage, baseline/mutation controls and
+unavailable/malformed-reply refusals. The source-bound receipt is
+verification/receipts/path-20261125/engineering.json for implementation72dfc18.
+Final whole-repository CI and real-backend fuzzing remain separate gates.
 
 The regression harness checks totality/no holes, requires semantic-error exit 1
 and a type-mismatch diagnostic for each forged proof, then compares runtime

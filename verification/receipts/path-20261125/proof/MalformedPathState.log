@@ -1,0 +1,15 @@
+2/2: Building MalformedPathState (MalformedPathState.idr)
+Error: While processing right hand side of forged. When unifying:
+    0 = 0
+and:
+    pathFinish 255 = 0
+Mismatch between: 0 and 255.
+
+MalformedPathState:6:10--6:14
+ 2 | module MalformedPathState
+ 3 | import Proven.SafePath.ByteKernel
+ 4 | %default total
+ 5 | forged : pathFinish 255 = 0
+ 6 | forged = Refl
+              ^^^^
+

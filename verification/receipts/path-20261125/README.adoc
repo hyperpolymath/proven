@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Path byte policy receipt
+
+This receipt binds implementation 72dfc18ef5ed3815915b1141a4fa1a8330064d8c.
+Hosted run https://github.com/hyperpolymath/proven/actions/runs/45587964955
+tested merge 47e85132e2e8738bd359e34098a4e3a509b32172; both have Git tree
+9973033553cc4daeb4356887ef5cb0ae4a3d442b.
+
+The production Idris proofs and both semantic refusals passed, followed by
+4,413 component-oracle runtime assertions. The actual full RefC static and
+shared libraries each passed the same 85,077 C oracle cases and null controls;
+the counts overlap and are not independent properties. The consumer checks
+borrowed input preservation. Actual Rust FFI declarations passed prefix,
+NUL, non-UTF8 and null cases.
+
+The same C oracle fails on the unchanged d5eb0bf baseline and on the generated
+always-clean transition mutant. Generated invalid-step and invalid-finish
+replies are rejected with -7/false; the unavailable profile returns -99/false.
+Controls require the expected runtime exit/diagnostic rather than accepting
+loader, compile or resource failure. The original artifact passes again after
+mutations. Both binary hashes and all 448 combined source inputs were
+independently compared to the downloaded artifacts and signed source worktree.
+
+The producer's retained logs/manifests are included byte-for-byte. Binaries
+remain in the hosted artifact and local audit pack, identified by hashes.
+The earlier local positive-compilation failure is retained under prior-failure;
+it did not reach negative controls or runtime and is not counted as a pass.
+A separately admitted local v3 proof run also passed, within 512 MiB:
+6.959 seconds, 242.7 MiB peak and zero swap. Its frozen source/tool manifests
+and coordinator receipt remain in the local audit evidence.
+
+This establishes typed-policy/wire proofs and observed native behavior.
+Full scanner/spec equivalence, Zig/RefC implementation refinement, compiler
+correctness, arbitrary pointer lifetime, other platforms, URL decoding,
+filesystem confinement and Rust Creusot/Pearlite/Verus proofs remain open.
+The engineering demonstration receives no Agda/PWG theorem grade.
+
+Three sparse binding jobs initially omitted the new production module.
+The receipt carrier repairs their checkout closure; that workflow repair
+does not change the implementation identified above. Whole-repository CI
+and the real-backend fuzzer are tracked separately by PR248.

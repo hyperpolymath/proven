@@ -1,0 +1,19 @@
+1/2: Building Proven.SafePath.ByteKernel (Proven/SafePath/ByteKernel.idr)
+Error: We are about to implicitly bind the following lowercase names.
+You may be unintentionally shadowing the associated global definitions:
+  classify is shadowing Proven.SafePath.ByteKernel.classify
+
+Proven.SafePath.ByteKernel:102:1--103:78
+ 102 | scanEncodes : (s : ScanState) -> (bs : List Bits8) ->
+ 103 |   scanBytes (encodeState s) bs = encodeState (scanTokens s (map classify bs))
+
+Error: While processing right hand side of scanEncodes. classify is not accessible in this context.
+
+Proven.SafePath.ByteKernel:106:51--106:59
+ 102 | scanEncodes : (s : ScanState) -> (bs : List Bits8) ->
+ 103 |   scanBytes (encodeState s) bs = encodeState (scanTokens s (map classify bs))
+ 104 | scanEncodes s [] = Refl
+ 105 | scanEncodes s (b :: bs) =
+ 106 |   rewrite stepEncodes s b in scanEncodes (next s (classify b)) bs
+                                                         ^^^^^^^^
+
