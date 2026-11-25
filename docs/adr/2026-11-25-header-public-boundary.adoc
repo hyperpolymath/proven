@@ -39,7 +39,8 @@ planted PASS marker and finish with FAIL. Sources are snapshotted before work,
 private copies are checked, and both manifests are rechecked before PASS.
 
 The instrumented backend tests dispatch only. The existing header bridge and
-borrow tests continue to link the real exported RefC-backed library. All four
+borrow tests continue to link the real exported RefC-backed library, including
+every bounded interior subspan of the caller's fixture buffer. All four
 caller optimisation modes are checked remotely. Writing these files is not
 evidence that the gate passed; the PR and hosted artifacts record qualification.
 Atoma separately binds the original public-entry/export source to its heap and
@@ -54,6 +55,12 @@ remain valid and immutable throughout the synchronous backend call. The backend
 must not retain the input or invalidate its storage. A non-null test does not
 establish any of these facts. A logical constructor cannot make stale or forged
 machine addresses safe. No ABI compatibility change is introduced here.
+
+Atoma's backend frame premise states final region equality. It does not by
+itself prohibit a write followed by restoration during the call. Continuous
+immutability and no retention remain distinct foreign-call obligations. Its
+thread-local error marker is an effect/presence projection, not the native
+pointer identity or a message-storage layout theorem.
 
 Atoma's heap model tracks retained references and active read borrows; release
 is permitted only when both counts are zero. Connecting that model to physical
