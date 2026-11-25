@@ -8,6 +8,17 @@
 
 toc::[]
 
+== Lifecycle integration (2026-11-25)
+
+PR246 integrates lifecycle policy with the current Idris-backed header profile
+and capability ledger. Source-bound evidence for the earlier snapshot remains
+in verification/receipts/lifecycle-20261124. Fresh integrated lifecycle proofs,
+native consumers, ledger and rejecting mutations passed and are recorded in
+verification/receipts/lifecycle-20261125, bound to signed source `8da3131`.
+The hosted package build and critical security suite passed at the integration
+parent; repaired property tests and current-head gates remain required before
+merge. Broader ABI exports and correspondence/ownership obligations remain open. See
+link:docs/adr/2026-11-25-lifecycle-integration.adoc[the integration decision].
 == Vision
 
 proven aims to be the **definitive verified safety library** across all programming ecosystems, providing:

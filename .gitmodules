@@ -1,0 +1,3 @@
+[submodule "nextgen-languages/language-bridges"]
+	path = nextgen-languages/language-bridges
+	url = https://github.com/hyperpolymath/language-bridges.git

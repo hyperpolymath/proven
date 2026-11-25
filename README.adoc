@@ -6,7 +6,11 @@
 :icons: font
 :source-highlighter: rouge
 
-*Mathematically proven safe operations.* Code that **cannot crash**, verified with Idris2 dependent types and totality checking.
+Safety operations with Idris2 contracts, checked properties and native integration
+tests. Assurance is scoped to individual properties and execution boundaries;
+this repository is not wholly proved and its complete native ABI is not ready
+for release. See link:docs/status/LIFECYCLE-PROOF-STATUS.adoc[the lifecycle proof
+ledger] for the checked Linux lifecycle slice, retained evidence and open assumptions.
 
 image:https://img.shields.io/badge/OpenSSF-Best_Practices-green?logo=opensourcesecurity[OpenSSF Best Practices,link="https://www.bestpractices.dev/en/projects/new?repo_url=https://github.com/hyperpolymath/proven"]
 image:https://img.shields.io/badge/version-1.2.0-blue[Version 1.2.0]
@@ -15,7 +19,6 @@ image:https://img.shields.io/badge/modules-104-blue[104 Modules]
 image:https://img.shields.io/badge/bindings-120+_targets-orange[120+ Binding Targets]
 image:https://img.shields.io/badge/verified-Idris_2-purple[Verified with Idris 2]
 image:https://img.shields.io/badge/believe__me-0_✓-brightgreen[believe_me = 0 (fully eliminated)]
-image:https://img.shields.io/badge/overall-55%25-yellow[Overall 55%]
 image:https://api.thegreenwebfoundation.org/greencheckimage/jewell.nexus[Green Hosting,link="https://www.thegreenwebfoundation.org/green-web-check/?url=jewell.nexus"]
 
 == License
@@ -25,7 +28,8 @@ This project is licensed under **MPL-2.0**. See link:LICENSE[LICENSE].
 == What Makes proven Different?
 
 *Traditional Libraries:* Trust the author got it right +
-*proven:* **Mathematical proof** the code cannot crash
+*proven:* Explicit contracts and checked properties, with proof debt and native
+boundary assumptions recorded separately from tests.
 
 === Architecture
 

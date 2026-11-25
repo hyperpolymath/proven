@@ -1,0 +1,56 @@
+1/2: Building Proven.ABI.Lifecycle (Proven/ABI/Lifecycle.idr)
+2/2: Building LifecycleProofRegressions (LifecycleProofRegressions.idr)
+PASS: 1033 lifecycle assertions
+PASS: rejected ForgedLifecycle
+PASS: rejected MalformedLifecycle
+PASS: fresh full-package RefC output; staging: /tmp/proven-lifecycle.SUh30iXd/package/build/refc
+Source /tmp/proven-lifecycle.SUh30iXd/package/build/refc/sdk.env before the Zig build. This is build evidence, not whole-library verification.
+
+Build Summary: 5/5 steps succeeded
+install success
++- install proven success
+|  +- compile lib proven Debug native success 3s MaxRSS:151M
++- install proven success
+   +- compile lib proven Debug native success 9s MaxRSS:246M
+
+
+Build Summary: 3/3 steps succeeded; 17/17 tests passed
+test success
++- run test 17 passed 16ms MaxRSS:3M
+   +- compile test Debug native success 3s MaxRSS:152M
+
+header=163 library=20 exported=13 conflict=0 owed=150 undeclared=7
+PASS: ABI ledger matches proven.h and libproven.a
+header=163 library=20 exported=13 conflict=0 owed=150 undeclared=7
+PASS: ABI ledger matches proven.h and libproven.so
+
+Build Summary: 3/3 steps succeeded
+install success
++- install proven_ffi success
+   +- compile lib proven_ffi Debug native success 1s MaxRSS:128M
+
+
+Build Summary: 3/3 steps succeeded; 9/9 tests passed
+test success
++- run test 9 passed 1ms MaxRSS:3M
+   +- compile test Debug native success 2s MaxRSS:125M
+
+PASS: typed C lifecycle, idempotence and concurrency
+PASS: typed C lifecycle, idempotence and concurrency
+PASS: standalone reports unavailable
+warning: `extern` block uses type `[u8; 3]`, which is not FFI-safe
+   --> /home/hyperpolymath/.cache/codex-audits/proven-remediation-2026-11-16/tests/remediation/../../bindings/rust/src/ffi.rs:875:15
+    |
+875 |         code: [u8; 3],
+    |               ^^^^^^^ not FFI-safe
+    |
+    = help: consider passing a pointer to the array
+    = note: passing raw arrays by value is not FFI-safe
+    = note: `#[warn(improper_ctypes)]` on by default
+
+warning: 1 warning emitted
+
+PASS: lifecycle through actual Rust FFI declarations
+PASS: corrupted generated lifecycle result rejected by typed C consumer
+PASS: invalid backend result leaves lifecycle unready
+PASS: scoped lifecycle tests; complete native ABI still requires its separate gate

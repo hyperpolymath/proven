@@ -260,82 +260,24 @@ public export
 -- Signature Verification Proofs
 --------------------------------------------------------------------------------
 
-||| OWED [Category B — Cryptographic FFI + Result-monad soundness]:
-||| if `verifySignature key jwt` returns `Ok ()`, then the boolean
-||| `isKeyValidForAlgorithm key jwt.header.alg = True`. The
-||| implementation in `Proven.SafeJWT.Validate` L231-L270 begins with
-||| `if not (isKeyValidForAlgorithm key alg) then Err _ else ...`,
-||| so the `Ok ()` arm is reachable only when that head is `False`,
-||| i.e. `isKeyValidForAlgorithm key alg = True`.
-|||
-||| Held back by Idris2 0.8.0 not type-level reducing the chained
-||| `if/then/else` over the `Bool` decision head, AND by the
-||| downstream branches calling `prim__verifyHMAC` / `prim__verifyRSA`
-||| / `prim__verifyECDSA` / `prim__verifyEdDSA` — all FFI-bound
-||| cryptographic primitives that are completely opaque to the type
-||| checker (they encode the underlying hardness assumption). Same
-||| trust posture as boj-server's I7 FFI-correctness assumptions.
-||| Discharge once a `Bool`-vs-`Prop` reflection lemma for the
-||| top-level `if not (...) then Err _ else ...` is available, OR
-||| by refactoring `verifySignature` to case-split on a
-||| `Dec (KeyValidForAlgorithm key alg)` witness so the
-||| precondition is propositional rather than boolean.
+||| Compatibility implications. Their antecedents are impossible while
+||| authentication is unavailable; these are NOT cryptographic soundness proofs.
 public export
-0 keyMustMatchAlgorithm : (key : SigningKey) -> (jwt : DecodedJWT) ->
-                          isOk (verifySignature key jwt) = True ->
-                          isKeyValidForAlgorithm key jwt.header.alg = True
+keyMustMatchAlgorithm : (key : SigningKey) -> (jwt : DecodedJWT) ->
+                        isOk (verifySignature key jwt) = True ->
+                        isKeyValidForAlgorithm key jwt.header.alg = True
+keyMustMatchAlgorithm key jwt Refl impossible
 
-||| OWED [Category B — Cryptographic FFI + algorithm-tag soundness]:
-||| if `verifySignature NoKey jwt = Ok ()`, then `jwt.header.alg =
-||| None` (propositional). The implementation in
-||| `Proven.SafeJWT.Validate` L239-L242 case-splits `NoKey =>` and
-||| then `if alg == None then Ok () else Err _`. Reading off
-||| backwards: `Ok ()` implies `alg == None = True`, which should
-||| imply `alg = None`.
-|||
-||| Held back by Idris2 0.8.0 for two stacked reasons:
-||| (1) `if/then/else` over a Bool head doesn't normalise backwards
-||| by Refl (same shape as `expValidationSound`);
-||| (2) the derived `(==)` on the `JWTAlgorithm` enum is Bool, and
-||| reflecting `alg == None = True` to `alg = None` requires a
-||| `decEq`-style witness that Idris2 0.8.0 does not derive
-||| automatically for enums. Same `Bool`-vs-`Prop` reflection class
-||| as boj-server's `charEqSound`. Discharge by either
-||| hand-writing `decEq` for `JWTAlgorithm` and case-splitting on
-||| `decEq alg None`, or by providing an `algEqSound : (a1 == a2 =
-||| True) -> a1 = a2` lemma (potentially via a 14-arm pattern match,
-||| one `Refl` per algorithm constructor — analogous to the
-||| explicit enum case-split in `noneNotSecure` above).
 public export
-0 noKeyOnlyForNone : (jwt : DecodedJWT) ->
-                     isOk (verifySignature NoKey jwt) = True ->
-                     jwt.header.alg = None
+noKeyOnlyForNone : (jwt : DecodedJWT) ->
+                   isOk (verifySignature NoKey jwt) = True -> jwt.header.alg = None
+noKeyOnlyForNone jwt Refl impossible
 
-||| OWED [Category B — Cryptographic FFI + algorithm-tag soundness]:
-||| if `verifySignature (SecretKey secret) jwt = Ok ()`, then
-||| `isSymmetric jwt.header.alg = True` (i.e. the algorithm is one
-||| of `HS256`/`HS384`/`HS512`). The chain runs through the top
-||| `isKeyValidForAlgorithm (SecretKey _) alg` guard, which is
-||| `True` only for the three HS arms (see
-||| `Proven.SafeJWT.Types.isKeyValidForAlgorithm` L210-L212), and
-||| `isSymmetric` is exactly `True` on those three (Types L109-
-||| L113).
-|||
-||| Held back by Idris2 0.8.0 because closing the proof requires
-||| eliminating both the `if not (isKeyValidForAlgorithm ...)`
-||| guard AND the downstream `verifyHMAC` call (an FFI
-||| primitive), then a 14-arm case-split on `jwt.header.alg` to
-||| line up `isKeyValidForAlgorithm = True` with `isSymmetric =
-||| True`. Same blocker family as `keyMustMatchAlgorithm` plus
-||| `noKeyOnlyForNone`. Discharge once those two have an enum
-||| `decEq`/reflection lemma, or by hand-writing the 14-arm split
-||| (`HS256`/`HS384`/`HS512` close by `Refl`; the other 11 arms
-||| derive `False = True` from the guard premise and discharge
-||| via `absurd Refl`).
 public export
-0 secretKeyRequiresHMAC : (secret : List Bits8) -> (jwt : DecodedJWT) ->
-                          isOk (verifySignature (SecretKey secret) jwt) = True ->
-                          isSymmetric jwt.header.alg = True
+secretKeyRequiresHMAC : (secret : List Bits8) -> (jwt : DecodedJWT) ->
+                        isOk (verifySignature (SecretKey secret) jwt) = True ->
+                        isSymmetric jwt.header.alg = True
+secretKeyRequiresHMAC secret jwt Refl impossible
 
 --------------------------------------------------------------------------------
 -- Claim Validation Proofs

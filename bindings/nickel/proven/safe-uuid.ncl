@@ -13,6 +13,7 @@
   uuid_pattern = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
 
   # Nil UUID
+  # hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
   NIL = "00000000-0000-0000-0000-000000000000",
 
   # Check if string is a valid UUID (any version)

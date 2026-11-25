@@ -1,9 +1,9 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| Secure Random Number Generation
+||| Randomness interfaces with explicit backend unavailability
 |||
 ||| Type-safe interfaces for cryptographically secure random number generation.
-||| Actual implementations require FFI to system entropy sources.
+||| No entropy backend is implemented. Requests requiring entropy fail closed.
 |||
 ||| Note: Byte (= Bits8) and Bytes (= List Bits8) are defined in
 ||| Proven.SafeCrypto to avoid ambiguity when modules are re-exported
@@ -14,6 +14,7 @@ import Proven.Core
 import Data.List
 import Data.Bits
 import Data.Vect
+import Decidable.Equality
 
 %default total
 
@@ -37,6 +38,10 @@ data RandomError
   | SystemError String         -- OS-level error
   | GeneratorNotSeeded         -- CSPRNG not properly seeded
   | RequestTooLarge Nat        -- Requested too many bytes
+  | EntropyUnavailable          -- No implemented entropy backend
+  | InvalidRange Integer Integer
+  | CounterExhausted            -- Four-byte counter space exhausted
+  | CounterEncodingFailure      -- Encoded counter failed its round-trip check
 
 public export
 Show RandomError where
@@ -44,6 +49,10 @@ Show RandomError where
   show (SystemError msg) = "System error: " ++ msg
   show GeneratorNotSeeded = "Random generator not properly seeded"
   show (RequestTooLarge n) = "Request too large: " ++ show n ++ " bytes"
+  show EntropyUnavailable = "System entropy backend is unavailable"
+  show (InvalidRange lo hi) = "Invalid random range: " ++ show lo ++ " to " ++ show hi
+  show CounterExhausted = "Counter exceeds the four-byte nonce domain"
+  show CounterEncodingFailure = "Counter nonce failed its round-trip check"
 
 ||| Result of random generation
 public export
@@ -68,45 +77,17 @@ Show EntropySource where
   show Combined = "Combined"
 
 --------------------------------------------------------------------------------
--- FFI Postulates for Random Generation
---
--- These are FFI stubs. The actual implementations call system CSPRNG
--- via the Idris2 RefC -> Zig FFI pipeline. At link time, Zig calls
--- platform-native entropy sources (getrandom, /dev/urandom, CryptGenRandom).
---
--- Using postulate instead of cast: the type signatures correctly
--- describe the FFI contract. Values are provided at runtime by the
--- native entropy source.
---------------------------------------------------------------------------------
-
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Reads n bytes from system CSPRNG
-prim__randomBytes : (n : Nat) -> ByteVec n
-
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Returns a uniformly distributed natural number in [0, max)
-prim__randomNat : (max : Nat) -> Nat
-
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Returns a uniformly distributed integer in [min, max]
-prim__randomInt : (min : Integer) -> (max : Integer) -> Integer
-
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Returns a uniformly distributed double in [0, 1)
-prim__randomDouble : Double
-
---------------------------------------------------------------------------------
 -- Random Generation Interface
 --------------------------------------------------------------------------------
 
 ||| Generate random bytes
-||| Actual implementation via FFI to system CSPRNG
+||| No successful result is fabricated while the entropy backend is absent.
 public export
 randomBytes : (n : Nat) -> RandomResult (ByteVec n)
 randomBytes n =
   if n > 1000000  -- Reasonable limit
     then Left (RequestTooLarge n)
-    else Right (prim__randomBytes n)
+    else Left EntropyUnavailable
 
 ||| Generate random bytes as list
 public export
@@ -116,10 +97,7 @@ randomByteList n = map (\(MkByteVec v) => toList v) (randomBytes n)
 ||| Generate a random natural number in range [0, max)
 public export
 randomNat : (max : Nat) -> {auto ok : IsSucc max} -> RandomResult Nat
-randomNat max =
-  if max == 0
-    then Right 0
-    else Right (prim__randomNat max)
+randomNat max = Left EntropyUnavailable
 
 ||| Generate a random natural number in range [min, max]
 public export
@@ -133,8 +111,8 @@ public export
 randomInt : (min : Integer) -> (max : Integer) -> RandomResult Integer
 randomInt min max =
   if min > max
-    then Right min
-    else Right (prim__randomInt min max)
+    then Left (InvalidRange min max)
+    else Left EntropyUnavailable
 
 ||| Generate a random boolean
 public export
@@ -144,7 +122,7 @@ randomBool = map (\n => n == 0) (randomNat 2)
 ||| Generate a random double in [0, 1)
 public export
 randomDouble : RandomResult Double
-randomDouble = Right prim__randomDouble
+randomDouble = Left EntropyUnavailable
 
 --------------------------------------------------------------------------------
 -- Secure Token Generation
@@ -241,22 +219,16 @@ randomUUID = do
 -- Shuffling and Selection
 --------------------------------------------------------------------------------
 
-||| Shuffle a list using Fisher-Yates algorithm
+||| Empty/singleton shuffles are deterministic. Larger lists require entropy.
 public export
 shuffle : List a -> RandomResult (List a)
 shuffle [] = Right []
-shuffle xs = shuffleImpl (fromList xs) (length xs)
-  where
-    shuffleImpl : Vect n a -> (remaining : Nat) -> RandomResult (List a)
-    shuffleImpl v Z = Right (toList v)
-    shuffleImpl v (S r) = do
-      idx <- randomNat (S r)
-      -- Would need to implement swap - stub for now
-      Right (toList v)
-
+shuffle [x] = Right [x]
+shuffle (_ :: _ :: _) = Left EntropyUnavailable
 ||| Pick n random elements from a list
 public export
 sample : (n : Nat) -> List a -> RandomResult (List a)
+sample Z xs = Right []
 sample n xs =
   if n >= length xs
     then Right xs
@@ -283,16 +255,80 @@ public export
 freshNonce : (n : Nat) -> RandomResult (ByteVec n)
 freshNonce = randomBytes
 
-||| Generate a unique counter-based nonce (needs state)
-||| For single-use nonces, prefer freshNonce
+||| Read the four-byte big-endian counter from a twelve-byte nonce.
 public export
-counterNonce : (pfx : ByteVec 8) -> (counter : Bits64) -> ByteVec 12
-counterNonce (MkByteVec pfxBytes) counter =
+nonceCounter : ByteVec 12 -> Bits64
+nonceCounter (MkByteVec [_, _, _, _, _, _, _, _, b3, b2, b1, b0]) =
+  shiftL (cast b3) 24 .|. shiftL (cast b2) 16 .|. shiftL (cast b1) 8 .|. cast b0
+
+encodeCounterNonce : ByteVec 8 -> Bits64 -> ByteVec 12
+encodeCounterNonce (MkByteVec pfxBytes) counter =
   let b3 : Bits8 = cast (shiftR counter 24)
       b2 : Bits8 = cast (shiftR counter 16)
       b1 : Bits8 = cast (shiftR counter 8)
       b0 : Bits8 = cast counter
   in MkByteVec (pfxBytes ++ [b3, b2, b1, b0])
+
+||| The round-trip check is part of production, not an assumed bit-shift law.
+checkCounterEncoding : Bits64 -> ByteVec 12 -> RandomResult (ByteVec 12)
+checkCounterEncoding counter nonce = case decEq (nonceCounter nonce) counter of
+  Yes _ => Right nonce
+  No _ => Left CounterEncodingFailure
+
+||| Fixed 96-bit format: eight-byte prefix and four-byte counter.
+||| Reject exhaustion instead of silently truncating a Bits64 counter.
+||| Caller must persist counters, never reuse them under a key/prefix, and rotate
+||| the key/prefix on exhaustion. This pure function does not manage that state.
+public export
+counterNonce : (pfx : ByteVec 8) -> (counter : Bits64) -> RandomResult (ByteVec 12)
+counterNonce pfx counter =
+  if counter > 4294967295
+    then Left CounterExhausted
+    else checkCounterEncoding counter (encodeCounterNonce pfx counter)
+
+checkedEncodingRoundTrip : (counter : Bits64) -> (nonce, output : ByteVec 12) ->
+  checkCounterEncoding counter nonce = Right output -> nonceCounter output = counter
+checkedEncodingRoundTrip counter nonce output accepted with (decEq (nonceCounter nonce) counter)
+  checkedEncodingRoundTrip counter nonce nonce Refl | Yes evidence = evidence
+  checkedEncodingRoundTrip counter nonce output Refl | No _ impossible
+
+||| Every accepted production result decodes to the ORIGINAL counter.
+public export
+counterNonceRoundTrip : (pfx : ByteVec 8) -> (counter : Bits64) ->
+  (nonce : ByteVec 12) -> counterNonce pfx counter = Right nonce ->
+  nonceCounter nonce = counter
+counterNonceRoundTrip pfx counter nonce accepted with (counter > 4294967295)
+  counterNonceRoundTrip pfx counter nonce Refl | True impossible
+  counterNonceRoundTrip pfx counter nonce accepted | False =
+    checkedEncodingRoundTrip counter (encodeCounterNonce pfx counter) nonce accepted
+
+||| No two distinct counters can have the same successful nonce result.
+public export
+counterNonceInjective : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
+  (n1, n2 : ByteVec 12) -> counterNonce pfx c1 = Right n1 ->
+  counterNonce pfx c2 = Right n2 -> n1 = n2 -> c1 = c2
+counterNonceInjective pfx c1 c2 n1 n2 accepted1 accepted2 same =
+  trans (sym (counterNonceRoundTrip pfx c1 n1 accepted1))
+        (trans (cong nonceCounter same) (counterNonceRoundTrip pfx c2 n2 accepted2))
+
+||| Exhausted input is rejected before encoding.
+public export
+counterNonceExhausted : (pfx : ByteVec 8) -> (counter : Bits64) ->
+  (counter > 4294967295) = True -> counterNonce pfx counter = Left CounterExhausted
+counterNonceExhausted pfx counter exhausted with (counter > 4294967295)
+  counterNonceExhausted pfx counter exhausted | True = Refl
+  counterNonceExhausted pfx counter Refl | False impossible
+
+||| Positive endpoint witnesses: the checked API does not reject every input.
+public export
+zeroCounterAccepted : (bytes : Vect 8 Bits8) ->
+  counterNonce (MkByteVec bytes) 0 = Right (MkByteVec (bytes ++ [0,0,0,0]))
+zeroCounterAccepted [a,b,c,d,e,f,g,h] = Refl
+
+public export
+lastCounterAccepted : (bytes : Vect 8 Bits8) ->
+  counterNonce (MkByteVec bytes) 4294967295 = Right (MkByteVec (bytes ++ [255,255,255,255]))
+lastCounterAccepted [a,b,c,d,e,f,g,h] = Refl
 
 --------------------------------------------------------------------------------
 -- Seed Generation

@@ -1,0 +1,4 @@
+716e0c4278ca30ff04d2ad2825ed61f6eb46ce4050762102ce75feae2e82b433  ./bindings/c/include/proven.h
+68d80e7c5666c215387f4e24047af99c26b9089416651108b5b31bcf7afac37f  ./bindings/rust/src/ffi.rs
+d9b643dd3d2280e749f7153cbf21b1b0fb63a56e98538e3021eaa022952a4e64  ./tests/remediation/native_lifecycle.c
+23e68bcaf3e3510eff4b1035a20f2d8ee05e905613b6426606ffa760e3677119  ./tests/remediation/native_lifecycle.rs

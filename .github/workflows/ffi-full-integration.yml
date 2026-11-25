@@ -3,8 +3,7 @@
 name: FFI Full Integration
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-permissions:
-  contents: read
+permissions: {}
 on:
   push:
     branches: [main]
@@ -16,6 +15,15 @@ on:
       - 'scripts/build-header-refc.sh'
       - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/check-abi-ledger.sh'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'scripts/test-abi-ledger.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/remediation/**'
+      - 'bindings/c/include/**'
+      - 'bindings/rust/src/ffi.rs'
   pull_request:
     paths:
       - 'src/**'
@@ -25,6 +33,15 @@ on:
       - 'scripts/build-header-refc.sh'
       - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/check-abi-ledger.sh'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'scripts/test-abi-ledger.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/remediation/**'
+      - 'bindings/c/include/**'
+      - 'bindings/rust/src/ffi.rs'
   workflow_dispatch:
 concurrency:
   group: ffi-full-integration-${{ github.ref }}
@@ -34,6 +51,8 @@ jobs:
     name: Idris -> RefC -> Zig
     runs-on: ubuntu-22.04
     timeout-minutes: 45
+    permissions:
+      contents: read
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
@@ -65,11 +84,28 @@ jobs:
             -Didris-c-support="$IDRIS2_C_SUPPORT" \
             -Didris-support-lib="$IDRIS2_SUPPORT_LIB" 2>&1 | tee ../../build/refc/zig-tests.log
           test -s zig-out/lib/libproven.a
+      - name: Check production lifecycle proofs and actual C/Rust consumers
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: bash scripts/test-native-lifecycle.sh
+      - name: Test the NIF symbol checker with planted controls
+        run: bash tests/check-native-nif-exports.sh
+      - name: Test the ABI ledger with shared and static planted controls
+        run: bash scripts/test-abi-ledger.sh
+      - name: Test production nonce and entropy through the public RefC SDK
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: |
+          set -euo pipefail
+          mkdir -p build/native-abi-evidence
+          bash scripts/test-remediation-bridge.sh 2>&1 | tee build/native-abi-evidence/nonce-remediation.log
       - name: Reject stale output and misleading compiler success
         run: bash scripts/test-refc-staging.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: full-refc-build-evidence
-          path: build/refc/
+          path: |
+            build/refc/
+            build/native-abi-evidence/
           if-no-files-found: error

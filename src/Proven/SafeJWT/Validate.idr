@@ -174,100 +174,31 @@ validateRequiredClaims (name :: rest) claims =
     else Err (MissingClaim name)
 
 --------------------------------------------------------------------------------
--- Signature Verification Postulates (FFI to Crypto Library)
---
--- These operations require native cryptographic implementations. The actual
--- verification is performed via the Idris2 RefC -> Zig FFI pipeline,
--- calling platform crypto libraries (OpenSSL, libsodium, etc.).
---
--- Using postulate instead of cast: the type signatures correctly
--- describe the FFI contract. Signature verification results are provided
--- at runtime by the native crypto library.
+-- Signature Verification (unavailable cryptographic backends)
 --------------------------------------------------------------------------------
 
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Computes HMAC and compares against expected signature in constant time
-prim__verifyHMAC : JWTAlgorithm -> List Bits8 -> String -> List Bits8 -> Bool
-
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Verifies RSA signature using public key
-prim__verifyRSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
-
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Verifies ECDSA signature using public key on the specified curve
-prim__verifyECDSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
-
--- FFI: Actual implementation via Idris2 RefC compiled code
--- Verifies EdDSA (Ed25519/Ed448) signature
-prim__verifyEdDSA : SigningKey -> String -> List Bits8 -> Bool
-
---------------------------------------------------------------------------------
--- Signature Verification Public API
---------------------------------------------------------------------------------
-
-||| Verify HMAC signature
-||| Note: Actual implementation requires crypto library via FFI
+||| Compatibility Boolean API. False means no authentication was established.
 public export
 verifyHMAC : JWTAlgorithm -> List Bits8 -> String -> List Bits8 -> Bool
-verifyHMAC = prim__verifyHMAC
+verifyHMAC alg secret input signature = False
 
-||| Verify RSA signature
 public export
 verifyRSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
-verifyRSA = prim__verifyRSA
+verifyRSA alg key input signature = False
 
-||| Verify ECDSA signature
 public export
 verifyECDSA : JWTAlgorithm -> SigningKey -> String -> List Bits8 -> Bool
-verifyECDSA = prim__verifyECDSA
+verifyECDSA alg key input signature = False
 
-||| Verify EdDSA signature
 public export
 verifyEdDSA : SigningKey -> String -> List Bits8 -> Bool
-verifyEdDSA = prim__verifyEdDSA
+verifyEdDSA key input signature = False
 
-||| Verify signature using appropriate algorithm
+||| Authentication requires implemented cryptography. Even permissive options
+||| and the 'none' algorithm cannot turn an unsigned token into authenticated data.
 public export
 verifySignature : SigningKey -> DecodedJWT -> Result JWTError ()
-verifySignature key jwt =
-  let alg = jwt.header.alg
-      sigInput = jwt.headerSegment ++ "." ++ jwt.payloadSegment
-      sig = jwt.signature
-  in if not (isKeyValidForAlgorithm key alg)
-       then Err (KeyError ("Key not valid for algorithm " ++ show alg))
-     else case key of
-       NoKey =>
-         if alg == None
-           then Ok ()
-           else Err (KeyError "NoKey only valid for 'none' algorithm")
-       SecretKey secret =>
-         if verifyHMAC alg secret sigInput sig
-           then Ok ()
-           else Err InvalidSignature
-       RSAPublicKey _ _ =>
-         if verifyRSA alg key sigInput sig
-           then Ok ()
-           else Err InvalidSignature
-       RSAPrivateKey _ _ _ =>
-         if verifyRSA alg key sigInput sig
-           then Ok ()
-           else Err InvalidSignature
-       ECPublicKey _ _ _ =>
-         if verifyECDSA alg key sigInput sig
-           then Ok ()
-           else Err InvalidSignature
-       ECPrivateKey _ _ _ _ =>
-         if verifyECDSA alg key sigInput sig
-           then Ok ()
-           else Err InvalidSignature
-       EdPublicKey _ =>
-         if verifyEdDSA key sigInput sig
-           then Ok ()
-           else Err InvalidSignature
-       EdPrivateKey _ =>
-         if verifyEdDSA key sigInput sig
-           then Ok ()
-           else Err InvalidSignature
+verifySignature key jwt = Err (authenticationUnavailable jwt.header.alg)
 
 --------------------------------------------------------------------------------
 -- Full Validation

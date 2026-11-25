@@ -58,8 +58,15 @@ fi
 grep -oE '\bproven_[a-z0-9_]+[[:space:]]*\(' "$out/header.i" | sed -E 's/[[:space:]]*\($//' | sort -u > "$out/header.txt"
 [[ -s $out/header.txt ]] || { echo "NOT RUN: header declares no proven_ functions" >&2; exit 2; }
 
-if ! nm -D --defined-only "$library" > "$out/nm.txt" 2> "$out/nm.log" &&
-   ! nm --defined-only "$library" > "$out/nm.txt" 2> "$out/nm.log"; then
+# GNU nm -D can succeed with an empty result for an archive. Select the symbol
+# table by artifact kind; never fall back to non-dynamic symbols of a shared
+# library, where hidden definitions must not satisfy the public ABI ledger.
+if ar t "$library" > "$out/archive-members.txt" 2> "$out/archive.log"; then
+  nm_args=(--defined-only)
+else
+  nm_args=(-D --defined-only)
+fi
+if ! nm "${nm_args[@]}" "$library" > "$out/nm.txt" 2> "$out/nm.log"; then
   cat "$out/nm.log" >&2; echo "NOT RUN: nm cannot read $library" >&2; exit 2
 fi
 awk '$2 ~ /^[TW]$/ && $3 ~ /^proven_/ { print $3 }' "$out/nm.txt" | sort -u > "$out/library.txt"

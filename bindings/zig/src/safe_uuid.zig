@@ -83,10 +83,12 @@ test "v4 generation" {
 }
 
 test "parse and format" {
+    // hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     const uuid = try parse("550e8400-e29b-41d4-a716-446655440000");
     try std.testing.expect(!uuid.isNil());
     const str = try uuid.toString();
     defer str.deinit();
+    // hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
     try std.testing.expectEqualStrings("550e8400-e29b-41d4-a716-446655440000", str.slice());
 }
 

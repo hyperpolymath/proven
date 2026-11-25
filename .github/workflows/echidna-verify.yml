@@ -1,196 +1,33 @@
 # SPDX-License-Identifier: MPL-2.0
-# ECHIDNA proof verification — formal verification of Agda and Idris2 proofs.
-#
-# Scope:
-#   - lol/proofs/theories/**/*.agda
-#   - a2ml/src/A2ML/Proofs.idr
-#   - avow-protocol/avow-lib/src/abi/*.idr
-#
-# Dogfooding: standards repo defines ECHIDNA trust pipeline; this workflow
-# applies that pipeline to the repo's own proofs.
-
+# Verify this repository's real proofs and ABI, using the same gates as each PR.
 name: ECHIDNA Proof Verification
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'lol/proofs/**'
-      - 'a2ml/src/**/*.idr'
-      - 'avow-protocol/avow-lib/src/abi/*.idr'
-      - '.github/workflows/echidna-verify.yml'
-  pull_request:
-    paths:
-      - 'lol/proofs/**'
-      - 'a2ml/src/**/*.idr'
-      - 'avow-protocol/avow-lib/src/abi/*.idr'
   schedule:
-    # Weekly re-verification to catch stale-proof drift
     - cron: '0 6 * * 1'
   workflow_dispatch:
-# Estate guardrail: cancel superseded runs so re-pushes / rebased PR
-# updates do not pile up queued runs against the shared account-wide
-# Actions concurrency pool. Applied only to read-only check workflows
-# (no publish/mutation), so cancelling a superseded run is always safe.
+permissions:
+  contents: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-permissions:
-  actions: read
-  contents: read
 jobs:
-  agda-lol:
-    name: Agda — lol/proofs
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          submodules: recursive
-      - name: Install Agda
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y agda agda-stdlib
-          agda --version
-      - name: Type-check proofs
-        id: typecheck
-        run: |
-          set -e
-          echo "=== Agda proofs under lol/proofs ==="
-          find lol/proofs/theories -name '*.agda' -print
-          cd lol/proofs
-          for f in $(find theories -name '*.agda'); do
-            echo "--- checking $f ---"
-            agda --safe "$f" 2>&1 | tee -a ../../agda-verify.log || true
-          done
-      - name: Postulate audit
-        run: |
-          echo "=== Postulate usage in lol/proofs ==="
-          grep -rn "postulate" lol/proofs/theories/ || echo "No postulates found"
-      - name: Upload log
-        if: always()
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
-        with:
-          name: agda-verify-log
-          path: agda-verify.log
-          if-no-files-found: ignore
-  idris2-a2ml:
-    name: Idris2 — a2ml proofs
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          submodules: recursive
-      - name: Cache pack
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: |
-            ~/.pack
-            ~/.idris2
-          key: ${{ runner.os }}-idris2-pack-${{ hashFiles('**/pack.toml', '**/*.ipkg') }}
-          restore-keys: |
-            ${{ runner.os }}-idris2-pack-
-      - name: Install Idris2 via pack
-        run: |
-          set -e
-          if command -v idris2 >/dev/null 2>&1; then
-            echo "idris2 already present: $(idris2 --version)"
-            exit 0
-          fi
-          # Bootstrap: install pack, which installs idris2.
-          sudo apt-get update
-          sudo apt-get install -y build-essential libgmp-dev chezscheme
-          # Clone pack bootstrap
-          git clone --depth 1 https://github.com/stefan-hoeck/idris2-pack.git "$HOME/idris2-pack"
-          cd "$HOME/idris2-pack"
-          # Use the bootstrap script in non-interactive mode
-          bash install.bash </dev/null || echo "::warning::pack install had warnings"
-          echo "$HOME/.pack/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/.pack/bin:$PATH"
-          pack install-api idris2
-          idris2 --version
-      - name: Type-check A2ML.Proofs
-        run: |
-          export PATH="$HOME/.pack/bin:$PATH"
-          cd a2ml
-          idris2 --check src/A2ML/Proofs.idr 2>&1 | tee ../idris2-a2ml.log
-      - name: Upload log
-        if: always()
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
-        with:
-          name: idris2-a2ml-log
-          path: idris2-a2ml.log
-          if-no-files-found: ignore
-  idris2-avow:
-    name: Idris2 — AVOW consent proofs
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          submodules: recursive
-      - name: Cache pack
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: |
-            ~/.pack
-            ~/.idris2
-          key: ${{ runner.os }}-idris2-pack-${{ hashFiles('**/pack.toml', '**/*.ipkg') }}
-          restore-keys: |
-            ${{ runner.os }}-idris2-pack-
-      - name: Install Idris2 via pack
-        run: |
-          set -e
-          if command -v idris2 >/dev/null 2>&1; then
-            echo "idris2 already present: $(idris2 --version)"
-            exit 0
-          fi
-          sudo apt-get update
-          sudo apt-get install -y build-essential libgmp-dev chezscheme
-          git clone --depth 1 https://github.com/stefan-hoeck/idris2-pack.git "$HOME/idris2-pack"
-          cd "$HOME/idris2-pack"
-          bash install.bash </dev/null || echo "::warning::pack install had warnings"
-          echo "$HOME/.pack/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/.pack/bin:$PATH"
-          pack install-api idris2
-          idris2 --version
-      - name: Type-check AVOW proofs
-        run: |
-          export PATH="$HOME/.pack/bin:$PATH"
-          cd avow-protocol/avow-lib
-          for f in src/abi/Consent.idr src/abi/Unsubscribe.idr src/abi/Types.idr; do
-            if [ -f "$f" ]; then
-              echo "--- checking $f ---"
-              idris2 --check "$f" 2>&1 | tee -a ../../idris2-avow.log
-            fi
-          done
-      - name: Upload log
-        if: always()
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
-        with:
-          name: idris2-avow-log
-          path: idris2-avow.log
-          if-no-files-found: ignore
+  theory:
+    uses: ./.github/workflows/header-theory.yml
+  abi:
+    uses: ./.github/workflows/header-refc.yml
   trust-summary:
     name: Trust pipeline summary
-    needs: [agda-lol, idris2-a2ml, idris2-avow]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    needs: [theory, abi]
     if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - name: Summarise
+      - name: Require both real verification gates
+        env:
+          THEORY: ${{ needs.theory.result }}
+          ABI: ${{ needs.abi.result }}
         run: |
-          echo "## ECHIDNA Trust Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Target | Result |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Agda lol/proofs | ${{ needs.agda-lol.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Idris2 a2ml | ${{ needs.idris2-a2ml.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Idris2 avow | ${{ needs.idris2-avow.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "See artefacts for verification logs." >> "$GITHUB_STEP_SUMMARY"
+          printf 'Proven theory replay: %s\nActual Idris2/Zig ABI: %s\n' "$THEORY" "$ABI" >> "$GITHUB_STEP_SUMMARY"
+          test "$THEORY" = success
+          test "$ABI" = success
+

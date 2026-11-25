@@ -1,0 +1,11 @@
+Retained Zig library evidence: /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB
+
+Build Summary: 5/5 steps succeeded
+install success
++- install proven success
+|  +- compile lib proven Debug native success 3s MaxRSS:162M
++- install proven success
+   +- compile lib proven Debug native success 13s MaxRSS:263M
+
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/refc/proven-ffi.c: OK
+PASS: production static/shared artifacts and required lifecycle symbols; consumer/runtime tests remain separate
