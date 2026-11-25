@@ -7,6 +7,13 @@ source is `8da3131d19ef2304c9a5fccc3a8f31fcfa492d7c`; its native receipt is
 `verification/receipts/lifecycle-20261125/receipt.json`. This does not certify
 the complete native ABI. Mathesis registration is tracked separately.
 
+The adjacent canonical `engineering.json` supplies the explicit ungraded
+registration profile: repository/claim identity, implementation binding,
+successful checks, rejecting controls and hashed retained evidence. The verbose
+`receipt.json` remains the human-readable engineering summary. A digest match
+alone is not semantic validation; Mathesis must validate the profile and refuse
+identity mismatches or malformed/unexecuted controls before registering it.
+
 == Current integration evidence (25 November)
 
 The unchanged native source and driver input manifests bind the completed run
