@@ -49,3 +49,14 @@ Legacy A2ML is retained from main without new edits. Earlier remediation
 rationale remains in docs/remediation and the immutable publication history;
 new decisions belong here and in ROADMAP.adoc. No new whole-library proof or
 package build success is claimed before its commands pass.
+
+The initial integrated native run passed the production proofs, both negative
+proof controls, 1,033 assertions, combined RefC generation, both libraries and
+17 Zig tests, then exposed a ledger-checker defect: GNU nm -D may return success
+with no symbols for static archives. The checker now selects archive symbols
+only for ar-readable archives and dynamic symbols for shared libraries. New
+regressions exercise each fixture in both forms and reject hidden shared symbols.
+The typed error-string export is classified as exported/zig-legacy, matching
+its header and borrowed-storage implementation. The SDK decoder rejects bad
+alignment before touching a header and uses the compiler SDK payload accessor;
+arbitrary aligned-pointer validity remains an explicit assumption.

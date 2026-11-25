@@ -82,7 +82,7 @@
   "full_package_attempt": {
     "evidence": "package-one-gib-run.bSwtpv5U",
     "result": "INCOMPLETE_OOM",
-    "job": "b8b3a3f9-524c-48f8-a4cc-c73b76a88b4e",
+    "job": "b8b3a3f9-524c-48f8-a4cc-c73b76a88b4e", "job_id_note": "hypatia: allow uuid/external -- Resource Work Queue execution identifier, not an estate entity ID",
     "memory_cap_mib": 1024,
     "swap_bytes": 0,
     "runtime_seconds": 135.746,

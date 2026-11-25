@@ -54,17 +54,18 @@ pub fn isInitialized() bool {
 // Pointer validity and the compiler/runtime ownership convention remain trusted
 // boundaries. Tag checks do not establish safety for arbitrary foreign pointers.
 fn decodeReply(value: [*c]c.Idris2_Value) !u64 {
-    if (value == null or (@intFromPtr(value) & 3) != 0)
+    if (value == null or @intFromPtr(value) % @alignOf(c.Idris2_Bits64) != 0)
         return error.InvalidLifecycleRepresentation;
     if (value.*.header.tag != c.BITS64_TAG)
         return error.InvalidLifecycleRepresentation;
-    const boxed: *const c.Idris2_Bits64 = @ptrCast(@alignCast(value));
-    return boxed.ui64;
+    // Use the pinned SDK accessor after checking its representation preconditions.
+    return c.idris2_vp_to_Bits64(value);
 }
 
 test "lifecycle SDK decoding rejects null, immediate and wrong-tag results" {
     try std.testing.expectError(error.InvalidLifecycleRepresentation, decodeReply(null));
     try std.testing.expectError(error.InvalidLifecycleRepresentation, decodeReply(@ptrFromInt(1)));
+    try std.testing.expectError(error.InvalidLifecycleRepresentation, decodeReply(@ptrFromInt(4)));
     const wrong = c.idris2_mkInt64(1);
     defer c.idris2_removeReference(wrong);
     try std.testing.expectError(error.InvalidLifecycleRepresentation, decodeReply(wrong));

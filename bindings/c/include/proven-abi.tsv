@@ -110,7 +110,7 @@ proven_init	exported	idris-refc	int32_t(void); full lifecycle profile; standalon
 proven_is_initialized	exported	idris-refc	bool(void); full lifecycle profile; standalone/header-only returns false
 proven_json_get_type	owed	-	-
 proven_json_is_valid	owed	-	-
-proven_last_error	undeclared	zig-legacy	-
+proven_last_error	exported	zig-legacy	const char*(void); borrowed static storage; caller must not free
 proven_lru_create	owed	-	-
 proven_lru_free	owed	-	-
 proven_lru_get	owed	-	-

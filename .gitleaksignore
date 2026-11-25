@@ -23,3 +23,6 @@ tests/unit/SafeJWTUnit.idr:jwt:37
 # Inspection/refusal fixture: HS256 header with a four-byte ASCII signature
 # (HS256 requires 32 bytes); these tests require authentication to reject it.
 e7a0aa8a46601df22f0853c28ec26424a3874321:tests/remediation/JWTSQLMain.idr:generic-api-key:52
+
+# Current-tree form of the same deliberately invalid four-byte-signature fixture above.
+tests/remediation/JWTSQLMain.idr:generic-api-key:52
