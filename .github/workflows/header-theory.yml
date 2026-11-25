@@ -46,8 +46,8 @@ jobs:
           # A fallback cache may have the same pinned tools under an older
           # workflow hash. Check the installed versions before reusing it.
           if [[ $("$HOME/.local/header-proof-tools/bin/agda" --version 2>/dev/null) == 'Agda version 2.6.4.3' ]] &&
-             "$HOME/.local/header-proof-tools/lean-4.15.0-linux/bin/lean" --version 2>/dev/null | grep -q 'version 4.15.0,' &&
-             opam exec --switch=header-proof -- coqc --version 2>/dev/null | grep -q '^The Rocq Prover, version 9.2'; then
+             [[ $("$HOME/.local/header-proof-tools/lean-4.15.0-linux/bin/lean" --version 2>/dev/null) == 'Lean (version 4.15.0,'* ]] &&
+             [[ $(opam exec --switch=header-proof -- coqc --version 2>/dev/null) == 'The Rocq Prover, version 9.2'* ]]; then
             exit 0
           fi
           mkdir -p "$HOME/.local/header-proof-tools/bin"
