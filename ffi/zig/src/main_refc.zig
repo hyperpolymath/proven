@@ -9,6 +9,9 @@ comptime {
     _ = core;
 }
 pub const proven = @This();
+pub export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) callconv(.c) core.BoolResult {
+    return core.pathHasTraversal(@import("path_refc.zig"), ptr, len);
+}
 pub export fn proven_header_has_crlf(ptr: ?[*]const u8, len: usize) callconv(.c) core.BoolResult {
     return core.headerHasCrlf(@import("header_refc.zig"), ptr, len);
 }
@@ -77,4 +80,34 @@ test "proven_header_has_crlf handles null and empty" {
     const r_single = proven_header_has_crlf("X".ptr, 1);
     try std.testing.expectEqual(@as(c_int, 0), r_single.status);
     try std.testing.expect(!r_single.value);
+}
+
+test "proven_path_has_traversal detects traversal" {
+    // Classic attacks.
+    const r1 = proven_path_has_traversal("../etc/passwd".ptr, "../etc/passwd".len);
+    try std.testing.expectEqual(@as(c_int, 0), r1.status);
+    try std.testing.expect(r1.value);
+
+    const r2 = proven_path_has_traversal("/tmp/../../root".ptr, "/tmp/../../root".len);
+    try std.testing.expectEqual(@as(c_int, 0), r2.status);
+    try std.testing.expect(r2.value);
+}
+
+test "proven_path_has_traversal allows safe paths" {
+    const r1 = proven_path_has_traversal("/var/mnt/eclipse/repos/myrepo/file.scm".ptr, "/var/mnt/eclipse/repos/myrepo/file.scm".len);
+    try std.testing.expectEqual(@as(c_int, 0), r1.status);
+    try std.testing.expect(!r1.value);
+
+    const r2 = proven_path_has_traversal("/tmp/scratch.scm".ptr, "/tmp/scratch.scm".len);
+    try std.testing.expectEqual(@as(c_int, 0), r2.status);
+    try std.testing.expect(!r2.value);
+}
+
+test "proven_path_has_traversal handles null and empty" {
+    const r_null = proven_path_has_traversal(null, 0);
+    try std.testing.expectEqual(@as(c_int, -1), r_null.status);
+
+    const r_empty = proven_path_has_traversal("".ptr, 0);
+    try std.testing.expectEqual(@as(c_int, 0), r_empty.status);
+    try std.testing.expect(!r_empty.value);
 }

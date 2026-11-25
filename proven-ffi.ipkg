@@ -26,4 +26,5 @@ modules = Proven.Core
         , Proven.SafeUrl.Parser
         , Proven.FFI.SafeUrl
         , Proven.SafeHeader.ByteKernel
+        , Proven.SafePath.ByteKernel
         , Proven.FFI.Main

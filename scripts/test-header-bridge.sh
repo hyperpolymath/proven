@@ -12,6 +12,7 @@ evidence=$(cd "$evidence" && pwd)
 rm -f "$evidence/result.txt"
 find "$root/ffi/zig/src" -name '*.zig' -type f -exec sha256sum {} + > "$evidence/inputs.sha256"
 sha256sum "$root/ffi/zig/build_standalone.zig" "$root/src/Proven/SafeHeader/ByteKernel.idr" "$root/src/Proven/FFI/HeaderKernelMain.idr" >> "$evidence/inputs.sha256"
+sha256sum "$root/src/Proven/SafePath/ByteKernel.idr" >> "$evidence/inputs.sha256"
 sha256sum "$root/tests/ffi/header_byte_bridge.c" "$root/bindings/c/include/proven.h" "$root/bindings/c/include/proven-abi.tsv" >> "$evidence/inputs.sha256"
 sha256sum "$root/scripts/check-abi-ledger.sh" "$root/scripts/test-abi-ledger.sh" >> "$evidence/inputs.sha256"
 work=$(mktemp -d -t proven-header-check.XXXXXXXX)

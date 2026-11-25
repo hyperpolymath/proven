@@ -16,6 +16,8 @@ on:
       - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
       - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-native-path.sh'
+      - 'scripts/test-path-proofs.sh'
       - 'scripts/test-remediation-bridge.sh'
       - 'scripts/check-abi-ledger.sh'
       - 'scripts/check-native-nif-exports.sh'
@@ -34,6 +36,8 @@ on:
       - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
       - 'scripts/test-native-lifecycle.sh'
+      - 'scripts/test-native-path.sh'
+      - 'scripts/test-path-proofs.sh'
       - 'scripts/test-remediation-bridge.sh'
       - 'scripts/check-abi-ledger.sh'
       - 'scripts/check-native-nif-exports.sh'
@@ -85,9 +89,22 @@ jobs:
             -Didris-support-lib="$IDRIS2_SUPPORT_LIB" 2>&1 | tee ../../build/refc/zig-tests.log
           test -s zig-out/lib/libproven.a
       - name: Check production lifecycle proofs and actual C/Rust consumers
+        id: native
         env:
           IDRIS2: /home/runner/.idris2/bin/idris2
         run: bash scripts/test-native-lifecycle.sh
+      - name: Check path policy proofs and semantic negative controls
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: bash scripts/test-path-proofs.sh
+      - name: Check actual path ABI and reject baseline and generated mutants
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+          NATIVE_LIBRARY_DIR: ${{ steps.native.outputs.artifact-dir }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth 1 origin d5eb0bf66538c15d8ed88ced95edf7c2b70cbc81
+          bash scripts/test-native-path.sh "$NATIVE_LIBRARY_DIR"
       - name: Test the NIF symbol checker with planted controls
         run: bash tests/check-native-nif-exports.sh
       - name: Test the ABI ledger with shared and static planted controls
@@ -108,4 +125,6 @@ jobs:
           path: |
             build/refc/
             build/native-abi-evidence/
+            build/path-proof-evidence/
+            build/path-native-evidence/
           if-no-files-found: error

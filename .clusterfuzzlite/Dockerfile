@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       curl \
       ca-certificates \
       xz-utils \
+      chezscheme git make gcc libgmp-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin Zig 0.15.2 (matches ffi/zig/build.zig.zon's minimum).
@@ -25,6 +26,19 @@ RUN curl -fsSL "$ZIG_TARBALL" -o /tmp/zig.tar.xz \
     && tar -xJ -C /opt -f /tmp/zig.tar.xz \
     && ln -s "/opt/zig-x86_64-linux-${ZIG_VERSION}/zig" /usr/local/bin/zig \
     && rm /tmp/zig.tar.xz
+
+# Build the same pinned public Idris compiler used by native integration.
+# Keep this layer before COPY so source edits do not rebuild the toolchain.
+RUN git init /tmp/idris2 \
+    && git -C /tmp/idris2 remote add origin https://github.com/idris-lang/Idris2.git \
+    && git -C /tmp/idris2 fetch --depth 1 origin b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b \
+    && git -C /tmp/idris2 checkout --detach FETCH_HEAD \
+    && test "$(git -C /tmp/idris2 rev-parse HEAD)" = b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b \
+    && cd /tmp/idris2 \
+    && env -u CFLAGS -u CXXFLAGS -u LDFLAGS make bootstrap SCHEME=chezscheme CC=gcc PREFIX=/opt/idris2 \
+    && env -u CFLAGS -u CXXFLAGS -u LDFLAGS make install CC=gcc PREFIX=/opt/idris2 \
+    && rm -rf /tmp/idris2
+ENV PATH="/opt/idris2/bin:${PATH}"
 
 # Project source is mounted at $SRC/proven by ClusterFuzzLite.
 WORKDIR $SRC/proven

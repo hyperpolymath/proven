@@ -19,22 +19,16 @@ set -euo pipefail
 echo "=== ClusterFuzzLite build: proven ==="
 mkdir -p "$OUT"
 
-# Build the standalone Zig FFI fixture as libproven.so. The full Idris RefC
-# bridge is exercised by ffi-full-integration.yml using the pinned public SDK.
-# This fixture explicitly binds the unavailable lifecycle backend.
-if [[ -f ffi/zig/build.zig ]]; then
-  pushd ffi/zig >/dev/null
-  mkdir -p zig-out/lib
-  zig build-lib -static -O ReleaseSafe -fno-stack-check -fPIC --name proven \
-    -femit-bin=zig-out/lib/libproven.a -lc --dep lifecycle -Mroot=src/main.zig \
-    -Mlifecycle=src/lifecycle_unavailable.zig || {
-    echo "WARN: standalone Zig FFI build failed; fuzz targets will not link." >&2
-    exit 1
-  }
-
-  popd >/dev/null
-fi
-
+# Fuzz the actual Idris byte kernel through RefC; unavailable-only success
+# would exercise no detector semantics. Compiler provisioning is image-pinned.
+bundle="$SRC/path-refc"
+bash scripts/build-header-refc.sh "$bundle"
+pushd ffi/zig >/dev/null
+zig build -j2 --build-file build_standalone.zig -Doptimize=ReleaseSafe "-Dheader-refc=$bundle"
+cp zig-out/lib/libproven_ffi.a zig-out/lib/libproven.a
+popd >/dev/null
+# System dependencies of the statically linked public RefC runtime.
+export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-lgmp -C link-arg=-lm -C link-arg=-lpthread -C link-arg=-lubsan"
 # Make libproven discoverable to the cargo-fuzz linker.
 export PROVEN_LIB_DIR="$PWD/ffi/zig/zig-out/lib"
 export LD_LIBRARY_PATH="$PROVEN_LIB_DIR:${LD_LIBRARY_PATH:-}"

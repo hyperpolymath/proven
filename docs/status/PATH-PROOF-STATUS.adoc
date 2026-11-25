@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Native path component detection
+
+== Contract
+
+`proven_path_has_traversal(ptr, len)` examines exactly the borrowed byte range.
+It detects a component consisting of exactly two ASCII dots. Slash, backslash,
+NUL and the beginning/end of the range delimit components. NUL does not truncate
+the scan; bytes above ASCII remain ordinary data.
+
+Null yields status -1. Without the Idris backend the operation yields -99.
+Malformed backend states/results yield -7. Every failure returns value=false.
+The caller supplies readable, live storage for the duration of the call.
+
+This is a lexical predicate, not a filesystem security decision. URL decoding,
+Windows device/drive syntax and normalization, symlink confinement, races and
+permission checks are outside its contract. A false result does not certify a
+safe path. The older String-based SafePath APIs have separate contracts.
+
+== Production and proof scope
+
+The transition and finalization policy lives in
+`Proven.SafePath.ByteKernel`. The Zig foreign adapter marshals actual RefC
+Bits8 values through the pinned public SDK and rejects invalid state codes.
+The same production entrypoints are retained in the full library and small
+public SDK bundle; the standalone profile explicitly refuses the operation.
+
+`stepEncodes`, `finishEncodes`, `scanEncodes` and `wireRefinesDetection`
+connect the production wire functions to the typed finite-state policy.
+`parentInContext` detects every complete parent component in arbitrary
+classified prefixes/suffixes. `foundStaysFound` establishes persistence.
+The invalid-state proofs establish refusal by the production protocol.
+
+These propositions do not establish every Zig machine execution, all pointer
+lifetimes, compiler correctness, full scanner/spec equivalence or filesystem
+confinement. The independent whole-component oracle supplies finite regression
+evidence, not a substitute universal proof.
+
+== Validation status
+
+The first local proof attempt failed on an Idris implicit-name shadowing
+diagnostic before reaching negative controls or runtime tests. Its evidence is
+retained. The separately admitted frozen v3 repair passed totality/no-holes checks,
+both semantic negative controls and 4,413 runtime oracle assertions.
+The coordinator measured 6.959 seconds, 242.7 MiB peak and zero swap.
+Native validation and its final receipt remain pending.
+
+The regression harness checks totality/no holes, requires semantic-error exit 1
+and a type-mismatch diagnostic for each forged proof, then compares runtime
+behavior with an independent component-splitting oracle. Native controls use
+real C and Rust ABI declarations, static/shared artifacts, an unchanged baseline
+and mutated generated code. Resource/tool failures cannot count as negative
+proofs or as successful runtime controls.
+
+First-party Rust wrapper implementation verification with Creusot/Pearlite and
+complementary Verus remains OPEN. This slice uses a Rust consumer regression;
+it does not claim an executed Rust implementation proof.

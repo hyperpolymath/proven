@@ -4,7 +4,7 @@
 // build_standalone.zig — build the legacy surface with an optional qualified
 // Idris header bundle, without requiring whole-package RefC code generation.
 //
-// Without -Dheader-refc the header export refuses with -99. Passing a native
+// Without -Dheader-refc the header/path exports refuse with -99. Passing a native
 // SDK bundle from scripts/build-header-refc.sh selects the real Idris kernel.
 // Other legacy exports are unchanged; this is not a whole-library proof claim.
 //
@@ -37,7 +37,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const shared = b.option(bool, "shared", "Build libproven.so for C ABI consumers") orelse false;
-    const header = b.option([]const u8, "header-refc", "Absolute bundle from scripts/build-header-refc.sh; absent means header operations return -99");
+    const header = b.option([]const u8, "header-refc", "Absolute bundle from scripts/build-header-refc.sh; absent means header/path operations return -99");
     if (header != null and (!target.query.isNative() or target.result.os.tag != .linux or target.result.cpu.arch != .x86_64 or target.result.abi != .gnu))
         @panic("header RefC profile currently supports native Linux x86_64 GNU only");
     const source = if (header != null) "src/main_refc.zig" else "src/main.zig";

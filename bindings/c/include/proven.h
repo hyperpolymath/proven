@@ -288,7 +288,12 @@ ProvenStringResult proven_string_escape_js(const uint8_t* ptr, size_t len);
  * ============================================================================ */
 
 /**
- * @brief Check if path contains directory traversal sequences ("..").
+ * @brief Detect exact ".." components in the supplied raw byte range.
+ * Slash, backslash and NUL delimit components; NUL does not end the scan.
+ * No URL decoding, OS normalization, symlink resolution or confinement is done.
+ * The caller retains readable storage for len bytes throughout the call.
+ * Null returns -1; an unavailable Idris backend returns -99; malformed backend
+ * replies return -7. Failed results always carry value=false.
  * @return Result with traversal detection status (true = traversal detected).
  */
 ProvenBoolResult proven_path_has_traversal(const uint8_t* ptr, size_t len);
