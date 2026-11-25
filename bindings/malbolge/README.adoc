@@ -359,6 +359,6 @@ MPL-2.0
 == See Also
 
 - link:https://lscheffer.com/malbolge_spec.html[Malbolge Specification]
-- link:http://www.catb.org/jargon/html/story-of-mel.html[The Story of Mel]
+- link:https://www.catb.org/jargon/html/story-of-mel.html[The Story of Mel]
 - link:https://github.com/hyperpolymath/proven[Proven Documentation]
 - Your therapist (after reading Malbolge code)

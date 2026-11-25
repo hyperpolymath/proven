@@ -35,9 +35,12 @@
 - MUST show 0 findings before external publication
 - Run: `./pre-submit.sh` before submitting to opam, crates.io, npm, etc.
 
-✅ **Keep .machine_readable/6a2/META.a2ml ADRs updated**
-- Architecture decisions go in `.machine_readable/6a2/META.a2ml`
-- Reference ADR-008 (FFI-only bindings) when writing binding code
+✅ **Keep the current boundary decisions and evidence updated**
+- Architecture decisions go in `docs/adr/`; status belongs in `ROADMAP.adoc`.
+- Read `docs/adr/2026-11-16-header-refc-boundary.adoc` and
+  `docs/adr/2026-11-17-c-abi-status-ledger.adoc` before changing binding code.
+- ABI definitions/contracts are Idris2; foreign-facing FFIs and APIs are Zig.
+- Legacy A2ML records are retained for kyX conversion; do not create or update them.
 
 ## Author Attribution
 
@@ -153,8 +156,8 @@ If uncertain whether binding code should be written:
 
 ## References
 
-- Architecture: `.machine_readable/6a2/META.a2ml` ADR-008, ADR-009
-- Ecosystem context: `.machine_readable/6a2/ECOSYSTEM.a2ml`
-- Current state: `.machine_readable/6a2/STATE.a2ml`
+- Architecture and boundary evidence: `docs/adr/`
+- Ecosystem context: `README.adoc`
+- Current state and pending work: `ROADMAP.adoc`
 - Idris 2 docs: https://idris2.readthedocs.io/
 - hypatia scanner: `../hypatia/`

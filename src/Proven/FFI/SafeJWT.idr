@@ -3,7 +3,8 @@
 ||| FFI exports for SafeJWT operations
 |||
 ||| This module exports safe JWT handling to the C ABI via Idris2's RefC backend.
-||| All validation functions are proven total and prevent timing attacks.
+||| Authentication currently fails closed; inspection remains available.
+||| Decoder termination, runtime timing and the linked ABI are separate obligations.
 |||
 ||| Return conventions:
 ||| - Result ValidatedJWT → (status: Int, claims/error: String)
@@ -12,7 +13,7 @@
 ||| - Bool → Int (0 = false, 1 = true)
 |||
 ||| NOTE: Token creation (signing) requires crypto library integration.
-||| Current implementation uses stubs for demonstration.
+||| Unavailable cryptography returns explicit failure, never a demonstration signature.
 module Proven.FFI.SafeJWT
 
 import Proven.SafeJWT

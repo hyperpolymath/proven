@@ -3,8 +3,7 @@
 module SafeSQLProps
 
 import Proven.Core
--- `Proven.SafeSQL` re-exports `Proven.SafeSQL.Builder`, which proven.ipkg does
--- not list and so is not installed; import the installed sub-modules directly.
+-- Import the concrete parameter and lexical contracts under test.
 import Proven.SafeSQL.Types
 import Proven.SafeSQL.Params
 import Proven.SafeSQL.Proofs
@@ -46,23 +45,25 @@ prop_nullParamHandled : (d : SQLDialect) -> (sql : String) ->
                         isOk (validateParams (bindParams (appendParam (literal d sql)) [SQLNull])) = True
 prop_nullParamHandled d sql = Refl
 
-||| Integer values carry an escaping witness in every dialect.
-prop_intValuesSafe : (d : SQLDialect) -> (i : Integer) -> IsEscapedValue d (SQLInt i)
-prop_intValuesSafe d i = numericValuesCannotInject d i
+||| An integer binding excludes SQLRaw; this does not certify a driver.
+prop_integerBinding : (i : Integer) -> BoundParameters [SQLInt i]
+prop_integerBinding i = MoreParameters Refl NoParameters
+
+||| The production literal renderer constructs the explicit lexical grammar.
+prop_literalEncoding : (d : SQLDialect) -> (s : String) ->
+  RenderedLiteral (defaultQuoteMode d) (unpack s) (escapeString d s)
+prop_literalEncoding = escapeStringQuotesSafe
+
+||| Every quote in the produced body belongs to a doubled pair.
+prop_bodyQuotesPaired : (d : SQLDialect) -> (s : String) ->
+  PairedQuotes (bodyChars (defaultQuoteMode d) (unpack s))
+prop_bodyQuotesPaired = escapedBodyQuotesPaired
 
 --------------------------------------------------------------------------------
 -- Outstanding obligations (named propositions, not witnesses)
 --------------------------------------------------------------------------------
 
-||| OWED: escaping leaves no unescaped quote that could end the literal early
-||| (was prop_injectionBlocked). Blocked by: `unpack`/`++` over an abstract
-||| String do not reduce at the type level; the library's `escapeStringQuotesSafe`
-||| is itself an erased declaration without a body, not a proof.
-||| This names the proposition; it is not a witness.
-public export
-EscapeStringQuotesObligation : Type
-EscapeStringQuotesObligation =
-  (d : SQLDialect) -> (s : String) -> NoUnescapedQuotes (escapeString d s)
+-- String representation, connection settings and driver semantics remain assumptions.
 
 ||| OWED: a query whose positional placeholders are all bound and which has no
 ||| named placeholders validates (was prop_paramCountMatches). Blocked by:
@@ -104,7 +105,8 @@ runSQLProperties = do
   putStrLn "prop_literalNeedsNoParams: PASS (proven by type)"
   putStrLn "prop_nullRendersAsKeyword: PASS (proven by type)"
   putStrLn "prop_nullParamHandled: PASS (proven by type)"
-  putStrLn "prop_intValuesSafe: PASS (proven by type)"
+  putStrLn "prop_integerBinding: PASS (SQLRaw exclusion, proven by type)"
+  putStrLn "prop_literalEncoding and prop_bodyQuotesPaired: PASS (proven by type)"
   check "prop_escapeQuotes: escapeString doubles single quotes and wraps"
     (escapeString PostgreSQL "O'Brien" == "'O''Brien'" &&
      escapeString MSSQL "O'Brien" == "'O''Brien'")

@@ -74,7 +74,8 @@ each other doesn’t get us anywhere. Instead, focus on helping to resolve
 issues and learning from mistakes.
 
 Original text courtesy of the
-http://web.archive.org/web/20141109123859/http://speakup.io/coc.html[Speak
+// hypatia: allow content_patterns/http_in_docs -- Historical original URL is an archive identifier; transport to the archive uses HTTPS.
+https://web.archive.org/web/20141109123859/http://speakup.io/coc.html[Speak
 Up! project].
 
 === Questions?

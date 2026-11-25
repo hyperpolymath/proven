@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "receipt_kind": "engineering-validation",
+  "repository": "hyperpolymath/proven",
+  "claim": "ABI-LC-D1",
+  "kind": "demonstration",
+  "statement": "The production Idris lifecycle policy reaches the Linux x86_64 static and shared libraries through the Zig/RefC bridge; actual C and Rust callers observe the specified initialization, shutdown and readiness behavior, and a corrupted generated lifecycle reply is rejected with readiness false.",
+  "status_doc": "docs/status/LIFECYCLE-PROOF-STATUS.adoc",
+  "source_commit": "e7a0aa8a46601df22f0853c28ec26424a3874321",
+  "source_binding_status": "BOUND_TO_SIGNED_SOURCE_COMMIT",
+  "base_commit": "c13619f9a67a1b9e8234e22e22dae0940d2480cb",
+  "platform": "Linux x86_64, Debian WSL",
+  "bridge_commit": "8f4b082c52508ab6276946d61b660e7d9b97f35f",
+  "idris_version": "0.8.0-b6cbc25d5",
+  "zig_version": "0.15.2",
+  "source_inputs": {
+    "path": "source-inputs.sha256",
+    "sha256": "0e101bca82e04d45b438bd2140f7ebe538550dd5e3b095f295293fd2adcacd26"
+  },
+  "evidence_manifest": {
+    "path": "evidence.sha256",
+    "sha256": "9009ed512b9e2293f093525a8e8e190786cf867ac3a41e3e1f056198b1a2d7c6"
+  },
+  "checked_production_properties": [
+    "Proven.ABI.Lifecycle.wireRefinesTransition",
+    "Proven.ABI.Lifecycle.transitionIdempotent",
+    "Proven.ABI.Lifecycle.startMakesReady",
+    "Proven.ABI.Lifecycle.stopMakesUnready",
+    "Proven.ABI.Lifecycle.malformedRequestRejected"
+  ],
+  "completed_stages": [
+    {
+      "evidence": "lifecycle-negative-controls-run.bzdq81XY",
+      "result": "positive totality check passed; both forged fixtures rejected by expected constraint mismatch"
+    },
+    {
+      "evidence": "lifecycle-refc-executable-run.wko3qwog",
+      "result": "1033 runtime assertions; 1035 with arguments; overlapping runs"
+    },
+    {
+      "evidence": "refc-library-exports-run.P2ztAg1w",
+      "result": "production RefC package and lifecycle entrypoint/signature passed"
+    },
+    {
+      "evidence": "zig-static-shared-run.d1hfVYlB",
+      "result": "real static/shared libraries built and symbols checked"
+    },
+    {
+      "evidence": "native-consumers-run.xR6LkYcm",
+      "result": "C shared/static, C concurrency and actual Rust lifecycle consumer passed"
+    },
+    {
+      "evidence": "zig-lifecycle-tests-run.Hr8f4VbY",
+      "result": "11 full and 11 standalone Zig tests; standalone C unavailable check passed"
+    },
+    {
+      "evidence": "lifecycle-corruption-run.an5xXqxZ",
+      "result": "mutated generated reply rejected at init assertion; fail-closed readiness and original-library controls passed"
+    }
+  ],
+  "preserved_failure": {
+    "evidence": "native-consumers-run.P3oerCBZ",
+    "result": "shared C passed; static link failed on UBSan runtime symbols; Rust not reached",
+    "repair": "explicit Idris support archive and sanitizer runtime linkage; halt_on_error; separate retest passed"
+  },
+  "trusted_or_unproved": [
+    "Idris checker/compiler, RefC runtime and installed native toolchains",
+    "Zig/RefC implementation correspondence, marshaling, reference counts and memory safety",
+    "mutex correctness and all concurrency interleavings",
+    "calling convention beyond exercised Linux x86_64 consumers",
+    "private bridge implementation and authorized reproduction access"
+  ],
+  "open_work": [
+    "Mathesis registration of this signed-source-bound engineering receipt",
+    "full 314-module package check incomplete: 180s timeout at module194; 512MiB continuation OOM; separately admitted 1GiB continuation OOM at last complete progress line225/314; no retry authorized",
+    "complete Rustler ABI: each static/shared library misses60 of66 required names (21 artifact-defined names total)",
+    "hosted canonical Hypatia scan",
+    "unrelated Rust by-value array FFI warning at ffi.rs:875",
+    "Creusot/Pearlite implementation contracts and complementary Verus obligations"
+  ],
+  "grading": "Engineering evidence only; no PWG grade assigned. Mathesis demonstration must remain ungraded.",
+  "full_package_attempt": {
+    "evidence": "package-one-gib-run.bSwtpv5U",
+    "result": "INCOMPLETE_OOM",
+    "job": "b8b3a3f9-524c-48f8-a4cc-c73b76a88b4e", "job_id_note": "hypatia: allow uuid/external -- Resource Work Queue execution identifier, not an estate entity ID",
+    "memory_cap_mib": 1024,
+    "swap_bytes": 0,
+    "runtime_seconds": 135.746,
+    "last_complete_progress": "225/314 Proven.SafeAngle",
+    "semantic_rejection_observed": false,
+    "retry_authorized": false
+  }
+}

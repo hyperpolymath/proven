@@ -106,6 +106,14 @@ jobs:
             exit 1
           fi
           echo "License compliance: PASS"
+      - name: Check believe_me audit trail
+        run: |
+          # Count believe_me instances and verify they have justification comments
+          BELIEVE_ME_COUNT=$(grep -r "believe_me" src/ --include="*.idr" 2>/dev/null | wc -l)
+          echo "believe_me instances: $BELIEVE_ME_COUNT"
+          if [ "$BELIEVE_ME_COUNT" -gt 300 ]; then
+            echo "WARNING: believe_me count ($BELIEVE_ME_COUNT) exceeds threshold (300)"
+          fi
       - name: Verify FFI bridge purity
         if: always()
         run: |

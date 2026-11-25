@@ -1,0 +1,9 @@
+Retained stage evidence: /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-negative-controls/run.bzdq81XY
+PASS: positive lifecycle control
+PASS: rejected ForgedLifecycle (compiler exit 1)
+PASS: rejected MalformedLifecycle (compiler exit 1)
+Proven/ABI/Lifecycle.idr: OK
+LifecycleProofRegressions.idr: OK
+ForgedLifecycle.idr: OK
+MalformedLifecycle.idr: OK
+PASS: scoped lifecycle negative proof controls; no native consumer/build claim

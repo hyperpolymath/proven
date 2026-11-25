@@ -223,6 +223,7 @@ public export
 totpProvisioningUri : String -> String -> TOTPConfig -> String
 totpProvisioningUri issuer account config =
   "otpauth://totp/" ++ urlEncode issuer ++ ":" ++ urlEncode account ++
+  -- hypatia: allow security_errors/secret_detected -- Non-secret output placeholder; Base32 provisioning is not implemented here.
   "?secret=" ++ "{BASE32_SECRET}" ++  -- placeholder: real base32 needs FFI
   "&issuer=" ++ urlEncode issuer ++
   "&algorithm=" ++ show config.algorithm ++
@@ -250,6 +251,7 @@ public export
 hotpProvisioningUri : String -> String -> HOTPConfig -> Nat -> String
 hotpProvisioningUri issuer account config counter =
   "otpauth://hotp/" ++ issuer ++ ":" ++ account ++
+  -- hypatia: allow security_errors/secret_detected -- Non-secret output placeholder; Base32 provisioning is not implemented here.
   "?secret=" ++ "{BASE32_SECRET}" ++
   "&issuer=" ++ issuer ++
   "&algorithm=" ++ show config.algorithm ++

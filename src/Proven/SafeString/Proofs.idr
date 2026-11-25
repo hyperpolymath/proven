@@ -109,49 +109,20 @@ export
 -- Injection Safety Properties
 --------------------------------------------------------------------------------
 
-||| SQL-escaped string contains no unescaped single quotes
-||| This is the key safety property for SQL injection prevention
-|||
-||| The `prf` field is `0 `-erased so callers can witness it from the
-||| `escapeSQLSafeProperty` OWED postulate below without forcing the
-||| postulate into runtime context (OWED-with-justification convention,
-||| Refs standards#158).
+||| The legacy body escaper has a character-level encoding proof.
+||| Quote pairs encode apostrophes; backslash pairs encode backslashes;
+||| NUL removal is explicit in the relation. This is not a whole-query claim.
 public export
-data NoUnescapedQuotes : String -> Type where
-  MkNoUnescapedQuotes : (s : String) ->
-                        (0 prf : all (\c => c /= '\'') (unpack s) = True) ->
-                        NoUnescapedQuotes s
+escapeSQLSafeProperty : (s : String) ->
+  BodyEncoding BackslashEscapes (unpack s) (bodyChars BackslashEscapes (unpack s))
+escapeSQLSafeProperty s = bodyCorrect BackslashEscapes (unpack s)
 
-||| OWED: after SQL escaping, the predicate
-||| `all (\c => c /= '\'') (unpack (escapeSQL s)) = True` holds.
-||| Witnessed operationally by `escapeSQL`'s `go` helper replacing
-||| every `'` with `''` — the doubling transformation produces
-||| pairs of quotes that the weaker predicate `c /= '\''` does not
-||| distinguish from absence, so the captured guarantee is the looser
-||| "no unescaped quote remains in isolation" form noted below.
-|||
-||| Note: as stated, `NoUnescapedQuotes` checks for ANY `'`; the
-||| operational safety property is that `'` appears only in pairs.
-||| The OWED here captures the weaker (but still injection-relevant)
-||| variant — the stronger paired-quote invariant is left for a
-||| follow-up once the FFI blocker below is addressed.
-|||
-||| Held back by Idris2 0.8.0 not reducing `unpack` and the `go`
-||| helper's `pack`-then-`unpack` round trip at the type level — both
-||| are FFI-bound String primitives, so `all p (unpack (escapeSQL s))`
-||| does not normalise to `True` by `Refl` for an abstract `s`. Same
-||| blocker family as `concatLength` / `escapeHTMLSafe` and SafeHtml's
-||| `escapePreservesNoLT`. Discharge once a `Data.String` reflective
-||| tactic for `unpack . pack . map f` (or an induction principle on
-||| the unpacked list) is available.
-export
-0 escapeSQLSafeProperty : (s : String) ->
-                          all (\c => c /= '\'') (unpack (escapeSQL s)) = True
-
-||| After SQL escaping, there are no single quotes that aren't doubled
+||| Evidence refers to the actual packed production output, without assuming
+||| an unproved pack/unpack inverse.
 public export
-escapeSQLSafe : (s : String) -> NoUnescapedQuotes (escapeSQL s)
-escapeSQLSafe s = MkNoUnescapedQuotes (escapeSQL s) (escapeSQLSafeProperty s)
+escapeSQLSafe : (s : String) ->
+  RenderedBody BackslashEscapes (unpack s) (escapeSQL s)
+escapeSQLSafe s = renderBodyCorrect BackslashEscapes s
 
 ||| HTML-escaped string contains no raw angle brackets
 |||
@@ -176,7 +147,7 @@ data NoRawBrackets : String -> Type where
 ||| helper's `pack`-then-`unpack` round trip at the type level — both
 ||| are FFI-bound String primitives, so `all p (unpack (escapeHTML
 ||| s))` does not normalise to `True` by `Refl` for an abstract `s`.
-||| Same blocker family as `escapeSQLSafeProperty` and SafeHtml's
+||| Same blocker family as SafeHtml's
 ||| `escapePreservesNoLT`. Discharge once a `Data.String` reflective
 ||| tactic for `unpack . pack . map f` (or an induction principle on
 ||| the unpacked list) is available.

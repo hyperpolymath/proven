@@ -1,0 +1,6 @@
+Retained RefC lifecycle evidence: /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-refc-executable/run.wko3qwog
+PASS: 1033 lifecycle assertions
+PASS: 1035 lifecycle assertions
+Proven/ABI/Lifecycle.idr: OK
+LifecycleMain.idr: OK
+PASS: fresh RefC native lifecycle executable and runtime assertions; Zig/FFI consumers remain separate

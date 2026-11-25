@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+= Native lifecycle evidence
+
+This ledger covers the Linux x86_64 lifecycle slice only. The current signed
+source is `8da3131d19ef2304c9a5fccc3a8f31fcfa492d7c`; its native receipt is
+`verification/receipts/lifecycle-20261125/receipt.json`. This does not certify
+the complete native ABI. Mathesis registration is tracked separately.
+
+The adjacent canonical `engineering.json` supplies the explicit ungraded
+registration profile: repository/claim identity, implementation binding,
+successful checks, rejecting controls and hashed retained evidence. The verbose
+`receipt.json` remains the human-readable engineering summary. A digest match
+alone is not semantic validation; Mathesis must validate the profile and refuse
+identity mismatches or malformed/unexecuted controls before registering it.
+
+== Current integration evidence (25 November)
+
+The unchanged native source and driver input manifests bind the completed run
+to that signed source. It uses the repository Zig adapter and public pinned
+Idris2 RefC SDK; this slice no longer requires the private language bridge.
+The five production lifecycle proofs and both rejecting forged-proof controls
+passed, together with 1,033 runtime assertions, fresh combined RefC generation,
+17 full-library and 9 standalone Zig tests, actual static/shared C consumers,
+four-thread concurrency, actual Rust FFI declarations and unavailable-profile
+refusal. A mutated generated reply was rejected with readiness false.
+
+The first integrated run exposed an archive-symbol checker bug and is retained.
+The repaired checker passed 16 shared/static fixtures plus hidden-symbol refusal.
+Both real artifact ledgers passed: 163 header declarations, 20 library symbols,
+13 declared exports, 150 owed declarations, 7 undeclared legacy exports and zero
+conflicts. A matching ledger is not evidence that owed exports are implemented.
+The admitted retest took 77.906 seconds, reported 939.2 MiB peak memory and used
+zero swap under a 1 GiB cap. Its logs and hashes are in the new receipt directory.
+
+The integrated package build and critical JWT/SQL/nonce/lifecycle proof suite
+passed in hosted run 45569535898 at `acbc32a2`; stale property assertions failed
+later in its build job. Those assertions and the fuzz module wiring are repaired
+in `8da3131`. Current-head hosted checks remain independently required before
+merge. The superseded local 2 GiB continuation was never launched.
+
+Compiler/runtime correctness, Zig correspondence, pointer validity, marshaling,
+ownership, reference counts, all concurrency interleavings and unexercised
+platform calling conventions remain unproved. Creusot/Pearlite and complementary
+Verus wrapper obligations remain open. No PWG grade or whole-repository proof
+is claimed.
+
+== Historical evidence (24 November, unchanged scope)
+
+The following sections describe the older signed source
+`e7a0aa8a46601df22f0853c28ec26424a3874321` only. Its immutable receipt carrier
+`d8dd1489e7a91efa309b1231f79ab6d9df4e10c2` remains available; the private bridge,
+test counts and package resource failures below are historical, not current
+integration results.
+
+== ABI-LC-D1 — native demonstration
+
+The production Idris lifecycle policy reaches the Linux x86_64 static and shared
+libraries through the Zig/RefC bridge; actual C and Rust callers observe the
+specified initialization, shutdown and readiness behavior, and a corrupted
+generated lifecycle reply is rejected with readiness false.
+
+Status: TESTED on the retained 24 November 2026 worktree inputs. This is an
+engineering demonstration, not a PWG-graded Agda/Rocq/Lean theorem. The machine
+receipt and its input hashes bind the evidence to signed source revision
+`e7a0aa8a46601df22f0853c28ec26424a3874321`.
+
+== Checked engineering properties
+
+Idris2 0.8.0-b6cbc25d5 checked the actual production module
+`src/Proven/ABI/Lifecycle.idr` with totality enabled. No new axiom or proof hole
+was introduced in this module.
+
+[cols="1,3",options="header"]
+|===
+|Name |Established scope
+|`wireRefinesTransition` |Every state/command encoding produces the transition's state code through the actual generated entrypoint.
+|`transitionIdempotent` |Repeating either lifecycle command is idempotent.
+|`startMakesReady` |Start yields Started for every prior state.
+|`stopMakesUnready` |Stop yields Stopped for every prior state.
+|`malformedRequestRejected` |Requests unequal to all four valid codes yield the invalid-response code.
+|===
+
+The positive proof fixture passed. `ForgedLifecycle` and `MalformedLifecycle`
+failed with the expected type-constraint mismatches, rather than a loader,
+resource or missing-import failure. The native RefC executable passed 1,033
+assertions, and 1,035 when invoked with additional arguments; these runs overlap
+and are not claimed as 2,068 distinct properties.
+
+== Native regression evidence
+
+* Production RefC generation and global lifecycle entrypoint/signature checks passed.
+* Real static and shared libraries built; no unresolved Proven dynamic symbols.
+* C consumers compiled against the owning header and passed for both libraries,
+  including repeated calls and four concurrent callers.
+* Rust consumed the actual `bindings/rust/src/ffi.rs` lifecycle declarations.
+* Eleven full-library Zig tests and eleven standalone Zig tests passed.
+* The standalone C consumer observed unavailable initialization and false readiness.
+* An isolated copy of the generated lifecycle function was changed to return an
+  invalid reply. The same already-linked C consumer failed at `init status`;
+  the explicit backend-failure case passed with readiness false. Original-library
+  controls passed before and after the mutation.
+
+The first consumer attempt passed shared C but failed static linking on missing
+UBSan runtime symbols; Rust was not reached. The test harness was repaired to
+link the Idris support archive explicitly and supply the sanitizer runtime,
+with recovery disabled and `UBSAN_OPTIONS=halt_on_error=1`. The separate retest
+passed. Both failed and successful evidence are retained.
+
+== Trust boundary and open obligations
+
+These proofs establish Idris policy properties. Native tests exercise, but do
+not formally prove, Zig implementation correspondence, marshaling, reference
+counts, mutex behavior, calling convention, compiler correctness or memory safety.
+The compiler/runtime, platform toolchains and pinned private bridge remain in
+the trusted execution boundary. Thread tests are finite observations, not a
+proof over every interleaving. Allocation failure and all supported platforms
+have not been exhaustively established.
+
+Bridge source is pinned at `8f4b082c52508ab6276946d61b660e7d9b97f35f`.
+Reproduction requires authorized access to that private submodule; the receipt
+does not publish its source. Other library operations are outside this slice.
+
+The broader Rustler export gate remains independent: each actual static/shared
+artifact defines 21 `proven_` names but misses 60 of the consumer's 66 required
+names. Its exit-1 result is a release blocker, not waived by this demonstration.
+Rust compilation emitted
+an existing improper-FFI-type warning for `[u8; 3]` passed by value at ffi.rs:875;
+that unrelated declaration was not exercised or repaired here. Rust wrapper
+verification with Creusot/Pearlite and complementary Verus obligations remain
+OPEN, including failure propagation, ownership and foreign-code refinement.
+
+The first fresh full-package check timed out at module 194 of 314. A separately
+admitted unchanged-snapshot continuation was OOM-killed at its 512 MiB cap.
+A separately admitted one-job 1 GiB attempt was also OOM-killed, with the last complete progress line at module 225 of 314. This
+broader package check is incomplete; neither event is a semantic proof rejection.
+The local `hypatia-v2` command named in legacy instructions is absent; the
+repository's canonical reusable Hypatia workflow remains a hosted pre-merge
+check, not an asserted local PASS. No release or whole-repository proof is claimed.

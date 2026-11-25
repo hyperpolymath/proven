@@ -1,0 +1,15 @@
+2/2: Building ForgedLifecycle (ForgedLifecycle.idr)
+Error: While processing right hand side of forged. When unifying:
+    Stopped = Stopped
+and:
+    transition Start Stopped = Stopped
+Mismatch between: Stopped and Started.
+
+ForgedLifecycle:7:10--7:14
+ 3 | module ForgedLifecycle
+ 4 | import Proven.ABI.Lifecycle
+ 5 | %default total
+ 6 | forged : transition Start Stopped = Stopped
+ 7 | forged = Refl
+              ^^^^
+

@@ -206,11 +206,14 @@ allSets uf =
   in mapMaybe (\r => members r uf) roots
   where
     nub : Eq a => List a -> List a
-    nub [] = []
-    -- TRUSTED: termination; `filter` never grows a list, so the recursive
-    -- argument is at most `xs`, which is a subterm of the pattern `x :: xs`.
-    -- The checker cannot see through `filter`.
-    nub (x :: xs) = x :: nub (assert_smaller xs (filter (/= x) xs))
+    nub = go []
+      where
+        -- Recurse on the original tail, preserving first-occurrence order.
+        -- The totality checker sees structural descent without an assertion.
+        go : List a -> List a -> List a
+        go seen [] = []
+        go seen (x :: xs) =
+          if elem x seen then go seen xs else x :: go (x :: seen) xs
 
 --------------------------------------------------------------------------------
 -- Batch Operations

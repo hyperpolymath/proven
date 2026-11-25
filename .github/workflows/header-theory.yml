@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: Header theory replay
 on:
+  workflow_call:
   pull_request:
   push:
     branches: [main]
@@ -9,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: header-theory-${{ github.ref }}
+  group: header-theory-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   theory:
@@ -35,10 +36,20 @@ jobs:
             ~/.opam
             ~/.local/header-proof-tools
           key: header-theory-ubuntu2404-systemghc-agda2643-lean4150-rocq920-ocaml511-${{ hashFiles('.github/workflows/header-theory.yml') }}
+          # Cache contains tools only; the exact version checks run on every replay.
+          restore-keys: |
+            header-theory-ubuntu2404-systemghc-agda2643-lean4150-rocq920-ocaml511-
       - name: Build pinned proof tools
         if: steps.proof-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
+          # A fallback cache may have the same pinned tools under an older
+          # workflow hash. Check the installed versions before reusing it.
+          if [[ $("$HOME/.local/header-proof-tools/bin/agda" --version 2>/dev/null) == 'Agda version 2.6.4.3' ]] &&
+             [[ $("$HOME/.local/header-proof-tools/lean-4.15.0-linux/bin/lean" --version 2>/dev/null) == 'Lean (version 4.15.0,'* ]] &&
+             [[ $(opam exec --switch=header-proof -- coqc --version 2>/dev/null) == 'The Rocq Prover, version 9.2'* ]]; then
+            exit 0
+          fi
           mkdir -p "$HOME/.local/header-proof-tools/bin"
           cabal update
           # Hosted images also put a newer, incompatible GHC on PATH.
@@ -68,3 +79,4 @@ jobs:
           name: header-theory-evidence
           path: build/header-proof-evidence/
           if-no-files-found: error
+

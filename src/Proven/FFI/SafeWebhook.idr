@@ -79,7 +79,7 @@ proven_idris_webhook_signature_algorithm s =
     Just sig => encodeSigAlg (sigAlgorithm sig)
 
 --------------------------------------------------------------------------------
--- Signature Verification (Structure)
+-- Signature Verification (fails closed until a real backend is connected)
 --------------------------------------------------------------------------------
 
 export
@@ -88,6 +88,15 @@ proven_idris_webhook_verify_signature secret payload sigHeader =
   case parseSignatureHeader sigHeader of
     Nothing => 0
     Just sig => encodeBool (verifySignature secret payload sig)
+
+||| The Idris export rejects every header while authentication is unavailable.
+||| This is an export-level contract, not a proof of the delivered native ABI.
+public export
+webhookExportRejects : (secret, payload, header : String) ->
+                       proven_idris_webhook_verify_signature secret payload header = 0
+webhookExportRejects secret payload header with (parseSignatureHeader header)
+  webhookExportRejects secret payload header | Nothing = Refl
+  webhookExportRejects secret payload header | Just sig = Refl
 
 --------------------------------------------------------------------------------
 -- Algorithm Info

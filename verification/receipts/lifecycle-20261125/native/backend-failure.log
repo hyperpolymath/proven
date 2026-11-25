@@ -1,0 +1,1 @@
+PASS: invalid backend result leaves lifecycle unready

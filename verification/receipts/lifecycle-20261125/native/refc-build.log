@@ -1,0 +1,2 @@
+PASS: fresh full-package RefC output; staging: /tmp/proven-lifecycle.SUh30iXd/package/build/refc
+Source /tmp/proven-lifecycle.SUh30iXd/package/build/refc/sdk.env before the Zig build. This is build evidence, not whole-library verification.
