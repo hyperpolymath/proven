@@ -4,6 +4,7 @@
 //! Values are tagged words, not pointers to allocated objects.
 const std = @import("std");
 const word = @import("bits8_word.zig");
+const decoder = @import("bits8_decode_word.zig");
 const c = @cImport({
     @cInclude("_datatypes.h");
 });
@@ -18,12 +19,7 @@ pub fn encode(value: u8) ?*anyopaque {
 }
 
 pub fn decode(value: ?*anyopaque) error{InvalidRefcResult}!u8 {
-    const raw = @intFromPtr(value);
-    const payload = raw >> shift;
-    if (payload > std.math.maxInt(u8)) return error.InvalidRefcResult;
-    const byte: u8 = @intCast(payload);
-    if (raw != @intFromPtr(encode(byte))) return error.InvalidRefcResult;
-    return byte;
+    return decoder.decodeWord(@intFromPtr(value));
 }
 
 test "all canonical Bits8 words round trip through the actual SDK layout" {

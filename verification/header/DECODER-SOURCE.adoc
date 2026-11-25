@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Decoder source binding
+
+`Proven.FFI.RefCBits8.decodeWord` owns the Idris2 ABI word contract. The pure
+Zig `bits8_decode_word.zig` helper checks the payload bound before narrowing,
+then requires exact re-encoding through its imported encoder. The actual
+pointer-carrier wrapper calls this helper and retains its SDK/64-bit checks.
+Unsigned division by 4294967296 makes the payload operation explicit in the
+closed arithmetic source profile; it selects the same payload as shift32.
+
+Atoma must bind both complete source files, the exported encoder name, the
+Idris2 contract/oracle, the target and compiler profile. A filename or digest
+alone is not a semantic proof. The source interpreter must evaluate the bound
+encoder and guarded decoder, then prove canonical acceptance for every word.
+The fresh decoder oracle emits canonical and rejection cases for native
+comparison; this finite corpus complements the universal theorem.
+
+Hosted validation and the source theorem are pending for this change.
+Pointer/integer-carrier correspondence, allocation validity and compiler
+refinement remain separate obligations. No complete foreign-boundary or
+production-readiness claim follows from this extraction.
