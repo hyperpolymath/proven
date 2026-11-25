@@ -96,6 +96,7 @@ jobs:
         env:
           IDRIS2: /home/runner/.idris2/bin/idris2
         run: |
+          set -euo pipefail
           mkdir -p build/native-abi-evidence
           bash scripts/test-remediation-bridge.sh 2>&1 | tee build/native-abi-evidence/nonce-remediation.log
       - name: Reject stale output and misleading compiler success
