@@ -2,6 +2,7 @@
 -- Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 module Proven.FFI.HeaderBorrow
 import Proven.SafeHeader.ByteKernel
+import Data.List
 
 %default total
 
@@ -37,4 +38,4 @@ checkedScanCorrect state (b :: bs) =
 ||| premises of the machine span. This pure list theorem does not prove them.
 public export
 borrowedPrefix : Nat -> List Bits8 -> Maybe Bool
-borrowedPrefix count bytes = checkedScan False (take count bytes)
+borrowedPrefix count bytes = checkedScan False (Data.List.take count bytes)
