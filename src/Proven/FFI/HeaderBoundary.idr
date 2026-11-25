@@ -97,7 +97,7 @@ checkedBackend bytes = case checkedScan False bytes of
 ||| The source/compiler and foreign-call correspondence remain external.
 public export
 entryRefinesFold : (memory : List Bits8) -> (span : Span memory) ->
-  entry memory (Just span) checkedBackend =
+  entry memory (Just span) Proven.FFI.HeaderBoundary.checkedBackend =
     MkBoundaryResult 0 (scanTyped False (spanBytes memory span))
 entryRefinesFold memory span =
   rewrite checkedScanCorrect False (spanBytes memory span) in Refl
