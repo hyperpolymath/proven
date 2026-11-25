@@ -27,6 +27,7 @@ cd "$root/ffi/zig"
 "$zig" build --build-file build_standalone.zig -Dshared=true -Dheader-refc="$work/bundle" --prefix "$work/shared" > "$evidence/shared-build.log" 2>&1
 cc -Wall -Wextra -Werror -I "$root/bindings/c/include" "$root/tests/ffi/header_byte_bridge.c" "$work/shared/lib/libproven.so" -Wl,-rpath,"$work/shared/lib" -o "$work/c-abi" > "$evidence/c-build.log" 2>&1
 "$work/c-abi" > "$evidence/c-abi.log" 2>&1
+EVIDENCE_DIR="$evidence/ownership" ZIG="$zig" bash "$root/scripts/test-header-borrow.sh" "$work/shared/lib"
 
 # Every proven.h function and every library export must have a ledger row, and
 # the qualified library must define exactly the rows that claim presence.
