@@ -1,12 +1,12 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeJWT - JWT operations that cannot crash
+||| SafeJWT - JWT inspection, claims checks and fail-closed authentication APIs
 |||
 ||| This module provides safe JWT operations including:
 ||| - Token decoding without exceptions
 ||| - Claim validation with type safety
-||| - Signature verification (with crypto stubs)
-||| - Formal proofs of security properties
+||| - Explicit unavailability of token creation and signature verification
+||| - Containment proofs in Proven.SafeJWT.Containment
 |||
 ||| Example usage:
 ||| ```idris
@@ -69,146 +69,20 @@ isTokenValid secret currentTime token =
   in isValid defaultValidation key currentTime token
 
 --------------------------------------------------------------------------------
--- Token Creation (Encoding)
+-- Token Creation (currently unavailable)
 --------------------------------------------------------------------------------
 
-||| Base64URL encode bytes
-base64UrlEncode : List Bits8 -> String
-base64UrlEncode bytes = pack (go bytes)
-  where
-    alphabet : String
-    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-
-    charAt : Nat -> Char
-    charAt n = case index' n (unpack alphabet) of
-                 Just c => c
-                 Nothing => 'A'
-      where
-        index' : Nat -> List a -> Maybe a
-        index' _ [] = Nothing
-        index' Z (x :: _) = Just x
-        index' (S k) (_ :: xs) = index' k xs
-
-    go : List Bits8 -> List Char
-    go [] = []
-    go [a] =
-      let b0 = cast {to=Nat} (a `shiftR` 2)
-          b1 = cast {to=Nat} ((a .&. 0x03) `shiftL` 4)
-      in [charAt b0, charAt b1]
-    go [a, b] =
-      let b0 = cast {to=Nat} (a `shiftR` 2)
-          b1 = cast {to=Nat} (((a .&. 0x03) `shiftL` 4) .|. (b `shiftR` 4))
-          b2 = cast {to=Nat} ((b .&. 0x0F) `shiftL` 2)
-      in [charAt b0, charAt b1, charAt b2]
-    go (a :: b :: c :: rest) =
-      let b0 = cast {to=Nat} (a `shiftR` 2)
-          b1 = cast {to=Nat} (((a .&. 0x03) `shiftL` 4) .|. (b `shiftR` 4))
-          b2 = cast {to=Nat} (((b .&. 0x0F) `shiftL` 2) .|. (c `shiftR` 6))
-          b3 = cast {to=Nat} (c .&. 0x3F)
-      in charAt b0 :: charAt b1 :: charAt b2 :: charAt b3 :: go rest
-
-||| Base64URL encode a string
-base64UrlEncodeString : String -> String
-base64UrlEncodeString s = base64UrlEncode (map (cast . ord) (unpack s))
-
-||| Encode header to JSON
-encodeHeader : JWTHeader -> String
-encodeHeader h =
-  let algPart = "\"alg\":\"" ++ show h.alg ++ "\""
-      typPart = case h.typ of
-                  Just t => ",\"typ\":\"" ++ t ++ "\""
-                  Nothing => ""
-      kidPart = case h.kid of
-                  Just k => ",\"kid\":\"" ++ k ++ "\""
-                  Nothing => ""
-  in "{" ++ algPart ++ typPart ++ kidPart ++ "}"
-
-||| Encode claim value to JSON
-encodeClaimValue : ClaimValue -> String
-encodeClaimValue (ClaimString s) = "\"" ++ escapeJsonString s ++ "\""
-  where
-    escapeJsonString : String -> String
-    escapeJsonString str = pack (go (unpack str))
-      where
-        go : List Char -> List Char
-        go [] = []
-        go ('"' :: cs) = '\\' :: '"' :: go cs
-        go ('\\' :: cs) = '\\' :: '\\' :: go cs
-        go ('\n' :: cs) = '\\' :: 'n' :: go cs
-        go ('\r' :: cs) = '\\' :: 'r' :: go cs
-        go ('\t' :: cs) = '\\' :: 't' :: go cs
-        go (c :: cs) = c :: go cs
-encodeClaimValue (ClaimInt i) = show i
-encodeClaimValue (ClaimBool True) = "true"
-encodeClaimValue (ClaimBool False) = "false"
-encodeClaimValue ClaimNull = "null"
-encodeClaimValue (ClaimArray xs) = "[" ++ join "," (map (\s => "\"" ++ s ++ "\"") xs) ++ "]"
-  where
-    join : String -> List String -> String
-    join _ [] = ""
-    join _ [x] = x
-    join sep (x :: xs) = x ++ sep ++ join sep xs
-encodeClaimValue (ClaimObject _) = "{}"
-
-||| Encode claims to JSON
-encodeClaims : JWTClaims -> String
-encodeClaims claims =
-  let parts = catMaybes
-        [ map (\s => "\"iss\":\"" ++ s ++ "\"") claims.iss
-        , map (\s => "\"sub\":\"" ++ s ++ "\"") claims.sub
-        , map encodeAud claims.aud
-        , map (\e => "\"exp\":" ++ show e) claims.exp
-        , map (\n => "\"nbf\":" ++ show n) claims.nbf
-        , map (\i => "\"iat\":" ++ show i) claims.iat
-        , map (\j => "\"jti\":\"" ++ j ++ "\"") claims.jti
-        ] ++ map encodeCustom claims.customClaims
-  in "{" ++ join "," parts ++ "}"
-  where
-    join : String -> List String -> String
-    join _ [] = ""
-    join _ [x] = x
-    join sep (x :: xs) = x ++ sep ++ join sep xs
-
-    encodeAud : Either String (List String) -> String
-    encodeAud (Left s) = "\"aud\":\"" ++ s ++ "\""
-    encodeAud (Right xs) = "\"aud\":[" ++ join "," (map (\s => "\"" ++ s ++ "\"") xs) ++ "]"
-
-    encodeCustom : (String, ClaimValue) -> String
-    encodeCustom (k, v) = "\"" ++ k ++ "\":" ++ encodeClaimValue v
-
-||| Sign the token (stub - needs crypto implementation)
-signToken : JWTAlgorithm -> SigningKey -> String -> List Bits8
-signToken None _ _ = []
-signToken _ _ signingInput =
-  -- Stub: actual implementation needs crypto library
-  map (cast . ord) (unpack "stub-signature")
-
-||| Create a JWT token
-|||
-||| Note: Actual signing requires crypto library integration.
-||| This provides the structure for token creation.
+||| Creation is disabled until a real signer and faithful serializer exist.
+||| No placeholder signature or unsigned token is returned as a successful JWT.
 public export
 createToken : JWTHeader -> JWTClaims -> SigningKey -> Result JWTError String
-createToken header claims key =
-  if not (isKeyValidForAlgorithm key header.alg)
-    then Err (KeyError "Key type does not match algorithm")
-    else
-      let headerJson = encodeHeader header
-          headerB64 = base64UrlEncodeString headerJson
-          claimsJson = encodeClaims claims
-          claimsB64 = base64UrlEncodeString claimsJson
-          signingInput = headerB64 ++ "." ++ claimsB64
-          signature = signToken header.alg key signingInput
-          sigB64 = base64UrlEncode signature
-      in Ok (signingInput ++ "." ++ sigB64)
+createToken header claims key = Err (authenticationUnavailable header.alg)
 
-||| Create a simple JWT with HMAC-SHA256
+||| HMAC-SHA256 creation fails explicitly while the backend is unavailable.
 public export
 createHS256Token : (secret : String) -> JWTClaims -> Result JWTError String
 createHS256Token secret claims =
-  let header = minimalHeader HS256
-      key = SecretKey (map (cast . ord) (unpack secret))
-  in createToken header claims key
+  createToken (minimalHeader HS256) claims (SecretKey (map (cast . ord) (unpack secret)))
 
 --------------------------------------------------------------------------------
 -- Claim Builders
@@ -365,6 +239,7 @@ isSignatureError _ = False
 public export
 isAlgorithmError : JWTError -> Bool
 isAlgorithmError (UnsupportedAlgorithm _) = True
+isAlgorithmError (CryptoUnavailable _) = True
 isAlgorithmError AlgorithmNoneNotAllowed = True
 isAlgorithmError (AlgorithmMismatch _ _) = True
 isAlgorithmError _ = False

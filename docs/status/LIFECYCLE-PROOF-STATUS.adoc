@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+= Native lifecycle evidence
+
+This ledger covers the Linux x86_64 lifecycle slice only. Publication and
+Mathesis registration are pending. It does not certify the complete native ABI.
+
+== ABI-LC-D1 — native demonstration
+
+The production Idris lifecycle policy reaches the Linux x86_64 static and shared
+libraries through the Zig/RefC bridge; actual C and Rust callers observe the
+specified initialization, shutdown and readiness behavior, and a corrupted
+generated lifecycle reply is rejected with readiness false.
+
+Status: TESTED on the retained 24 November 2026 worktree inputs. This is an
+engineering demonstration, not a PWG-graded Agda/Rocq/Lean theorem. The machine
+receipt and its input hashes identify the evidence; a signed source revision
+must be bound before registration in Mathesis.
+
+== Checked engineering properties
+
+Idris2 0.8.0-b6cbc25d5 checked the actual production module
+`src/Proven/ABI/Lifecycle.idr` with totality enabled. No new axiom or proof hole
+was introduced in this module.
+
+[cols="1,3",options="header"]
+|===
+|Name |Established scope
+|`wireRefinesTransition` |Every state/command encoding produces the transition's state code through the actual generated entrypoint.
+|`transitionIdempotent` |Repeating either lifecycle command is idempotent.
+|`startMakesReady` |Start yields Started for every prior state.
+|`stopMakesUnready` |Stop yields Stopped for every prior state.
+|`malformedRequestRejected` |Requests unequal to all four valid codes yield the invalid-response code.
+|===
+
+The positive proof fixture passed. `ForgedLifecycle` and `MalformedLifecycle`
+failed with the expected type-constraint mismatches, rather than a loader,
+resource or missing-import failure. The native RefC executable passed 1,033
+assertions, and 1,035 when invoked with additional arguments; these runs overlap
+and are not claimed as 2,068 distinct properties.
+
+== Native regression evidence
+
+* Production RefC generation and global lifecycle entrypoint/signature checks passed.
+* Real static and shared libraries built; no unresolved Proven dynamic symbols.
+* C consumers compiled against the owning header and passed for both libraries,
+  including repeated calls and four concurrent callers.
+* Rust consumed the actual `bindings/rust/src/ffi.rs` lifecycle declarations.
+* Eleven full-library Zig tests and eleven standalone Zig tests passed.
+* The standalone C consumer observed unavailable initialization and false readiness.
+* An isolated copy of the generated lifecycle function was changed to return an
+  invalid reply. The same already-linked C consumer failed at `init status`;
+  the explicit backend-failure case passed with readiness false. Original-library
+  controls passed before and after the mutation.
+
+The first consumer attempt passed shared C but failed static linking on missing
+UBSan runtime symbols; Rust was not reached. The test harness was repaired to
+link the Idris support archive explicitly and supply the sanitizer runtime,
+with recovery disabled and `UBSAN_OPTIONS=halt_on_error=1`. The separate retest
+passed. Both failed and successful evidence are retained.
+
+== Trust boundary and open obligations
+
+These proofs establish Idris policy properties. Native tests exercise, but do
+not formally prove, Zig implementation correspondence, marshaling, reference
+counts, mutex behavior, calling convention, compiler correctness or memory safety.
+The compiler/runtime, platform toolchains and pinned private bridge remain in
+the trusted execution boundary. Thread tests are finite observations, not a
+proof over every interleaving. Allocation failure and all supported platforms
+have not been exhaustively established.
+
+Bridge source is pinned at `8f4b082c52508ab6276946d61b660e7d9b97f35f`.
+Reproduction requires authorized access to that private submodule; the receipt
+does not publish its source. Other library operations are outside this slice.
+
+The broader Rustler export gate remains independent: each actual static/shared
+artifact defines 21 `proven_` names but misses 60 of the consumer's 66 required
+names. Its exit-1 result is a release blocker, not waived by this demonstration.
+Rust compilation emitted
+an existing improper-FFI-type warning for `[u8; 3]` passed by value at ffi.rs:875;
+that unrelated declaration was not exercised or repaired here. Rust wrapper
+verification with Creusot/Pearlite and complementary Verus obligations remain
+OPEN, including failure propagation, ownership and foreign-code refinement.
+
+The first fresh full-package check timed out at module 194 of 314. A separately
+admitted unchanged-snapshot continuation was OOM-killed at its 512 MiB cap.
+The requested 1 GiB attempt is deferred by the current queue policy. This
+broader package check is incomplete; neither event is a semantic proof rejection.
+The local `hypatia-v2` command named in legacy instructions is absent; the
+repository's canonical reusable Hypatia workflow remains a hosted pre-merge
+check, not an asserted local PASS. No release or whole-repository proof is claimed.

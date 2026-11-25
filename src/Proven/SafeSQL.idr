@@ -1,12 +1,13 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-||| SafeSQL - SQL operations that prevent injection attacks
+||| SafeSQL - SQL construction with explicit literal and parameter contracts
 |||
 ||| This module provides safe SQL operations including:
-||| - Parameterized queries (prevents SQL injection)
+||| - Separate parameter values and query templates
 ||| - Type-safe query building
 ||| - Multi-dialect support (PostgreSQL, MySQL, SQLite, MSSQL, Oracle)
-||| - Formal proofs of injection safety
+||| - Formal proofs of literal encoding and parameter/template separation
+||| Whole-query safety also depends on caller syntax, connection settings and drivers.
 |||
 ||| Example usage:
 ||| ```idris

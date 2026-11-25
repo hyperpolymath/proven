@@ -256,21 +256,15 @@ public export
 -- Nonce Properties
 --------------------------------------------------------------------------------
 
-||| OWED: counter nonces are injective in the counter — for a fixed
-||| 8-byte prefix, distinct `Bits64` counters yield distinct 12-byte
-||| nonces. The implementation encodes the counter big-endian into
-||| the trailing 4 bytes by repeated `shiftR`+`prim__cast_Bits64Bits8`.
-||| Proving injectivity reduces to injectivity of that encoding, which
-||| in turn needs `Data.Bits` lemmas (`shiftR`+`cast` is a bijection
-||| on its range) that Idris2 0.8.0 does not expose. Same `Data.Bits`
-||| primitive opacity blocker as the constant-time family. Stated with
-||| `Not (c1 = c2)` for 0.8.0 (`/=` returns `Bool`). Discharge once
-||| `Data.Bits` exposes the requisite cast/shift round-trip lemmas.
+||| Accepted counter nonces are injective in the original Bits64 counter.
+||| The old unconditional claim was false: 0 and 2^32 had identical output.
+||| Exhaustion now returns Left and successful outputs pass a round-trip check.
 public export
-0 counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
-                       Not (c1 = c2) ->
-                       Not (counterNonce pfx c1 = counterNonce pfx c2)
-
+counterNonceUnique : (pfx : ByteVec 8) -> (c1, c2 : Bits64) ->
+  (n1, n2 : ByteVec 12) -> counterNonce pfx c1 = Right n1 ->
+  counterNonce pfx c2 = Right n2 -> Not (c1 = c2) -> Not (n1 = n2)
+counterNonceUnique pfx c1 c2 n1 n2 accepted1 accepted2 different same =
+  different (counterNonceInjective pfx c1 c2 n1 n2 accepted1 accepted2 same)
 ||| OWED: `freshNonce n` returns a `ByteVec` of length `n` on success.
 ||| Definitionally `freshNonce = randomBytes`, so this is precisely
 ||| `randomBytesLength` lifted through the rename. Same FFI entropy

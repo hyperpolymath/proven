@@ -1,0 +1,78 @@
+--- /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/original.c	2026-11-24 23:32:57.995811106 +0000
++++ /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/refc/proven-ffi.c	2026-11-24 23:32:58.000089754 +0000
+@@ -4780,73 +4780,8 @@
+     Idris2_Value * var_0
+ )
+ {
+-    Idris2_Value * var_1 = (Idris2_Value*)(&idris2_predefined_Bits64[0]);
+-    Idris2_Value * var_12 = idris2_trampoline(Prelude_EqOrd__eq_eq_Eq_Bits64(idris2_newReference(var_0), var_1));
+-    Idris2_Value *tmp_335 = NULL;
+-    int64_t tmp_336 = idris2_extractInt(var_12);
+-    if (tmp_336 == UINT8_C(1)) {
+-        idris2_removeReference(var_0);
+-        idris2_removeReference(var_12);
+-        Idris2_Value * var_2 = idris2_mkBits8(UINT8_C(0));   // Proven.ABI.Lifecycle:37:24--37:33
+-        Idris2_Value *closure_337 = (Idris2_Value *)idris2_mkClosure((Idris2_Value *(*)())Proven_ABI_Lifecycle_stateCode, 1, 1);
+-                                                             // Proven.ABI.Lifecycle:37:24--37:33
+-        ((Idris2_Closure*)closure_337)->args[0] = var_2;
+-        tmp_335 = closure_337;
+-    } else if (tmp_336 == UINT8_C(0)) {
+-        idris2_removeReference(var_12);
+-        Idris2_Value * var_3 = (Idris2_Value*)(&idris2_predefined_Bits64[1]);
+-        Idris2_Value * var_11 = idris2_trampoline(Prelude_EqOrd__eq_eq_Eq_Bits64(idris2_newReference(var_0), var_3));
+-        Idris2_Value *tmp_338 = NULL;
+-        int64_t tmp_339 = idris2_extractInt(var_11);
+-        if (tmp_339 == UINT8_C(1)) {
+-            idris2_removeReference(var_0);
+-            idris2_removeReference(var_11);
+-            Idris2_Value * var_4 = idris2_mkBits8(UINT8_C(1));
+-                                                             // Proven.ABI.Lifecycle:38:29--38:38
+-            Idris2_Value *closure_340 = (Idris2_Value *)idris2_mkClosure((Idris2_Value *(*)())Proven_ABI_Lifecycle_stateCode, 1, 1);
+-                                                             // Proven.ABI.Lifecycle:38:29--38:38
+-            ((Idris2_Closure*)closure_340)->args[0] = var_4;
+-            tmp_338 = closure_340;
+-        } else if (tmp_339 == UINT8_C(0)) {
+-            idris2_removeReference(var_11);
+-            Idris2_Value * var_5 = (Idris2_Value*)(&idris2_predefined_Bits64[2]);
+-            Idris2_Value * var_10 = idris2_trampoline(Prelude_EqOrd__eq_eq_Eq_Bits64(idris2_newReference(var_0), var_5));
+-            Idris2_Value *tmp_341 = NULL;
+-            int64_t tmp_342 = idris2_extractInt(var_10);
+-            if (tmp_342 == UINT8_C(1)) {
+-                idris2_removeReference(var_0);
+-                idris2_removeReference(var_10);
+-                Idris2_Value * var_6 = idris2_mkBits8(UINT8_C(0));
+-                                                             // Proven.ABI.Lifecycle:39:29--39:38
+-                Idris2_Value *closure_343 = (Idris2_Value *)idris2_mkClosure((Idris2_Value *(*)())Proven_ABI_Lifecycle_stateCode, 1, 1);
+-                                                             // Proven.ABI.Lifecycle:39:29--39:38
+-                ((Idris2_Closure*)closure_343)->args[0] = var_6;
+-                tmp_341 = closure_343;
+-            } else if (tmp_342 == UINT8_C(0)) {
+-                idris2_removeReference(var_10);
+-                Idris2_Value * var_7 = (Idris2_Value*)(&idris2_predefined_Bits64[3]);
+-                Idris2_Value * var_9 = idris2_trampoline(Prelude_EqOrd__eq_eq_Eq_Bits64(var_0, var_7));
+-                Idris2_Value *tmp_344 = NULL;
+-                int64_t tmp_345 = idris2_extractInt(var_9);
+-                if (tmp_345 == UINT8_C(1)) {
+-                    idris2_removeReference(var_9);
+-                    Idris2_Value * var_8 = idris2_mkBits8(UINT8_C(1));
+-                                                             // Proven.ABI.Lifecycle:40:29--40:38
+-                    Idris2_Value *closure_346 = (Idris2_Value *)idris2_mkClosure((Idris2_Value *(*)())Proven_ABI_Lifecycle_stateCode, 1, 1);
+-                                                             // Proven.ABI.Lifecycle:40:29--40:38
+-                    ((Idris2_Closure*)closure_346)->args[0] = var_8;
+-                    tmp_344 = closure_346;
+-                } else if (tmp_345 == UINT8_C(0)) {
+-                    idris2_removeReference(var_9);
+-                    tmp_344 = (Idris2_Value*)(&idris2_predefined_Bits64[2]);
+-                }
+-                tmp_341 = tmp_344;
+-            }
+-            tmp_338 = tmp_341;
+-        }
+-        tmp_335 = tmp_338;
+-    }
+-    return tmp_335;
++    idris2_removeReference(var_0);
++    return idris2_mkBits64(2);
+ }
+ 
+ 

@@ -1,10 +1,11 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
--- Validator.idr - Type checker for proof terms with soundness guarantees
+-- Validator.idr - Semantic proof checking and separate syntax diagnostics
 
 module Proven.ECHIDNA.Validator
 
 import Proven.ECHIDNA.ProofTerm
+import public Proven.ECHIDNA.Kernel
 
 %default total
 
@@ -14,12 +15,18 @@ data ValidationResult : Type where
   IsValid   : ProofTerm -> ValidationResult
   IsInvalid : String -> ValidationResult
 
+||| Diagnostic results cannot be confused with certified goal acceptance.
+public export
+data WellFormedResult : Type where
+  WellFormed : ProofTerm -> WellFormedResult
+  IllFormed : String -> WellFormedResult
+
 export
 Show ValidationResult where
   show (IsValid prf) = "Valid: " ++ show prf
   show (IsInvalid reason) = "Invalid: " ++ reason
 
--- Type inference with totality guarantee
+-- Legacy syntax inference, NOT evidence that a proposition holds.
 export
 infer : Context -> ProofTerm -> Maybe ProofTerm
 infer ctx (Var name) = lookup ctx name
@@ -107,25 +114,24 @@ check ctx term ty =
     Just inferredTy => inferredTy == ty
     Nothing => Prelude.False
 
--- Validate a proof term against a goal type
-export
-validateProof : ProofTerm -> ProofTerm -> ValidationResult
-validateProof prf goal =
-  case infer Empty prf of
-    Just ty =>
-      if ty == goal || ty == TyProp
-        then IsValid prf
-        else IsInvalid ("Proof type " ++ show ty ++
-                     " doesn't match goal " ++ show goal)
-    Nothing => IsInvalid "Failed to infer type of proof term"
+||| Erase a checked certificate only at the compatibility API boundary.
+public export
+validationResult : (prf : ProofTerm) -> Maybe (Certificate prf goal) -> ValidationResult
+validationResult prf (Just _) = IsValid prf
+validationResult prf Nothing = IsInvalid "No certificate for this proof and goal (unsupported or false)"
 
--- Validate that a proof term is well-formed (no type errors)
+-- Validate using the sound kernel, never the legacy TyProp shortcut.
+public export
+validateProof : ProofTerm -> ProofTerm -> ValidationResult
+validateProof prf goal = validationResult prf (certify prf goal)
+
+-- Legacy syntax diagnostic only; this has a distinct result type.
 export
-validateWellFormed : ProofTerm -> ValidationResult
+validateWellFormed : ProofTerm -> WellFormedResult
 validateWellFormed prf =
   case infer Empty prf of
-    Just ty => IsValid prf
-    Nothing => IsInvalid "Proof term is not well-formed"
+    Just ty => WellFormed prf
+    Nothing => IllFormed "Proof term is not well-formed"
 
 -- Check for circular reasoning (proof uses goal in premises)
 export
@@ -153,13 +159,7 @@ checkCircular prf goal = containsTerm prf goal
       containsTerm lhs target || containsTerm rhs target
     containsTerm _ _ = Prelude.False
 
--- Comprehensive validation
-export
+-- The semantic kernel is the sole proof-acceptance authority.
+public export
 validateComprehensive : ProofTerm -> ProofTerm -> ValidationResult
-validateComprehensive prf goal =
-  case validateWellFormed prf of
-    IsInvalid reason => IsInvalid reason
-    IsValid _ =>
-      if checkCircular prf goal
-        then IsInvalid "Circular reasoning detected"
-        else validateProof prf goal
+validateComprehensive = validateProof

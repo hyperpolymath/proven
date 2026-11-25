@@ -1,0 +1,15 @@
+2/2: Building MalformedLifecycle (MalformedLifecycle.idr)
+Error: While processing right hand side of forged. When unifying:
+    1 = 1
+and:
+    lifecycleCommand 4 = 1
+Mismatch between: 1 and 2.
+
+MalformedLifecycle:7:10--7:14
+ 3 | module MalformedLifecycle
+ 4 | import Proven.ABI.Lifecycle
+ 5 | %default total
+ 6 | forged : lifecycleCommand 4 = 1
+ 7 | forged = Refl
+              ^^^^
+

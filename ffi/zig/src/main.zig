@@ -1,21 +1,24 @@
 // PROVEN FFI Implementation
 //
-// This module implements the C-compatible FFI declared in src/abi/Foreign.idr
-// All types and layouts must match the Idris2 ABI definitions.
+// ABI declarations: bindings/c/include/proven.h.
+// Lifecycle is backed by Idris in the full build; the standalone build returns
+// explicit unavailability. Other legacy example/path/header exports still have
+// separate provenance and proof obligations.
 //
 // SPDX-License-Identifier: MPL-2.0
 
 const std = @import("std");
+const lifecycle = @import("lifecycle_backend");
 
 // Version information (keep in sync with project)
 const VERSION = "0.1.0";
 const BUILD_INFO = "PROVEN built with Zig " ++ @import("builtin").zig_version_string;
 
 /// Thread-local error storage
-threadlocal var last_error: ?[]const u8 = null;
+threadlocal var last_error: ?[:0]const u8 = null;
 
 /// Set the last error message
-fn setError(msg: []const u8) void {
+fn setError(comptime msg: [:0]const u8) void {
     last_error = msg;
 }
 
@@ -25,10 +28,10 @@ fn clearError() void {
 }
 
 //==============================================================================
-// Core Types (must match src/abi/Types.idr)
+// Legacy example types (distinct from the canonical ProvenStatus contract)
 //==============================================================================
 
-/// Result codes (must match Idris2 Result type)
+/// Legacy example result codes. Canonical operations use signed i32 statuses.
 pub const Result = enum(c_int) {
     ok = 0,
     @"error" = 1,
@@ -48,9 +51,25 @@ pub const Handle = struct {
 // Library Lifecycle
 //==============================================================================
 
-/// Initialize the library
-/// Returns a handle, or null on failure
-export fn proven_init() ?*Handle {
+/// Canonical C/Rust/Rustler lifecycle: no handle crosses this interface.
+export fn proven_init() i32 {
+    const status = lifecycle.init();
+    if (status == 0) clearError() else setError("Native Idris lifecycle unavailable or invalid");
+    return status;
+}
+
+export fn proven_deinit() void {
+    lifecycle.deinit();
+    clearError();
+}
+
+export fn proven_is_initialized() bool {
+    return lifecycle.isInitialized();
+}
+
+/// Legacy example API, distinct from the canonical global lifecycle.
+/// This handle does not establish Idris readiness or verified operations.
+export fn proven_handle_create() ?*Handle {
     const allocator = std.heap.c_allocator;
 
     const handle = allocator.create(Handle) catch {
@@ -86,7 +105,7 @@ export fn proven_version_minor() u32 { return 1; }
 export fn proven_version_patch() u32 { return 0; }
 
 /// Return the FFI ABI version
-export fn proven_ffi_abi_version() u32 { return 1; }
+export fn proven_ffi_abi_version() u32 { return 2; }
 
 //==============================================================================
 // Core Operations
@@ -186,15 +205,11 @@ export fn proven_process_array(
 // Error Handling
 //==============================================================================
 
-/// Get the last error message
-/// Returns null if no error
+/// Borrow immutable static text for this thread's last error; never free it.
+/// setError accepts only comptime text, so this creates no heap allocation.
 export fn proven_last_error() ?[*:0]const u8 {
     const err = last_error orelse return null;
-
-    // Return C string (static storage, no need to free)
-    const allocator = std.heap.c_allocator;
-    const c_str = allocator.dupeZ(u8, err) catch return null;
-    return c_str.ptr;
+    return err.ptr;
 }
 
 //==============================================================================
@@ -336,7 +351,7 @@ export fn proven_header_has_crlf(ptr: ?[*]const u8, len: usize) callconv(.c) Boo
 //==============================================================================
 
 /// Check if handle is initialized
-export fn proven_is_initialized(handle: ?*Handle) u32 {
+export fn proven_handle_is_initialized(handle: ?*Handle) u32 {
     const h = handle orelse return 0;
     return if (h.initialized) 1 else 0;
 }
@@ -345,11 +360,38 @@ export fn proven_is_initialized(handle: ?*Handle) u32 {
 // Tests
 //==============================================================================
 
-test "lifecycle" {
-    const handle = proven_init() orelse return error.InitFailed;
+test "legacy handle has a distinct API" {
+    const handle = proven_handle_create() orelse return error.InitFailed;
     defer proven_free(handle);
 
-    try std.testing.expect(proven_is_initialized(handle) == 1);
+    try std.testing.expect(proven_handle_is_initialized(handle) == 1);
+}
+
+test "canonical lifecycle has fixed C types and truthful readiness" {
+    const initialize: *const fn () callconv(.c) i32 = &proven_init;
+    const shutdown: *const fn () callconv(.c) void = &proven_deinit;
+    const initialized: *const fn () callconv(.c) bool = &proven_is_initialized;
+    shutdown();
+    try std.testing.expect(!initialized());
+    const expected: i32 = if (lifecycle.available) 0 else -99;
+    try std.testing.expectEqual(expected, initialize());
+    try std.testing.expectEqual(lifecycle.available, initialized());
+    try std.testing.expectEqual(expected, initialize());
+    shutdown();
+    shutdown();
+    try std.testing.expect(!initialized());
+}
+
+test "error text is borrowed static storage, not a new allocation" {
+    _ = proven_process(null, 0);
+    const first = proven_last_error() orelse return error.MissingError;
+    for (0..1024) |_| {
+        const next = proven_last_error() orelse return error.MissingError;
+        try std.testing.expect(first == next);
+        try std.testing.expectEqualStrings("Null handle", std.mem.span(next));
+    }
+    clearError();
+    try std.testing.expect(proven_last_error() == null);
 }
 
 test "error handling" {

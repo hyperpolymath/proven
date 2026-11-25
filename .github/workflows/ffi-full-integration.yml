@@ -16,6 +16,17 @@ on:
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'bindings/elixir/native/proven_nif/src/lib.rs'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/check-refc-staging.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/test-native-lifecycle.sh'
+      - 'bindings/c/include/proven.h'
+      - 'bindings/rust/src/ffi.rs'
+      - 'tests/remediation/**'
+      - '.gitmodules'
+      - 'nextgen-languages/language-bridges'
   pull_request:
     branches: [main]
     paths:
@@ -24,11 +35,39 @@ on:
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
       - '.github/workflows/ffi-full-integration.yml'
+      - 'bindings/elixir/native/proven_nif/src/lib.rs'
+      - 'scripts/check-native-nif-exports.sh'
+      - 'tests/check-native-nif-exports.sh'
+      - 'tests/check-refc-staging.sh'
+      - 'scripts/test-remediation-bridge.sh'
+      - 'scripts/test-native-lifecycle.sh'
+      - 'bindings/c/include/proven.h'
+      - 'bindings/rust/src/ffi.rs'
+      - 'tests/remediation/**'
+      - '.gitmodules'
+      - 'nextgen-languages/language-bridges'
   workflow_dispatch:
 concurrency:
   group: ffi-full-integration-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  nif-abi-symbol-controls:
+    name: Native ABI symbol validator (planted controls only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout proven
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          persist-credentials: false
+      - name: Execute real positive and negative controls
+        # This proves the validator detects missing exports. It does NOT
+        # imply any real libproven artifact was built or validated.
+        run: bash tests/check-native-nif-exports.sh
+      - name: RefC staging regression controls
+        # Planted empty/stale compiler outputs must not become fake evidence.
+        run: bash tests/check-refc-staging.sh
+
   idris-refc-zig:
     name: Idris -> RefC -> Zig
     runs-on: ubuntu-latest
@@ -36,6 +75,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     env:
       IDRIS2_VERSION: '0.8.0'
+      IDRIS2_REF: 'b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b'
       ZIG_VERSION: '0.15.2'
     steps:
       - name: Checkout proven
@@ -50,15 +90,17 @@ jobs:
           set -euo pipefail
           if [ -z "$LANGUAGE_BRIDGES_TOKEN" ]; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::LANGUAGE_BRIDGES_TOKEN is not configured; skipping private full FFI integration."
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "::error title=Full FFI not run::LANGUAGE_BRIDGES_TOKEN is absent; genuine Idris2/RefC/Zig integration cannot be verified."
+            echo "PROVEN_FFI_CLASS=not_run:missing_private_dependency"
+            exit 2
           fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
       - name: Checkout language-bridges
         if: steps.bridge-token.outputs.available == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
-          repository: nextgen-languages/language-bridges
+          repository: hyperpolymath/language-bridges
+          ref: 8f4b082c52508ab6276946d61b660e7d9b97f35f
           path: nextgen-languages/language-bridges
           token: ${{ secrets.LANGUAGE_BRIDGES_TOKEN }}
           persist-credentials: false
@@ -75,14 +117,17 @@ jobs:
         with:
           path: |
             ~/.idris2
-            ~/idris2-${{ env.IDRIS2_VERSION }}
-          key: idris2-refc-${{ env.IDRIS2_VERSION }}-${{ runner.os }}
+            ~/idris2-${{ env.IDRIS2_REF }}
+          key: idris2-refc-${{ env.IDRIS2_REF }}-${{ runner.os }}
       - name: Install Idris 2
         if: steps.bridge-token.outputs.available == 'true' && steps.cache-idris2.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          git clone --depth 1 --branch v${{ env.IDRIS2_VERSION }} https://github.com/idris-lang/Idris2.git ~/idris2-${{ env.IDRIS2_VERSION }}
-          cd ~/idris2-${{ env.IDRIS2_VERSION }}
+          git init "$HOME/idris2-${{ env.IDRIS2_REF }}"
+          cd "$HOME/idris2-${{ env.IDRIS2_REF }}"
+          git remote add origin https://github.com/idris-lang/Idris2.git
+          git fetch --depth 1 origin "${{ env.IDRIS2_REF }}"
+          git checkout --detach FETCH_HEAD
           make bootstrap SCHEME=chezscheme
           make install
       - name: Add Idris 2 to PATH
@@ -93,36 +138,23 @@ jobs:
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      - name: Build Idris RefC output
+      - name: Test actual remediation logic through RefC and Zig
         if: steps.bridge-token.outputs.available == 'true'
-        run: scripts/build-refc.sh --verbose
-      - name: Build and test libproven
+        run: bash scripts/test-remediation-bridge.sh
+      - name: Check lifecycle proofs and actual C/Rust native consumers
+        id: lifecycle
+        if: steps.bridge-token.outputs.available == 'true'
+        run: bash scripts/test-native-lifecycle.sh
+      - name: Verify the genuine built artifact exports every Rustler NIF symbol
         if: steps.bridge-token.outputs.available == 'true'
         run: |
           set -euo pipefail
-          IDRIS2_PREFIX="$(idris2 --prefix)"
-          REFC_RUNTIME="$(find "$IDRIS2_PREFIX" -path '*/support/refc' -type d 2>/dev/null | head -1)"
-          C_SUPPORT="$(find "$IDRIS2_PREFIX" -path '*/support/c' -type d 2>/dev/null | head -1)"
-          SUPPORT_LIB_FILE="$(find "$IDRIS2_PREFIX" -path '*/lib/libidris2_support.*' 2>/dev/null | head -1)"
-
-          test -n "$REFC_RUNTIME"
-          test -n "$C_SUPPORT"
-          test -n "$SUPPORT_LIB_FILE"
-          SUPPORT_LIB="$(dirname "$SUPPORT_LIB_FILE")"
-          test -d "$GITHUB_WORKSPACE/build/refc"
-          test -d "$REFC_RUNTIME"
-          test -d "$C_SUPPORT"
-          test -d "$SUPPORT_LIB"
-
-          cd ffi/zig
-          zig build \
-            -Didris-refc="$GITHUB_WORKSPACE/build/refc" \
-            -Didris-refc-runtime="$REFC_RUNTIME" \
-            -Didris-c-support="$C_SUPPORT" \
-            -Didris-support-lib="$SUPPORT_LIB"
-          zig build test \
-            -Didris-refc="$GITHUB_WORKSPACE/build/refc" \
-            -Didris-refc-runtime="$REFC_RUNTIME" \
-            -Didris-c-support="$C_SUPPORT" \
-            -Didris-support-lib="$SUPPORT_LIB"
-          ls -la zig-out/lib/libproven.*
+          artifact_dir="${{ steps.lifecycle.outputs.artifact-dir }}"
+          test -n "$artifact_dir"
+          status=0
+          for artifact in "$artifact_dir/libproven.a" "$artifact_dir/libproven.so"; do
+            if ! bash scripts/check-native-nif-exports.sh "$artifact"; then
+              status=1
+            fi
+          done
+          exit "$status"
