@@ -7,6 +7,11 @@
 import std.stdio;
 import std.process;
 import proven;
+import proven.ffi : ProvenBoolResult;
+
+// The D package has no high-level SafeHeader wrapper yet. Exercise its C ABI
+// directly using the package's actual result layout; do not duplicate policy.
+extern(C) ProvenBoolResult proven_header_has_crlf(const(ubyte)* ptr, size_t len) nothrow;
 
 int main() {
     // SafePath.hasTraversal - happy + detection paths.
@@ -22,6 +27,15 @@ int main() {
         return 1;
     }
 
+    const string[] headers = ["application/json", "\r", "\n", "a\0\rZ", "\xFF\0\x80"];
+    const bool[] expected = [false, true, true, true, false];
+    foreach (i, value; headers) {
+        auto r = proven_header_has_crlf(cast(const(ubyte)*) value.ptr, value.length);
+        if (r.status != 0 || r.value != expected[i]) {
+            writeln("FAIL: header C ABI byte-span case ", i);
+            return 1;
+        }
+    }
     writeln("hello_smoke: OK (libproven ", VERSION, ")");
     return 0;
 }

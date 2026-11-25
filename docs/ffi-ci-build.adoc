@@ -1,118 +1,101 @@
-== FFI CI build: standalone surface and full Idris→Zig pipeline
+== FFI CI build: explicit profiles and the repo-local RefC bridge
 
-The latest lifecycle ABI 2/static-shared build changes are *drafted, unvalidated*.
-Local compilation is held for BotMania's resource slot. Earlier successful
-static artifact results do not certify the new build graph. See
-`+docs/remediation/2026-11-16-native-abi-draft.md+`.
+The header bridge uses Idris2 commit
+`b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b`, its matching RefC SDK,
+Zig 0.15.2 and native Linux x86_64 GNU. The declared private
+`language-bridges` dependency had no production callers and has been removed.
+Actual ABI marshaling lives in `ffi/zig/src/refc/`. No private checkout or
+`LANGUAGE_BRIDGES_TOKEN` is needed, including for fork pull requests.
 
-`+proven+`'s intended FFI pipeline compiles Idris 2 to C via RefC and
-wraps it with Zig. The current public ABI is incomplete and its existing
-Zig operations do not yet call the generated Idris functions
-(`+Idris2 --codegen refc → .c → zig build → libproven+`). There are
-*two* Zig build entry points:
-
-[width="99%",cols="17%,21%,39%,23%",options="header",]
+[cols="1,2,2",options="header"]
 |===
-|File |Builds |External deps |Used by
-|`+ffi/zig/build.zig+` |full Idris→RefC→Zig `+libproven+`
-|`+idris2_zig_ffi+` (path dep on `+nextgen-languages/language-bridges+`)
-+ generated RefC C |local dev, full integration CI
-
-|`+ffi/zig/build_standalone.zig+` |`+libproven_ffi.a+` from
-`+src/main.zig+` only (pure-Zig C-ABI surface) |none |*CI* (`+e2e.yml+`,
-`+zig-ffi.yml+`)
+|Build entry |Inputs |Result
+|`ffi/zig/build.zig`
+|Fresh C from `proven-ffi.ipkg` plus all four SDK/source path options
+|`libproven.a`; the declared FFI package and its import cone are built
+|`ffi/zig/build_standalone.zig` without `-Dheader-refc`
+|Zig only
+|Legacy ABI surface; header operations explicitly return -99
+|`ffi/zig/build_standalone.zig` with `-Dheader-refc`
+|Completed native header bundle from `scripts/build-header-refc.sh`
+|Actual Idris header backend; static library or `-Dshared=true` shared library
 |===
 
-=== Why E2E uses the standalone build (ADR-003)
+Other legacy exports are outside the header proof qualification. Full-package
+build success does not establish that every public C declaration is available
+or that all source/compiler refinement obligations are discharged.
 
-`+build.zig+` declares its `+idris2_zig_ffi+` dependency as a Zig
-*`+.path+`* dependency:
+=== Header profile
 
-....
-.idris2_zig_ffi = .{ .path = "../../nextgen-languages/language-bridges/bridges/idris2" }
-....
+From the repository root, with the pinned tools on PATH:
 
-That path now points at a real submodule of the newly created private repository
-`+hyperpolymath/language-bridges+`, pinned at
-`+8f4b082c52508ab6276946d61b660e7d9b97f35f+`.
-This is new source created on 2026-11-16, not recovered historical source.
-`+e2e.yml+` stays
-on `+build_standalone.zig+` so the broad E2E and benchmark jobs keep
-running without private credentials. `+build_standalone.zig+` compiles
-`+src/main.zig+` with an explicit unavailable lifecycle adapter, so it
-needs neither the bridge nor generated RefC. Its global init returns -99 and
-readiness remains false. This gives CI a
-real (if narrower) Zig FFI build + unit-test signal.
+[source,bash]
+----
+bash scripts/test-header-bridge.sh
+----
 
-`+e2e.yml+` and `+zig-ffi.yml+` therefore run, with Zig provisioned by
-`+mlugg/setup-zig@v1+` at `+0.15.2+` (the `+build.zig.zon+` minimum):
+This executes the real generated Idris function, the exported Zig ABI and a
+caller compiled against the public C header. It checks all single bytes and
+pairs, NUL, non-UTF-8, null/empty and length boundaries, and rejects a wrong
+backend. Failed-producer controls also prove that old bundles cannot rescue
+a failed rebuild. The builder invalidates its previous artifacts before any
+tool checks, and the Zig build refuses a missing or non-PASS completion marker.
+The marker is build state, not an Atoma proof certificate.
 
-....
-zig build       --build-file build_standalone.zig      # E2E build
-zig build test  --build-file build_standalone.zig      # E2E tests
-zig build bench --build-file build_standalone.zig || … # Bench (soft)
-....
+For a shared library, choose a dedicated absolute bundle/output path:
 
-=== The full pipeline (local build tested; complete ABI still fails)
+[source,bash]
+----
+bash scripts/build-header-refc.sh "$PWD/build/header-refc"
+bundle="$PWD/build/header-refc"
+(cd ffi/zig; zig build --build-file build_standalone.zig -Dshared=true -Dheader-refc="$bundle")
+----
 
-Tested on Debian x86-64 with Idris2
-`+b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b+`, contrib/network and Zig 0.15.2.
-From the repository root, with authorized private-repository access:
+Use one producer per bundle directory. To rebuild an old bundle predating the
+completion marker, run the builder again; do not fabricate a marker.
 
-....
-git submodule update --init nextgen-languages/language-bridges
-REPO="$PWD"
-bash scripts/test-remediation-bridge.sh
-# Generates fresh C and stages it; empty/stale/failed output is rejected.
+=== Full FFI package pipeline
+
+The generator copies the Idris sources and package into a clean scratch tree.
+It enables totality and warnings-as-errors through `proven-ffi.ipkg`, requires
+one fresh C translation unit and the reachable header symbol, and records
+matching SDK paths in `build/refc/sdk.env`. It never collects arbitrary C files
+from an existing build tree.
+
+[source,bash]
+----
 bash scripts/build-refc.sh --verbose
+source build/refc/sdk.env
+(cd ffi/zig; zig build \
+  -Didris-refc="$REFC_OUTPUT_DIR" \
+  -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+  -Didris-c-support="$IDRIS2_C_SUPPORT" \
+  -Didris-support-lib="$IDRIS2_SUPPORT_LIB")
+(cd ffi/zig; zig build test \
+  -Didris-refc="$REFC_OUTPUT_DIR" \
+  -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+  -Didris-c-support="$IDRIS2_C_SUPPORT" \
+  -Didris-support-lib="$IDRIS2_SUPPORT_LIB")
+bash scripts/test-refc-staging.sh
+----
 
-# Step 2 — Zig links the RefC C + Idris runtime/support into libproven
-PFX=$(idris2 --prefix)
-cd ffi/zig
-zig build \
-  -Didris-refc="$REPO/build/refc" \
-  -Didris-refc-runtime="$(find "$PFX" -path '*/support/refc' -type d | head -1)" \
-  -Didris-c-support="$(find "$PFX" -path '*/support/c' -type d | head -1)" \
-  -Didris-support-lib="$(find "$PFX" -path '*/lib/libidris2_support.*' | head -1 | xargs dirname)"
-....
+The runtime also requires libc, libgmp, pthread and libm. The existing
+`.github/workflows/ffi-full-integration.yml` runs this path without secrets,
+including on fork PRs. It uploads the generated-source/SDK identity, build
+logs and stale-output rejection results. An actual failure remains a failure;
+there is no credential-based success-by-skipping path.
 
-Requires `+libgmp+` (the RefC runtime links `+gmp+`/`+pthread+`/`+m+`).
+=== Consumers and proof replay
 
-=== Full integration CI
+Chapel, D and OCaml producers sparse-check out their explicit source/script
+inputs, build the real shared library and pass it to detached consumer jobs.
+OCaml's `proven.wired` module exercises the five available symbols; the separate
+full-API gate still exposes its unresolved lifecycle mismatch. See
+link:adr/0001-binding-ci-template.adoc[the producer/consumer contract].
 
-`+.github/workflows/ffi-full-integration.yml+` restores the full
-pipeline:
-
-[arabic]
-. Check out `+proven+`.
-. Check out pinned `+hyperpolymath/language-bridges+` into
-`+nextgen-languages/language-bridges+`.
-. Install the exact Idris2 commit above, Zig 0.15.2, and `+libgmp+`.
-. Test actual nonce/entropy production logic through RefC/Zig.
-. Run `+scripts/test-native-lifecycle.sh+`: fresh-source proof checks,
-real package RefC generation, static/shared artifacts, typed C/Rust consumers,
-standalone unavailability and a corrupted-result control, with one build worker.
-. Run the Rustler symbol gate against both actual output artifacts. The preceding
-archive failed with 61 of 66 required functions absent; the new unbuilt source
-has no updated artifact count. A build success is not ABI parity.
-
-The workflow runs the private full integration only when a repository
-secret named `+LANGUAGE_BRIDGES_TOKEN+` is configured with read access
-to `+hyperpolymath/language-bridges+`. If that secret is absent, the
-job fails explicitly as NOT RUN. Its metadata exists, but access and a hosted
-run of these changes have not been demonstrated. Pull requests from forks are skipped because
-that credential must not be exposed to untrusted branches.
-
-ClusterFuzzLite uses the standalone Zig FFI surface to build a dynamic
-`+libproven.so+` fixture and fuzzes the Rust path traversal wrapper
-currently backed by `+src/main.zig+`. Additional Rust fuzz targets
-should be enabled in ClusterFuzzLite once their exported Zig symbols are
-available without the private bridge.
-
-The current submodule keeps the historical path so `+ffi/zig/build.zig.zon+`
-resolves the dependency unchanged. All four build input paths and a nonempty
-generated C directory are mandatory. Three negative controls exercise missing
-options, empty sources and a nonexistent source directory.
-
-See `+docs/remediation/2026-11-16-native-nonce.md+` for proof scope, local
-artifact checksum, test counts, ownership assumptions and pending ABI work.
+Broad E2E, cross-target and fuzzing jobs using the unavailable profile qualify
+only the legacy operations they actually call. They do not establish a working
+Idris header backend. The separate `header-refc.yml` and `header-theory.yml`
+gates cover executable evidence and Agda/Cubical/Lean/Rocq replay respectively.
+See link:adr/2026-11-16-header-refc-boundary.adoc[the header boundary decision]
+for exact qualification and open source/compiler refinement obligations.

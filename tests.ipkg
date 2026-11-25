@@ -15,12 +15,13 @@ package proven-tests
 version = 1.1.0
 authors = "Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>"
 license = "MPL-2.0"
-brief = "Property-test suite for proven (29 modules, runtime + type-level assertions)"
+brief = "Property-test suite for proven (29 modules: type-level proofs, execution checks, named obligations, strict known-defect ledger)"
 
 sourcedir = "tests/properties"
 builddir = "build/tests"
 
 modules = Main
+        , KnownDefects
         , SafeArgsProps
         , SafeBase64Props
         , SafeCommandProps

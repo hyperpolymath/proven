@@ -19,17 +19,15 @@ trap 'rm -rf -- "$scratch"' EXIT
 echo "Lifecycle evidence: $evidence"
 exec > >(tee "$evidence/run.log") 2>&1
 # Bind this run to file contents, including uncommitted remediation and the
-# private bridge. A passing run must still have the same inputs at its end.
+# compiler SDK. A passing run must still have the same inputs at its end.
 cd "$root"
 git rev-parse HEAD > "$evidence/base-commit.txt"
 git status --porcelain=v1 > "$evidence/worktree-status.txt"
-git -C nextgen-languages/language-bridges rev-parse HEAD > "$evidence/bridge-commit.txt"
 {
   printf '%s\0' proven-ffi.ipkg scripts/build-refc.sh scripts/test-native-lifecycle.sh \
     ffi/zig/build.zig ffi/zig/build_standalone.zig ffi/zig/build.zig.zon \
-    bindings/c/include/proven.h bindings/rust/src/ffi.rs
+    bindings/c/include/proven.h bindings/c/include/proven-abi.tsv scripts/check-abi-ledger.sh bindings/rust/src/ffi.rs
   find src/Proven ffi/zig/src tests/remediation \
-    nextgen-languages/language-bridges/bridges/idris2 \
     -type f \( -name '*.idr' -o -name '*.zig' -o -name '*.zon' \
       -o -name '*.c' -o -name '*.h' -o -name '*.rs' \) \
     -not -path '*/.zig-cache/*' -not -path '*/zig-out/*' -print0
@@ -40,7 +38,7 @@ git -C nextgen-languages/language-bridges rev-parse HEAD > "$evidence/bridge-com
   "$rustc" --version
   "$cc" --version
 } > "$evidence/toolchains.log"
-if [ -n "${GITHUB_OUTPUT:-}" ]; then
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   printf 'artifact-dir=%s\n' "$evidence/native/lib" >> "$GITHUB_OUTPUT"
 fi
 
@@ -77,16 +75,21 @@ prefix="$("$idris" --prefix)"
 runtime="$(find "$prefix" -path '*/support/refc' -type d -print -quit)"
 support="$(find "$prefix" -path '*/support/c' -type d -print -quit)"
 support_archive="$(find "$prefix" -name libidris2_support.a -type f -print -quit)"
-test -f "$runtime/libidris2_refc.a"
-test -f "$support/idris_support.h"
-test -n "$support_archive"
+[[ -f "$runtime/libidris2_refc.a" ]]
+[[ -f "$support/idris_support.h" ]]
+[[ -n "$support_archive" ]]
+sha256sum "$runtime/"*.h "$runtime/libidris2_refc.a" "$support/"*.h "$support_archive" > "$evidence/sdk-inputs.sha256"
 common=("-Didris-refc-runtime=$runtime" "-Didris-c-support=$support"
         "-Didris-support-lib=$(dirname "$support_archive")")
 cd "$root/ffi/zig"
 "$zig" build -j1 "-Didris-refc=$scratch/package/build/refc" "${common[@]}" --prefix "$evidence/native" --summary all 2>&1 | tee "$evidence/zig-build.log"
 "$zig" build test -j1 "-Didris-refc=$scratch/package/build/refc" "${common[@]}" --summary all 2>&1 | tee "$evidence/zig-tests.log"
-test -s "$evidence/native/lib/libproven.a"
-test -s "$evidence/native/lib/libproven.so"
+[[ -s "$evidence/native/lib/libproven.a" ]]
+[[ -s "$evidence/native/lib/libproven.so" ]]
+for artifact in "$evidence/native/lib/libproven.a" "$evidence/native/lib/libproven.so"; do
+  bash "$root/scripts/check-abi-ledger.sh" "$root/bindings/c/include/proven-abi.tsv" \
+    "$root/bindings/c/include/proven.h" "$artifact" "$evidence/ledger-$(basename "$artifact")"
+done
 "$zig" build -j1 --build-file build_standalone.zig --prefix "$scratch/standalone" --summary all
 "$zig" build test -j1 --build-file build_standalone.zig --summary all
 
@@ -130,12 +133,12 @@ for file in "$scratch/corrupted-refc"/*.c; do
   mv -- "$file.mutated" "$file"
   changed=$((changed + 1))
 done
-test "$changed" -eq 1
+[[ "$changed" -eq 1 ]]
 "$zig" build -j1 "-Didris-refc=$scratch/corrupted-refc" "${common[@]}" --prefix "$scratch/corrupted" 2>&1 | tee "$evidence/mutation-build.log"
 status=0
 LD_LIBRARY_PATH="$scratch/corrupted/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
   "$evidence/c-shared" > "$evidence/corrupted-result.log" 2>&1 || status=$?
-test "$status" -eq 1
+[[ "$status" -eq 1 ]]
 grep -Fq 'FAIL: init status' "$evidence/corrupted-result.log"
 echo "PASS: corrupted generated lifecycle result rejected by typed C consumer"
 LD_LIBRARY_PATH="$scratch/corrupted/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
@@ -143,4 +146,5 @@ LD_LIBRARY_PATH="$scratch/corrupted/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
 sha256sum "$evidence/native/lib/libproven.a" "$evidence/native/lib/libproven.so" > "$evidence/artifacts.sha256"
 cd "$root"
 sha256sum --check --quiet "$evidence/inputs.sha256"
+sha256sum --check --quiet "$evidence/sdk-inputs.sha256"
 echo "PASS: scoped lifecycle tests; complete native ABI still requires its separate gate"

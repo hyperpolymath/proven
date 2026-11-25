@@ -371,6 +371,7 @@ $defs:
     format: uuid
     pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     examples:
+      # hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
       - "550e8400-e29b-41d4-a716-446655440000"
 
   UUIDv4:

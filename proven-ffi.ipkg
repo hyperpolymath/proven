@@ -12,6 +12,7 @@ sourceloc = "https://github.com/hyperpolymath/proven"
 bugtracker = "https://github.com/hyperpolymath/proven/issues"
 
 depends = contrib
+opts = "--total -Werror"
 
 sourcedir = "src"
 builddir = "build"
@@ -24,4 +25,5 @@ modules = Proven.Core
         , Proven.ABI.Lifecycle
         , Proven.SafeUrl.Parser
         , Proven.FFI.SafeUrl
+        , Proven.SafeHeader.ByteKernel
         , Proven.FFI.Main

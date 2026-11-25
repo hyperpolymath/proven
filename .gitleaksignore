@@ -2,8 +2,8 @@
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # Gitleaks false positives: test fixtures, not credentials.
-# Fingerprint format is file:rule:line (the CI scan runs with --no-git), so an
-# entry stops matching if its line moves. Re-run the scan after editing these files.
+# Current-tree fingerprints use file:rule:line; history fingerprints additionally
+# bind the exact commit. Re-run both scan modes after editing these files.
 
 # Placeholder Stripe-prefixed strings (live and test prefix, "abc123def456" body)
 # used only to prove detectFormat classifies the prefix as StripeKey.
@@ -12,3 +12,14 @@ src/Proven/SafeAPIKey/Proofs.idr:stripe-access-token:46
 
 # The public jwt.io example token (sub 1234567890, "John Doe"), used to test decoding.
 tests/unit/SafeJWTUnit.idr:jwt:37
+
+# History-only findings: immutable, exact commit/file/rule/line fingerprints.
+# Terraform's password_hashing value is the algorithm name argon2id, not a password.
+4058fd882b892c4b86916b4d63e6e802e3ca26cf:bindings/hcl/proven.tf:hashicorp-tf-password:404
+# JWT literals in format/parsing unit tests, not authentication credentials.
+# These dispositions do not suppress new tokens, paths, commits or current files.
+4058fd882b892c4b86916b4d63e6e802e3ca26cf:bindings/zig/src/safe_jwt.zig:jwt:423
+4058fd882b892c4b86916b4d63e6e802e3ca26cf:bindings/zig/src/safe_jwt.zig:jwt:447
+# Inspection/refusal fixture: HS256 header with a four-byte ASCII signature
+# (HS256 requires 32 bytes); these tests require authentication to reject it.
+e7a0aa8a46601df22f0853c28ec26424a3874321:tests/remediation/JWTSQLMain.idr:generic-api-key:52

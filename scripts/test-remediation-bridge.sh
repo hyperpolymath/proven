@@ -5,7 +5,7 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 idris="${IDRIS2:-idris2}"
 zig="${ZIG:-zig}"
-test -f "$root/nextgen-languages/language-bridges/bridges/idris2/src/root.zig"
+[[ -f "$root/nextgen-languages/language-bridges/bridges/idris2/src/root.zig" ]]
 scratch="$(mktemp -d -t proven-native-remediation.XXXXXXXX)"
 trap 'rm -rf -- "$scratch"' EXIT
 cp -R "$root/src/Proven" "$scratch/Proven"
@@ -13,14 +13,14 @@ cp "$root/tests/remediation/NativeNonceFixture.idr" "$scratch/"
 cd "$scratch"
 "$idris" -p contrib -p network --no-color --total --cg refc -o nonce-fixture NativeNonceFixture.idr 2>&1 | tee compiler.log
 if grep -Eq '^Error:|Warning: compiling hole|Unsolved holes' compiler.log; then exit 1; fi
-test -s build/exec/nonce-fixture.c
+[[ -s build/exec/nonce-fixture.c ]]
 prefix="$("$idris" --prefix)"
 runtime="$(find "$prefix" -path '*/support/refc' -type d -print -quit)"
 support="$(find "$prefix" -path '*/support/c' -type d -print -quit)"
 support_lib="$(find "$prefix" -name libidris2_support.a -type f -print -quit)"
-test -f "$runtime/libidris2_refc.a"
-test -f "$support/idris_support.h"
-test -n "$support_lib"
+[[ -f "$runtime/libidris2_refc.a" ]]
+[[ -f "$support/idris_support.h" ]]
+[[ -n "$support_lib" ]]
 cd "$root/ffi/zig"
 "$zig" build remediation-test -j1 -Didris-refc="$scratch/build/exec" \
   -Didris-refc-runtime="$runtime" -Didris-c-support="$support" \

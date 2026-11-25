@@ -79,6 +79,7 @@ module Proven
       def nil_uuid?(uuid_string)
         parsed = parse(uuid_string)
         return nil if parsed.nil?
+        # hypatia: allow-next-line uuid/external -- UUID nil/max or ordered-value test vector, not an estate identifier
         parsed == "00000000-0000-0000-0000-000000000000"
       end
 

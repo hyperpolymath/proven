@@ -85,6 +85,8 @@ modules = Proven
         -- SafeRegex
         , Proven.SafeRegex
         , Proven.SafeRegex.Types
+        , Proven.SafeRegex.Parser
+        , Proven.SafeRegex.Matcher
         , Proven.SafeRegex.Safety
         , Proven.SafeRegex.Proofs
         -- SafeCommand
@@ -97,9 +99,11 @@ modules = Proven
         , Proven.SafeSQL.Types
         , Proven.SafeSQL.Params
         , Proven.SafeSQL.Literal
+        , Proven.SafeSQL.Builder
         , Proven.SafeSQL.Proofs
         -- SafeJWT
         , Proven.SafeJWT
+        , Proven.SafeJWT.Types
         , Proven.SafeJWT.Decode
         , Proven.SafeJWT.Validate
         , Proven.SafeJWT.Proofs
@@ -114,10 +118,12 @@ modules = Proven
         , Proven.SafeXML
         , Proven.SafeXML.Types
         , Proven.SafeXML.Builder
+        , Proven.SafeXML.Parser
         , Proven.SafeXML.Proofs
         -- SafeYAML
         , Proven.SafeYAML
         , Proven.SafeYAML.Types
+        , Proven.SafeYAML.Parser
         , Proven.SafeYAML.Proofs
         -- SafeTOML
         , Proven.SafeTOML
@@ -142,6 +148,7 @@ modules = Proven
         -- SafeHeader
         , Proven.SafeHeader
         , Proven.SafeHeader.Types
+        , Proven.SafeHeader.ByteKernel
         , Proven.SafeHeader.Parser
         , Proven.SafeHeader.Proofs
         -- SafeCookie

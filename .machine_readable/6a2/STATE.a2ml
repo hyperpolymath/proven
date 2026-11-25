@@ -4,27 +4,8 @@
 [metadata]
 project = "proven"
 version = "0.1.0"
-last-updated = "2026-11-16"
+last-updated = "2026-05-31"
 status = "active"
-
-[critical-remediation-2026-11-16]
-baseline = "c13619f9a67a1b9e8234e22e22dae0940d2480cb"
-plan = "docs/remediation/2026-11-16-plan.md"
-validation = "docs/remediation/2026-11-16-validation.md"
-jwt-sql-validation = "docs/remediation/2026-11-16-jwt-sql.md"
-native-nonce-validation = "docs/remediation/2026-11-16-native-nonce.md"
-native-abi-draft = "docs/remediation/2026-11-16-native-abi-draft.md; source/proof/test drafts only, no compiler or native validation run; awaiting BotMania slot"
-echidna = "implemented: sound closed Nat/Bool equality kernel; other logic and external backends unsupported"
-webhook = "contained: authentication unavailable; rejects all signatures and preserves replay state"
-unicode-comparison = "implemented: full-character comparison with soundness and reflexivity proofs; hashString encoding and timing proofs pending"
-jwt = "contained: creation and authentication cannot succeed; typed unavailable errors and total generic rejection proofs; real cryptography and faithful signing serialization pending"
-sql = "partial: actual literal renderer has indexed lexical encoding proofs; strict validation rejects positional and named SQLRaw; SQLite byte integration passes; whole-query and driver proofs pending"
-nonce = "partial: checked 32-bit counter encoding with accepted-result round-trip and injectivity proofs, exhaustion rejection and positive endpoints; persistent key/prefix/counter lifecycle pending"
-entropy = "contained: absent entropy backend and nontrivial shuffle fail explicitly with generic rejection proofs; genuine OS entropy pending"
-latest-validation = "2026-11-24 lifecycle slice: production total proofs and two negative controls checked; RefC runtime 1033/1035 overlapping assertions; real static/shared builds; C static/shared concurrency and Rust lifecycle consumer; 11 full and 11 standalone Zig tests; unavailable-backend and generated-corruption controls passed. Full 314-module package check timed out at 194 and its continuation was OOM-killed at 512MiB; Separately admitted 1GiB continuation also OOM-killed after last complete progress225/314 (135.746s); no retry authorized. Historical JWT/SQL/nonce results remain in their own receipts."
-native-integration = "partial: lifecycle ABI 2 checked through actual Idris/RefC/Zig/C/Rust path on Linux x86_64; bridge pinned at 8f4b082c52508ab6276946d61b660e7d9b97f35f. Current static and shared artifacts each miss 60 of 66 Rustler-required names. General memory/refinement proofs, other operations/platforms, hosted CI and complete ABI remain open. See docs/status/LIFECYCLE-PROOF-STATUS.adoc."
-baseline-worklist = "374 review entries; not a vulnerability or discharged-theorem count"
-note = "The older proof-coverage section below is historical and is not a current assurance summary."
 
 [project-context]
 name = "proven"

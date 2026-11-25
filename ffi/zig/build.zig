@@ -14,7 +14,7 @@
 //!   -Didris-c-support=<path>      Path to Idris2 C support headers (idris_support.h, etc.)
 //!   -Didris-support-lib=<path>    Path to libidris2_support.{a,so}
 //!
-//! Uses idris2-zig-ffi for generic Idris 2 FFI infrastructure.
+//! RefC marshaling lives in src/refc and uses the compiler's actual SDK.
 
 const std = @import("std");
 
@@ -40,7 +40,7 @@ fn configureRefC(
             defer dir.close();
             var c_files: std.ArrayListUnmanaged([]const u8) = .empty;
             var iter = dir.iterate();
-            while (iter.next() catch @panic("cannot enumerate generated RefC sources")) |entry| {
+            while (iter.next() catch @panic("cannot enumerate RefC translation units")) |entry| {
                 if (entry.kind == .file) {
                     const name = entry.name;
                     if (std.mem.endsWith(u8, name, ".c")) {
@@ -48,7 +48,8 @@ fn configureRefC(
                     }
                 }
             }
-            if (c_files.items.len > 0) {
+            if (c_files.items.len == 0) @panic("empty RefC source directory; refusing an unwired library");
+            {
                 mod.addCSourceFiles(.{
                     .root = .{ .cwd_relative = rp },
                     .files = c_files.items,
@@ -56,14 +57,12 @@ fn configureRefC(
                         "-std=c11",
                         "-fno-strict-aliasing",
                         "-D_GNU_SOURCE",
-                        "-Dmain=proven_refc_entry",
+                        "-Dmain=idris_proven_codegen_main",
                     },
                 });
-            } else {
-                @panic("no generated RefC C sources");
             }
-        } else |err| {
-            std.debug.panic("cannot open generated RefC directory: {s}", .{@errorName(err)});
+        } else |_| {
+            @panic("missing RefC source directory; build Idris before linking");
         }
     }
 
@@ -87,6 +86,7 @@ fn configureRefC(
     // -----------------------------------------------------------------------
     if (support_lib_path) |slp| {
         mod.addLibraryPath(.{ .cwd_relative = slp });
+        mod.addRPath(.{ .cwd_relative = slp });
         mod.linkSystemLibrary("idris2_support", .{});
     }
 
@@ -127,45 +127,28 @@ pub fn build(b: *std.Build) void {
         "idris-support-lib",
         "Path to libidris2_support.{a,so} directory",
     );
-    if (refc_path == null or refc_runtime_path == null or
-        c_support_path == null or support_lib_path == null)
-    {
-        @panic("all four -Didris-* paths are required for the real RefC build");
-    }
-
-    // ======================================================================
-    // Get idris2-zig-ffi dependency
-    // ======================================================================
-
-    const idris2_zig_ffi_dep = b.dependency("idris2_zig_ffi", .{
-        .target = target,
-        .optimize = optimize,
-        .@"idris-refc-runtime" = refc_runtime_path orelse
-            @panic("-Didris-refc-runtime is required for the real RefC bridge"),
-    });
-    const idris2_zig_ffi_mod = idris2_zig_ffi_dep.module("idris2_zig_ffi");
-    const lifecycle_mod = b.createModule(.{
-        .root_source_file = b.path("src/lifecycle_refc.zig"),
-        .target = target,
-        .optimize = optimize,
-        .imports = &.{.{ .name = "idris2_zig_ffi", .module = idris2_zig_ffi_mod }},
-    });
+    if (refc_path == null or refc_runtime_path == null or c_support_path == null or support_lib_path == null)
+        @panic("the full FFI build requires all four Idris RefC paths; use build_standalone.zig for explicit unavailable-backend behavior");
 
     // ======================================================================
     // Main library module
     // ======================================================================
 
     const proven_mod = b.addModule("proven", .{
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = b.path("src/main_refc.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{
-            .{ .name = "idris2_zig_ffi", .module = idris2_zig_ffi_mod },
-            .{ .name = "lifecycle_backend", .module = lifecycle_mod },
-        },
     });
 
-    proven_mod.addIncludePath(b.path("../../bindings/c/include"));
+    const lifecycle_mod = b.createModule(.{
+        .root_source_file = b.path("src/lifecycle_refc.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    lifecycle_mod.addIncludePath(.{ .cwd_relative = refc_runtime_path.? });
+    lifecycle_mod.addIncludePath(.{ .cwd_relative = c_support_path.? });
+    proven_mod.addImport("lifecycle", lifecycle_mod);
+    proven_mod.addIncludePath(b.path("include"));
     configureRefC(b, proven_mod, refc_path, refc_runtime_path, c_support_path, support_lib_path);
 
     // ======================================================================
@@ -175,17 +158,15 @@ pub fn build(b: *std.Build) void {
     const lib = b.addLibrary(.{
         .name = "proven",
         .root_module = proven_mod,
-        .linkage = .static,
     });
 
     b.installArtifact(lib);
-    // Rustler explicitly requests dylib=proven. Keep both actual artifact forms.
-    const shared_lib = b.addLibrary(.{
+    const shared = b.addLibrary(.{
         .name = "proven",
         .root_module = proven_mod,
         .linkage = .dynamic,
     });
-    b.installArtifact(shared_lib);
+    b.installArtifact(shared);
 
     // ======================================================================
     // Tests
@@ -198,17 +179,4 @@ pub fn build(b: *std.Build) void {
     const run_mod_tests = b.addRunArtifact(mod_tests);
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_mod_tests.step);
-
-    // This separate test invokes current Proven Idris logic through the bridge.
-    // It does not claim that the existing public C/Rustler ABI is complete.
-    const remediation_mod = b.createModule(.{
-        .root_source_file = b.path("../../tests/remediation/native_nonce.zig"),
-        .target = target,
-        .optimize = optimize,
-        .imports = &.{.{ .name = "idris2_zig_ffi", .module = idris2_zig_ffi_mod }},
-    });
-    configureRefC(b, remediation_mod, refc_path, refc_runtime_path, c_support_path, support_lib_path);
-    const remediation_tests = b.addTest(.{ .root_module = remediation_mod });
-    const remediation_run = b.addRunArtifact(remediation_tests);
-    b.step("remediation-test", "Exercise actual nonce and entropy code through RefC/Zig").dependOn(&remediation_run.step);
 }

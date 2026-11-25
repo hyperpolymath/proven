@@ -1,12 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-
 name: FFI Full Integration
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-permissions:
-  actions: read
-  contents: read
+permissions: {}
 on:
   push:
     branches: [main]
@@ -15,146 +12,81 @@ on:
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
-      - 'bindings/elixir/native/proven_nif/src/lib.rs'
-      - 'scripts/check-native-nif-exports.sh'
-      - 'tests/check-native-nif-exports.sh'
-      - 'tests/check-refc-staging.sh'
-      - 'scripts/test-remediation-bridge.sh'
       - 'scripts/test-native-lifecycle.sh'
-      - 'bindings/c/include/proven.h'
-      - 'bindings/rust/src/ffi.rs'
       - 'tests/remediation/**'
-      - '.gitmodules'
-      - 'nextgen-languages/language-bridges'
+      - 'bindings/c/include/**'
+      - 'bindings/rust/src/ffi.rs'
   pull_request:
-    branches: [main]
     paths:
       - 'src/**'
       - 'ffi/zig/**'
       - 'proven-ffi.ipkg'
       - 'scripts/build-refc.sh'
+      - 'scripts/build-header-refc.sh'
+      - 'scripts/test-refc-staging.sh'
       - '.github/workflows/ffi-full-integration.yml'
-      - 'bindings/elixir/native/proven_nif/src/lib.rs'
-      - 'scripts/check-native-nif-exports.sh'
-      - 'tests/check-native-nif-exports.sh'
-      - 'tests/check-refc-staging.sh'
-      - 'scripts/test-remediation-bridge.sh'
       - 'scripts/test-native-lifecycle.sh'
-      - 'bindings/c/include/proven.h'
-      - 'bindings/rust/src/ffi.rs'
       - 'tests/remediation/**'
-      - '.gitmodules'
-      - 'nextgen-languages/language-bridges'
+      - 'bindings/c/include/**'
+      - 'bindings/rust/src/ffi.rs'
   workflow_dispatch:
 concurrency:
   group: ffi-full-integration-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  nif-abi-symbol-controls:
-    name: Native ABI symbol validator (planted controls only)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Checkout proven
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          persist-credentials: false
-      - name: Execute real positive and negative controls
-        # This proves the validator detects missing exports. It does NOT
-        # imply any real libproven artifact was built or validated.
-        run: bash tests/check-native-nif-exports.sh
-      - name: RefC staging regression controls
-        # Planted empty/stale compiler outputs must not become fake evidence.
-        run: bash tests/check-refc-staging.sh
-
   idris-refc-zig:
     name: Idris -> RefC -> Zig
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 45
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    env:
-      IDRIS2_VERSION: '0.8.0'
-      IDRIS2_REF: 'b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b'
-      ZIG_VERSION: '0.15.2'
+    permissions:
+      contents: read
     steps:
       - name: Checkout proven
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           persist-credentials: false
-      - name: Check language-bridges credential
-        id: bridge-token
-        env:
-          LANGUAGE_BRIDGES_TOKEN: ${{ secrets.LANGUAGE_BRIDGES_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "$LANGUAGE_BRIDGES_TOKEN" ]; then
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::error title=Full FFI not run::LANGUAGE_BRIDGES_TOKEN is absent; genuine Idris2/RefC/Zig integration cannot be verified."
-            echo "PROVEN_FFI_CLASS=not_run:missing_private_dependency"
-            exit 2
-          fi
-          echo "available=true" >> "$GITHUB_OUTPUT"
-      - name: Checkout language-bridges
-        if: steps.bridge-token.outputs.available == 'true'
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          repository: hyperpolymath/language-bridges
-          ref: 8f4b082c52508ab6276946d61b660e7d9b97f35f
-          path: nextgen-languages/language-bridges
-          token: ${{ secrets.LANGUAGE_BRIDGES_TOKEN }}
-          persist-credentials: false
-      - name: Install Idris 2 dependencies
-        if: steps.bridge-token.outputs.available == 'true'
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y chezscheme libgmp-dev
-      - name: Cache Idris 2
-        if: steps.bridge-token.outputs.available == 'true'
-        id: cache-idris2
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            ~/.idris2
-            ~/idris2-${{ env.IDRIS2_REF }}
-          key: idris2-refc-${{ env.IDRIS2_REF }}-${{ runner.os }}
-      - name: Install Idris 2
-        if: steps.bridge-token.outputs.available == 'true' && steps.cache-idris2.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          git init "$HOME/idris2-${{ env.IDRIS2_REF }}"
-          cd "$HOME/idris2-${{ env.IDRIS2_REF }}"
-          git remote add origin https://github.com/idris-lang/Idris2.git
-          git fetch --depth 1 origin "${{ env.IDRIS2_REF }}"
-          git checkout --detach FETCH_HEAD
-          make bootstrap SCHEME=chezscheme
-          make install
-      - name: Add Idris 2 to PATH
-        if: steps.bridge-token.outputs.available == 'true'
-        run: echo "$HOME/.idris2/bin" >> "$GITHUB_PATH"
       - name: Setup Zig
-        if: steps.bridge-token.outputs.available == 'true'
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
-          version: ${{ env.ZIG_VERSION }}
-      - name: Test actual remediation logic through RefC and Zig
-        if: steps.bridge-token.outputs.available == 'true'
-        run: bash scripts/test-remediation-bridge.sh
-      - name: Check lifecycle proofs and actual C/Rust native consumers
-        id: lifecycle
-        if: steps.bridge-token.outputs.available == 'true'
-        run: bash scripts/test-native-lifecycle.sh
-      - name: Verify the genuine built artifact exports every Rustler NIF symbol
-        if: steps.bridge-token.outputs.available == 'true'
+          version: '0.15.2'
+      - name: Provision the pinned Idris compiler and check the header profile
+        uses: ./ffi/zig/actions/refc-library
+      - name: Generate the full FFI package from a clean source tree
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: bash scripts/build-refc.sh --verbose
+      - name: Build and test libproven through the default build entry point
         run: |
           set -euo pipefail
-          artifact_dir="${{ steps.lifecycle.outputs.artifact-dir }}"
-          test -n "$artifact_dir"
-          status=0
-          for artifact in "$artifact_dir/libproven.a" "$artifact_dir/libproven.so"; do
-            if ! bash scripts/check-native-nif-exports.sh "$artifact"; then
-              status=1
-            fi
-          done
-          exit "$status"
+          source build/refc/sdk.env
+          cd ffi/zig
+          zig build --summary all \
+            -Didris-refc="$REFC_OUTPUT_DIR" \
+            -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+            -Didris-c-support="$IDRIS2_C_SUPPORT" \
+            -Didris-support-lib="$IDRIS2_SUPPORT_LIB" 2>&1 | tee ../../build/refc/zig-build.log
+          zig build test --summary all \
+            -Didris-refc="$REFC_OUTPUT_DIR" \
+            -Didris-refc-runtime="$IDRIS2_REFC_RUNTIME" \
+            -Didris-c-support="$IDRIS2_C_SUPPORT" \
+            -Didris-support-lib="$IDRIS2_SUPPORT_LIB" 2>&1 | tee ../../build/refc/zig-tests.log
+          test -s zig-out/lib/libproven.a
+      - name: Check production lifecycle proofs and actual C/Rust consumers
+        env:
+          IDRIS2: /home/runner/.idris2/bin/idris2
+        run: bash scripts/test-native-lifecycle.sh
+      - name: Test the NIF symbol checker with planted controls
+        run: bash tests/check-native-nif-exports.sh
+      - name: Reject stale output and misleading compiler success
+        run: bash scripts/test-refc-staging.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: full-refc-build-evidence
+          path: |
+            build/refc/
+            build/native-abi-evidence/
+          if-no-files-found: error

@@ -3,7 +3,8 @@
 #
 # proven — E2E + Safety Aspect + Bench
 #
-# Tests the full proof chain: Idris2 → Zig FFI → integration.
+# Tests the standalone surface, including explicit absent-backend refusal.
+# header-refc.yml executes the real Idris -> RefC -> Zig header boundary.
 # Safety aspects verify no dangerous patterns escape into production.
 
 name: E2E + Safety + Bench
@@ -42,16 +43,14 @@ jobs:
         uses: mlugg/setup-zig@e7d1537c378b83b8049f65dda471d87a2f7b2df2 # v1
         with:
           version: '0.15.2'
-      # Build the standalone pure-Zig FFI surface (src/main.zig only) -- no
-      # Idris2 RefC / idris2_zig_ffi dependency. The full Idris->RefC->Zig
-      # pipeline needs the private nextgen-languages/language-bridges repo,
-      # which CI cannot fetch as a path dependency; see PR #149.
+      # The standalone header function must return -99 without RefC.
+      # The public header-refc.yml gate supplies and exercises the real backend.
       - name: Build FFI (standalone Zig surface)
         run: cd ffi/zig && zig build --build-file build_standalone.zig
       - name: Run FFI tests (standalone)
         run: cd ffi/zig && zig build test --build-file build_standalone.zig
       - name: Verify library output
-        run: ls -la ffi/zig/zig-out/lib/libproven_ffi.* || echo "Library output check"
+        run: test -s ffi/zig/zig-out/lib/libproven_ffi.a
   safety-aspects:
     name: Aspect — Safety Invariants
     runs-on: ubuntu-latest

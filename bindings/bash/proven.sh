@@ -240,6 +240,7 @@ uuid_v4() {
 }
 
 # Parse UUID
+# hypatia: allow-next-line uuid/external -- UUID parser interoperability or rejection test vector, not an estate identifier
 # Usage: parse_uuid "550e8400-e29b-41d4-a716-446655440000"
 parse_uuid() {
     _proven_call uuid parse "$1"
@@ -416,6 +417,7 @@ parse_currency() {
 # Evaluate arithmetic expression
 # Usage: result=$(calc_eval "2 + 3 * 4")
 calc_eval() {
+    # hypatia: allow content_patterns/eval_in_shell -- Literal calculator subcommand passed to the CLI; this does not execute the shell builtin.
     _proven_call calculator eval "$1"
 }
 

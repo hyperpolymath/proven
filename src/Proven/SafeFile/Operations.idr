@@ -23,11 +23,15 @@ import Data.Maybe
 --------------------------------------------------------------------------------
 
 ||| Validate path string
+||| POSIX.1-2017 XBD §4.13 (Pathname Resolution): a null pathname shall not
+||| be successfully resolved, so the empty path is rejected.
 export
 validatePath : FileOptions -> String -> FileResult SafePath
 validatePath opts path =
   let pathLen = length (unpack path)
-  in if pathLen > maxPathLength
+  in if pathLen == 0
+       then Err (InvalidPath path "empty path")
+     else if pathLen > maxPathLength
        then Err (PathTooLong path pathLen maxPathLength)
        else if not opts.allowTraversal && hasDangerousPattern path
          then Err (PathTraversal path)
