@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Borrowed header loop and foreign-call contract
+
+`Proven.FFI.HeaderBorrow` proves that checked canonical Boolean-state conversion
+and scanning agree with the authoritative ByteKernel fold. It is checked with
+totality, warnings as errors and a no-holes audit in the actual header ABI gate.
+
+The native fixture is a Zig caller of the real exported RefC-backed library.
+It checks exact prefix lengths, unchanged input bytes, null refusal, and owner
+reuse after return. The caller is compiled in all four Zig optimisation modes;
+this is not a claim of four independently qualified library builds.
+
+The caller owns a live readable immutable span for the synchronous call. The
+RefC transition and trampoline must return normally without modifying that span.
+Tagged Bits8 carriers are immediate words, not allocated pointees; their
+canonical-word proof does not establish machine-pointer provenance.
+
+Atoma's companion source grammar covers the actual `header_refc.detect` loop,
+checked state guard and final Boolean comparison. Its fold theorem explicitly
+assumes the foreign-step contract; source/compiler refinement, the public
+pointer-to-slice entry and arbitrary pointer validity remain open. The existing
+kernel-mutation and staging controls remain required. ABI contracts stay in
+Idris2; the foreign-facing implementation stays in Zig.
