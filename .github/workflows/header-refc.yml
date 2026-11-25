@@ -49,6 +49,8 @@ jobs:
           version: '0.15.2'
       - name: Total Idris kernel, actual ABI, exhaustive pairs and rejecting mutant
         run: bash scripts/test-header-bridge.sh
+      - name: Fresh Idris2 decoder contract and pure Zig native witnesses
+        run: bash scripts/test-refc-decoder.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
