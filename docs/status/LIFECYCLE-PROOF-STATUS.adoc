@@ -2,9 +2,49 @@
 // Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 = Native lifecycle evidence
 
-This ledger covers the Linux x86_64 lifecycle slice only. The source snapshot
-is published at signed commit e7a0aa8a46601df22f0853c28ec26424a3874321.
-Mathesis registration is tracked separately. This does not certify the complete native ABI.
+This ledger covers the Linux x86_64 lifecycle slice only. The current signed
+source is `8da3131d19ef2304c9a5fccc3a8f31fcfa492d7c`; its native receipt is
+`verification/receipts/lifecycle-20261125/receipt.json`. This does not certify
+the complete native ABI. Mathesis registration is tracked separately.
+
+== Current integration evidence (25 November)
+
+The unchanged native source and driver input manifests bind the completed run
+to that signed source. It uses the repository Zig adapter and public pinned
+Idris2 RefC SDK; this slice no longer requires the private language bridge.
+The five production lifecycle proofs and both rejecting forged-proof controls
+passed, together with 1,033 runtime assertions, fresh combined RefC generation,
+17 full-library and 9 standalone Zig tests, actual static/shared C consumers,
+four-thread concurrency, actual Rust FFI declarations and unavailable-profile
+refusal. A mutated generated reply was rejected with readiness false.
+
+The first integrated run exposed an archive-symbol checker bug and is retained.
+The repaired checker passed 16 shared/static fixtures plus hidden-symbol refusal.
+Both real artifact ledgers passed: 163 header declarations, 20 library symbols,
+13 declared exports, 150 owed declarations, 7 undeclared legacy exports and zero
+conflicts. A matching ledger is not evidence that owed exports are implemented.
+The admitted retest took 77.906 seconds, reported 939.2 MiB peak memory and used
+zero swap under a 1 GiB cap. Its logs and hashes are in the new receipt directory.
+
+The integrated package build and critical JWT/SQL/nonce/lifecycle proof suite
+passed in hosted run 45569535898 at `acbc32a2`; stale property assertions failed
+later in its build job. Those assertions and the fuzz module wiring are repaired
+in `8da3131`. Current-head hosted checks remain independently required before
+merge. The superseded local 2 GiB continuation was never launched.
+
+Compiler/runtime correctness, Zig correspondence, pointer validity, marshaling,
+ownership, reference counts, all concurrency interleavings and unexercised
+platform calling conventions remain unproved. Creusot/Pearlite and complementary
+Verus wrapper obligations remain open. No PWG grade or whole-repository proof
+is claimed.
+
+== Historical evidence (24 November, unchanged scope)
+
+The following sections describe the older signed source
+`e7a0aa8a46601df22f0853c28ec26424a3874321` only. Its immutable receipt carrier
+`d8dd1489e7a91efa309b1231f79ab6d9df4e10c2` remains available; the private bridge,
+test counts and package resource failures below are historical, not current
+integration results.
 
 == ABI-LC-D1 — native demonstration
 

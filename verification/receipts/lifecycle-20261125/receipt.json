@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "receipt_kind": "engineering-validation",
+  "repository": "hyperpolymath/proven",
+  "claim": "ABI-LC-D1",
+  "kind": "demonstration",
+  "statement": "The production Idris lifecycle policy reaches the Linux x86_64 static and shared libraries through the Zig/RefC bridge; actual C and Rust callers observe the specified initialization, shutdown and readiness behavior, and a corrupted generated lifecycle reply is rejected with readiness false.",
+  "status_doc": "docs/status/LIFECYCLE-PROOF-STATUS.adoc",
+  "source_commit": "8da3131d19ef2304c9a5fccc3a8f31fcfa492d7c",
+  "source_binding_status": "BOUND_TO_SIGNED_SOURCE_COMMIT",
+  "source_binding_method": "All 435 native source inputs and 7 driver inputs rehashed unchanged after signing; native execution used acbc32a plus the retained repairs subsequently committed in 8da3131. Property-test and fuzz-entry fixes are outside this native manifest.",
+  "platform": "Linux x86_64, Debian WSL",
+  "bridge": "Repository Zig adapter using pinned public Idris2 RefC SDK; no private bridge dependency for this slice",
+  "idris_version": "0.8.0-b6cbc25d5",
+  "zig_version": "0.15.2",
+  "source_inputs": {
+    "path": "source-inputs.sha256",
+    "sha256": "6d343450781dd0db77d29df3a71ef3722dcbe0664cbb03eae53a76ab3b6a4e44"
+  },
+  "evidence_manifest": {
+    "path": "evidence.sha256",
+    "sha256": "15112955ef755251b18564ba1f9425469bc6220768c50a60bae58d978e1c2aca"
+  },
+  "checked_production_properties": [
+    "Proven.ABI.Lifecycle.wireRefinesTransition",
+    "Proven.ABI.Lifecycle.transitionIdempotent",
+    "Proven.ABI.Lifecycle.startMakesReady",
+    "Proven.ABI.Lifecycle.stopMakesUnready",
+    "Proven.ABI.Lifecycle.malformedRequestRejected"
+  ],
+  "result": "PASS",
+  "completed_stages": [
+    "3 isolated RefC staging controls",
+    "15 NIF-symbol checker fixtures; not complete NIF implementation",
+    "16 shared/static ledger fixtures and hidden-export refusal",
+    "total production lifecycle proofs and 2 rejecting forged-proof controls",
+    "1033 lifecycle runtime assertions",
+    "fresh combined FFI RefC generation and actual static/shared libraries",
+    "17 full RefC and 9 standalone Zig tests including invalid SDK representations",
+    "actual C shared/static consumers with idempotence and four-thread concurrency",
+    "actual Rust FFI declaration consumer",
+    "unavailable profile refuses initialization",
+    "generated-result corruption rejected by already-linked C consumer and readiness remains false",
+    "both actual ABI ledgers: 163 declarations, 20 symbols, 13 exported, 150 owed, 7 undeclared, 0 conflicts"
+  ],
+  "resources": {
+    "cpu_quota_percent": 50,
+    "swap_bytes": 0,
+    "memory_cap_mib": 1024,
+    "peak_reported": "939.2M",
+    "runtime_seconds": 77.906,
+    "tasks_max": 32
+  },
+  "preserved_failure": {
+    "result": "First integrated attempt passed proofs and Zig tests but static ledger check returned NOT RUN because nm -D succeeded with empty output",
+    "path": "prior-failure/stage.log",
+    "repair": "Select archive or shared dynamic symbols explicitly; shared/static and hidden-export regressions passed in separate retry"
+  },
+  "trusted_or_unproved": [
+    "Idris checker/compiler, RefC runtime and installed native toolchains",
+    "Zig/RefC implementation correspondence, valid aligned pointers, marshaling, ownership and reference counts",
+    "mutex correctness and all concurrency interleavings",
+    "calling convention beyond exercised Linux x86_64 consumers",
+    "String/runtime representation assumptions in separate JWT/SQL evidence"
+  ],
+  "open_work": [
+    "Complete ABI implementation: capability ledger retains 150 owed header declarations",
+    "Rust by-value array FFI warning at ffi.rs:875 remains outside exercised lifecycle declarations",
+    "Creusot/Pearlite implementation contracts and complementary Verus obligations remain open",
+    "Current-head hosted header corpus, full package and critical security checks tracked by PR246; not inferred from this native receipt"
+  ],
+  "grading": "Engineering evidence only; no PWG grade assigned. Mathesis demonstration remains ungraded."
+}
