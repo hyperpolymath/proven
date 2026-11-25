@@ -1,0 +1,30 @@
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.a: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.so: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-shared: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-static: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/rust-consumer: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/refc/proven-ffi.c: OK
++ /home/hyperpolymath/.local/share/mise/installs/zig/0.15.2/zig build -j1 --system /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/empty-packages -Didris-refc=/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/refc -Didris-refc-runtime=/home/hyperpolymath/.local/state/pack/install/b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b/idris2/idris2-0.8.0/support/refc -Didris-c-support=/home/hyperpolymath/.local/state/pack/install/b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b/idris2/idris2-0.8.0/support/c -Didris-support-lib=/home/hyperpolymath/.local/state/pack/install/b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b/idris2/idris2-0.8.0/lib --cache-dir /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/local-cache --global-cache-dir /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/global-cache --prefix /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/corrupted --summary all
++ tee /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/build.log
+
+Build Summary: 5/5 steps succeeded
+install success
++- install proven success
+|  +- compile lib proven Debug native success 3s MaxRSS:163M
++- install proven success
+   +- compile lib proven Debug native success 11s MaxRSS:262M
+
++ /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-shared
++ tee /home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/uncorrupted-control.log
+PASS: typed C lifecycle, idempotence and concurrency
++ set +x
+PASS: invalid backend result leaves lifecycle unready
+PASS: typed C lifecycle, idempotence and concurrency
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/original.c: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/lifecycle-corruption/run.an5xXqxZ/refc/proven-ffi.c: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-shared: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/c-static: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/native-consumers/run.xR6LkYcm/rust-consumer: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.a: OK
+/home/hyperpolymath/.cache/codex-audits/proven-remediation-evidence-2026-11-16/zig-static-shared/run.d1hfVYlB/native/lib/libproven.so: OK
+PASS: actual generated-result corruption rejected at init status; explicit failure leaves readiness false; unchanged original consumer/library still pass.

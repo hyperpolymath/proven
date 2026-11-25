@@ -7,6 +7,7 @@
 module Proven.SafeString.Escape
 
 import Proven.Core
+import public Proven.SafeSQL.Literal
 import Data.List
 import Data.String
 
@@ -16,19 +17,12 @@ import Data.String
 -- SQL Escaping
 --------------------------------------------------------------------------------
 
-||| Escape a string for safe use in SQL queries
-||| This escapes single quotes by doubling them
-||| Note: Parameterized queries are still preferred over escaping
+||| Legacy SQL body escaping: quote doubling, backslash escapes enabled,
+||| and NUL removal. This is not a whole query or a universal dialect policy.
+||| Use renderBody with an explicit QuoteMode, or database-bound parameters.
 public export
 escapeSQL : String -> String
-escapeSQL s = pack (go (unpack s))
-  where
-    go : List Char -> List Char
-    go [] = []
-    go ('\'' :: cs) = '\'' :: '\'' :: go cs  -- Double single quotes
-    go ('\\' :: cs) = '\\' :: '\\' :: go cs  -- Double backslashes
-    go ('\x00' :: cs) = go cs                -- Remove null bytes
-    go (c :: cs) = c :: go cs
+escapeSQL = renderBody BackslashEscapes
 
 ||| Escape for SQL LIKE patterns (escapes %, _, and \)
 public export

@@ -20,13 +20,14 @@ echo "=== ClusterFuzzLite build: proven ==="
 mkdir -p "$OUT"
 
 # Build the standalone Zig FFI fixture as libproven.so. The full Idris RefC
-# bridge is exercised by ffi-full-integration.yml when its private dependency
-# credential is configured; this PR fuzz gate must stay self-contained.
+# bridge is exercised by ffi-full-integration.yml using the pinned public SDK.
+# This fixture explicitly binds the unavailable lifecycle backend.
 if [[ -f ffi/zig/build.zig ]]; then
   pushd ffi/zig >/dev/null
   mkdir -p zig-out/lib
   zig build-lib -static -O ReleaseSafe -fno-stack-check -fPIC --name proven \
-    -femit-bin=zig-out/lib/libproven.a src/main.zig -lc || {
+    -femit-bin=zig-out/lib/libproven.a -lc --dep lifecycle -Mroot=src/main.zig \
+    -Mlifecycle=src/lifecycle_unavailable.zig || {
     echo "WARN: standalone Zig FFI build failed; fuzz targets will not link." >&2
     exit 1
   }

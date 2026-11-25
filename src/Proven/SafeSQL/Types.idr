@@ -3,7 +3,8 @@
 ||| Core types for safe SQL operations
 |||
 ||| This module provides the foundational types for parameterized queries,
-||| SQL values, and query components that prevent SQL injection attacks.
+||| SQL values, and query components. Public constructors do not establish
+||| trusted provenance or whole-query injection safety.
 module Proven.SafeSQL.Types
 
 import Proven.Core
@@ -76,7 +77,7 @@ data SQLValue : Type where
   ||| Timestamp in ISO format
   SQLTimestamp : (year : Int) -> (month : Int) -> (day : Int) ->
                  (hour : Int) -> (minute : Int) -> (second : Int) -> SQLValue
-  ||| Raw SQL expression (use with extreme caution - must be trusted)
+  ||| Raw SQL expression; the constructor does not establish trust.
   SQLRaw : (trusted : String) -> SQLValue
 
 public export
@@ -186,7 +187,7 @@ mkIdentifier s =
 ||| A query fragment - either literal SQL or a parameter placeholder
 public export
 data QueryFragment : Type where
-  ||| Literal SQL text (trusted)
+  ||| Caller-supplied SQL syntax; provenance is not checked by this constructor.
   Literal : String -> QueryFragment
   ||| Positional parameter placeholder ($1, ?, etc.)
   Param : Nat -> QueryFragment

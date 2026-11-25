@@ -6,16 +6,17 @@
 //
 
 const std = @import("std");
+const lifecycle = @import("lifecycle");
 
 // Version information (keep in sync with project)
 const VERSION = "0.1.0";
 const BUILD_INFO = "PROVEN built with Zig " ++ @import("builtin").zig_version_string;
 
 /// Thread-local error storage
-threadlocal var last_error: ?[]const u8 = null;
+threadlocal var last_error: ?[:0]const u8 = null;
 
 /// Set the last error message
-fn setError(msg: []const u8) void {
+fn setError(comptime msg: [:0]const u8) void {
     last_error = msg;
 }
 
@@ -50,7 +51,7 @@ pub const Handle = struct {
 
 /// Initialize the library
 /// Returns a handle, or null on failure
-export fn proven_init() ?*Handle {
+export fn proven_handle_create() ?*Handle {
     const allocator = std.heap.c_allocator;
 
     const handle = allocator.create(Handle) catch {
@@ -68,6 +69,16 @@ export fn proven_init() ?*Handle {
     return handle;
 }
 
+/// Canonical no-argument lifecycle ABI. Policy is implemented in Idris.
+export fn proven_init() callconv(.c) i32 {
+    return lifecycle.init();
+}
+export fn proven_deinit() callconv(.c) void {
+    lifecycle.deinit();
+}
+export fn proven_is_initialized() callconv(.c) bool {
+    return lifecycle.isInitialized();
+}
 /// Free the library handle
 export fn proven_free(handle: ?*Handle) void {
     const h = handle orelse return;
@@ -93,7 +104,7 @@ export fn proven_version_patch() u32 {
 
 /// Return the FFI ABI version
 export fn proven_ffi_abi_version() u32 {
-    return 1;
+    return 2;
 }
 
 //==============================================================================
@@ -199,10 +210,8 @@ export fn proven_process_array(
 export fn proven_last_error() ?[*:0]const u8 {
     const err = last_error orelse return null;
 
-    // Return C string (static storage, no need to free)
-    const allocator = std.heap.c_allocator;
-    const c_str = allocator.dupeZ(u8, err) catch return null;
-    return c_str.ptr;
+    // Borrowed static storage; callers must not free this pointer.
+    return err.ptr;
 }
 
 //==============================================================================
@@ -324,7 +333,7 @@ export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) callconv(.c) 
 pub fn headerHasCrlf(comptime header_backend: type, ptr: ?[*]const u8, len: usize) BoolResult {
     const p = ptr orelse return BoolResult{ .status = PROVEN_ERR_NULL_POINTER, .value = false };
     const detected = header_backend.detect(p[0..len]) catch |err| {
-        setError(@errorName(err));
+        setError("Header backend failure");
         return .{ .status = if (@as(anyerror, err) == error.BackendUnavailable) -99 else -7, .value = false };
     };
     return .{ .status = PROVEN_OK, .value = detected };
@@ -335,7 +344,7 @@ pub fn headerHasCrlf(comptime header_backend: type, ptr: ?[*]const u8, len: usiz
 //==============================================================================
 
 /// Check if handle is initialized
-export fn proven_is_initialized(handle: ?*Handle) u32 {
+export fn proven_handle_is_initialized(handle: ?*Handle) u32 {
     const h = handle orelse return 0;
     return if (h.initialized) 1 else 0;
 }
@@ -345,10 +354,10 @@ export fn proven_is_initialized(handle: ?*Handle) u32 {
 //==============================================================================
 
 test "lifecycle" {
-    const handle = proven_init() orelse return error.InitFailed;
+    const handle = proven_handle_create() orelse return error.InitFailed;
     defer proven_free(handle);
 
-    try std.testing.expect(proven_is_initialized(handle) == 1);
+    try std.testing.expect(proven_handle_is_initialized(handle) == 1);
 }
 
 test "error handling" {
@@ -393,4 +402,31 @@ test "proven_path_has_traversal handles null and empty" {
     const r_empty = proven_path_has_traversal("".ptr, 0);
     try std.testing.expectEqual(@as(c_int, PROVEN_OK), r_empty.status);
     try std.testing.expect(!r_empty.value);
+}
+
+test "canonical lifecycle uses the declared C types and fails closed" {
+    const initialize: *const fn () callconv(.c) i32 = &proven_init;
+    const shutdown: *const fn () callconv(.c) void = &proven_deinit;
+    const initialized: *const fn () callconv(.c) bool = &proven_is_initialized;
+    shutdown();
+    try std.testing.expect(!initialized());
+    const expected: i32 = if (lifecycle.available) 0 else -99;
+    try std.testing.expectEqual(expected, initialize());
+    try std.testing.expectEqual(lifecycle.available, initialized());
+    try std.testing.expectEqual(expected, initialize());
+    shutdown();
+    shutdown();
+    try std.testing.expect(!initialized());
+}
+
+test "error messages are borrowed static storage" {
+    _ = proven_process(null, 0);
+    const first = proven_last_error() orelse return error.MissingError;
+    for (0..1024) |_| {
+        const next = proven_last_error() orelse return error.MissingError;
+        try std.testing.expect(first == next);
+        try std.testing.expectEqualStrings("Null handle", std.mem.span(next));
+    }
+    clearError();
+    try std.testing.expect(proven_last_error() == null);
 }

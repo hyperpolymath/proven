@@ -32,7 +32,7 @@ idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")"
   echo 'FAIL: full RefC profile requires Idris2 b6cbc25d5cd2ef2a250556266fd7b68dfc360f8b' >&2; exit 1;
 }
 [[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'FAIL: native Linux x86_64 required' >&2; exit 1; }
-test -f "$root/$ipkg"
+[[ -f "$root/$ipkg" ]]
 cp -R "$root/src" "$work/src"
 cp "$root/$ipkg" "$work/package.ipkg"
 if ! (cd "$work"; "$idris" --codegen refc --build package.ipkg) > "$out/build.log" 2>&1; then
@@ -44,6 +44,9 @@ mapfile -d '' -t generated < <(find "$work/build/exec" -type f -name '*.c' -prin
 grep -q 'Proven_SafeHeader_ByteKernel_headerStep' "${generated[0]}" || {
   echo 'FAIL: full package did not retain the header kernel symbol' >&2; exit 1;
 }
+grep -q 'Proven_ABI_Lifecycle_lifecycleCommand' "${generated[0]}" || {
+  echo 'FAIL: full package did not retain the lifecycle symbol' >&2; exit 1;
+}
 prefix=$("$idris" --prefix)
 mapfile -t runtimes < <(find "$prefix" -path '*/support/refc/runtime.h' -type f)
 mapfile -t supports < <(find "$prefix" -path '*/support/c/idris_support.h' -type f)
@@ -54,7 +57,7 @@ mapfile -t libraries < <(find "$prefix" -name libidris2_support.a -type f)
 runtime=$(dirname "${runtimes[0]}")
 support=$(dirname "${supports[0]}")
 libdir=$(dirname "${libraries[0]}")
-test -s "$runtime/libidris2_refc.a"
+[[ -s "$runtime/libidris2_refc.a" ]]
 cp "${generated[0]}" "$out/proven-ffi.c"
 {
   printf 'REFC_OUTPUT_DIR=%q\n' "$out"

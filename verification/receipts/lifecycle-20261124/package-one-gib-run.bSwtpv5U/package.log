@@ -1,0 +1,76 @@
+207/314: Building Proven.SafeCrypto.RandomContainment (src/Proven/SafeCrypto/RandomContainment.idr)
+208/314: Building Proven.SafePath.Proofs (src/Proven/SafePath/Proofs.idr)
+Warning: We are about to implicitly bind the following lowercase names.
+You may be unintentionally shadowing the associated global definitions:
+  sanitizeSegment is shadowing Proven.SafePath.Operations.sanitizeSegment
+
+Proven.SafePath.Proofs:255:3--256:107
+ 255 | 0 sanitizedNoTraversal : (path : String) ->
+ 256 |                          NoTraversal (normalizePath (joinSegments (map sanitizeSegment (splitPath path))))
+
+209/314: Building Proven.SafeEmail.Proofs (src/Proven/SafeEmail/Proofs.idr)
+Warning: We are about to implicitly bind the following lowercase names.
+You may be unintentionally shadowing the associated global definitions:
+  validResult is shadowing Proven.SafeEmail.Validation.validResult
+
+Proven.SafeEmail.Proofs:81:3--81:50
+ 77 | ||| site so the constructor is exposed. (The prior "DISCHARGED … by direct
+ 78 | ||| record-projection reduction" comment was incorrect — it did not
+ 79 | ||| type-check under Idris2 0.8.0.)
+ 80 | public export
+ 81 | 0 validResultIsValid : validResult.isValid = True
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning: We are about to implicitly bind the following lowercase names.
+You may be unintentionally shadowing the associated global definitions:
+  validResult is shadowing Proven.SafeEmail.Validation.validResult
+
+Proven.SafeEmail.Proofs:328:3--331:36
+ 328 | 0 typoCheckFindsKnown : checkCommonTypos "gmial.com" = addIssue
+ 329 |                         (MkValidationIssue Warning "W010"
+ 330 |                           "Possible typo - did you mean gmail.com?")
+ 331 |                         validResult
+
+210/314: Building Proven.SafeUrl.Parser (src/Proven/SafeUrl/Parser.idr)
+211/314: Building Proven.SafeUrl.Query (src/Proven/SafeUrl/Query.idr)
+212/314: Building Proven.SafeUrl.Proofs (src/Proven/SafeUrl/Proofs.idr)
+Warning: We are about to implicitly bind the following lowercase names.
+You may be unintentionally shadowing the associated global definitions:
+  isAlphaNum is shadowing Prelude.Types.isAlphaNum
+
+Proven.SafeUrl.Proofs:68:3--70:44
+ 68 | 0 encodePreservesAlphaNum : (s : String) ->
+ 69 |                             all isAlphaNum (unpack s) = True ->
+ 70 |                             urlEncode s = s
+
+Warning: We are about to implicitly bind the following lowercase names.
+You may be unintentionally shadowing the associated global definitions:
+  isAlphaNum is shadowing Prelude.Types.isAlphaNum
+
+Proven.SafeUrl.Proofs:91:3--93:50
+ 91 | 0 decodeUnreservedIdentity : (s : String) ->
+ 92 |                              all isAlphaNum (unpack s) = True ->
+ 93 |                              urlDecode s = Just s
+
+213/314: Building Proven.SafeJson.Proofs (src/Proven/SafeJson/Proofs.idr)
+214/314: Building Proven.SafeString.UTF8 (src/Proven/SafeString/UTF8.idr)
+215/314: Building Proven.SafeString (src/Proven/SafeString.idr)
+216/314: Building Proven.SafeString.Proofs (src/Proven/SafeString/Proofs.idr)
+Warning: We are about to implicitly bind the following lowercase names.
+You may be unintentionally shadowing the associated global definitions:
+  isSpace is shadowing Prelude.Types.isSpace
+
+Proven.SafeString.Proofs:70:3--71:50
+ 70 | 0 trimNoWhitespace : (s : String) -> all (Prelude.Basics.not . isSpace) (unpack s) = True ->
+ 71 |                      Proven.SafeString.trim s = s
+
+217/314: Building Proven.SafeRegex.Types (src/Proven/SafeRegex/Types.idr)
+218/314: Building Proven.SafeRegex.Safety (src/Proven/SafeRegex/Safety.idr)
+219/314: Building Proven.SafeRegex.Parser (src/Proven/SafeRegex/Parser.idr)
+220/314: Building Proven.SafeRegex.Matcher (src/Proven/SafeRegex/Matcher.idr)
+221/314: Building Proven.SafeRegex.Proofs (src/Proven/SafeRegex/Proofs.idr)
+222/314: Building Proven.SafeRegex (src/Proven/SafeRegex.idr)
+223/314: Building Proven.SafeUUID (src/Proven/SafeUUID.idr)
+224/314: Building Proven.SafeCurrency (src/Proven/SafeCurrency.idr)
+225/314: Building Proven.SafeAngle (src/Proven/SafeAngle.idr)
+226/31
