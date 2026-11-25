@@ -27,9 +27,10 @@ for file in "${sources[@]}"; do
       sub(/\r$/, "", x)
       printf "%s\t%s\t%d\t%s\n", kind, file, FNR, substr(x, 1, 220)
     }
-    function code_of(line, i, pair, ch, out, quote, escaped) {
-      out = ""; quote = 0; escaped = 0
-      if (line ~ /^[[:space:]]*\|\|\|/) return ""
+    # Strings and interpolation expressions alternate on a stack that survives newlines.
+    function code_of(line, i, pair, ch, out, delim, esc, rest, hashes, quotes) {
+      out = ""
+      if (!depth && !closing[level] && line ~ /^[[:space:]]*\|\|\|/) return ""
       for (i = 1; i <= length(line); i++) {
         pair = substr(line, i, 2)
         ch = substr(line, i, 1)
@@ -38,15 +39,50 @@ for file in "${sources[@]}"; do
           if (pair == "-}") { depth--; i++; continue }
           continue
         }
-        if (quote) {
-          if (escaped) { escaped = 0; continue }
-          if (ch == "\\") { escaped = 1; continue }
-          if (ch == "\"") { quote = 0; continue }
+        if (closing[level]) {
+          delim = closing[level]
+          esc = escape_prefix[level]
+          if (substr(line, i, length(delim)) == delim) {
+            i += length(delim) - 1
+            delete closing[level]
+            delete escape_prefix[level]
+            level--
+            out = out " "
+          } else if (substr(line, i, length(esc)) == esc) {
+            i += length(esc)
+            if (substr(line, i, 1) == "{") {
+              braces[++level] = 1
+              out = out " "
+            }
+          }
           continue
         }
         if (pair == "--") break
-        if (pair == "{-") { depth++; i++; continue }
-        if (ch == "\"") { quote = 1; continue }
+        if (pair == "{-") { depth++; i++; out = out " "; continue }
+        if (level && ch == "{") braces[level]++
+        if (level && ch == "}" && --braces[level] == 0) {
+          delete braces[level]
+          level--
+          out = out " "
+          continue
+        }
+        # A prime attached to an identifier is not a character literal opener.
+        if (ch == "\047" && (i == 1 || substr(line, i - 1, 1) !~ /[[:alnum:]_\047]/) &&
+            match(substr(line, i), /^\047([^\047\\]|\\(x[[:xdigit:]]+|o[0-7]+|[0-9]+|[A-Z]{2,3}|.))\047/)) {
+          i += RLENGTH - 1
+          out = out " "
+          continue
+        }
+        if ((ch == "\"" || ch == "#") && match(substr(line, i), /^#*"/)) {
+          hashes = substr(line, i, RLENGTH - 1)
+          rest = substr(line, i + length(hashes))
+          quotes = (rest ~ /^"""[[:space:]]*$/) ? "\"\"\"" : "\""
+          closing[++level] = quotes hashes
+          escape_prefix[level] = "\\" hashes
+          i += length(hashes quotes) - 1
+          out = out " "
+          continue
+        }
         out = out ch
       }
       return out
