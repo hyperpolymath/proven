@@ -77,3 +77,28 @@ test "header public boundary preserves error classes and rejects their Boolean" 
         }
     }
 }
+
+// The exported C entries cannot take a backend double without linking either
+// the Idris archive or the unavailable stub. Observe their forwarding instead:
+// each exported entry must be exactly one delegation that passes its own
+// `ptr` and `len` unchanged to the shared boundary, with no other statement.
+fn entryBody(source: []const u8) error{EntryNotFound}![]const u8 {
+    const head = "pub export fn proven_header_has_crlf(ptr: ?[*]const u8, len: usize) callconv(.c)";
+    const start = std.mem.indexOf(u8, source, head) orelse return error.EntryNotFound;
+    const open = std.mem.indexOfPos(u8, source, start, "{") orelse return error.EntryNotFound;
+    const close = std.mem.indexOfPos(u8, source, open, "\n}") orelse return error.EntryNotFound;
+    return std.mem.trim(u8, source[open + 1 .. close], " \n");
+}
+
+test "exported header entries forward ptr and len unchanged in a single delegation" {
+    const standalone = try entryBody(@embedFile("main.zig"));
+    const refc = try entryBody(@embedFile("main_refc.zig"));
+    try std.testing.expectEqualStrings(
+        "return core.headerHasCrlf(@import(\"header_unavailable.zig\"), ptr, len);",
+        standalone,
+    );
+    try std.testing.expectEqualStrings(
+        "return core.headerHasCrlf(@import(\"header_refc.zig\"), ptr, len);",
+        refc,
+    );
+}
