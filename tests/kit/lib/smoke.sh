@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Vendored from hyperpolymath/proven-tests-and-benches kit/ at 55c9a152c5dc028b6a8da945b10812329101d36f (PR 121, pre-tag).
-# Do not edit here: replace with the umbrella-provided copy once kit-v0.1.0 is cut (tracked in .proven/LATER.adoc).
 # SPDX-License-Identifier: MPL-2.0
 # SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 #
