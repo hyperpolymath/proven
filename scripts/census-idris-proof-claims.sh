@@ -88,10 +88,13 @@ for file in "${sources[@]}"; do
       return out
     }
     {
-      if ($0 ~ /^[[:space:]]*\|\|\|[[:space:]]*DISCHARGED[[:space:]]*:/) emit("CLAIMED_DISCHARGED", $0)
-      if ($0 ~ /^[[:space:]]*\|\|\|[[:space:]]*OWED-AXIOM[[:space:]]*:/) emit("CLAIMED_OWED_AXIOM", $0)
-      else if ($0 ~ /^[[:space:]]*\|\|\|[[:space:]]*OWED[[:space:]]*:/) emit("CLAIMED_OWED", $0)
-      if ($0 ~ /^[[:space:]]*\|\|\|.*@[[:space:]]*Assumed[[:space:]]*:/) emit("ASSUMPTION_ANNOTATION", $0)
+      # Annotations count only where a line starts in active code: not inside a
+      # block comment or a string literal carried over from an earlier line.
+      annotated = (depth == 0 && level == 0)
+      if (annotated && $0 ~ /^[[:space:]]*\|\|\|[[:space:]]*DISCHARGED[[:space:]]*:/) emit("CLAIMED_DISCHARGED", $0)
+      if (annotated && $0 ~ /^[[:space:]]*\|\|\|[[:space:]]*OWED-AXIOM[[:space:]]*:/) emit("CLAIMED_OWED_AXIOM", $0)
+      else if (annotated && $0 ~ /^[[:space:]]*\|\|\|[[:space:]]*OWED[[:space:]]*:/) emit("CLAIMED_OWED", $0)
+      if (annotated && $0 ~ /^[[:space:]]*\|\|\|.*@[[:space:]]*Assumed[[:space:]]*:/) emit("ASSUMPTION_ANNOTATION", $0)
       code = code_of($0)
       if (code ~ /^[[:space:]]*0[[:space:]]+[A-Za-z_][[:alnum:]_\047]*[[:space:]]*:/) emit("ERASED_SIGNATURE_CANDIDATE", $0)
       if (code ~ /(^|[^[:alnum:]_])assert_total([^[:alnum:]_]|$)/) emit("ASSERT_TOTAL_ACTIVE", $0)

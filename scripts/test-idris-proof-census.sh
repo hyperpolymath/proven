@@ -61,6 +61,22 @@ BELIEVE_ME_ACTIVE 23
 ASSERT_SMALLER_ACTIVE 24
 EXPECTED
 rm "$work/src/Literals.idr"
+cat > "$work/src/Inactive.idr" <<'IDR'
+module Inactive
+{-
+||| DISCHARGED: inside a block comment
+||| OWED: inside a block comment
+||| x @ Assumed: inside a block comment
+-}
+s = """
+||| OWED-AXIOM: inside a string
+"""
+||| DISCHARGED: this one is active
+y = 1
+IDR
+bash "$here/census-idris-proof-claims.sh" "$work/src" "$work/report.tsv" > "$work/report.log"
+awk -F '\t' 'NR > 6 {print $1, $3}' "$work/report.tsv" | diff -u - <(printf 'CLAIMED_DISCHARGED 10\n')
+rm "$work/src/Inactive.idr"
 if bash "$here/census-idris-proof-claims.sh" "$work/src" "$work/report.tsv" >/dev/null 2>&1; then
   echo "FAIL: empty input was accepted" >&2
   exit 1
