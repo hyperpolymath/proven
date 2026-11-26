@@ -100,3 +100,27 @@ until = "2026-12-10"
 [categories.p2p.idris2.waiver]
 reason = "The Idris 2 0.8.0 evidence scripts (header-refc.yml, idris2-ci.yml) need a toolchain the umbrella cannot install in release 0.1; they keep running in their own workflows. Expires when idris2 lands in v0.2."
 until = "2026-12-10"
+
+[categories.unit]
+command = "bash tests/unit.sh"
+
+[categories.smoke]
+command = "bash tests/smoke.sh"
+
+[categories.build]
+command = "bash tests/build.sh"
+
+[categories.p2p]
+command = "bash tests/p2p.sh"
+[categories.unit.shell]
+na = "tests/unit.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
+[categories.smoke.shell]
+na = "tests/smoke.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
+[categories.build.shell]
+na = "tests/build.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
+[categories.p2p.shell]
+na = "tests/p2p.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
