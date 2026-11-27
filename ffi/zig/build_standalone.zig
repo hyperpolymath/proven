@@ -86,4 +86,19 @@ pub fn build(b: *std.Build) void {
     const run_unit_tests = b.addRunArtifact(unit_tests);
     const test_step = b.step("test", "Run proven_ffi unit tests");
     test_step.dependOn(&run_unit_tests.step);
+
+    // Instrument the real public entry with a deterministic backend double.
+    // The existing test step above continues to qualify the actual RefC path.
+    const boundary_mod = b.createModule(.{
+        .root_source_file = b.path("src/header_boundary_tests.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    boundary_mod.addImport("lifecycle", lifecycle_mod);
+    const boundary_tests = b.addTest(.{ .root_module = boundary_mod });
+    b.step("header-boundary-test", "Check actual header entry dispatch and span forwarding")
+        .dependOn(&b.addRunArtifact(boundary_tests).step);
+    b.step("header-boundary-build", "Compile the public-entry fixture without running it")
+        .dependOn(&b.addInstallArtifact(boundary_tests, .{ .dest_sub_path = "header-boundary-tests" }).step);
 }

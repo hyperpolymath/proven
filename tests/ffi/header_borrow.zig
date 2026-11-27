@@ -13,6 +13,18 @@ test "actual ABI borrows exact spans without modifying caller storage" {
         try std.testing.expectEqual(len >= 4, result.value);
         try std.testing.expectEqualSlices(u8, &original, &bytes);
     }
+    // Interior pointers and empty subspans cross the real exported ABI too;
+    // the dispatch-only fixture is not the sole evidence for pointer offsets.
+    for (0..bytes.len + 1) |offset| {
+        for (offset..bytes.len + 1) |end| {
+            const span = bytes[offset..end];
+            const result = proven_header_has_crlf(span.ptr, span.len);
+            const contains_forbidden = (offset <= 3 and end > 3) or (offset <= 4 and end > 4);
+            try std.testing.expectEqual(@as(c_int, 0), result.status);
+            try std.testing.expectEqual(contains_forbidden, result.value);
+            try std.testing.expectEqualSlices(u8, &original, &bytes);
+        }
+    }
     const null_result = proven_header_has_crlf(null, 0);
     try std.testing.expectEqual(@as(c_int, -1), null_result.status);
     // Borrow is synchronous: the owner may modify and reuse storage afterwards.

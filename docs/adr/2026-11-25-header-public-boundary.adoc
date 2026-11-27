@@ -1,0 +1,92 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Header public-entry spans and ownership premises
+:revdate: 2026-11-25
+
+== Contract and implementation
+
+The actual public RefC root is `ffi/zig/src/main_refc.zig`. Its export delegates
+to `core.headerHasCrlf` with `header_refc.zig` as the backend. The unavailable
+root in `main.zig` is a separate profile. The production entry is unchanged:
+null is refused with status -1 before creating a slice or invoking a backend;
+a non-null pointer is forwarded as exactly `p[0..len]`. Success preserves the
+backend Boolean, unavailable maps to -99, and other backend errors map to -7.
+Every error result has value false. Backend errors also update thread-local
+error storage, which is separate from the borrowed input in the contract.
+
+`Proven.FFI.HeaderBoundary` defines a bounded logical span over an exact byte
+snapshot. An erased proof requires `offset + count <= length memory`.
+`spanLength` proves the selected list has exactly the requested count, and
+`entryRefinesFold` composes the public-entry contract with the existing checked
+Idris scan and authoritative ByteKernel fold. Null and both error classes have
+explicit result laws. These are Idris2 ABI contracts, not runtime pointer checks.
+
+== Native and source qualification
+
+`scripts/test-header-boundary.sh` compiles a fixture importing the actual
+`core.zig`. Its deterministic injected backend observes invocation count,
+pointer identity, length and result/error forwarding. Every bounded subspan of
+the fixture buffer is exercised, including empty slices and interior offsets.
+Null tests include the maximum usize length; the null branch must refuse
+without constructing a slice or calling the backend. No invalid non-null
+pointer or out-of-bounds native span is dereferenced by the test.
+
+Four private source mutants must compile and then fail executable assertions:
+wrong slice extent, wrong null status, swapped backend-error statuses and an
+extra backend invocation before null refusal. A malformed Idris span must
+produce a type error. A zero-exit compiler-error control must invalidate a
+planted PASS marker and finish with FAIL. Sources are snapshotted before work,
+private copies are checked, and both manifests are rechecked before PASS.
+
+The instrumented backend tests dispatch only. The existing header bridge and
+borrow tests continue to link the real exported RefC-backed library, including
+every bounded interior subspan of the caller's fixture buffer. All four
+caller optimisation modes are checked remotely. Writing these files is not
+evidence that the gate passed; the PR and hosted artifacts record qualification.
+Atoma separately binds the original public-entry/export source to its heap and
+source interpretation; neither test doubles nor hashes alone prove that link.
+
+`scripts/test-header-export-controls.sh` additionally compiles three mutations
+of the actual `main_refc.zig` exported forwarder: shortened extent, shifted
+pointer with a correspondingly shortened extent, and skipped null refusal.
+The real exported-ABI caller must reject each mutant with an assertion failure.
+The shifted pointer remains within the valid caller allocation; no deliberately
+invalid native address is dereferenced. These controls cover the export layer
+that the injected core fixture cannot observe.
+
+== Actual-library benchmark
+
+`scripts/bench-header-boundary.sh LIBRARY_DIR` links the pure Zig benchmark
+caller against the qualified real RefC-backed `libproven.so`. Five corpora
+(empty, one byte, clean 64 bytes, forbidden byte at the end of 64 bytes and
+4096 bytes) run in four caller optimisation modes. Each corpus has a correctness
+check, 32 warmups and three bounded samples; timed calls retain correctness
+guards. A compiled always-clean Zig export must fail the same caller's checks.
+
+NDJSON evidence records input SHA-256, bytes, iterations, elapsed nanoseconds,
+checksum, compiler and caller mode. The environment and actual library hash are
+retained separately. All caller modes use the same qualified library binary.
+These are initial timing samples, not a performance-regression threshold or
+proof of the foreign boundary. CI host noise and the per-call guards affect
+timings. The bridge gate retains the report under `header-evidence/benchmark`.
+
+== Remaining premises
+
+For a non-null request the caller supplies a live readable allocation, a span
+within that allocation and a representable machine address/range. The pointer
+must correspond to the stated logical region/snapshot, and the read lease must
+remain valid and immutable throughout the synchronous backend call. The backend
+must not retain the input or invalidate its storage. A non-null test does not
+establish any of these facts. A logical constructor cannot make stale or forged
+machine addresses safe. No ABI compatibility change is introduced here.
+
+Atoma's backend frame premise states final region equality. It does not by
+itself prohibit a write followed by restoration during the call. Continuous
+immutability and no retention remain distinct foreign-call obligations. Its
+thread-local error marker is an effect/presence projection, not the native
+pointer identity or a message-storage layout theorem.
+
+Atoma's heap model tracks retained references and active read borrows; release
+is permitted only when both counts are zero. Connecting that model to physical
+allocations, compiler lowering, foreign calls and cross-kernel proof transport
+remains explicit work. Independent hand re-proofs remain BRIDGE-PENDING.

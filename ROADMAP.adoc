@@ -8,6 +8,20 @@
 
 toc::[]
 
+== Header public-boundary qualification (2026-11-25)
+
+The next Atoma consumer slice adds a bounded Idris2 span contract and instruments
+the actual Zig public entry for null-before-call, exact pointer/length forwarding
+and error mapping. Four compiled source mutants and an invalid-span type witness
+must reject. The real RefC-backed ABI tests remain required alongside the
+instrumented backend. Three additional exported-forwarder mutants exercise
+pointer, extent and null refusal through the actual library. A bounded pure Zig
+benchmark records correctness-guarded timings of the exported Idris-backed
+header operation; these initial samples establish no regression threshold.
+Hosted qualification remains required for each changed head; no full
+pointer-safety or ownership claim follows from the source files alone. See
+link:docs/adr/2026-11-25-header-public-boundary.adoc[the boundary decision].
+
 == Lifecycle integration (2026-11-25)
 
 PR246 integrates lifecycle policy with the current Idris-backed header profile
