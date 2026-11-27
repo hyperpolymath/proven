@@ -7,13 +7,13 @@ The README makes claims. This file backs them up.
 
 == Claims Substantiation
 
-=== Claim 1: "Mathematically proven safe operations. Code that cannot crash, verified with Idris2 dependent types and totality checking."
+=== Claim 1: "Safe operations written in Idris2, with dependent types and totality checking." (goal: code that cannot crash)
 
-**How it works:** The 104 core safety modules in `src/Proven/` are written in Idris2 with `%default total`, meaning every function is proved to: (1) terminate (no infinite loops), (2) cover all input cases (no pattern match exceptions), and (3) return a value (no throwing runtime exceptions). Dependent types encode preconditions as types (e.g., `SafeDiv : (a : Nat) -> (b : Nat) -> (h : NonZero b) -> Nat` requires a proof that `b` is nonzero before dividing). The Idris2 compiler enforces these proofs at compile time. Examples: `SafeMath.rs` proves arithmetic never overflows (returns `Result` or bounded nat); `SafeString.rs` proves buffer bounds are checked before reading. FFI bindings call these verified functions only—no reimplementation in other languages.
+**How it works:** The core safety modules in `src/Proven/` are written in Idris2, most with `%default total`. A `total` function is checked to (1) terminate and (2) cover all input cases, so it (3) returns a value. **Not every module meets that bar** (measured 2026-11-25, comments excluded): 4 modules use `%default covering` (`SafeJson/Access`, `SafeBase64`, `SafeBase64/Encode`, `SafeRBAC`), 66 functions in 14 files are marked `covering`, and 1 `assert_smaller` site, in `SafeInput`, bypasses the totality checker. Those are not totality-proven. Dependent types encode preconditions as types (e.g., `SafeDiv : (a : Nat) -> (b : Nat) -> (h : NonZero b) -> Nat` requires a proof that `b` is nonzero before dividing). The Idris2 compiler enforces these proofs at compile time. Examples: `SafeMath.idr` returns `Maybe`/bounded results instead of overflowing; `SafeString.idr` checks buffer bounds before reading. FFI bindings call these verified functions only—no reimplementation in other languages.
 
-**Caveat:** Verification covers correctness (no crashes, no undefined behavior), not functional correctness (the algorithm might be wrong). Also, Idris2 proved code is only safe if the FFI bridge (`ffi/zig/`) correctly marshals data. If Zig FFI incorrectly casts types or ignores preconditions, safety claims are violated. Hypatia scans prove this doesn't happen (0 unsafe patterns in critical FFI code).
+**Caveat:** For functions the totality checker accepts as `total`, without an `assert_total` or `assert_smaller` escape hatch, Idris2 establishes termination and coverage of every input case, plus the preconditions written into the types. It does not establish this for the `covering` code and escape-hatch sites listed above, and it does not establish functional correctness (the algorithm might still be wrong). The FFI bridge (`ffi/zig/`) is outside the Idris2 check: the Idris2 guarantees hold only if it marshals data correctly. If Zig FFI incorrectly casts types or ignores preconditions, safety claims are violated. Hypatia scans report 0 unsafe patterns in critical FFI code; a scan is evidence, not a proof.
 
-**Evidence:** `src/Proven/SafeMath.idr` with `%default total` and dependent type proofs; `src/Proven/SafeString.idr` with bounds-checked buffer operations. FFI in `ffi/zig/src/main.zig` calls verified functions only. Test suite: 49 tests passing, 0 believe_me count (eliminated via ADR-008).
+**Evidence:** `src/Proven/SafeMath.idr` with `%default total` and dependent type proofs; `src/Proven/SafeString.idr` with bounds-checked buffer operations. FFI in `ffi/zig/src/main.zig` calls verified functions only. `believe_me` count: 0 (eliminated via ADR-008). The test suite did not build at the link:AFFIRMATION.adoc[AFFIRMATION] anchor; see its "What we do NOT claim".
 
 === Claim 2: "120+ binding targets across 4 computing paradigms without reimplementing logic"
 
@@ -41,7 +41,7 @@ The README makes claims. This file backs them up.
 |===
 | Path | Purpose
 
-| `src/Proven/` | Idris2 core (THE TRUTH): 104 modules, all with `%default total`
+| `src/Proven/` | Idris2 core (THE TRUTH): 104 modules, most with `%default total` (4 use `%default covering`; see Claim 1)
 | `src/Proven/SafeMath.idr` | Arithmetic proofs: overflow-safe add/sub/mul/div, bounded nat, checked operations
 | `src/Proven/SafeString.idr` | String buffer bounds, encoding safety, slicing without panics
 | `src/Proven/SafeFloat.idr` | Floating-point proofs: no NaN, denormal, infinity handling, comparison stability
@@ -54,7 +54,7 @@ The README makes claims. This file backs them up.
 | `ffi/zig/` | C ABI bridge layer
 | `ffi/zig/src/main.zig` | Wraps Idris2 RefC output, exposes C functions for each Safe* module
 | `ffi/zig/build.zig` | Builds Idris2 code to .o files, links with Zig, outputs shared library
-| `bindings/` | Language-specific thin wrappers (18 complete, 102 scaffolded)
+| `bindings/` | Language-specific thin wrappers (16 complete, 102 scaffolded)
 | `bindings/rust/` | Rust bindings: safe_*.rs files call proven FFI via unsafe { }
 | `bindings/rust/safe_math.rs` | Wraps proven_ffi_safe_add, proven_ffi_safe_mul, etc.
 | `bindings/zig/src/` | Zig language binding (calls FFI directly; necessarily Zig)
@@ -75,4 +75,4 @@ The README makes claims. This file backs them up.
 
 == Readiness
 
-**CRG Grade:** C (Beta) - Core modules proven (0 believe_me, 104 modules), Rust/Python/C bindings complete and tested (18 targets), remaining 102 targets scaffolded and awaiting completion. Production-ready for Rust/Python/C; others are research-stage.
+**CRG Grade:** C (Beta) - Core modules implemented with 0 `believe_me` (104 modules); not all are totality-proven (1 `assert_smaller` site, 4 `%default covering` modules; see Claim 1), and AFFIRMATION.adoc does not affirm "mathematically proven". 16 binding targets complete and 102 scaffolded: 118 targets in the TOPOLOGY.adoc list, which was not re-measured. The "120+" figure in Claim 2 is the headline count and was not re-measured either. The Python/Cython and ReScript bindings were deleted. Rust and C are the production focus; others are research-stage.
