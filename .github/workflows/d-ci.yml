@@ -20,6 +20,7 @@ on:
       - 'ffi/zig/**'
       - 'scripts/build-header-refc.sh'
       - 'src/Proven/SafeHeader/ByteKernel.idr'
+      - 'src/Proven/SafePath/ByteKernel.idr'
       - 'src/Proven/FFI/HeaderKernelMain.idr'
       - 'bindings/c/include/proven.h'
       - '.github/workflows/d-ci.yml'
@@ -30,6 +31,7 @@ on:
       - 'ffi/zig/**'
       - 'scripts/build-header-refc.sh'
       - 'src/Proven/SafeHeader/ByteKernel.idr'
+      - 'src/Proven/SafePath/ByteKernel.idr'
       - 'src/Proven/FFI/HeaderKernelMain.idr'
       - 'bindings/c/include/proven.h'
       - '.github/workflows/d-ci.yml'
@@ -58,7 +60,7 @@ jobs:
           while IFS= read -r raw; do
               p="${raw%[.,;:)]}"
               case "$p" in
-                  bindings/d/*|ffi/zig/*|bindings/c/include|bindings/c/include/proven.h|.github/workflows/d-ci.yml|./scripts/symbol-audit.sh|scripts/build-header-refc.sh|src/Proven/SafeHeader/ByteKernel.idr|src/Proven/FFI/HeaderKernelMain.idr)
+                  bindings/d/*|ffi/zig/*|bindings/c/include|bindings/c/include/proven.h|.github/workflows/d-ci.yml|./scripts/symbol-audit.sh|scripts/build-header-refc.sh|src/Proven/SafeHeader/ByteKernel.idr|src/Proven/SafePath/ByteKernel.idr|src/Proven/FFI/HeaderKernelMain.idr)
                       ;;
                   bindings/*/*)
                       echo "::error file=.github/workflows/d-ci.yml::detachability violation: $p"
@@ -88,6 +90,7 @@ jobs:
             ffi/zig
             scripts/build-header-refc.sh
             src/Proven/SafeHeader/ByteKernel.idr
+            src/Proven/SafePath/ByteKernel.idr
             src/Proven/FFI/HeaderKernelMain.idr
           sparse-checkout-cone-mode: false
       - name: Setup Zig ${{ env.ZIG_VERSION }}

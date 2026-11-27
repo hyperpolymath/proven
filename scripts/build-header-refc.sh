@@ -36,8 +36,9 @@ idris=$(cd "$(dirname "$idris")" && printf '%s/%s' "$PWD" "$(basename "$idris")"
 }
 [[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'FAIL: only native Linux x86_64 is qualified' >&2; exit 1; }
 work=$(mktemp -d -t proven-header-refc.XXXXXXXX)
-mkdir -p "$work/src/Proven/SafeHeader" "$work/src/Proven/FFI"
+mkdir -p "$work/src/Proven/SafeHeader" "$work/src/Proven/SafePath" "$work/src/Proven/FFI"
 cp "$root/src/Proven/SafeHeader/ByteKernel.idr" "$work/src/Proven/SafeHeader/"
+cp "$root/src/Proven/SafePath/ByteKernel.idr" "$work/src/Proven/SafePath/"
 cp "$root/src/Proven/FFI/HeaderKernelMain.idr" "$work/src/Proven/FFI/"
 if ! (cd "$work"; "$idris" -Werror --total --source-dir src --codegen refc -o header-kernel src/Proven/FFI/HeaderKernelMain.idr) > "$out/build.log" 2>&1; then
   cat "$out/build.log" >&2; exit 1
@@ -49,6 +50,8 @@ if [[ ! -s "$work/build/exec/header-kernel.c" ]]; then
   cat "$out/build.log" >&2; echo 'FAIL: no valid RefC output' >&2; exit 1
 fi
 grep -q 'Proven_SafeHeader_ByteKernel_headerStep' "$work/build/exec/header-kernel.c"
+grep -q 'Proven_SafePath_ByteKernel_pathStep' "$work/build/exec/header-kernel.c"
+grep -q 'Proven_SafePath_ByteKernel_pathFinish' "$work/build/exec/header-kernel.c"
 (cd "$work"; printf ':m\n:q\n' | "$idris" --no-banner --source-dir src src/Proven/SafeHeader/ByteKernel.idr) > "$out/holes.log" 2>&1
 grep -q 'No holes' "$out/holes.log"
 if grep -q '^Error:' "$out/holes.log"; then cat "$out/holes.log" >&2; exit 1; fi
@@ -69,7 +72,7 @@ cp "$runtime/libidris2_refc.a" "${support_libs[0]}" "$out/"
 cp "$work/build/exec/header-kernel.c" "$out/kernel.c"
 {
   "$idris" --version
-  (cd "$work"; sha256sum src/Proven/SafeHeader/ByteKernel.idr src/Proven/FFI/HeaderKernelMain.idr)
+  (cd "$work"; sha256sum src/Proven/SafeHeader/ByteKernel.idr src/Proven/SafePath/ByteKernel.idr src/Proven/FFI/HeaderKernelMain.idr)
   sha256sum "$out/kernel.c" "$out/"*.a "$out/refc/"*.h "$out/support/"*.h
 } > "$out/identity.log"
 echo PASS > "$out/result.txt"

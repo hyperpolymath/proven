@@ -278,43 +278,17 @@ pub const BoolResult = extern struct {
 const PROVEN_OK: c_int = 0;
 const PROVEN_ERR_NULL_POINTER: c_int = -1;
 
-/// Check if a byte slice contains a directory traversal sequence ("..").
-///
-/// Matches: ProvenBoolResult proven_path_has_traversal(const uint8_t* ptr, size_t len)
-///
-/// Returns BoolResult{ .status = PROVEN_OK, .value = true } when a ".." component
-/// is present in the path, and { .status = PROVEN_OK, .value = false } otherwise.
-/// Returns { .status = PROVEN_ERR_NULL_POINTER } when ptr is null.
-///
-/// Detection rule: look for the two-byte sequence ".." bounded by path separators
-/// ('/'), a NUL byte, or the start/end of the slice.  This matches what the
-/// Idris2 backend will formally verify once the RefC pipeline is available.
-export fn proven_path_has_traversal(ptr: ?[*]const u8, len: usize) callconv(.c) BoolResult {
-    const p = ptr orelse return BoolResult{ .status = PROVEN_ERR_NULL_POINTER, .value = false };
-    if (len == 0) return BoolResult{ .status = PROVEN_OK, .value = false };
-
-    const bytes = p[0..len];
-
-    // Walk the byte slice and check every ".." component.
-    var i: usize = 0;
-    while (i < len) {
-        // Find next component boundary: advance past leading separators.
-        while (i < len and bytes[i] == '/') : (i += 1) {}
-        if (i >= len) break;
-
-        // Measure the component.
-        const comp_start = i;
-        while (i < len and bytes[i] != '/') : (i += 1) {}
-        const component = bytes[comp_start..i];
-
-        if (std.mem.eql(u8, component, "..")) {
-            return BoolResult{ .status = PROVEN_OK, .value = true };
-        }
-    }
-
-    return BoolResult{ .status = PROVEN_OK, .value = false };
+/// Detect exact parent components in the borrowed byte range via Idris.
+/// Slash, backslash and NUL are boundaries; NUL does not truncate the range.
+/// Caller supplies readable storage for len bytes for the duration of this call.
+pub fn pathHasTraversal(comptime backend: type, ptr: ?[*]const u8, len: usize) BoolResult {
+    const p = ptr orelse return .{ .status = PROVEN_ERR_NULL_POINTER, .value = false };
+    const detected = backend.detect(p[0..len]) catch |err| {
+        setError("Path backend failure");
+        return .{ .status = if (@as(anyerror, err) == error.BackendUnavailable) -99 else -7, .value = false };
+    };
+    return .{ .status = PROVEN_OK, .value = detected };
 }
-
 //==============================================================================
 // SafeHeader — HTTP header safety
 // Matches the declarations in proven.h and src/abi/Foreign.idr.
@@ -372,36 +346,6 @@ test "version" {
     const ver = proven_version();
     const ver_str = std.mem.span(ver);
     try std.testing.expectEqualStrings(VERSION, ver_str);
-}
-
-test "proven_path_has_traversal detects traversal" {
-    // Classic attacks.
-    const r1 = proven_path_has_traversal("../etc/passwd".ptr, "../etc/passwd".len);
-    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r1.status);
-    try std.testing.expect(r1.value);
-
-    const r2 = proven_path_has_traversal("/tmp/../../root".ptr, "/tmp/../../root".len);
-    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r2.status);
-    try std.testing.expect(r2.value);
-}
-
-test "proven_path_has_traversal allows safe paths" {
-    const r1 = proven_path_has_traversal("/var/mnt/eclipse/repos/myrepo/file.scm".ptr, "/var/mnt/eclipse/repos/myrepo/file.scm".len);
-    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r1.status);
-    try std.testing.expect(!r1.value);
-
-    const r2 = proven_path_has_traversal("/tmp/scratch.scm".ptr, "/tmp/scratch.scm".len);
-    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r2.status);
-    try std.testing.expect(!r2.value);
-}
-
-test "proven_path_has_traversal handles null and empty" {
-    const r_null = proven_path_has_traversal(null, 0);
-    try std.testing.expectEqual(@as(c_int, PROVEN_ERR_NULL_POINTER), r_null.status);
-
-    const r_empty = proven_path_has_traversal("".ptr, 0);
-    try std.testing.expectEqual(@as(c_int, PROVEN_OK), r_empty.status);
-    try std.testing.expect(!r_empty.value);
 }
 
 test "canonical lifecycle uses the declared C types and fails closed" {

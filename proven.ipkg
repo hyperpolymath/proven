@@ -48,6 +48,7 @@ modules = Proven
         , Proven.SafePath.Types
         , Proven.SafePath.Operations
         , Proven.SafePath.Proofs
+        , Proven.SafePath.ByteKernel
         -- SafeCrypto
         , Proven.SafeCrypto
         , Proven.SafeCrypto.Hash

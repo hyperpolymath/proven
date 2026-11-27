@@ -1,0 +1,4 @@
+PASS: semantic rejection ForgedPath
+PASS: semantic rejection MalformedPathState
+PASS: 4413 path assertions
+PASS: total path policy/refinement proofs, two semantic refusals and runtime component oracle

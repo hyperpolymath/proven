@@ -1,0 +1,18 @@
+PASS: 85077 actual C ABI path oracle cases and null controls
+PASS: 85077 actual C ABI path oracle cases and null controls
+warning: `extern` block uses type `[u8; 3]`, which is not FFI-safe
+   --> /home/runner/work/proven/proven/tests/remediation/../../bindings/rust/src/ffi.rs:875:15
+    |
+875 |         code: [u8; 3],
+    |               ^^^^^^^ not FFI-safe
+    |
+    = help: consider passing a pointer to the array
+    = note: passing raw arrays by value is not FFI-safe
+    = note: `#[warn(improper_ctypes)]` on by default
+
+warning: 1 warning emitted
+
+PASS: actual Rust FFI path bytes, prefixes, NUL, high bytes and null refusal
+PASS: path backend refusal
+PASS: 85077 actual C ABI path oracle cases and null controls
+PASS: actual static/shared C/Rust path scan; baseline failure; unavailable and malformed replies refused; semantic mutant rejected

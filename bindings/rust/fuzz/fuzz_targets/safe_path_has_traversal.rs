@@ -4,9 +4,9 @@
 // Fuzz target: proven::safe_path::SafePath::has_traversal — path-
 // traversal detector. CWE-22 surface. Fuzzer exercises path strings
 // with mixed separators, percent-encoding, NUL bytes, embedded `..`
-// patterns, Windows UNC, file:// URIs. Idris2 ensures the detector
-// is total over `String`; this guards the Rust↔FFI marshaling for
-// odd UTF-8 boundary conditions.
+// patterns and raw separators. The independent component oracle checks the
+// actual Idris byte policy through the Rust wrapper and RefC/Zig boundary.
+// Percent decoding and filesystem confinement remain outside this predicate.
 
 #![no_main]
 
@@ -14,6 +14,7 @@ use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
     if let Ok(s) = std::str::from_utf8(data) {
-        let _ = proven::safe_path::SafePath::has_traversal(s);
+        let expected = data.split(|b| matches!(b, 0 | 47 | 92)).any(|part| part == b"..");
+        assert_eq!(proven::safe_path::SafePath::has_traversal(s), Ok(expected));
     }
 });

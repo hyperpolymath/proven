@@ -20,7 +20,7 @@
 # library export has no row. Move a row only together with the code change.
 #
 # Rows describe the qualified profile: build_standalone.zig -Dheader-refc on
-# native Linux x86_64 GNU. Without -Dheader-refc, proven_header_has_crlf is
+# native Linux x86_64 GNU. Without -Dheader-refc, header and path byte operations are
 # still exported but refuses with status -99 (no Idris backend).
 # Producer check: scripts/check-abi-ledger.sh (run by test-header-bridge.sh).
 proven_angle_deg_to_rad	owed	-	-
@@ -137,7 +137,7 @@ proven_network_ipv4_is_private	owed	-	-
 proven_network_parse_ipv4	owed	-	-
 proven_password_is_common	owed	-	-
 proven_password_validate	owed	-	-
-proven_path_has_traversal	exported	zig-legacy	-
+proven_path_has_traversal	exported	idris-refc	-
 proven_path_sanitize_filename	owed	-	-
 proven_phone_format_e164	owed	-	-
 proven_phone_parse	owed	-	-
