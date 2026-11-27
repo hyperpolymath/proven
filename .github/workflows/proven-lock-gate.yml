@@ -50,7 +50,7 @@ jobs:
       - name: Judge actions.lock with the proven suite at its pinned commit
         env:
           # proven-cicd:local-next
-          PROVEN_SHA: "8a7f99ac29888b00408e4ae254cbb0b874db1d1f"
+          PROVEN_SHA: "ee40ae1ad4b14ed20392a382612ee92b41fdeace"
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
