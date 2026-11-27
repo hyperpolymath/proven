@@ -1,0 +1,327 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Proven mathematical completion UltraPlan
+:toc: preamble
+:toclevels: 3
+:sectnums:
+
+Status: *proposed, evidence-led; not a declaration that the library is proved*.
+Assessment date: 2026-11-23.
+Baseline: +hyperpolymath/proven+ +main+ at +8f131687df3e83dbb8ff94c99739af64a8381ce0+.
+Related repositories: +hyperpolymath/mathesis+ at +3756a6de82d4335e40c487f989ee80613463bff7+ and +metadatastician/standards+ (live normative policy; pin exact revision when implementing a gate).
+
+This plan extends, rather than replaces, link:../PROOF-NEEDS.adoc[PROOF-NEEDS], link:../ROADMAP.adoc[ROADMAP], link:proof-debt-triage.adoc[proof-debt-triage], the issue #90 discharge umbrella and the newer build and FFI work. It is a planning document; no checks were executed as part of its preparation. GitHub repository, source, issue and workflow evidence were inspected through the GitHub connector. Historic counts are explicitly not a fresh source census.
+
+== 1. Decision and goal
+
+*Goal*: make the safety claims of every *supported, released* Proven API provable or expressly qualified, and make the bridge from those claims to binaries and consumers independently testable and reproducible.
+
+This is not a promise that arbitrary execution in every foreign runtime cannot crash. A formally proved function is correct *relative to its stated proposition and assumptions*. Compilers, runtimes, pointer ownership, dependency implementations, calling conventions, process failures, operating systems and external input remain separate obligations.
+
+The release gate applies to a *closed, versioned support envelope*: a named API surface, module list, toolchain, platform, FFI backend, dependent libraries and supported language bindings. Unfinished applications and experimental bindings must be labelled as such, not silently included in a proof claim.
+
+Acceptance vocabulary:
+- +PROVEN+: a named proposition has a completed, checked proof with a reproducible witness and relevant assumptions.
+- +PROVEN-WITH-POSTULATES+, +ARGUED+, +TESTED-ONLY+, +OPEN+: retain the exact spellings and semantics of the normative PROOF-POLICY, not an invented local grade.
+- +PWG-3+, +PWG-2i+, +PWG-2ii+, +PWG-1+: apply *only* to theory theorem witnesses where the standards policy permits, and derive grades from canonical receipts; never conflate PWG with implementation correctness.
+- +OWED+ / +OWED-AXIOM+: inventory markers and their source-site provenance, not evidence of discharge.
+- Scaffolds and unavailable targets: not counted as released supported surfaces.
+
+Authoritative estate routing: https://github.com/metadatastician/standards/blob/main/3-practice/PROOF-POLICY.adoc[PROOF-POLICY]. Idris2 owns ABI/engineering obligations and the implementation-level safety contracts in this library. Agda owns implementation-independent theory, with Rocq and Lean rechecks. First-party Rust implementation obligations are verified against the code using Creusot with Pearlite contracts and Verus; first-party Ada uses SPARK. None of those substitutes for an executed Idris2 to RefC to Zig to consumer test.
+
+== 2. Current observed baseline and limits
+
+[cols="2,3,3",options="header"]
+|===
+|Aspect |Observed evidence |Qualification
+|Source size
+|Repository tree at baseline: 2,812 tracked blobs, approximately 806 +.idr+ files across source, apps and bindings
+|File count is not proof coverage; count modules and exported operations separately
+|Declared product version
+|+README.adoc+ advertises 1.2.0 and approximately 55 percent overall; +proven.ipkg+ and +tests.ipkg+ declare 1.1.0
+|Reconcile version authority before release; "55%" is not a proof metric
+|Proof debt
+|May 2026 triage reported 280 +OWED+ markers, 87 test holes and approximately 70 witness-only claim overstatements; issue #119 later described 268 remaining OWED stubs
+|Historical, non-comparable snapshots; run a fresh census
+|Claim integrity
+|Open issue #211 reports 67 +DISCHARGED+ annotations, 62 unverified in that assessment and four then found false
+|Treat all unlinked discharges as unverified until a per-claim checker receipt is established; a green package build alone needs explicit mapping to named claims
+|Compilation and tests
+|+Idris 2 CI+ at baseline is reported successful by GitHub Actions (2026-11-20), as are Zig FFI Build and E2E + Safety + Bench
+|Older issues #184, #204 and #230 describe earlier failures; retest and close with current evidence instead of inheriting stale diagnoses
+|Proved vertical slice
+|Header RefC soundness and Header theory replay report success at baseline; +scripts/test-header-bridge.sh+ tests the real ABI and intentionally failing mutant
+|A successful named slice does not prove all other exported ABI functions
+|Estate CI
+|At baseline, ECHIDNA Proof Verification, Hypatia, governance, secret scan, scorecard and other workflows report failures
+|Inspect each run and classify independent pre-existing blockers; no "all green" claim
+|Cross-language bindings
+|README advertises 120+ targets, but distinguishes complete bindings from scaffolds
+|Create current per-target, per-operation support and execution matrix; do not infer correctness from wrapper presence
+|Mathesis reception
+|Its pilot registry presents 48 theorem rows, with 5 PWG-2ii, 31 PWG-2i, 12 ungraded and no PWG-1 in the inspected generated view
+|No Proven engineering obligations are thereby graded; propose bridge records only after home evidence exists
+|Governance
+|This repo still holds legacy +.a2ml+ records and K9 examples; Mathesis uses a chora deed and praxis proof receipts
+|Perform the DEED/K9 migration as a separately reviewed standards-conformant change, not as blanket text replacement
+|===
+
+Primary sources:
+- https://github.com/hyperpolymath/proven/issues/211[issue #211], https://github.com/hyperpolymath/proven/issues/230[issue #230], https://github.com/hyperpolymath/proven/issues/235[issue #235], https://github.com/hyperpolymath/proven/issues/90[issue #90], https://github.com/hyperpolymath/proven/issues/119[issue #119].
+- link:../PROOF-NEEDS.adoc[PROOF-NEEDS]; link:proof-debt-triage.adoc[proof-debt-triage]; link:../MODULE-STATUS.txt[MODULE-STATUS] (dated 2026-03-29).
+- https://github.com/hyperpolymath/mathesis/blob/main/docs/decisions/0004-claims-registry.adoc[Mathesis ADR 0004]; https://github.com/hyperpolymath/mathesis/blob/main/docs/proposals/mathesis-research-programme.adoc[Mathesis research programme].
+
+=== G0 live evidence refresh (2026-11-23; proposed, not merged)
+
+The following are confirmed by an executed GitHub Actions proof-census step, not by the historical May inventory. The complete evidence and methodology are in https://github.com/hyperpolymath/proven/blob/audit/211-proof-claim-census-20261123/docs/reports/audit/proven-proof-census-2026-11-23.adoc[G0 census report] (draft https://github.com/hyperpolymath/proven/pull/243[PR #243]).
+
+* The 2026-11-23 lexical census scanned 386 +src/+ Idris2 files and 31 property-test Idris2 files at GitHub Actions merge checkout +f012a6e2f6077c0cbd86d12f3c113db59309c063+ (which changes no +src/+ files from baseline). The workflow census step and artifact upload both passed: https://github.com/hyperpolymath/proven/actions/runs/45156158115[run 45156158115], artifact +idris-proof-claim-census+.
+* Source annotations: 51 exact +||| DISCHARGED:+, 236 exact +||| OWED:+, 268 +0 name :+ erased-signature candidates, 4 active default-covering directives and 2 +assert_smaller+ candidates. Property-test annotations: 68 exact +||| OWED:+. These are counts of syntax under a stated lexical rule, *not* checked theorems, guaranteed bodyless declarations or complete proof-debt totals.
+* There are 93 companion +Proofs.idr+ files in the tree; +proven.ipkg+ includes 29, while the other 64 are deliberately outside the package's proof-check job. The workflow explicitly documents this exclusion, generally for work-in-progress or build prerequisites. Among the 51 current +DISCHARGED+ annotations, 24 occur in 7 included companion files and 27 in 9 excluded companion files. Verify any other checking routes before concluding they are unverified.
+* The historical #211 count of 67 +DISCHARGED+ claims is not automatically comparable to today's 51 exact-prefix markers. Reconcile by source path, declaration, revision and actual checker receipt, not by subtraction.
+* https://github.com/hyperpolymath/proven/pull/242[Draft PR #242] repairs the previously fail-open Trustfile escape scan, with planted controls; its +Enforce Trustfile Policies+ job passed remotely at +1c2f18e+. That result does not establish full mathematical proof coverage.
+
+Revised sequence within G0: first preserve this census, then link each claimed discharge to a named proof obligation and exact checker evidence; reconcile #211 and the intentionally excluded companion population. G0 and G1 remain *partially complete* until that linkage and all required controls are independently verified.
+
+== 3. Aspect-oriented finding and seam register
+
+These are assessed seams, not inferred blanket defects. +Observed+ means a documented issue, directly inspected file or run; +unknown+ means evidence remains to be collected.
+
+[cols="1,2,3,2",options="header"]
+|===
+|ID |Boundary |Finding |Priority / closure witness
+|S-01
+|Public claim to proof
+|Observed: README blanket assertions and historical ledger admit unmatched claims; issue #211 documents false +DISCHARGED+ markers
+|P0; exported claim -> exact theorem -> checked result or explicit lower status
+|S-02
+|Idris source to compiler/checker
+|Observed: current Idris CI success; historic parser/stall/test debt; totality and unknown postulates need source-accurate receipt, not grep alone
+|P0; fixed-revision full package and proof graph replay plus negative controls
+|S-03
+|Idris model to RefC and Zig
+|Observed: header vertical slice passes; external compiler/runtime and pointer representation remain assumptions; other ABI exports need equivalent coverage
+|P0; real generated-core integration with ABI ledger, negative mutants and provenance
+|S-04
+|Zig library to consumers
+|Observed: issue #235 documents static/dynamic +libproven+ mismatch for Rustler and a downstream build failure; PR #236 addresses ABI symbols
+|P0; real consumer link, load, execute and fail-closed contract on supported platforms
+|S-05
+|Proof documents to gates
+|Observed: trustfile negative-control defect tracked at #212; governance/security workflow failures still visible
+|P0; planted incorrect theorem, +believe_me+, forged receipt, wrong ABI all cause red check
+|S-06
+|Home proof to Mathesis registry
+|Observed: Mathesis ADR 0004 accepts canonical reader and receipt-derived grades; the atlas is a partial pilot
+|P1; pinned provenance and no authority inflation
+|S-07
+|Proof result to release
+|Unknown completeness: per-API release envelope and platform support matrix not yet established in this assessment
+|P1; immutable manifest and documented assumptions for each supported artifact
+|S-08
+|Legacy bot metadata to current canon
+|Observed: +.a2ml+ and +.k9.ncl+ remain in repository; canonical DEED and K9 policies exist in standards
+|P1; separate validated migration and dual K9/coordination checks
+|===
+
+Seam lenses: technical integration (assessed), organisational ownership (partially assessed: home/canon/atlas owners clear, operator assignments not proved), operational CI (assessed for run conclusions, not logs of each failure), trust/security (partially assessed), failure/negative controls (partially assessed), evidence integrity (assessed), evolution and migration (assessed), cost (qualitative only: no rate or budget measurements).
+
+== 4. UltraPlan: work orders and completion gates
+
+=== Gate G0: freeze the contract and repair public honesty (P0, begin here)
+
+Work:
+. Declare in +docs/status/PROOF-STATUS.adoc+ or a reviewed equivalent an authoritative, machine-checkable mapping from every *released exported operation* to specification, proof obligation, implementation entrypoint, FFI export, test, receipt and exception.
+. Do not fabricate a receipt or proof status. Derive a baseline census at a pinned commit, including +OWED+, declared assumptions, +DISCHARGED+ labels, real proof bodies, +assert_total+, +believe_me+, +covering+ and test holes.
+. Record the raw search/parser and the denominator by category (module, obligation, export, supported binding), and ensure comments cannot be mistaken for executable escape hatches.
+. Explicitly reconcile README, repository description, +MODULE-STATUS.txt+, +PROOF-NEEDS.adoc+ and the package versions 1.2.0 versus 1.1.0. Do not replace an overclaim with another.
+. Triage open PR #238 on claim wording, then update documentation against the actual release envelope.
+
+Exit: every top-level advertised guarantee either points to current proof evidence, is narrowly scoped as an engineering guarantee relative to assumptions, or is labelled as unproved/experimental; census can be regenerated and drift causes CI failure.
+
+=== Gate G1: make the proof checker honest and all essential CI evidence reproducible (P0)
+
+Work:
+. Replay the complete +proven.ipkg+ and +tests.ipkg+ paths at pinned toolchains, not merely a quick package subset. Keep the successful 2026-11-20 run as historical evidence.
+. Audit and fix the 67 historical +DISCHARGED+ claims of #211 against the exact propositions and compiler version. Do not count a bodyless declaration as a proof.
+. Check for +believe_me+, +really_believe_me+, +idris_crash+, +assert_total+, +postulate+, +Admitted+ and +sorry+ in the correct syntax contexts. Budget explicit assumptions only under the trusted-base policy.
+. Repair #212 with genuinely rejecting controls. Add planted false witness, missing proof body, forged current receipt, stale source SHA, bad ABI symbol, and missing compiler as separate negative controls.
+. Diagnose each failing baseline workflow by actual log: ECHIDNA, governance, Hypatia, secret scanning, scorecard, ClusterFuzzLite batch, Pages and mirror. Distinguish repo defects from infrastructure restrictions or non-required failures.
+. Fail closed when an essential checker does not execute. A successful unrelated or standalone Zig job is not a substitute for Idris-generated core verification.
+
+Exit: all *required* build, proof, claim-lint and release-contract gates pass on the same source commit, negative controls demonstrably fail, and no historical issue is marked resolved without a reproducer.
+
+=== Gate G2: discharge the core implementation proof backlog (P0/P1)
+
+Work:
+. Re-run proof debt census; rebase #90 and #119 around current evidence. Triage all remaining sites as theorem to discharge, totality refactor, bounded test-only claim, external explicit assumption, or removed/unsupported claim.
+. Work vertically through a small safety-critical surface before broad module coverage. Recommended first portfolios: SafeMath including exact integer/overflow semantics; SafeString/UTF8 and bounds; SafeHeader and SafeUrl; SafePath; SafeJson/serialization.
+. Treat crypto, random number generation, authentication, TLS/JWT/OAuth, time, concurrency and external filesystem effects as assumption-heavy: prove what the library controls, not the security of the external world.
+. Prioritise the historical witness-only security claims: SafeMCP, SafeOAuth, SafeWebAuthn, SafeWebSocket, SafeWebhook, SafeCapability, SafeJWK and SafeSecretShare. For heuristic detectors such as prompt injection, constrain or withdraw impossible global soundness claims.
+. Reuse proved helper lemmas for algebra, finite enumerations and bounded representations. Prefer structural totality and finite types to unverifiable FFI reflection. A bounded property test cannot silently discharge a universal theorem.
+. Use precise proof-status rows for each theorem and assumptions, including proof errors and counterexamples. Reopen claims whose implementation changes.
+
+Exit: every released core module has a reviewed statement-and-proof inventory; all in-scope released claims are discharged, conditionally verified with enumerated assumptions, or explicitly non-claims. Remaining OWED sites are excluded from the "fully proved" release envelope.
+
+=== Gate G3: prove contract preservation across the FFI seam (P0/P1)
+
+Work:
+. Use the proven header/RefC slice (#237) as the reference implementation and improve its reproducible evidence without turning its success into a global assertion.
+. Define and audit C ABI details in the authoritative Idris2 interface: exact widths, signedness, pointer ownership, allocation/free rules, nullability, length, error encoding, UTF-8 versus arbitrary bytes, concurrency/reentrancy, and exception/unwind behaviour.
+. Keep Zig a thin implementation of the ABI, with no duplicate safety algorithm; if a helper implements logic rather than marshalling, declare the new obligation and prove it or refactor.
+. Verify static/shared build and header symbol ledger, all intended exports, actual generated code, runtime loader behaviour, unsupported backend refusal and wrong-backend mutants.
+. Reconcile toolchain profiles: the main Idris CI uses 0.8.0; the header RefC job pins a specific Idris2 commit; record compatibility and do not silently treat them as identical.
+. Close #235 and #236 through an end-to-end Elixir/Rustler consumer; then test at least one additional independent binding and a C reference client on each supported platform.
+. For Rust consumer implementations, use Creusot/Pearlite and Verus where verification is applicable, rather than treating Idris2 ABI types as proof of Rust implementation behaviour.
+
+Exit: a source-to-consumer trace is replayable, artifacts and compiler inputs are pinned, and deliberately incorrect backends and ABI layouts are rejected.
+
+=== Gate G4: classify every binding and application (P1)
+
+Work:
+. Enumerate advertised binding targets into +supported+, +preview+, +scaffold+, +unavailable+; for each supported target list which exported operations it actually invokes.
+. For each operation/binding pair record successful compile, link/load, call, error semantics, memory semantics and representative adversarial corpus; use a common ABI contract-test manifest, not a hand-maintained success flag.
+. Select a few high-value bindings for the proven release envelope first (C, Zig and current consumers such as Elixir and Rust), then expand as evidence warrants.
+. Keep unverified parallel implementations clearly distinct from thin wrappers. No new TypeScript implementation is needed for this programme; existing legacy bindings remain assessed assets.
+. Keep the apps/ domain as a separately staged product programme. A verified library cannot inherit a complete server or service claim merely by importing Proven.
+
+Exit: support labels are computed from gates and exact contract coverage, and public release matrices cannot include scaffolds as completed bindings.
+
+=== Gate G5: connect evidence to Mathesis without moving the implementation (P1)
+
+Work:
+. Keep engineering and interface proofs at home in +proven+. Record their status using PROOF-POLICY section 5 and the trusted-base policy. Do not invent PWG values for those engineering proofs.
+. Admit an implementation-independent lemma to the Agda theory route only where there is a genuine general mathematical statement. Its home follows the standards placement rule; if it is general estate theory with no single system owner, propose Mathesis as home.
+. For every eligible theory claim, produce the canonical +*_praxis.deed+ receipt under +verification/receipts/+ using PROOF-POLICY section 8.5.1 and its canonical reader; record Agda, Rocq and Lean legs, correspondence evidence, checker versions, pinned imports, manifests, axiom reports and exact commits. No handwritten PWG.
+. Make a Proven-to-Mathesis cross-system record that points to the *same* claim identity and source commit, with three distinct links: theorem-to-specification, specification-to-Idris implementation, and Idris-to-ABI/consumer execution. Give each link its own assurance status and assumptions.
+. Extend Mathesis's claims/bridge atlas using its accepted ADR 0004 pipeline and I-JSON/JCS-conformant data if the canon permits. Mathesis derives and displays; it does not regenerate source proofs or upgrade their status.
+. Preserve proof provenance and residual loss as the Mathesis research programme specifies. Model statement correspondence separately from proof acceptance; use ECHIDNA for proposals/arbitration, not as an authority to waive failed kernel checks.
+. Use the resource-algebra evidence bottleneck only where the established mathematical record model and policy agree; never flatten mixed assurance stages into a misleading aggregate percentage.
+
+Exit: one pilot claim can be followed Proven source -> proof -> verified ABI -> downstream binary -> Mathesis atlas, and changes to any dependent commit downgrade or invalidate the relevant derived status. An intentionally false cross-repository correspondence is rejected.
+
+=== Gate G6: bring governance files and formats into current canon (P1)
+
+Work:
+. Inspect the exact current +metadatastician/standards+ DEED grammar/ANBF, K9 ANBF and coordination-protocol ANBF before changing a file. Apply the latest canon pin deliberately, not by copying values from another repository.
+. Inventory root and nested +.a2ml+, +.k9+ and +.k9.ncl+ files and classify their live readers, ownership and migration eligibility. DEED succeeds A2ML only where the authoritative mapping permits.
+. Plan one canonical repo chora deed; do not fabricate clauses, mint an identity, self-assign registry authority or delete a live A2ML consumer untested.
+. Check every encountered K9 against BOTH K9 and coordination standards; classify malformed, obsolete, non-conforming or valid with the precise validator and revision used.
+. Use I-JSON/JCS for structured evidence/JSONL as required by routing policy; use KYAML where its actual estate format route allows it. Do not invent extensions for a currently unspecified receipt or bypass canonical validators.
+. Retain SPDX, existing licences, dependency pins, AGENTS/agent policy and evidence lineage. Run migration in a separate reviewable PR with before/after validation and rollback.
+
+Exit: canonical format conformance, reader compatibility, exact pinning and dual K9 validation have current reproducible evidence.
+
+=== Gate G7: evidence-bearing supported release (P1/P2)
+
+Release contract:
+. Name all shipped artifacts, exact platforms, toolchains, modules, operations and bindings. Verify provenance, reproducibility and installation on a clean host.
+. Establish current checked proof rows for each promised property and an explicit list of residual assumptions and unsupported features.
+. Use independent adversarial testing, fuzzing and mutation testing to challenge the theorem-to-implementation and FFI contracts. These supplement formal proof; they do not turn tests into proofs.
+. Run security reviews, dependency checks, performance and failure-mode tests; include ABI evolution, backwards-compatible error handling, resource exhaustion, asynchronous/concurrent calls and recovery where supported.
+. Build a release manifest that fails if any promised property loses proof evidence, if an external assumption version changes without review, or if a required verification job is skipped.
+. Issue release notes that say *exactly what is proved* and why, with limitations. Never state "all code cannot crash" as an unconditional global guarantee.
+
+Exit: a third party can start at a documented guarantee, inspect the proposition, check its proof and assumed trusted base, build the signed/reproducible implementation and run the supported consumer contract against the same artifact.
+
+== 5. What is still missing or useful to add
+
+* Per-claim/proposition catalogue, not just module labels.
+* A source-to-theorem-to-symbol-to-binary-to-consumer traceability matrix with changing-status propagation.
+* Explicit threat models for safety-critical parsers, authentication, keys, cryptographic interfaces, filesystem and network operations.
+* A machine-checked proof-honesty gate that tests the difference between a witness type, a definition, a checked theorem and a text marker.
+* Binary/refinement evidence for real RefC representation and generated C; the proof of a mathematical model is not automatically proof of a compiler implementation.
+* ABI ownership, memory, error and scheduler semantics, with consumer tests and deliberately faulty surrogate backends.
+* Precise proof profiles: toolchain lock, input digest, trusted base and negative controls.
+* Security/release assumption ledger and expiry/reverification triggers, including dependency version changes.
+* Separate status for performance, constant-time claims, bounded resources, concurrency and temporal properties; prove them only when advertised.
+* A tracked, dated support census for each language binding, platform and operation.
+* A minimal proof-to-Mathesis adapter that consumes canonical source evidence and prevents grade inflation.
+* Regression classification for CI: bad proof, bad implementation, bad environment, intentionally unavailable check, or policy drift.
+
+Do not expand into new modules or 120+ fully supported bindings before the core proof-honesty and FFI gates are trustworthy.
+
+== 6. Sequencing and estimation discipline
+
+This is a *dependency-ordered* programme, not a calendar promise.
+
+[cols="1,3,3",options="header"]
+|===
+|Stage |Entry requirement |Exit proof
+|M0: truthful inventory
+|Existing main + source tree and issues
+|Reproducible census, current assertion matrix, claims reconciled
+|M1: credible checks
+|M0
+|Full critical CI + negative controls; no unverified +DISCHARGED+ assertions
+|M2: reference proven product slice
+|M1 and chosen API envelope
+|One completely tracked Idris2 + Zig + binary + consumer surface
+|M3: core proved release
+|M2
+|Closed contractual proof set across all core operations advertised in this release
+|M4: Mathesis reception
+|M2 and valid canonical claim/receipt schema
+|At least one source-anchored bidirectional bridge with no status inflation
+|M5: broad binding adoption
+|M3
+|Each added binding passes its independently recorded contract suite
+|M6: sustained production
+|M3-M5 as applicable
+|Release and change gates regenerate claims and reject regressions
+|===
+
+No defensible percentage of *mathematical completion* can be derived from the 55 percent overall README figure or the May 2026 debt counts. The date to a fully discharged estate-wide library is unbounded until the released scope and live theorem census are frozen; the initial candidate for release is a bounded, verified core subset, not the entire advertised multi-language estate.
+
+== 7. Model/effort allocation
+
+[cols="2,2,3",options="header"]
+|===
+|Work |Recommended GPT-6 effort |Rationale and handoff
+|Theorem scoping, architecture, policy arbitration, model/implementation correspondence, critical proof design
+|Extra High; Pro/Extra High only for intractable research proofs with an explicit goal
+|High consequences of a wrong proposition or false equivalence; produce written acceptance tests before handing off
+|Idris2 proof completion, totality repair, ABI type-design, high-risk cryptographic/parser contracts
+|High, escalate genuinely blocked proof reasoning to Extra High
+|Use small diff and real compiler feedback; no theorem label until checked
+|Ordinary implementation, build repairs, Zig/refc harness, checker negative controls, Rust Creusot/Verus, CI root-cause repairs
+|High
+|Requires exact source and iterative tests; escalating every mechanical change wastes credits
+|Census scripts, cross-reference tables, doc corrections, labels, standard format conversion after grammar confirmed
+|Medium
+|Deterministic, reviewable work; escalate only ambiguous schema or proof semantics
+|Cross-prover statement reconciliation, Mathesis bridge evidence, novel categorical/evidence algebra
+|Extra High
+|Proof of "same proposition" is not the same as two green compilers
+|Status recaps, PR tracking and release notes from verified receipts
+|Medium
+|No new inference of proof quality
+|===
+
+Change-effort handoff: use Extra High once for G0/G2/G5 proof architecture and the hard bridge cases. Then High to execute bounded proofs, FFI and CI tickets; Medium for inventories, documentation and repetitive integration. Return to Extra High only when a theorem statement, model mismatch, proof gap or new standard ambiguity demands it.
+
+== 8. First recommended batch and issue links
+
+. *P0.1*: regenerate proof/escape/claim/export census at +8f131687+; annotate historical counts versus current, reconcile issue #211 and #119. Acceptance: deterministic output, no unverified discharge.
+. *P0.2*: triage failures on the same main SHA, including ECHIDNA/governance/scans, then close or update stale #230 items with current reproducible results. Acceptance: tracked cause for every required red check.
+. *P0.3*: verify the exact current header RefC evidence and its remaining refinement assumptions, using #237 as exemplar; extend the contract harness to the Elixir/Rustler artifact in #235 and #236. Acceptance: external consumer calls actual verified core.
+. *P0.4*: scope public README and release descriptions as #238 proposes, reconcile version labels. Acceptance: no blanket unsupported "cannot crash" wording.
+. *P1.1*: choose the first closed release envelope (recommend SafeMath, header bytes and tightly bounded parsing/buffer operations), discharge/properly qualify its theorems under #90.
+. *P1.2*: create exactly one reviewed Proven-to-Mathesis proof/evidence bridge, against Mathesis ADR 0004 and the canonical proof receipt reader.
+. *P1.3*: separately audit/migrate eligible legacy governance records under DEED and the dual K9 checks.
+
+== 9. Stop rules
+
+Stop and re-scope any change that:
+- silently introduces an axiom, proof hole, skipped checker or unbounded +assert_total+ in a promised proof;
+- confuses proof of a model with refinement of the shipped binary;
+- treats a passing unit test or generated FFI stub as a proof;
+- assigns a PWG to an Idris2 engineering obligation;
+- grants Mathesis authority to assert proof status not derived from a canonical home receipt;
+- rewrites a standards-governed +.deed+ or +.k9+ without checking the actual governing specification;
+- migrates production interfaces while their consumer failure modes remain unexplained.
+
+== 10. Review and maintenance
+
+This document should be updated when an evidence-backed gate changes, when an owner ruling changes the standards mapping, or when a milestone is signed off. Every update should record the source commit, CI run, theorem or issue closed, remaining assumptions and why the next stage is now permitted.
+
+A successful implementation campaign can close this UltraPlan while leaving experimental modules and unsupported binding targets outside the proven release envelope. The completion condition is exact, inspectable truth about supported operations, not an assertion of universal perfection.
