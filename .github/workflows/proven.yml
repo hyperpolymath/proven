@@ -29,4 +29,4 @@ permissions:
 jobs:
   proven:
     # PIN: main of proven-cicd-and-workflows after #168 merged; the v0.1.0 tag is not cut yet (owner). Re-pin to the tag SHA if it differs.
-    uses: hyperpolymath/proven-cicd-and-workflows/.github/workflows/proven.yml@ee40ae1ad4b14ed20392a382612ee92b41fdeace # v0.1.0 (tag pending)
+    uses: hyperpolymath/proven-cicd-and-workflows/.github/workflows/proven.yml@95db2ad72d4886b53973859d9343940d66e4dccc # v0.1.1 (tag pending)
