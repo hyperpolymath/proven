@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Later list (proven swap)
+
+Items deliberately deferred by the swap PR, so nothing passes on absence.
+
+* Sweep 2 (regression, proof-regression, type-safe, coupling/drift), sweep 3 (B grade), sweep 4.
+* Idris2 provisioning in the umbrella (v0.2); idris2 waivers in `.proven.toml` expire 2026-12-10.
+* Proof witnesses and full agda `--cubical`.
+* Replace vendored `tests/kit/` with the umbrella-provided copy once kit-v0.1.0 exists; add a drift check.
+* Unify the Idris lexer shared by the escape-hatch gate and the proof census.

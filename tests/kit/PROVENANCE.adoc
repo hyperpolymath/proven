@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Vendored kit provenance
+
+Files in this directory are unchanged copies of `kit/` in
+hyperpolymath/proven-tests-and-benches at 55c9a152c5dc028b6a8da945b10812329101d36f
+(PR 121, pre-tag). Do not edit them here. Replace with the pin to `kit-v0.1.0`
+as F1 documents once that tag exists (see `.proven/LATER.adoc`).

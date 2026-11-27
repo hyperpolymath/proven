@@ -1,0 +1,126 @@
+# SPDX-License-Identifier: MPL-2.0
+# Manifest (schema proven/manifest/v1); see hyperpolymath/proven-cicd-and-workflows docs/PROVEN-ADOPTION.adoc.
+schema = "proven/manifest/v1"
+
+# Sweep 1 runs through tests/{unit,smoke,build,p2p}.sh (shell) and the Zig standalone FFI build they drive.
+
+[languages.ignore.ada]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.agda]
+reason = "Proof or specification sources checked by their own gates (header-theory.yml, echidna-verify.yml), not by a unit runner; the umbrella has no checker for this language in release 0.1. Agda moves to the proven-tests-and-benches kit check when kit-v0.1.0 is tagged."
+
+[languages.ignore.c]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.clojure]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.coq]
+reason = "Proof or specification sources checked by their own gates (header-theory.yml, echidna-verify.yml), not by a unit runner; the umbrella has no checker for this language in release 0.1. Agda moves to the proven-tests-and-benches kit check when kit-v0.1.0 is tagged."
+
+[languages.ignore.cpp]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.crystal]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.deno]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.elixir]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.gleam]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.go]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.haskell]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.java]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.julia]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.kotlin]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.lean]
+reason = "Proof or specification sources checked by their own gates (header-theory.yml, echidna-verify.yml), not by a unit runner; the umbrella has no checker for this language in release 0.1. Agda moves to the proven-tests-and-benches kit check when kit-v0.1.0 is tagged."
+
+[languages.ignore.lua]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.nim]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.node]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.ocaml]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.php]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.python]
+reason = "Residual: bindings/hy is a Hy (Python-hosted) binding with a pyproject.toml; estate Python ban means no Python test source here. Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.ruby]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.rust]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.scala]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.swift]
+reason = "Thin binding over the libproven C ABI (CLAUDE.md boundary rule); its tests need the Idris-built libproven, which the umbrella cannot provision in release 0.1. Tracked in .proven/LATER.adoc for sweep 2 onwards."
+
+[languages.ignore.tla]
+reason = "Proof or specification sources checked by their own gates (header-theory.yml, echidna-verify.yml), not by a unit runner; the umbrella has no checker for this language in release 0.1. Agda moves to the proven-tests-and-benches kit check when kit-v0.1.0 is tagged."
+
+[categories.unit.idris2.waiver]
+reason = "The Idris 2 0.8.0 evidence scripts (header-refc.yml, idris2-ci.yml) need a toolchain the umbrella cannot install in release 0.1; they keep running in their own workflows. Expires when idris2 lands in v0.2."
+until = "2026-12-10"
+
+[categories.smoke.idris2.waiver]
+reason = "The Idris 2 0.8.0 evidence scripts (header-refc.yml, idris2-ci.yml) need a toolchain the umbrella cannot install in release 0.1; they keep running in their own workflows. Expires when idris2 lands in v0.2."
+until = "2026-12-10"
+
+[categories.build.idris2.waiver]
+reason = "The Idris 2 0.8.0 evidence scripts (header-refc.yml, idris2-ci.yml) need a toolchain the umbrella cannot install in release 0.1; they keep running in their own workflows. Expires when idris2 lands in v0.2."
+until = "2026-12-10"
+
+[categories.p2p.idris2.waiver]
+reason = "The Idris 2 0.8.0 evidence scripts (header-refc.yml, idris2-ci.yml) need a toolchain the umbrella cannot install in release 0.1; they keep running in their own workflows. Expires when idris2 lands in v0.2."
+until = "2026-12-10"
+
+[categories.unit]
+command = "bash tests/unit.sh"
+
+[categories.smoke]
+command = "bash tests/smoke.sh"
+
+[categories.build]
+command = "bash tests/build.sh"
+
+[categories.p2p]
+command = "bash tests/p2p.sh"
+[categories.unit.shell]
+na = "tests/unit.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
+[categories.smoke.shell]
+na = "tests/smoke.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
+[categories.build.shell]
+na = "tests/build.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
+[categories.p2p.shell]
+na = "tests/p2p.sh needs the zig toolchain, which only the zig job provisions; that job runs it"
+
