@@ -12,6 +12,8 @@ on:
       - 'ffi/**'
       - 'bindings/**'
       - '.github/workflows/trustfile.yml'
+      - 'scripts/check-idris-escape-hatches.sh'
+      - 'scripts/test-idris-escape-gate.sh'
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -86,6 +88,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Reject Idris2 trust escapes (with planted controls)
+        run: |
+          set -euo pipefail
+          bash scripts/test-idris-escape-gate.sh
+          bash scripts/check-idris-escape-hatches.sh src
       - name: Check SPDX license compliance
         run: |
           # Estate licence policy: code is MPL-2.0, docs are CC-BY-SA-4.0.
